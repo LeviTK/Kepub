@@ -1,14 +1,14 @@
 # Kepub 开发方案
 
-> 文档版本：0.3 · 更新日期：2026-10-03
+> 文档版本：0.2 · 更新日期：2026-10-03
 >
 > 状态：设计与实施契约，尚未实现或通过实机验证。文中的命令、接口、性能目标均不是现有可用功能。
 >
-> 首发：Apple Silicon Mac；MyGo 0.2.0 为当前桌面层候选基线，主编辑窗口采用 Go + TypeScript + WKWebView；独立 `kepub` CLI。Amp 为唯一首期 Agent，Calibre 仅作为设计参考和可选外部适配器。
+> 首发：Apple Silicon Mac；MyGo + Go + TypeScript + WKWebView；独立 `kepub` CLI。Amp 为唯一首期 Agent，Calibre 仅作为设计参考和可选外部适配器。
 
 ## 0. 本次修订与阅读顺序
 
-v0.2 基于 Calibre 官方 CLI 手册、编辑/转换说明和相关源码修订；v0.3 在此基础上纳入 MyGo 0.2.0 的正式发行变化。Calibre 的研究范围、固定源码版本、证据及不应照搬的实现见 [Calibre CLI 研究](research/CALIBRE_CLI_REVIEW.md)；命令、计划、操作和机器输出见 [CLI 与操作契约](CLI_CONTRACT.md)。[v0.1 原文](history/DEVELOPMENT_PLAN_V0_1.md) 与 [v0.2 原文](history/DEVELOPMENT_PLAN_V0_2.md) 保留供追溯，不再作为优先实施基线。
+本版基于 Calibre 官方 CLI 手册、编辑/转换说明和相关源码修订。研究范围、固定源码版本、证据及不应照搬的实现见 [Calibre CLI 研究](research/CALIBRE_CLI_REVIEW.md)；命令、计划、操作和机器输出见 [CLI 与操作契约](CLI_CONTRACT.md)。[v0.1 原文](history/DEVELOPMENT_PLAN_V0_1.md) 按原始 Git blob 保留供追溯，不再作为优先实施基线。
 
 本次不是将 Kepub 改成 Calibre 的前端。主要调整如下：
 
@@ -20,16 +20,6 @@ v0.2 基于 Calibre 官方 CLI 手册、编辑/转换说明和相关源码修订
 | 诊断主要呈现问题列表 | 同时记录已检查、被阻断、不适用、未运行、依赖不可用 |
 | CLI 是一组入口 | CLI、GUI、Agent 共用 OperationRegistry、参数约束和输出契约 |
 | 外部能力尚未展开 | 明确 Calibre 可选适配、运行时依赖、行为探测及导入/导出副作用 |
-
-MyGo 0.2.0 带来的 v0.3 调整：
-
-| v0.2 假设/设计 | v0.3 决策 |
-|---|---|
-| MyGo 主要作为 Web 前端桌面壳 | MyGo 0.2.0 新增纯 Go `ui` 原生 UI；Kepub 主编辑窗口仍采用 Web 页面 + WKWebView，原生 UI 先用于独立设置、诊断、检查器等辅助窗口的候选实现 |
-| 网页能力直接挂在 `Window` | 按 0.2 breaking API 改为 `Window.Page()` 与 `WindowOptions.Page`；原生 UI 窗口的 `Page()` 为 nil |
-| 页面加载可用通用 ready 状态判断 | 不用 `document.readyState` 单独判定目标章节已就绪；必须核对目标 generation / bookPath，并等待实际目标文档或元素完成握手 |
-| CEF 可作为近期统一渲染后备 | MyGo 0.2.0 正式版未包含 CEF；当前公开 CEF PR 仍未合并且针对 Linux。Apple Silicon 首发继续只以 WKWebView 为基线 |
-| dev reload 的进程重叠由应用自行规避 | MyGo 0.2 已改为先停止旧 build 再启动新 build；Kepub 的 workspace 单写者、journal 和进程回收仍由自身负责，不能依赖 dev 行为代替生产数据保护 |
 
 保持不变：Mac-first、MyGo 可替换、纯 Go 核心、Amp CLI 优先、EPUBCheck 主校验、原书保护、候选审核、书籍预览与本机权限隔离。
 
@@ -76,21 +66,16 @@ MVP 不做书库数据库、OPDS/远程书库、多设备同步、邮件发送�
 |---|---|---|
 | EPUB 核心 | 独立 Go package | 不依赖 MyGo、Amp、Calibre 或 Java |
 | 应用服务 | Go | 命令调度、任务、操作、锁、审核与导出 |
-| 桌面壳 | MyGo 0.2.0 候选基线 | 只存在于 desktop 适配；版本在 M0 后冻结，隔离不足时替换预览实现 |
-| 主窗口 UI | TypeScript + Vite + React | Web 页面承载 Amp 面板、资源/目录导航和 Preview 容器；窄接口，不直接获得任意文件和进程权限 |
-| MyGo 原生 UI | 可选辅助窗口 | `github.com/egoist/mygo/ui`；macOS 使用 Metal 绘制、Core Text 排版。适合设置/诊断/检查器，不是 EPUB 渲染引擎；当前不假设能与 Web Page 任意混排在同一窗口 |
-| 预览 | WKWebView + MyGo `Page` API 的隔离出版物视图 | 页面加载、刷新、导航、崩溃恢复统一经过 `Window.Page()`；原书内容与可信 UI 不共享特权 |
+| 桌面壳 | MyGo | 只存在于 desktop 适配；隔离不足时替换预览实现 |
+| 前端 | TypeScript + Vite + React | 窄接口，不直接获得任意文件和进程权限 |
+| 预览 | WKWebView 隔离出版物视图 | 原书内容与可信 UI 不共享特权 |
 | Agent | Go 启动 Amp CLI，消费 JSONL | 不解析 ANSI 作为协议；SDK helper 可替换而非前置 |
 | 正式出版物检查 | EPUBCheck 独立进程 | 锁定版本、记录规则与输入哈希 |
 | Calibre | 可选外部工具 | 不导入核心；内部 API/Qt 依赖需逐能力验证 |
 | 历史 | 不可变 revision + 文件快照 | 不要求用户安装 Git；不以普通硬链接创建可写候选 |
 | 本机会话 | 单写者 + Unix socket | 不照搬公网 Content server |
 
-本版已重新核验 MyGo **v0.2.0**：tag `v0.2.0` 指向 commit `d51d2e28dff5b351bc67cf2280b5eef00f1267e8`，该 tag 的 `go.mod` 声明 Go 1.27.1。MyGo 0.2 是 breaking release：网页方法从 `Window` 移到独立 `Page`；新代码不得继续依赖旧的 `win.LoadURL()/win.Reload()/win.OnDOMReady()` 形式，而应先获取非 nil 的 `page := win.Page()`，网页配置放入 `WindowOptions.Page`。
-
-MyGo 0.2.0 的官方 release 不含 CEF。公开的 CEF PR 目前是 Linux 可选 Chromium 方案且仍未合并，所以 Kepub 的 Apple Silicon 首发不把 CEF、Chromium bundle 或 Electron 兼容层写入必需架构。
-
-Go、Amp、Java、EPUBCheck 的旧版本信息仍见 v0.1 来源记录；除本段已核验的 MyGo 外，不用旧信息冒充新版本认证。M0 分别冻结工具版本、commit/checksum、平台和协议样本。
+MyGo、Go、Amp、Java、EPUBCheck 的旧版本信息见 v0.1 来源记录。本版未重新验证这些二进制，不用旧信息冒充新版本认证。M0 分别冻结工具版本、commit/checksum、平台和协议样本。
 
 ### 2.2 分层
 
@@ -259,51 +244,13 @@ created → running → freezing → checking → review_required
 
 ## 6. 预览与编辑上下文
 
-### 6.1 MyGo 0.2 窗口与 Page 合约
-
-第一阶段主编辑窗口仍采用 Web 页面：可信应用壳负责 Amp 面板、目录/资源导航、状态与审核；EPUB 正文由其内部的隔离出版物视图显示。MyGo 0.2 新增的原生 UI 以“另一个窗口的内容类型”进入设计，而不是替代 WKWebView 的 EPUB 渲染。
-
-创建网页窗口后，所有网页操作统一走 `Page`：
-
-```go
-win := mygo.NewWindow(mygo.WindowOptions{
-    Title: "Kepub",
-    URL:   "/",
-    Page: mygo.PageOptions{
-        DevTools: mygo.DevToolsDisabled,
-    },
-})
-
-page := win.Page()
-if page == nil {
-    return errors.New("Kepub main window has no web page")
-}
-page.OnDOMReady(func() {
-    // 这里只表示当前顶层页面触发 DOMContentLoaded，
-    // 不能单独证明目标 EPUB generation 已经可交互。
-})
-```
-
-原生 UI 窗口通过 `WindowOptions.Content` 创建，其 `Page()` 返回 nil。MyGo 0.2 文档证明同一个应用可以同时拥有 Web 页面窗口和原生 UI 窗口；当前方案**不据此假定同一窗口中可以任意混排 native UI 与 WKWebView**。在上游出现稳定的同窗组合 API 并完成 Kepub 实测前，设置、诊断、检查器若采用原生 UI，均作为独立辅助窗口或后续替换实验。
-
-Preview readiness 必须绑定 `workspaceId + taskId + generation + bookPath`。不得仅轮询 `document.readyState === "complete"`：MyGo 自己的 macOS GUI 测试已经出现“初始空文档先返回 complete，目标页面尚未 commit”的竞态。Kepub 应采用：
-
-1. 后端生成目标 generation nonce，并先记录预期 `bookPath`。
-2. 顶层可信壳等待自身 `Page.OnDOMReady`。
-3. 出版物 frame/视图加载指定 generation；目标文档实际存在后发送最小 `PreviewReady{generation, bookPath}` 握手。
-4. 前端和后端都核对 nonce、当前视图及 bookPath；旧 generation 的晚到事件直接丢弃。
-5. 只有握手通过后才恢复 Locator、滚动位置、选区或允许自动化点击。
-6. `Page.OnRenderProcessGone` 触发时，将当前预览标记 unavailable/stale，重新建立同一稳定 generation，而不是悄悄切换到候选最新文件。
-
-release 构建默认关闭 DevTools；需要调试时显式开启。页面方法和事件只在非 nil `Page` 上调用，测试同时覆盖 Web 主窗口和无 Page 的 native 辅助窗口，避免将两种窗口类型混用。
-
-### 6.2 可信壳与不可信出版内容
+### 6.1 可信壳与不可信出版内容
 
 MyGo 自定义协议的顶层页面不能被当成天然安全沙箱。可信应用 UI 与出版物 frame/独立无桥 WKWebView 分离；禁书籍脚本、远程请求、表单、弹窗和顶层导航。每个 Go 服务仍校验窗口、工作区和操作授权。
 
 M0 必须验证 release 下 frame IPC、`file:`/`about:` 导航、SVG/嵌套文档、伪造消息、开发 localhost 信任和 CSP。隔离不成立即更换适配，不允许带风险进入后续 UI 开发。
 
-### 6.3 资源与稳定代际
+### 6.2 资源与稳定代际
 
 GUI scheme 和 CLI loopback HTTP 共用只读 PublicationHandler。每次访问验证 workspace/generation/BookPath；真实缺失返回错误，禁止 SPA fallback，禁止读出版清单以外的文件及符号链接逃逸。
 
@@ -313,7 +260,7 @@ XHTML 使用正确媒体类型；资源 MIME、字体、SVG、图片与 range �
 
 300–500ms 合并窗口只是初始调优值。依赖不明确时保守刷新当前章节。只有当前 workspace/task/generation 的事件可影响视图。
 
-### 6.4 定位与排版诊断
+### 6.3 定位与排版诊断
 
 统一 Locator：`bookPath + fragment + progression`，并绑定 revision/generation；无法可靠定位时返回失效，不跳到另一文件的同名 ID。CLI 首期 `--at 'EPUB/Text/ch01.xhtml#note1'`，更复杂 CSS/CFI/text quote 定位后续实现。
 
@@ -321,7 +268,7 @@ XHTML 使用正确媒体类型；资源 MIME、字体、SVG、图片与 range �
 
 制作模式保留原 CSS；阅读字号/夜间模式是用户覆盖层，不写回源书。后续可参考 Calibre 的样式来源检查，展示匹配规则/计算样式，但计算样式不反向覆盖原 CSS。[研究 §4]
 
-### 6.5 浏览器预览服务
+### 6.4 浏览器预览服务
 
 只监听 loopback；会话令牌不可预测，校验 Host/Origin，限制 CORS，日志脱敏且不加载远程追踪。GET 不能编辑，控制走独立本机 IPC。服务关闭撤销令牌。浏览器预览与 WKWebView 不作像素一致承诺。
 
@@ -423,10 +370,10 @@ encryption.xml 存在不直接判为 DRM；识别算法，字体混淆与 DRM �
 
 | 阶段 | 交付 | 必须通过 |
 |---|---|---|
-| M0 风险验证 | MyGo 0.2.0 release 隔离与 Page API、Amp JSONL、EPUBCheck、版本矩阵 | 主窗口按 `Window.Page()` 工作；目标 generation readiness 无空白页竞态；不可信书页不可调用 Go；真实继续/取消可复现；依赖与规则可追溯 |
+| M0 风险验证 | MyGo release 隔离、Amp JSONL、EPUBCheck、版本矩阵 | 不可信书页不可调用 Go；真实继续/取消可复现；依赖与规则可追溯 |
 | M1 纯核心 | 安全归档、Publication/BookPath、只读引用图、file CLI、注册表元数据 | 不起 GUI、不需 Amp/Calibre；无改动条目字节保持；partial coverage 显式 |
 | M2 确定性编辑 | 工作区/锁/快照、plan/apply、局部 metadata、安全 rename 子集 | 原子跨文件变更；过期计划拒绝；API外写不污染基线；失败回滚 |
-| M3 制作预览 | MyGo `Page` 生命周期、隔离视图、稳定代际、Locator、CLI serve | CSS/资源更新可见；页面 commit/readiness 可验证；render process 异常可恢复；中间坏状态不误导；本机服务无写越权 |
+| M3 制作预览 | 隔离视图、稳定代际、Locator、CLI serve | CSS/资源更新可见；中间坏状态不误导；本机服务无写越权 |
 | M4 Amp 闭环 | 原生 TUI/JSONL、内容编辑、范围审查、计划交接、审核导出 | GUI/CLI共同闭环；无并发写竞态；停止后冻结检查；输出绑定报告 |
 | M5 Mac 发布 | arm64 app/CLI、依赖发现、签名公证、干净机器验收 | 不要求 Go/Bun；缺可选依赖仍可用；无未解决数据破坏或越权 |
 | M6 可选扩展 | 一项 Calibre adapter、polish操作、工作流等逐项开放 | 每能力锁版本、fixtures、隔离、diff、失败恢复；不能扩大MVP前置 |
@@ -438,7 +385,6 @@ encryption.xml 存在不直接判为 DRM；识别算法，字体混淆与 DRM �
 - K-016：metadata/rename 的 plan/apply 与并发交接，纳入 M2。
 - K-017：检查依赖/coverage 与绑定式 FixProposal，纳入 M1/M4。
 - K-018：可选 Calibre adapter spike，纳入 M6，不阻塞核心发行。
-- K-019：MyGo 0.2.0 desktop spike：`Window.Page()`、`PageOptions`、readiness nonce、`OnRenderProcessGone`、native UI 独立辅助窗口和 release 隔离，纳入 M0/M3。
 
 上述是任务标识，不代表已创建 Issues。不要一次性生成整套应用后才补安全测试。
 
@@ -446,8 +392,6 @@ encryption.xml 存在不直接判为 DRM；识别算法，字体混淆与 DRM �
 
 | 场景 | 预期证据 |
 |---|---|
-| MyGo 0.2 Web 主窗口 / native 辅助窗口 | Web 窗口 `Page()` 非 nil、native 窗口为 nil；不调用错误类型 API；release 下两者生命周期稳定 |
-| 页面首开、连续切章、快速 reload、旧 generation 晚到、WebContent 崩溃 | 不以初始空文档 ready 冒充目标已就绪；只接受当前 nonce；崩溃后恢复相同稳定 generation |
 | EPUB2/3、深层 OPF、多 rootfile、nav 不在 spine | rootfile选择准确，阅读顺序与元数据保留 |
 | 中文、空格、`%`/fragment、错误大小写、Unicode碰撞 | 解析与落盘分离；不因Mac宽容而漏报 |
 | 跨目录改名 | 入站引用、移动文件出站引用、nav/OPF/CSS同时正确；无范围外改动 |
@@ -469,18 +413,8 @@ Go 单测/fuzz、fake Amp/Calibre进程、固定 EPUBCheck fixtures、前端状�
 
 ## 13. 来源与维护
 
-Calibre 相关事实仍定位在 [研究报告](research/CALIBRE_CLI_REVIEW.md)：官方 CLI 页面及说明文章、固定 Calibre commit `a1864306758688f62f386043a2b19cf3cbf38d6a` 的源码。在线手册与源码版本可能不同，均未据此宣称目标 Mac 已运行通过。
+本版新增事实的证据均定位在 [研究报告](research/CALIBRE_CLI_REVIEW.md)：官方 CLI 页面及说明文章、固定 Calibre commit `a1864306758688f62f386043a2b19cf3cbf38d6a` 的源码。在线手册与源码版本可能不同，均未据此宣称目标 Mac 已运行通过。
 
-MyGo v0.3 文档修订依据固定在 2026-10-03 发布的 **v0.2.0**（tag/commit `d51d2e28dff5b351bc67cf2280b5eef00f1267e8`）：
-- Release：<https://github.com/egoist/mygo/releases/tag/v0.2.0>，列出 native UI、Page API、dev reload 与 GUI test 修复。
-- 文档入口：<https://github.com/egoist/mygo/blob/v0.2.0/docs/README.md>。
-- Native UI：<https://github.com/egoist/mygo/blob/v0.2.0/docs/ui.md>；macOS 使用 Metal，文字使用系统 Core Text。
-- Window/Page API：<https://github.com/egoist/mygo/blob/v0.2.0/docs/windows.md>；breaking 迁移说明见 PR #24：<https://github.com/egoist/mygo/pull/24>。
-- 页面加载竞态修复：PR #26 <https://github.com/egoist/mygo/pull/26>，说明初始空白文档可先满足 `readyState === complete`，因此 Kepub 的 readiness 设计不能只依赖该状态。
-- dev reload 生命周期：PR #22 <https://github.com/egoist/mygo/pull/22>。
-- CEF 当前不是 0.2.0 正式能力；公开 PR #21 <https://github.com/egoist/mygo/pull/21> 仍未合并且目标为 Linux 可选 CEF。
-- v0.2.0 `go.mod`：<https://github.com/egoist/mygo/blob/v0.2.0/go.mod>，声明 Go 1.27.1。
+既有 MyGo/Amp/EPUB 来源入口保留于 [v0.1 来源记录](history/DEVELOPMENT_PLAN_V0_1.md#18-来源与核验记录)。EPUB 规范与检查器的实施基线仍需 M0 锁定，参考 [EPUB 3.3](https://www.w3.org/TR/epub-33/)、[Reading Systems](https://www.w3.org/TR/epub-rs-33/) 和 [EPUBCheck CLI](https://www.w3.org/publishing/epubcheck/docs/cli/)。
 
-既有 Amp/EPUB 来源入口保留于 [v0.1 来源记录](history/DEVELOPMENT_PLAN_V0_1.md#18-来源与核验记录)，v0.2 的 Calibre 设计原文保留于 [历史文档](history/DEVELOPMENT_PLAN_V0_2.md)。EPUB 规范与检查器的实施基线仍需 M0 锁定，参考 [EPUB 3.3](https://www.w3.org/TR/epub-33/)、[Reading Systems](https://www.w3.org/TR/epub-rs-33/) 和 [EPUBCheck CLI](https://www.w3.org/publishing/epubcheck/docs/cli/)。
-
-本次只更新设计文档并记录上游 MyGo 0.2.0 事实，不宣称已经在目标 Mac 编译 Kepub、实现 CLI、运行 Calibre/EPUBCheck/Amp 或完成性能与安全测试。
+本次只更新设计文档，不宣称已经编译、实现 CLI、运行 Calibre/EPUBCheck/Amp 或完成性能与安全测试。
