@@ -2,46 +2,57 @@
 
 面向 Amp 的 EPUB 阅读、制作预览与编辑工作台。
 
-**当前状态：开发方案阶段。仓库目前仅包含规划文档，尚未提供可运行的 GUI、CLI 或安装包。**
+**当前状态：开发设计 v0.2。仓库只有规划与研究文档，没有可运行的 GUI、CLI、安装包或已完成的实机测试。**
 
-## 开发方案
+## 文档
 
-完整方案见 **[Kepub 开发方案](docs/DEVELOPMENT_PLAN.md)**，包含架构、CLI 契约、EPUB 校验边界、安全要求、任务快照、实施里程碑和验收矩阵。
+- [开发方案 v0.2](docs/DEVELOPMENT_PLAN.md)：产品范围、架构、工作区、预览隔离、操作内核、校验与实施阶段。
+- [CLI 与操作契约](docs/CLI_CONTRACT.md)：拟定命令、OperationRegistry、plan/apply、机器输出、退出码与验收要求。
+- [Calibre CLI 与编辑内核研究](docs/research/CALIBRE_CLI_REVIEW.md)：官方命令全景、关键源码调用链、证据及采用/不采用的设计。
+- [开发方案 v0.1 历史原文](docs/history/DEVELOPMENT_PLAN_V0_1.md)：按原始内容保留的上一版设计。
 
 ## 产品方向
 
-第一阶段只适配 Apple Silicon Mac，采用 MyGo + Go + TypeScript + WKWebView。Amp 负责编辑出版内容；Kepub 负责工作区、阅读定位、实时预览、变更审核、规范校验和安全导出。后期再考虑跨平台。
+首发只适配 Apple Silicon Mac，后期再考虑跨平台。桌面端首选 MyGo + Go + TypeScript + WKWebView，独立 `kepub` CLI 与 GUI 共用 Go EPUB 核心。
+
+Amp 负责内容理解与编辑；Kepub 提供不依赖模型的确定性 EPUB 操作，并管理工作区、预览、差异、检查、审核和导出。Calibre 是参考和可选适配，不是运行核心功能的必需依赖。
 
 ```text
-打开 EPUB → 建立工作区 → 阅读并定位章节
-                         ↓
-                  Amp 编辑任务副本
-                         ↕
-                      实时预览
-                         ↓
-             查看差异 → 校验 → 接受或撤销
-                         ↓
-                   导出独立 EPUB
+打开 EPUB → 阅读并定位
+                ↓
+     确定性操作 或 Amp 编辑
+                ↓
+       候选结果 ↔ 实时预览
+                ↓
+ 差异 + 检查覆盖 → 审核接受 → 导出
 ```
 
-GUI 和独立 `kepub` CLI 共用 Go EPUB 核心；无界面命令不依赖桌面窗口。MVP 首选 Amp CLI 的结构化 JSON 流，不额外强制安装 Python SDK 或 Node SDK。
+## v0.2 的关键变化
+
+将转换、整理、结构编辑和只读查询分开；把引用分析、局部元数据修改和受限安全改名前移；GUI、CLI 与 Agent 共用操作注册表；增加绑定输入哈希的 plan/apply；检查结果包含被阻断和未运行的范围。
+
+原始 EPUB、accepted revision 与候选任务分离。`apply` 不等于 `accept`，`accept` 不等于 `export`；外部工具退出成功也不等于 EPUB 合规。
+
+不把 EPUB→EPUB 转换当通用保存/修复，不让 Amp 编辑普通硬链接快照，不把 Calibre 内部 Qt/WebEngine 检查器当纯 Go CLI 的轻依赖。
 
 ## 基本约束
 
-- 原始 EPUB、已接受版本和 Agent 候选结果分离，默认不覆盖原书。
-- 书籍页面是不可信内容，不能拥有应用的文件操作或进程启动权限。
-- 应用配置、聊天记录和工具文件不进入导出的 EPUB。
-- 制作预览、EPUBCheck 通过和完整阅读系统一致性分别说明，不混为一谈。
+- 原书默认不覆盖；未修改资源尽量保持原字节，结构修改必须维护引用。
+- 书籍页面不可信，不能拥有应用的文件或进程权限。
+- 配置、聊天记录、检查点和工具文件不进入 EPUB。
+- 正式导出以冻结归档及明确版本的 EPUBCheck 报告为依据。
+- 项目名 Kepub 不表示默认输出 Kobo KEPUB，默认仍是普通 EPUB。
 
-## 实施顺序
+## 实施路线
 
-| 阶段 | 交付目标 |
+| 阶段 | 目标 |
 |---|---|
-| M0 | 验证 MyGo 预览隔离、Amp 协议和依赖版本 |
-| M1 | EPUB 核心、文件级 CLI 和校验 |
-| M2 | 工作区、快照、任务和共享会话 |
-| M3 | MyGo 阅读预览与 CLI 预览服务 |
-| M4 | Amp 编辑、审核和导出闭环 |
-| M5 | Apple Silicon 打包、分发与实机验收 |
+| M0 | 验证 MyGo 安全预览、Amp 协议及依赖版本 |
+| M1 | EPUB 核心、路径/引用模型、文件级 CLI、覆盖报告 |
+| M2 | 工作区与确定性编辑，plan/apply、检查点、审核 |
+| M3 | MyGo 制作预览、Locator 与本机预览服务 |
+| M4 | Amp 编辑、工具交接、GUI/CLI审核导出闭环 |
+| M5 | Apple Silicon 打包分发和实机验收 |
+| M6 | 可选 Calibre 适配及其他受控扩展 |
 
-具体任务及每阶段通过条件以 [开发方案](docs/DEVELOPMENT_PLAN.md) 为准。文档中的命令和接口均为拟实现设计，不是当前可执行功能。
+所有命令与接口以设计文档为准，均待实现；不能将文档示例当作当前安装使用说明。
