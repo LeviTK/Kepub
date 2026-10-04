@@ -21,7 +21,9 @@
 - 从已验证 ZIP 生成 `SHA256SUMS`（主 JAR + lib，LC_ALL=C 排序、相对路径，共 40 行），
   清单自身固定 SHA-256 为
   `2a5456d59b1a2aebedea1a58afc98fb36546d74be39624c3f79ae624fe34a835`。
-  暖运行先验证清单自身，再验证每个 JAR，防止截断清单变成仅主 JAR 检查。
+  暖运行先验证清单自身，再从当前主 JAR 和 `lib/*.jar` 重新生成路径/hash 清单，
+  与固定清单逐字节比较；缺失、额外、改名或内容损坏均不允许复用。
+  这也防止截断清单变成仅主 JAR 检查。
   这是包完整性清单，不是跳过包管理器的自定义缓存 marker。
 - 在 HOME 同文件系统 staging 后 rename 发布到
   `$HOME/.local/lib/kepub-epubcheck-5.3.0`。修复时旧损坏目录先移入临时目录，
@@ -86,6 +88,36 @@ env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin /bin/bash -lc '
 - 根 `go.mod`/`go.sum`、SDK `go.mod`/`package-lock.json` 前后 SHA-256 均一致；
   SDK 原本没有 `go.sum`，运行后也未创建。`bash -n`、`git diff --check` 通过；
   两个 lifecycle 脚本保持 100755。
+
+## 增量修复：拒绝额外 JAR
+
+父线程复核发现，原 `sha256sum -c SHA256SUMS` 只校验记录内 40 个成员，
+不会拒绝额外 lib JAR，与 Q1 runtime 完整 JAR 集 pin 不一致。此增量以本线程原提交
+`2acabcb5047389b7d704e27b484bdfff6b64636e` 为基线。setup 暖检查和 resume
+均改为在 `LC_ALL=C` 下执行 `sha256sum epubcheck.jar lib/*.jar | cmp -s SHA256SUMS -`，
+保持固定清单自身的 hash 检查，不添加缓存 marker 或改变安装流程。
+
+实际在受管目录内执行：
+
+```sh
+checker="$HOME/.local/lib/kepub-epubcheck-5.3.0"
+cp "$checker/epubcheck.jar" "$checker/lib/kepub-parent-extra-test.jar"
+(cd "$checker" && sha256sum --status -c SHA256SUMS) # 原检查仍通过
+.agents/resume # 新检查退出 1，报告 missing or damaged
+.agents/setup  # 校验下载后重装，额外 JAR 消失
+```
+
+- extra-JAR resume 用时 0.26s，退出 1，不安装、不联网，额外 JAR 仍存在。
+- setup 修复用时 3.92s；ZIP/主 JAR/清单校验均 OK，重装后没有额外 JAR，
+  当前路径/hash 清单与固定清单完全相同。
+- 随后连续两次 setup 暖运行 2.74s / 2.75s，均 verified reuse；正常 resume 0.42s。
+- 再给现有 lib JAR 追加损坏字节，resume 拒绝；恢复后只改该 JAR 文件名但不改内容，
+  resume 仍拒绝。测试后恢复受管树，未留下测试 JAR。
+- 干净 `env -i … /bin/bash -lc` 再验工具及 JAR 版本通过；Go/EPUBCheck marker
+  各一次，根及 SDK 锁 hash 不变；`bash -n`、`git diff --check`、100755 检查通过。
+
+以上是本线程增量实测；前一节时序保留为原安装版本证据。增量仍只本地提交并上传
+基于原提交的 bundle，不推送，也不声称全新 server snapshot 已验证。
 
 ## 限制与交付
 

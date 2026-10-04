@@ -27,7 +27,7 @@ if [[ ! "$java_major" =~ ^[0-9]+$ ]] || ((java_major < 17)); then
 fi
 if [[ ! -f "$checker_dest/SHA256SUMS" ]] ||
    ! echo "2a5456d59b1a2aebedea1a58afc98fb36546d74be39624c3f79ae624fe34a835  $checker_dest/SHA256SUMS" | sha256sum --status -c - ||
-   ! (cd "$checker_dest" && sha256sum --status -c SHA256SUMS); then
+   ! (export LC_ALL=C; cd "$checker_dest" && sha256sum epubcheck.jar lib/*.jar | cmp -s SHA256SUMS -); then
   echo 'Managed EPUBCheck is missing or damaged; rerun .agents/setup' >&2
   exit 1
 fi

@@ -67,7 +67,7 @@ jar_sha=f7f96617c929371821609b88c8484d6dc9f24fe916499863c46094c5fb778a65
 manifest_sha=2a5456d59b1a2aebedea1a58afc98fb36546d74be39624c3f79ae624fe34a835
 if [[ -f "$checker_dest/SHA256SUMS" ]] &&
    echo "$manifest_sha  $checker_dest/SHA256SUMS" | sha256sum --status -c - &&
-   (cd "$checker_dest" && sha256sum --status -c SHA256SUMS); then
+   (export LC_ALL=C; cd "$checker_dest" && sha256sum epubcheck.jar lib/*.jar | cmp -s SHA256SUMS -); then
   echo "[epubcheck] reusing verified EPUBCheck $checker_version"
 else
   echo "[epubcheck] installing EPUBCheck $checker_version"
