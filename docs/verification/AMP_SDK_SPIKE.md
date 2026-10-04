@@ -15,6 +15,9 @@ npm test
 npm run check
 npm run demo
 
+# 共同限内 stderr：实测既有 completed/0，也有 TIMEOUT/1，未通过可靠排空门槛：
+npm run demo -- stderr_190000
+
 # 单独重现失败门槛，事件为 failed/TIMEOUT，命令预期退出 1：
 npm run demo -- stderr_parallel
 npm run demo -- exit_before_eof
@@ -22,6 +25,9 @@ npm run demo -- unterminated_oversize
 
 # 单独测试取消边界：
 node --test --test-name-pattern='AbortSignal boundary|delayed_writer|cancel_after_result' test/spike.test.mjs
+
+# 真实输出断开、上下文和 int64 边界：
+node --test --test-name-pattern='real EPIPE|context|int64' test/spike.test.mjs
 
 # 普通 Go 检查；npm test 已含 -race 单测：
 go test -count=1 ./...
@@ -68,13 +74,16 @@ CLI：测试时仅在 spawn 边界替换为 fake CLI
         └── 受控延迟写者（同进程组）
 ```
 
-- 一个监督程序/辅助进程只执行一个任务；保留 `requestId/workspaceId/taskId/generation`，sequence 从 1 严格递增，terminal 恰好一个，日志不进入 stdout。首行无法解析/超限、尚无可信任务标识时仅 stderr 报错并退出 2，不虚构任务 envelope。
-- 顶层 `bookPath/fragment/progression/selectedText/generation` 可传入；原型不自行读出版文件，也不把这些字段自动拼入模型 prompt。只有明确 `prompt` 通过 SDK `createUserMessage` 发往流式 stdin。测试包含中文、换行、`$(touch injected)` 与形似选项文本，验证它们仍是数据。
+- 一个监督程序/辅助进程只执行一个任务；保留 `requestId/workspaceId/taskId/generation`，sequence 从 1 严格递增，输出可写时 terminal 恰好一个，日志不进入 stdout。首行无法解析/超限、尚无可信任务标识时仅 stderr 报错并退出 2，不虚构任务 envelope。
+- Go 校验上下文：`generation` 可省略/null或非负 int64；`progression` 可省略/null或 0..1 数字；`bookPath/fragment/selectedText` 可省略或字符串，不接受 null。非法值在 SDK 启动前拒绝，错误 envelope 不回显非法 generation，而使用 null。测试覆盖边界、类型错误和非空选区。
+- 最终模型文本先保留原 `prompt`；仅当提供任一上述上下文字段时追加 `\n\nKepub task context (JSON):\n` + JSON 对象。只加入显式提供的五个字段，保留合法 null/空字符串，不加入未知字段、cwd、绑定或内部 ID，不自行读文件或附整书。Go 构造上下文文本，SDK `createUserMessage` 将完整文本发往流式 stdin。测试反解 JSON 比较非空选区，验证中文、换行、`$(touch injected)` 与形似选项内容仍是数据。
+- generation 原始数字由 Go 保留在上下文文本/事件中，实测 `9223372036854775807` 通过 SDK 后仍为精确字符串；超出 int64 拒绝。**JavaScript Number 的安全整数上限为 9007199254740991**：JS 宿主若在发送前或解析事件时使用普通 Number/JSON.parse，可能丢失更大 int64 的精度；本轮不改共同协议为字符串，也不把这类宿主舍入误称已解决。测试用 BigInt + `JSON.rawJSON` 发精确输入，并核对原始输出，而非依赖已舍入的 JS 事件数值。
 - 显式 SDK 选项为 `visibility:'private'`、`executor:'local'`、`mode:'ultra'`；续接只有 `continue:明确threadId`。固定 SDK 对 `local` **不输出 `--executor local`**，而是依赖 CLI 的本机默认路径；真实 CLI 配置及服务端既有线程执行器仍待验证，不能据 fake 声称强制远端线程变成本地。
 - `--bindings FILE` 是可信宿主输入，格式为 `{"schemaVersion":1,"threads":[{"threadId":"...","workspaceId":"...","taskId":"...","cwd":"绝对规范路径","baseRevision":"..."}]}`。Go 在启动前比对全部字段，拒绝缺失、重复、不同任务/版本/cwd 的续接。不是从候选内容中学习绑定，也不继续最近线程。
 - 开始控制与 Node IPC 每行最多 64 KiB，非法 UTF-8/无换行 EOF 拒绝；辅助消息最多 4096 条/累计 8 MiB，Go 排空 Node stderr 并最多打印 16 KiB。**这些不是 SDK 内部 CLI stdout/stderr 的原始传输上限。** Node V8 堆设 128 MiB 只是故障 containment，不是整个进程/CLI 子树 RSS 限额。
 - 正常成功需有效 success result、SDK 迭代完整正常结束、Node `Wait` 成功、进程组清空。`cliExitEvidence:'sdk-iterator-validated-zero'` 说明只依赖已核查 SDK 的 `waitForProcess/throwIfProcessFailed` 语义，未伪造原始 CLI exitCode；独立记录 `helperExitCode:0`。仍有子写者时先杀并回收，但结果是 `failed/WRITERS_AFTER_SDK`，不把强制停止写者后的候选升级为成功。
 - 取消先通过 IPC 调用 `AbortController.abort()`，100ms 后组 TERM，再 100ms 后组 KILL；Node 提前退出则直接进入组清理。Linux `PR_SET_CHILD_SUBREAPER` 收养孤儿，Node `Wait` 后才 `wait4(-pgid)`，直到 `kill(-pgid,0)` 返回 ESRCH。无法确认则 `failed/CLEANUP_UNCONFIRMED`；失败/取消的 `reviewRequired:false`。
+- Go 忽略 SIGPIPE 的默认退出行为并检查 stdout Encode 错误；运行中输出失败会走同一取消/组回收路径。terminal 本身无法交付时返回非零（当前 1），stderr 记录 `OUTPUT_FAILED: terminal undeliverable; EPIPE=true; cleanup.process-group.confirmed=true`。不声称已交付一个丢失的 terminal；该结果不能作为已完成/可接受。真实 OS 输出读端关闭测试覆盖运行中写者和仅 terminal 写入失败，确认进程均回收、回收完成后无继续写入。
 - 仅证明 `cleanup.scope:'process-group'`，不是操作系统沙箱。`setsid`、组外服务、外部写者、宿主自身 SIGKILL/机器断电不受此证明覆盖；未实现生产恢复 journal、写租约或冻结，不能据此接受/导出出版物。宿主必须持续消费 stdout/stderr。
 
 `npm run demo` 的实际事件形状：
@@ -95,6 +104,7 @@ CLI：测试时仅在 spawn 边界替换为 fake CLI
 | 分块 UTF-8 `chunked_utf8` | 每字节分块，中英文/astral emoji 准确还原 | 通过受控测试 |
 | 流式输入 `stream_input` | 真 SDK 将消息变成 `--stream-json-input` 的 JSONL，`request_id` 正确，prompt 不进入 argv | 通过；不等于出版事务幂等 |
 | 未知字段 `unknown_fields` | 额外字段/未知事件不影响有效 result，未给 generation 时 null | 通过 |
+| 共同限内 stderr `stderr_190000` | 尝试写 190,000 bytes、8 KiB 分块并等待 drain；同一 fixture 连续 5 次 demo 出现 4 completed / 1 TIMEOUT，另有早先 demo 超时 | **未通过可靠排空门槛**；结果随缓冲/时序变化，不因有成功样本而宣称通过 |
 | stderr 并行输出 `stderr_parallel` | fake 尝试写 2,883,584 bytes 并等待 drain；stdout 未结束时 SDK 没有读取 stderr，未达到完成标记，宿主 1.8s TIMEOUT 并清理 | **失败门槛**，不是正常排空成功 |
 | 消息超限 `message_limit` | 完整 70,000 字符消息经 SDK 解析后，被包装层 MESSAGE_LIMIT 拒绝 | 后置上限通过；原始读取上限未通过 |
 | 未结束超限 `unterminated_oversize` | 1 MiB 无换行输出已送入管道，未触发原始 64 KiB 限制，只靠 TIMEOUT | **失败门槛** |
@@ -108,14 +118,17 @@ CLI：测试时仅在 spawn 边界替换为 fake CLI
 | 成功后残留写者 `success_writer` | SDK 已正常结束但子写者仍在，Go 杀/回收并报 WRITERS_AFTER_SDK | 不冒充可冻结成功 |
 | AbortSignal 独立边界 `AbortSignal boundary` | CLI 因 SIGTERM 退出，组 TERM 前写者心跳仍增长；随后 Go 回收 | **SDK 单独不足**。测试仅用 400ms Node event-loop hold 暴露观察窗口，未修改信号/SDK行为 |
 | 明确 threadId `explicit threadId` | 正确 binding 映射 `threads continue T-...`；缺失/四字段不匹配均在启动前拒绝 | 通过受控测试；真实续接未测 |
+| 真实 EPIPE `real EPIPE` | 关闭实际 OS 输出读端；运行中的 TERM-resistant CLI/子写者均被回收；仅 terminal 失败也退出 1，没有伪造已交付 terminal | 包装层修复已验证，未修改 SDK |
 
 另有独立 Node helper 从不读取 stdin 的监督测试：60 KiB start 堵塞写入时，Go 仍按 deadline 杀/回收并返回 TIMEOUT。输入写入在单独 goroutine 保序执行，不阻塞取消/超时循环。
+
+190,000-byte 场景还以 1 KiB 分块复核，连续 5 次同样出现 4 completed / 1 TIMEOUT，说明不能靠调整分块大小宣称修复；交付保留 8 KiB fixture，SDK 未修改。其自动测试每轮运行三次，仅检查已观察到的两类结果都满足协议/回收约束：根据 fake 的独立 drain 完成标记，已完成必须 completed/CLI exit 0，未完成必须 TIMEOUT/CLI SIGTERM，并核对组内 PID 不存在。测试会打印每次观测；这是失败收敛验证，**不是可靠排空的通过断言**，门槛结论仍为失败。
 
 源码定位以锁定 npm 发行包 `node_modules/@ampcode/sdk/dist/index.js` 为准：`execute` 在 `yield* processOutputStream(...)` 后调用 `waitForProcess`；后者此时才添加 stderr data/exit listener，未先检查 `exitCode`；`spawnAmpCli` 把 signal 给单个 spawn；`killProcess` 只 kill 直接子进程；`processOutputStream` 使用 readline/JSON.parse，无原始行大小限制。上述位置由发行包而不是旧文档或自写 mock 推导，再用实包运行复现。没有宣称真实 Amp 服务已经出现这些故障。
 
 ## 验证状态与 Apple Silicon 缺口
 
-本轮 `npm ci`、`npm test`（25 个 Node 测试；Go race 单测）、`npm run check`（TypeScript noEmit + Go vet）通过。另将监督程序用 `go build -race` 构建后重跑完整 Node 集成矩阵，并通过根模块 `go test -count=1 ./...` / `go vet ./...` 回归。安装审计报告 0 vulnerabilities，但不代表安全认证。`GOOS=darwin GOARCH=arm64 go build` 通过，仅证明编译；非 Linux 运行分支明确拒绝建立未经验证的回收保证，不假装 macOS 已支持。
+初版 `npm ci` 与 25 个 Node 测试通过；共同上下文/EPIPE/190,000-byte stderr 增量后，`npm test` 为 **31 个 Node 测试**，另有 Go race 单测，`npm run check`（TypeScript noEmit + Go vet）通过。监督程序用 `go build -race` 构建后重跑完整 Node 集成矩阵；根模块 `go test -count=1 ./...` / `go vet ./...` 回归通过。安装审计报告 0 vulnerabilities，但不代表安全认证。`GOOS=darwin GOARCH=arm64 go build` 通过，仅证明编译；非 Linux 运行分支明确拒绝建立未经验证的回收保证，不假装 macOS 已支持。
 
 | 已测 | 未测/未实现 |
 |---|---|

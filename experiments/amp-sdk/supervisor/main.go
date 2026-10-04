@@ -32,6 +32,23 @@ type start struct {
 	Prompt        string          `json:"prompt"`
 	ThreadID      string          `json:"threadId,omitempty"`
 	Generation    json.RawMessage `json:"generation"`
+	BookPath      json.RawMessage `json:"bookPath"`
+	Fragment      json.RawMessage `json:"fragment"`
+	Progression   json.RawMessage `json:"progression"`
+	SelectedText  json.RawMessage `json:"selectedText"`
+}
+
+func (s start) context() map[string]json.RawMessage {
+	fields := map[string]json.RawMessage{
+		"bookPath": s.BookPath, "fragment": s.Fragment, "progression": s.Progression,
+		"selectedText": s.SelectedText, "generation": s.Generation,
+	}
+	for key, raw := range fields {
+		if len(raw) == 0 {
+			delete(fields, key)
+		}
+	}
+	return fields
 }
 
 type binding struct {
@@ -92,6 +109,25 @@ func validate(s start, bindingsPath string) error {
 	if s.SchemaVersion != 1 || s.Type != "start" || len(s.RequestID) == 0 || len(s.RequestID) > 256 || s.WorkspaceID == "" || s.TaskID == "" || s.BaseRevision == "" || s.Prompt == "" || !filepath.IsAbs(s.Cwd) {
 		return errors.New("INVALID_START")
 	}
+	for key, raw := range s.context() {
+		switch key {
+		case "generation":
+			var generation *int64
+			if json.Unmarshal(raw, &generation) != nil || (generation != nil && *generation < 0) {
+				return errors.New("INVALID_CONTEXT")
+			}
+		case "progression":
+			var progression *float64
+			if json.Unmarshal(raw, &progression) != nil || (progression != nil && (*progression < 0 || *progression > 1)) {
+				return errors.New("INVALID_CONTEXT")
+			}
+		default:
+			var text *string
+			if json.Unmarshal(raw, &text) != nil || text == nil {
+				return errors.New("INVALID_CONTEXT")
+			}
+		}
+	}
 	canonical, err := filepath.EvalSymlinks(s.Cwd)
 	info, statErr := os.Stat(s.Cwd)
 	if err != nil || statErr != nil || !info.IsDir() || canonical != s.Cwd {
@@ -144,6 +180,8 @@ func main() {
 }
 
 func run() int {
+	// Go otherwise exits on a broken fd 1 before we can reclaim the child group.
+	signal.Ignore(syscall.SIGPIPE)
 	node := flag.String("node", "node", "Node 26.10.0 executable")
 	helper := flag.String("helper", "dist/helper.js", "compiled helper path")
 	bindings := flag.String("bindings", "", "trusted schemaVersion 1 thread binding registry")
@@ -161,14 +199,24 @@ func run() int {
 		fmt.Fprintln(os.Stderr, "expected bounded start JSONL")
 		return 2 // No usable identity: cannot fabricate a public task envelope.
 	}
+	// An invalid incoming generation must not escape into the failure envelope.
+	var generation *int64
+	if json.Unmarshal(s.Generation, &generation) != nil || (generation != nil && *generation < 0) {
+		generation = nil
+	}
 	seq := 0
 	encode := json.NewEncoder(os.Stdout)
-	emit := func(typ string, data map[string]any) {
+	var outputErr error
+	emit := func(typ string, data map[string]any) error {
+		if outputErr != nil {
+			return outputErr
+		}
 		seq++
-		_ = encode.Encode(map[string]any{
+		outputErr = encode.Encode(map[string]any{
 			"schemaVersion": 1, "requestId": s.RequestID, "workspaceId": s.WorkspaceID,
-			"taskId": s.TaskID, "sequence": seq, "generation": s.Generation, "type": typ, "data": data,
+			"taskId": s.TaskID, "sequence": seq, "generation": generation, "type": typ, "data": data,
 		})
+		return outputErr
 	}
 	var thread any
 	if s.ThreadID != "" {
@@ -187,7 +235,10 @@ func run() int {
 		for k, v := range evidence {
 			data[k] = v
 		}
-		emit(typ, data)
+		if err := emit(typ, data); err != nil {
+			fmt.Fprintf(os.Stderr, "OUTPUT_FAILED: terminal undeliverable; EPIPE=%t; cleanup.process-group.confirmed=%t\n", errors.Is(err, syscall.EPIPE), cleaned)
+			return 1
+		}
 		if typ == "completed" {
 			return 0
 		}
@@ -195,6 +246,19 @@ func run() int {
 	}
 	if err := validate(s, *bindings); err != nil {
 		return terminal("failed", err.Error(), true, nil)
+	}
+	prompt := s.Prompt
+	if context := s.context(); len(context) > 0 {
+		data, _ := json.Marshal(context) // validated JSON, preserve raw numeric values
+		prompt += "\n\nKepub task context (JSON):\n" + string(data)
+	}
+	// Private helper input carries only what it needs, avoiding a duplicate copy
+	// of explicit context. Never read files or infer omitted context fields.
+	helperStart, err := json.Marshal(map[string]any{
+		"type": "start", "requestId": s.RequestID, "cwd": s.Cwd, "prompt": prompt, "threadId": s.ThreadID,
+	})
+	if err != nil || len(helperStart) > maxLine {
+		return terminal("failed", "MESSAGE_LIMIT", true, nil)
 	}
 	if err := enableReaping(); err != nil {
 		return terminal("failed", "PLATFORM_UNVERIFIED", false, nil)
@@ -227,11 +291,9 @@ func run() int {
 	control := make(chan []byte, 1)
 	writeErrors := make(chan error, 1)
 	defer close(control)
-	// Forward the original JSON so optional context fields remain intact. The
-	// helper only sends prompt, never automatically serializes selection/book files.
 	// Never block deadline/cancellation on a Node process not reading its stdin.
 	go func() {
-		if _, err := stdin.Write(append(first.raw, '\n')); err != nil {
+		if _, err := stdin.Write(append(helperStart, '\n')); err != nil {
 			writeErrors <- err
 			return
 		}
@@ -260,6 +322,9 @@ func run() int {
 			raw, _ := json.Marshal(map[string]any{"schemaVersion": 1, "type": "cancel", "requestId": s.RequestID})
 			control <- append(raw, '\n') // only the first stop sends a control
 		}
+	}
+	if outputErr != nil {
+		stop("OUTPUT_FAILED", false)
 	}
 	var result map[string]any
 	var waitErr error
@@ -305,7 +370,9 @@ func run() int {
 			switch p.Type {
 			case "assistant", "tool":
 				if reason == "" {
-					emit(p.Type, p.Data)
+					if err := emit(p.Type, p.Data); err != nil {
+						stop("OUTPUT_FAILED", false)
+					}
 				}
 			case "sdk_end":
 				if p.Data["cliExitEvidence"] != "sdk-iterator-validated-zero" {

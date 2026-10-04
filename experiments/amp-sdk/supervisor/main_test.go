@@ -68,3 +68,41 @@ func TestBindingIdentity(t *testing.T) {
 		}
 	}
 }
+
+func TestContextSchema(t *testing.T) {
+	cwd, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range []struct {
+		field, raw string
+		valid      bool
+	}{
+		{"generation", `null`, true}, {"generation", `0`, true},
+		{"generation", `9007199254740993`, true}, {"generation", `9223372036854775807`, true},
+		{"generation", `9223372036854775808`, false}, {"generation", `-1`, false},
+		{"generation", `0.5`, false}, {"generation", `"1"`, false}, {"generation", `{}`, false},
+		{"progression", `null`, true}, {"progression", `0`, true}, {"progression", `1`, true},
+		{"progression", `0.375`, true}, {"progression", `-0.001`, false}, {"progression", `1.001`, false},
+		{"progression", `"0.5"`, false}, {"progression", `[]`, false},
+		{"bookPath", `""`, true}, {"bookPath", `"Text/章.xhtml"`, true}, {"bookPath", `null`, false},
+		{"fragment", `"note-2"`, true}, {"fragment", `null`, false}, {"fragment", `1`, false},
+		{"selectedText", `"显式选区\n乙"`, true}, {"selectedText", `""`, true}, {"selectedText", `null`, false},
+	} {
+		t.Run(tt.field+"="+tt.raw, func(t *testing.T) {
+			s := start{SchemaVersion: 1, Type: "start", RequestID: "req", WorkspaceID: "ws", TaskID: "task", BaseRevision: "rev", Cwd: cwd, Prompt: "fixture"}
+			fields := map[string]*json.RawMessage{
+				"generation": &s.Generation, "progression": &s.Progression,
+				"bookPath": &s.BookPath, "fragment": &s.Fragment, "selectedText": &s.SelectedText,
+			}
+			*fields[tt.field] = json.RawMessage(tt.raw)
+			if err := validate(s, ""); (err == nil) != tt.valid {
+				t.Fatalf("valid=%t, got %v", tt.valid, err)
+			}
+			context := s.context()
+			if len(context) != 1 || string(context[tt.field]) != tt.raw {
+				t.Fatalf("explicit context changed or omitted fields were inferred: %v", context)
+			}
+		})
+	}
+}

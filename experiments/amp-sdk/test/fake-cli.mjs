@@ -25,22 +25,29 @@ function writer() {
 }
 
 await output({ type: 'system', subtype: 'init', cwd: process.cwd(), tools: [], mcp_servers: [] });
-if (['cancel_after', 'repeat_cancel', 'delayed_writer', 'success_writer', 'abort_boundary'].includes(scenario)) {
+if (['cancel_after', 'repeat_cancel', 'delayed_writer', 'success_writer', 'abort_boundary', 'epipe_writer'].includes(scenario)) {
   writer();
 }
-if (['cancel_before', 'cancel_after', 'repeat_cancel', 'delayed_writer', 'abort_boundary'].includes(scenario)) {
-  if (scenario === 'delayed_writer') process.on('SIGTERM', () => appendFileSync('cli-term', 'TERM\n'));
+if (['cancel_before', 'cancel_after', 'repeat_cancel', 'delayed_writer', 'abort_boundary', 'epipe_writer'].includes(scenario)) {
+  if (['delayed_writer', 'epipe_writer'].includes(scenario)) process.on('SIGTERM', () => appendFileSync('cli-term', 'TERM\n'));
   await output({ type: 'assistant', message: { content: [{ type: 'text', text: 'ready' }] } });
-  setInterval(() => {}, 1000);
+  if (scenario === 'epipe_writer') {
+    setInterval(() => { void output({ type: 'assistant', message: { content: [{ type: 'text', text: 'still writing' }] } }); }, 25);
+  } else {
+    setInterval(() => {}, 1000);
+  }
 } else if (scenario === 'unterminated_oversize') {
   if (!process.stdout.write('x'.repeat(1024 * 1024))) await once(process.stdout, 'drain');
   writeFileSync('oversize-sent', 'yes');
   setInterval(() => {}, 1000);
 } else {
-  if (scenario === 'stderr_parallel') {
+  if (scenario === 'stderr_parallel' || scenario === 'stderr_190000') {
     writeFileSync('stderr-started', 'yes');
-    for (let i = 0; i < 128; i++) {
-      if (!process.stderr.write('diagnostic '.repeat(2048))) await once(process.stderr, 'drain');
+    let remaining = scenario === 'stderr_190000' ? 190000 : 2883584;
+    while (remaining > 0) {
+      const size = Math.min(remaining, 8192);
+      if (!process.stderr.write('d'.repeat(size))) await once(process.stderr, 'drain');
+      remaining -= size;
     }
     writeFileSync('stderr-finished', 'yes');
   } else {
