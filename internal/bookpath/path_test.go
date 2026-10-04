@@ -23,6 +23,33 @@ func TestResolve(t *testing.T) {
 		}
 	}
 }
+
+func TestResolveReferenceComponents(t *testing.T) {
+	for _, tc := range []struct {
+		href string
+		want Reference
+	}{
+		{"#%E6%B3%A8%201", Reference{Path: "书/Text/ch.xhtml", Fragment: "注 1"}},
+		{"?edition=2#note", Reference{Path: "书/Text/ch.xhtml", Fragment: "note", Query: "edition=2"}},
+		{"", Reference{Path: "书/Text/ch.xhtml"}},
+		{"../Images/a%23b%25.svg?x=%23#%2520", Reference{Path: "书/Images/a#b%.svg", Fragment: "%20", Query: "x=%23"}},
+		{"https://example.invalid/x#frag", Reference{Fragment: "frag", External: true}},
+		{"//example.invalid/x", Reference{External: true}},
+		{"data:image/png;base64,AAAA", Reference{External: true}},
+		{"file:///etc/passwd", Reference{External: true}},
+	} {
+		got, err := ResolveReference("书/Text/ch.xhtml", Href(tc.href))
+		if err != nil || got != tc.want {
+			t.Fatalf("%q: %+v, %v; want %+v", tc.href, got, err, tc.want)
+		}
+	}
+	for _, h := range []string{"../../../outside", "/absolute", "%2fabsolute", "%xx", "#%xx", "a%5cb", "a%00b"} {
+		if got, err := ResolveReference("书/Text/ch.xhtml", Href(h)); err == nil {
+			t.Fatalf("accepted unsafe/invalid %q: %+v", h, got)
+		}
+	}
+}
+
 func TestCollisionAndExactNames(t *testing.T) {
 	for _, pair := range [][2]string{{"Text/CH.xhtml", "text/ch.xhtml"}, {"é.xhtml", "e\u0301.xhtml"}, {"Straße/a", "STRASSE/a"}} {
 		if CollisionKey(BookPath(pair[0])) != CollisionKey(BookPath(pair[1])) {

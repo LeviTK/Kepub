@@ -3,6 +3,7 @@ package publication
 import (
 	"bytes"
 	"encoding/xml"
+	"fmt"
 	"io"
 	"strings"
 	"unicode/utf8"
@@ -17,10 +18,22 @@ const containerNS = "urn:oasis:names:tc:opendocument:xmlns:container"
 const XMLLimit = 8 << 20
 
 type Element struct {
-	Name       xml.Name   `json:"name"`
-	Attributes []xml.Attr `json:"attributes"`
-	Text       string     `json:"text"`
-	Children   []*Element `json:"children"`
+	Name                   xml.Name   `json:"name"`
+	Attributes             []xml.Attr `json:"attributes"`
+	Text                   string     `json:"text"`
+	Children               []*Element `json:"children"`
+	Content                string     `json:"-"` // Mixed text in document order, for navigation labels.
+	Location               string     `json:"-"` // Structural position, not a writable byte offset.
+	ProcessingInstructions []string   `json:"-"` // Document-level unknown reference syntax.
+}
+
+func (e *Element) Attribute(ns, name string) (string, bool) {
+	for _, a := range e.Attributes {
+		if a.Name.Space == ns && a.Name.Local == name {
+			return a.Value, true
+		}
+	}
+	return "", false
 }
 
 func (e *Element) attr(name string) string {
@@ -48,17 +61,37 @@ func one(e *Element, ns, name string) (*Element, error) {
 	return list[0], nil
 }
 
+// ReadXML shares the bounded, non-networked parser with read-only indexes.
+func ReadXML(a *archive.Archive, p bookpath.BookPath) (*Element, error) {
+	b, err := a.Read(p, XMLLimit)
+	if err != nil {
+		return nil, err
+	}
+	return parseXML(b)
+}
+
 // Only UTF-8 and XML's built-in entities are accepted. No CharsetReader,
 // custom entity map, DTD, resolver or network client is installed.
 func parseXML(b []byte) (*Element, error) {
+	if len(b) > XMLLimit {
+		return nil, fault.New(1, "XML_LIMIT", "XML input exceeds parsing limit")
+	}
 	if !utf8.Valid(b) {
 		return nil, fault.New(3, "UNSUPPORTED_XML_ENCODING", "M1-A supports UTF-8 XML only")
 	}
 	b = bytes.TrimPrefix(b, []byte{0xef, 0xbb, 0xbf})
 	d := xml.NewDecoder(bytes.NewReader(b))
-	stack := []*Element{}
+	type frame struct {
+		e       *Element
+		counts  map[string]int
+		text    strings.Builder
+		content strings.Builder
+	}
+	stack := []*frame{}
 	var root *Element
+	instructions := []string{}
 	tokens := 0
+	indexedBytes := 0
 	for {
 		t, err := d.Token()
 		if err == io.EOF {
@@ -74,6 +107,10 @@ func parseXML(b []byte) (*Element, error) {
 		switch t := t.(type) {
 		case xml.Directive:
 			return nil, fault.New(1, "XML_DTD_FORBIDDEN", "DTD/directives are not supported")
+		case xml.ProcInst:
+			if t.Target != "xml" {
+				instructions = append(instructions, t.Target)
+			}
 		case xml.StartElement:
 			if len(stack) >= 128 {
 				return nil, fault.New(1, "XML_LIMIT", "XML depth exceeds 128")
@@ -88,7 +125,7 @@ func parseXML(b []byte) (*Element, error) {
 					return nil, fault.New(3, "UNSUPPORTED_XML_BASE", "xml:base is not supported in M1-A")
 				}
 			}
-			e := &Element{Name: t.Name, Attributes: t.Attr, Children: []*Element{}}
+			e := &Element{Name: t.Name, Attributes: t.Attr, Children: []*Element{}, Location: "/" + t.Name.Local + "[1]"}
 			if len(stack) == 0 {
 				if root != nil {
 					return nil, fault.New(1, "XML_NOT_WELL_FORMED", "multiple XML roots")
@@ -96,10 +133,21 @@ func parseXML(b []byte) (*Element, error) {
 				root = e
 			} else {
 				p := stack[len(stack)-1]
-				p.Children = append(p.Children, e)
+				p.counts[e.Name.Local]++
+				e.Location = fmt.Sprintf("%s/%s[%d]", p.e.Location, e.Name.Local, p.counts[e.Name.Local])
+				p.e.Children = append(p.e.Children, e)
 			}
-			stack = append(stack, e)
+			indexedBytes += len(e.Location)
+			stack = append(stack, &frame{e: e, counts: map[string]int{}})
 		case xml.EndElement:
+			current := stack[len(stack)-1]
+			current.e.Text = current.text.String()
+			current.e.Content = current.content.String()
+			if len(stack) > 1 {
+				parent := stack[len(stack)-2]
+				indexedBytes += len(current.e.Content)
+				parent.content.WriteString(current.e.Content)
+			}
 			stack = stack[:len(stack)-1]
 		case xml.CharData:
 			if len(stack) == 0 {
@@ -107,13 +155,19 @@ func parseXML(b []byte) (*Element, error) {
 					return nil, fault.New(1, "XML_NOT_WELL_FORMED", "text outside XML root")
 				}
 			} else {
-				stack[len(stack)-1].Text += string(t)
+				indexedBytes += 2 * len(t)
+				stack[len(stack)-1].text.Write(t)
+				stack[len(stack)-1].content.Write(t)
 			}
+		}
+		if indexedBytes > 32<<20 {
+			return nil, fault.New(1, "XML_LIMIT", "XML text/location index exceeds 32 MiB")
 		}
 	}
 	if root == nil || len(stack) != 0 {
 		return nil, fault.New(1, "XML_NOT_WELL_FORMED", "missing/unfinished XML root")
 	}
+	root.ProcessingInstructions = instructions
 	return root, nil
 }
 
@@ -168,7 +222,7 @@ func Load(a *archive.Archive, selected string) (*Publication, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &Publication{Rootfiles: []Rootfile{}, Manifest: []Item{}, Spine: []Itemref{}, Limitations: []Limitation{{"READ_ONLY_PARTIAL", "Metadata/manifest/spine only; no conformance, navigation, references, rendering or editing verification"}}}
+	p := &Publication{Rootfiles: []Rootfile{}, Manifest: []Item{}, Spine: []Itemref{}, Limitations: []Limitation{{"READ_ONLY_PARTIAL", "Read-only structure indexes; navigation/references require their inspect sections and coverage; no EPUB conformance, rendering or editing verification"}}}
 	seen := map[bookpath.BookPath]bool{}
 	for _, r := range roots.children(containerNS, "rootfile") {
 		bp, e := bookpath.Parse(r.attr("full-path"))

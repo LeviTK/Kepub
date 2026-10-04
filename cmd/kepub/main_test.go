@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/LeviTK/Kepub/internal/testfixture"
@@ -42,7 +43,7 @@ func TestJSONSuccessFailureAndSelection(t *testing.T) {
 	book := filepath.Join(dir, "含 空格.epub")
 	testfixture.ZIP(t, book, testfixture.EPUB("3.0", false))
 	info := invoke(t, []string{"info", book, "--json"}, 0)["data"].(map[string]any)
-	for _, section := range []string{"metadata", "manifest", "spine", "capabilities"} {
+	for _, section := range []string{"metadata", "manifest", "spine", "navigation", "references", "capabilities"} {
 		r := invoke(t, []string{"inspect", book, "--section", section, "--json"}, 0)
 		data := r["data"].(map[string]any)
 		if data["rootfile"] != info["rootfile"] || data["section"] != section {
@@ -65,11 +66,15 @@ func TestJSONSuccessFailureAndSelection(t *testing.T) {
 		{[]string{"info", book, "--bogus"}, 2, "INVALID_ARGUMENT"},
 		{[]string{"--json", "info", book, "--bogus"}, 2, "INVALID_ARGUMENT"},
 		{[]string{"info", book, "--rootfile", "书/Deep/package.opf", "--rootfile", "alternate.opf"}, 2, "INVALID_ARGUMENT"},
-		{[]string{"toc", book}, 3, "CAPABILITY_UNAVAILABLE"},
+		{[]string{"toc", book, "--resource", "x"}, 2, "INVALID_ARGUMENT"},
 		{[]string{"pack", dir}, 3, "CAPABILITY_UNAVAILABLE"},
 		{[]string{"validate", book}, 3, "CAPABILITY_UNAVAILABLE"},
 		{[]string{"info", filepath.Join(dir, "missing")}, 6, "IO_ERROR"},
-		{[]string{"inspect", book, "--section", "references"}, 3, "CAPABILITY_UNAVAILABLE"},
+		{[]string{"inspect", book, "--section", "references", "--direction", "incoming"}, 2, "INVALID_ARGUMENT"},
+		{[]string{"inspect", book, "--section", "references", "--resource", "x", "--direction", "sideways"}, 2, "INVALID_ARGUMENT"},
+		{[]string{"inspect", book, "--section", "references", "--resource", "../x"}, 2, "INVALID_ARGUMENT"},
+		{[]string{"inspect", filepath.Join(dir, "missing"), "--section", "references", "--direction", "incoming"}, 2, "INVALID_ARGUMENT"},
+		{[]string{"inspect", book, "--section", "navigation", "--resource", "x"}, 2, "INVALID_ARGUMENT"},
 		{[]string{"info", dir}, 3, "UNSUPPORTED_INPUT"},
 	} {
 		args := append(tc.args, "--json")
@@ -96,7 +101,7 @@ func TestJSONSuccessFailureAndSelection(t *testing.T) {
 			available++
 		}
 	}
-	if available != 3 {
+	if available != 5 {
 		t.Fatal("overstated capabilities", cap)
 	}
 }
@@ -139,13 +144,24 @@ func TestCLIProcessSmoke(t *testing.T) {
 		t.Fatalf("build: %s %v", out, e)
 	}
 	book := filepath.Join(dir, "-含 空格.epub")
-	testfixture.ZIP(t, book, testfixture.EPUB("3.0", false))
+	testfixture.ZIP(t, book, testfixture.ReferenceEPUB())
+	testfixture.ZIP(t, filepath.Join(dir, "ncx.epub"), testfixture.NavigationEPUB("2.0"))
+	before, err := os.ReadFile(book)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, tc := range []struct {
 		args []string
 		code int
 	}{
 		{[]string{"info", "--json", "--", "-含 空格.epub"}, 0},
 		{[]string{"inspect", "--section=manifest", "--json", "--", "-含 空格.epub"}, 0},
+		{[]string{"toc", "--json", "--", "-含 空格.epub"}, 0},
+		{[]string{"toc", "--json", "--", "ncx.epub"}, 0},
+		{[]string{"inspect", "--section=navigation", "--json", "--", "-含 空格.epub"}, 0},
+		{[]string{"inspect", "--section=references", "--resource=书/Text/-first.xhtml", "--direction=outgoing", "--json", "--", "-含 空格.epub"}, 0},
+		{[]string{"inspect", "--section=references", "--resource=书/Text/-first.xhtml", "--direction=incoming", "--json", "--", "-含 空格.epub"}, 0},
+		{[]string{"inspect", "--section=references", "--direction=incoming", "--json", "--", "-含 空格.epub"}, 2},
 		{[]string{"info", "--json", "--", "missing.epub"}, 6},
 	} {
 		c := exec.Command(binary, tc.args...)
@@ -176,6 +192,64 @@ func TestCLIProcessSmoke(t *testing.T) {
 		}
 		if env.OK != (tc.code == 0) {
 			t.Fatal(env)
+		}
+		if stderr.Len() != 0 {
+			t.Fatal("unexpected process stderr", stderr.String())
+		}
+		if env.OK && (tc.args[0] == "toc" || tc.args[1] == "--section=navigation") {
+			v := env.Data.(map[string]any)["value"].(map[string]any)
+			label := "Part A"
+			if tc.args[len(tc.args)-1] == "ncx.epub" {
+				label = "Second & final"
+				if v["format"] != "epub2-ncx" {
+					t.Fatal("wrong NCX process format", v)
+				}
+			}
+			if v["status"] != "complete" || len(v["entries"].([]any)) != 2 || v["entries"].([]any)[0].(map[string]any)["label"] != label {
+				t.Fatal("process returned wrong TOC", env.Data)
+			}
+		}
+		t.Logf("kepub %v: exit=%d, single JSON envelope, no stderr", tc.args, code)
+		if env.OK && tc.args[1] == "--section=references" {
+			v := env.Data.(map[string]any)["value"].(map[string]any)
+			want := 2
+			if v["direction"] == "incoming" {
+				want = 7
+			}
+			if len(v["edges"].([]any)) != want || v["status"] != "partial" || len(v["coverage"].([]any)) == 0 || len(v["diagnostics"].([]any)) == 0 {
+				t.Fatal("process lost edges/coverage/diagnostics", env.Data)
+			}
+		}
+	}
+	after, err := os.ReadFile(book)
+	if err != nil || !bytes.Equal(before, after) {
+		t.Fatal("CLI changed original archive", err)
+	}
+}
+
+func TestTOCAliasAndBlockedQueryData(t *testing.T) {
+	for _, version := range []string{"2.0", "3.0"} {
+		book := filepath.Join(t.TempDir(), "book.epub")
+		entries := testfixture.NavigationEPUB(version)
+		testfixture.ZIP(t, book, entries)
+		toc := invoke(t, []string{"toc", book, "--json"}, 0)
+		inspect := invoke(t, []string{"inspect", book, "--section", "navigation", "--json"}, 0)
+		if !reflect.DeepEqual(toc["data"], inspect["data"]) {
+			t.Fatal("toc and inspect diverged", toc, inspect)
+		}
+		for i := range entries {
+			if version == "2.0" && entries[i].Name == "书/toc.ncx" || version == "3.0" && entries[i].Name == "书/nav.xhtml" {
+				entries[i].Data = []byte(`<broken>`)
+			}
+		}
+		testfixture.ZIP(t, book, entries)
+		r := invoke(t, []string{"toc", book, "--json"}, 0)["data"].(map[string]any)["value"].(map[string]any)
+		if r["status"] != "blocked" || len(r["entries"].([]any)) != 0 || r["diagnostics"].([]any)[0].(map[string]any)["code"] != "XML_NOT_WELL_FORMED" {
+			t.Fatal("query success hid blocked navigation", r)
+		}
+		r = invoke(t, []string{"inspect", book, "--section", "references", "--json"}, 0)["data"].(map[string]any)["value"].(map[string]any)
+		if r["status"] != "partial" || len(r["diagnostics"].([]any)) == 0 {
+			t.Fatal("query success hid blocked references", r)
 		}
 	}
 }

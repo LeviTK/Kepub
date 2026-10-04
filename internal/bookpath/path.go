@@ -16,6 +16,38 @@ import (
 type BookPath string
 type Href string
 
+// Reference separates URL components from the exact container filename. Raw
+// spelling belongs to the caller's Href; Query and Fragment are never filenames.
+type Reference struct {
+	Path     BookPath `json:"bookPath"`
+	Fragment string   `json:"fragment"`
+	Query    string   `json:"query"`
+	External bool     `json:"external"`
+}
+
+// ResolveReference also accepts same-document and external URLs. External URLs
+// are classified only, never fetched. Manifest loading retains its stricter API.
+func ResolveReference(base BookPath, h Href) (Reference, error) {
+	if _, err := Parse(string(base)); err != nil {
+		return Reference{}, err
+	}
+	u, err := url.Parse(string(h))
+	if err != nil || u == nil {
+		return Reference{}, fault.New(1, "INVALID_HREF", "invalid URL reference %q", h)
+	}
+	r := Reference{Fragment: u.Fragment, Query: u.RawQuery}
+	if u.IsAbs() || u.Host != "" || u.Opaque != "" || strings.HasPrefix(string(h), "//") {
+		r.External = true
+		return r, nil
+	}
+	if u.Path == "" {
+		r.Path = base
+		return r, nil
+	}
+	r.Path, err = Resolve(base, h)
+	return r, err
+}
+
 func Parse(s string) (BookPath, error) {
 	if len(s) > 4096 || strings.Count(s, "/") >= 128 {
 		return "", fault.New(1, "PATH_LIMIT", "container path exceeds 4096 bytes or 128 components")

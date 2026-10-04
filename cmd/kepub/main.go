@@ -16,6 +16,7 @@ import (
 
 type options struct {
 	command, book, section, output, rootfile string
+	resource, direction                      string
 	json, help                               bool
 }
 type envelope struct {
@@ -63,7 +64,7 @@ func parse(args []string) (o options, err error) {
 		if strings.HasPrefix(s, "-") {
 			key, val, has := strings.Cut(s, "=")
 			switch key {
-			case "--section", "--rootfile", "--output", "-o":
+			case "--section", "--rootfile", "--output", "-o", "--resource", "--direction":
 			default:
 				return o, fault.New(2, "INVALID_ARGUMENT", "unknown option %q", s)
 			}
@@ -89,6 +90,10 @@ func parse(args []string) (o options, err error) {
 				o.section = val
 			case "--rootfile":
 				o.rootfile = val
+			case "--resource":
+				o.resource = val
+			case "--direction":
+				o.direction = val
 			default:
 				o.output = val
 			}
@@ -110,16 +115,16 @@ func parse(args []string) (o options, err error) {
 
 func execute(o options) (any, error) {
 	if o.help {
-		return map[string]any{"usage": "kepub [--json] capabilities | info BOOK | inspect BOOK --section metadata|manifest|spine|capabilities | unpack BOOK --output DIR; --rootfile BOOK_PATH; -- ends options", "capabilities": app.Capabilities()}, nil
+		return map[string]any{"usage": "kepub [--json] capabilities | info BOOK | toc BOOK | inspect BOOK --section metadata|manifest|spine|navigation|references|capabilities [--resource BOOK_PATH --direction incoming|outgoing (references only)] | unpack BOOK --output DIR; --rootfile BOOK_PATH; -- ends options", "capabilities": app.Capabilities()}, nil
 	}
 	if o.command == "capabilities" {
-		if o.book != "" || o.rootfile != "" || o.section != "" || o.output != "" {
+		if o.book != "" || o.rootfile != "" || o.section != "" || o.output != "" || o.resource != "" || o.direction != "" {
 			return nil, fault.New(2, "INVALID_ARGUMENT", "capabilities takes no target/options")
 		}
 		return app.Capabilities(), nil
 	}
 	switch o.command {
-	case "info", "inspect", "unpack":
+	case "info", "inspect", "toc", "unpack":
 	default:
 		for _, c := range app.Capabilities() {
 			for _, command := range c.Commands {
@@ -142,13 +147,12 @@ func execute(o options) (any, error) {
 	if o.command == "unpack" && o.output == "" {
 		return nil, fault.New(2, "INVALID_ARGUMENT", "--output is required")
 	}
+	if (o.resource != "" || o.direction != "") && (o.command != "inspect" || o.section != "references") {
+		return nil, fault.New(2, "INVALID_ARGUMENT", "resource/direction filters require inspect --section references")
+	}
 	if o.command == "inspect" {
-		switch o.section {
-		case "metadata", "manifest", "spine", "capabilities":
-		case "navigation", "references":
-			return nil, fault.New(3, "CAPABILITY_UNAVAILABLE", "section %s is not implemented", o.section)
-		default:
-			return nil, fault.New(2, "INVALID_ARGUMENT", "supported --section is required")
+		if err := app.ValidateInspect(o.section, o.resource, o.direction); err != nil {
+			return nil, err
 		}
 	}
 	a, p, err := app.Read(o.book, o.rootfile)
@@ -165,18 +169,10 @@ func execute(o options) (any, error) {
 	if o.command == "info" {
 		return p, nil
 	}
-	var section any
-	switch o.section {
-	case "metadata":
-		section = p.Metadata
-	case "manifest":
-		section = p.Manifest
-	case "spine":
-		section = map[string]any{"items": p.Spine, "attributes": p.SpineAttributes}
-	case "capabilities":
-		section = app.Capabilities()
+	if o.command == "toc" {
+		o.section = "navigation"
 	}
-	return map[string]any{"rootfile": p.Rootfile, "section": o.section, "value": section, "limitations": p.Limitations}, nil
+	return app.Inspect(a, p, o.section, o.resource, o.direction)
 }
 
 func run(args []string, stdout, stderr io.Writer) int {
