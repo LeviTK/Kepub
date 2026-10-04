@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# No services or authentication are needed by the headless core.
+go_bin="$HOME/.local/lib/kepub-go-1.27.1/go/bin/go"
+if [[ ! -x "$go_bin" ]]; then
+  echo 'Pinned Go is missing; rerun .agents/setup' >&2
+  exit 1
+fi
+mkdir -p "$HOME/.local/bin"
+ln -sf "$go_bin" "$HOME/.local/bin/go"
+ln -sf "${go_bin%/go}/gofmt" "$HOME/.local/bin/gofmt"
+"$go_bin" version

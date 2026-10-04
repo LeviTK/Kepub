@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "$(uname -sm)" != "Linux x86_64" ]]; then
+  echo 'Kepub orb setup supports Linux x86_64 only' >&2
+  exit 1
+fi
+version=1.27.1
+sha=63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445
+dest="$HOME/.local/lib/kepub-go-$version"
+started=$SECONDS
+if [[ ! -x "$dest/go/bin/go" ]]; then
+  echo "[toolchain] installing Go $version"
+  mkdir -p "$(dirname "$dest")"
+  tmp=$(mktemp -d "$(dirname "$dest")/.kepub-go-XXXXXX")
+  trap 'rm -rf "$tmp"' EXIT
+  curl --connect-timeout 15 --max-time 120 -fsSL "https://go.dev/dl/go$version.linux-amd64.tar.gz" -o "$tmp/go.tgz"
+  echo "$sha  $tmp/go.tgz" | sha256sum -c -
+  mkdir "$tmp/install"
+  tar -xzf "$tmp/go.tgz" -C "$tmp/install"
+  [[ "$("$tmp/install/go/bin/go" version)" == "go version go$version linux/amd64" ]]
+  # Publish only the complete verified tree, on the same filesystem.
+  mv -T "$tmp/install" "$dest"
+else
+  echo "[toolchain] reusing Go $version"
+fi
+[[ "$("$dest/go/bin/go" version)" == "go version go$version linux/amd64" ]]
+echo "[toolchain] completed in $((SECONDS-started))s"
+mkdir -p "$HOME/.local/bin"
+ln -sf "$dest/go/bin/go" "$HOME/.local/bin/go"
+ln -sf "$dest/go/bin/gofmt" "$HOME/.local/bin/gofmt"
+# Amp and supervised services use non-interactive login shells.
+marker='# Kepub orb Go toolchain'
+if ! grep -Fqx "$marker" "$HOME/.bash_profile" 2>/dev/null; then
+  printf '\n%s\nexport PATH="$HOME/.local/bin:$PATH"\n' "$marker" >> "$HOME/.bash_profile"
+fi
+"$dest/go/bin/go" version
+started=$SECONDS
+if [[ -f go.mod ]]; then
+  echo '[modules] warming and verifying cache from copied locks'
+  # Work on copied locks: cache prewarming must never rewrite repository files.
+  cache_dir=$(mktemp -d)
+  trap 'rm -rf "${tmp:-}" "$cache_dir"' EXIT
+  cp go.mod "$cache_dir/"
+  if [[ -f go.sum ]]; then cp go.sum "$cache_dir/"; fi
+  (cd "$cache_dir" && GOTOOLCHAIN=local "$dest/go/bin/go" mod download && GOTOOLCHAIN=local "$dest/go/bin/go" mod verify)
+else
+  echo '[modules] skip: no go.mod'
+fi
+echo "[modules] completed in $((SECONDS-started))s"
