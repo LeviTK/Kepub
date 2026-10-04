@@ -1,6 +1,7 @@
-// Package workspace provides owned, on-disk copies, not editing authorization or
-// EPUB validation. One handle owns the writer lock until Close. External writers
-// must be stopped before checkpoint/restore/hash/Close; flock is advisory, not a
+// Package workspace provides owned snapshots and bounded deterministic candidate
+// editing, not acceptance or EPUB validation. One handle owns the writer lock
+// until Close. External writers must stop before plan/apply/checkpoint/restore/
+// hash/Close; flock is advisory, not a
 // sandbox against another process with the same user's filesystem permissions.
 package workspace
 
@@ -54,6 +55,7 @@ type Workspace struct {
 	owner    *os.File
 	dir      string
 	state    State
+	id       string
 	closed   bool
 	recovery bool
 }
@@ -153,6 +155,9 @@ func Create(dir, source string, opts Options) (_ *Workspace, err error) {
 	if err := writeJSON(r, "state.json", w.state); err != nil {
 		return nil, err
 	}
+	if err := w.ensureIdentity(); err != nil {
+		return nil, err
+	}
 	// Unpack does not promise fsync; sync the complete initial snapshot before
 	// publishing the root. This is not a claim of power-loss durability.
 	if err := syncTree(r); err != nil {
@@ -211,6 +216,11 @@ func Open(dir string) (_ *Workspace, err error) {
 	if err := w.verifyBaseline(); err != nil {
 		return nil, err
 	}
+	if exists(r, "identity.json") {
+		if err := w.ensureIdentity(); err != nil {
+			return nil, err
+		}
+	}
 	if exists(r, "tasks/active") {
 		if _, err := w.checkpoints(); err != nil {
 			return nil, err
@@ -224,6 +234,13 @@ func Open(dir string) (_ *Workspace, err error) {
 		// success/validation label is attached to an externally edited candidate.
 		if _, err := hashAt(r, candidate); err != nil {
 			return nil, err
+		}
+		if exists(r, "tasks/active/edit-intent.json") {
+			if _, err := w.execution(); err != nil {
+				return nil, err
+			}
+		} else if exists(r, "tasks/active/edit-start.json") || exists(r, "tasks/active/edit-result.json") {
+			return nil, fmt.Errorf("execution records without intent")
 		}
 	}
 	if err := clearStaging(r); err != nil {
@@ -270,6 +287,10 @@ func (w *Workspace) ready() error {
 func (w *Workspace) NewCandidate() (_ string, err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	return w.createCandidate(nil)
+}
+
+func (w *Workspace) createCandidate(plan *Plan) (_ string, err error) {
 	if err := w.ready(); err != nil {
 		return "", err
 	}
@@ -298,6 +319,11 @@ func (w *Workspace) NewCandidate() (_ string, err error) {
 	}
 	if err := writeJSON(w.root, stage+"/task.json", taskRecord{1, "initial"}); err != nil {
 		return "", err
+	}
+	if plan != nil {
+		if err := writeJSON(w.root, stage+"/edit-intent.json", plan); err != nil {
+			return "", err
+		}
 	}
 	if err := syncDir(w.root, stage+"/work"); err != nil {
 		return "", err

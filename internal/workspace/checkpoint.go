@@ -21,6 +21,10 @@ type Snapshot struct {
 func (w *Workspace) Checkpoint() (_ Snapshot, err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	return w.checkpoint()
+}
+
+func (w *Workspace) checkpoint() (_ Snapshot, err error) {
 	if err := w.ready(); err != nil {
 		return Snapshot{}, err
 	}
@@ -139,6 +143,10 @@ type restoreRecord struct {
 func (w *Workspace) Restore(id string) (err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	return w.restore(id)
+}
+
+func (w *Workspace) restore(id string) (err error) {
 	if err := w.ready(); err != nil {
 		return err
 	}
