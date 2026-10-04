@@ -39,7 +39,9 @@ go build -o kepub ./cmd/kepub
 
 ## Orb 启动
 
-`.agents/setup` 为 Linux amd64 orb 固定安装 Go 1.27.1，校验官方 SHA-256，在临时目录完整验证后发布；有模块时从锁文件副本预热/验证缓存，不改仓库锁文件，无模块时跳过。`.agents/resume` 仅检查固定版本与恢复 Go/gofmt 链接，不装依赖、不启动服务。非交互 login shell 可用；没有为后续 Java/Calibre/GUI 预装依赖。Mac 本机请自行安装 Go，此 orb 脚本不是 Mac 安装器。
+`.agents/setup` 仅支持 Linux amd64，固定 Go 1.27.1，从根及 SDK 实验的锁文件副本预热/验证 Go 缓存。存在 SDK 实验 npm 锁时，复用精确 Node 26.10.0 / npm 10.9.9，否则校验官方归档后局部安装；`npm ci` 从固定锁和完整性校验缓存准备实验依赖。没有 SDK 锁时不安装 Node/npm。所有工具链通过非交互 login shell 可用，不改系统 Node 或仓库锁文件。
+
+`.agents/resume` 只修复 Go 链接与快速检查工具/依赖，不安装、不认证、不启动服务。父 orb 的空 HOME 完整冷安装 10.40s、离线热启动 2.53s、resume 0.10s；实测命令与其他安装路径见 [setup 验证](docs/verification/M2_A.md#独立后续sdk-实验的-orb-setup-验证)。这是开发环境预热，不把 SDK 加入核心运行依赖，也没有预装未来 Java/Calibre/GUI 工具；不是 Mac 安装器。新版 setup 必须到达默认分支后才影响未来 orbs。
 
 ## 文档
 
@@ -70,6 +72,8 @@ Amp 负责内容理解与编辑；Kepub 提供不依赖模型的确定性 EPUB �
 Go 仍负责出版物、工作区、写租约、候选冻结、审核和导出。Amp 接入并行验证 **A：Go 直接管理 CLI/JSONL** 与 **B：Go 监督 Node/TypeScript SDK 辅助进程，再调用 CLI**，按相同输入/事件约定和取消、异常退出等故障场景比较，最终择一进入生产适配。SDK 不放入 WebView，也不成为只读 CLI 的依赖。
 
 四条 Ultra 工作线分别是：M1-B1 目录/引用/覆盖、M2-A 工作区快照与单写者、M0-A CLI 原型、M0-B SDK 原型。实现目录与依赖边界见 [并行分工](docs/DEVELOPMENT_PLAN.md#111-第一轮并行工作与文件所有权)。原型成功不等于生产 Agent 已接入；真实 Amp 与 Mac 实机验证单独列为门槛。
+
+本轮建议 **A 作为下一轮接入候选，B 暂不晋级**。固定 SDK 实包复现 stderr 排空、退出早于 EOF、原始未结束消息无大小上限的缺口；其测试通过代表成功复现并收敛失败，不是协议门槛通过。A 无需新增运行时，已通过 Linux 受控协议与进程测试，但两者都未验证真实 Amp、配置/权限发现、任意脱组写者或 Mac 回收。证据与离线命令见 [CLI 原型](docs/verification/AMP_CLI_SPIKE.md) / [SDK 原型](docs/verification/AMP_SDK_SPIKE.md)；后者为独立模块，根目录 `go test ./...` 不运行其 Node/Go 测试，须在 `experiments/amp-sdk` 执行 `npm test` 和 `npm run check`。
 
 编辑器集成只借鉴文档/选区/诊断与 Agent 分离的职责，不复刻已停用 VS Code 侧栏或其私有协议。后续如需实时工具交接，再在 OperationRegistry 稳定后评估公开 MCP/插件 API。
 
