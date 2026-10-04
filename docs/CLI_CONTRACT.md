@@ -1,6 +1,6 @@
 # Kepub CLI 与操作契约
 
-> 设计版本：0.2 · 日期：2026-10-03 · 状态：待实现。
+> 设计版本：0.3 · 日期：2026-10-04 · 状态：分阶段实现；实际可用命令以 README 与 `capabilities` 为准。
 >
 > 本文定义 Kepub 自己的命令和协议，不是 Calibre 或 Amp 的使用手册，也不表示命令已经能运行。架构见 [开发方案](DEVELOPMENT_PLAN.md)，设计依据见 [Calibre 研究](research/CALIBRE_CLI_REVIEW.md)。
 
@@ -99,6 +99,8 @@ serve默认在stderr显示本机访问说明，结构化使用场景用受控事
 初版 `resource.rename` 不支持循环交换、批量图改名、OPF改名、多rootfile重构、未知引用。只变大小写的改名必须有专门的平台安全流程和fixture，通过前显示unsupported。
 
 `metadata.set` 首期不改变package unique identifier、语言体系、复杂关联或升级EPUB版本。无变化返回 `changed:false`，不借机重新格式化整份OPF或更新时间。
+
+第二轮实现范围进一步限定为：每个计划恰好一个 `metadata.set` v1，仅现有 `dc:title` 或 `dc:creator` 的简单文本。按 namespace、local name 和可选明确 ID 选择，预期旧值必须匹配且目标必须唯一；不能通过选择第一个同名字段消除歧义。局部替换保留目标外全部 OPF 字节，复杂子内容或无法确定字节区间时拒绝。标识符、语言、批量操作和 `resource.rename` 仍不开放；这不是把未来操作契约缩减为永远只支持一个字段。
 
 未来操作如 `css.prune`、`image.optimize`、`font.subset`、`toc.rebuild`、`publication.convert` 分别设计参数与风险，不通过一个任意字符串的 `run_command` 逃离注册表。
 
@@ -238,6 +240,8 @@ v0.2首期的plan以accepted revision为基线，不直接对运行中Amp候选�
 
 `ok`表示请求是否达到其契约，不直接等于出版物合规。`inspect`成功返回问题列表仍可ok=true；`validate`仅在请求的必需检查完整且门槛通过时ok=true。`task run/apply`执行成功不代表accepted，输出必须带 `reviewRequired` 和校验状态。
 
+必需检查必须由用例的版本化政策指定，并在报告中区分。无结构改写的 `pack` 和本轮局部 metadata 编辑，需要安全容器/可解析结构以及正式产物的 EPUBCheck；不要求 Kepub 自有引用提取器覆盖全部 CSS 语法。引用 partial/blocked、未运行项及已发现诊断仍必须保留，不能改标 complete 或藏起具体 error/fatal。`resource.rename` 的覆盖门槛不同，不能以 EPUBCheck 通过代替受影响引用的充分覆盖。总体 `pass` 仅表示已声明的必需检查通过，不表示渲染、可访问性人工审核和所有自有分析均完整。
+
 检查报告可同时有内容错误与依赖缺失，全部保留。顶层error/退出码选择优先级：参数/授权错误 → 锁或版本冲突 → 必需依赖缺失 → 执行故障 → 内容/策略失败。示例因此返回依赖不可用，而没有丢弃XML错误。
 
 位置不可得时null；上游原始错误码与Kepub码分开；checker版本、规则、配置、输入hash与原始报告路径保留。输出路径若含私有信息，在可分享报告中脱敏。
@@ -293,4 +297,4 @@ GUI对Agent默认只暴露查询、提案和候选任务入口，不自动授予
 - 接受并非导出；应用计划并非接受；工具退出0并非校验通过。
 - 进程取消后无遗留写入者；阶段失败可回滚，输入原书未被覆盖。
 
-本次只制定以上契约，没有把示例注册成已实现命令，也没有执行真实Calibre/Amp任务。
+以上示例不自动注册为已实现命令；第二轮先实现校验打包与单字段候选编辑，再单独验收审核/导出。未实现项继续报告 planned；没有执行真实 Calibre/Amp 任务。
