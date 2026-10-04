@@ -2,7 +2,7 @@
 
 面向 Amp 的 EPUB 阅读、制作预览与编辑工作台。
 
-**当前状态：设计 v0.4，已实现 M1-A/M1-B1 只读 Go 核心与 CLI、M2-A 工作区库，以及两种独立 Amp 接入实验。没有 GUI、确定性编辑命令、生产 Agent、安装包或已完成的 Mac 实机测试。**
+**当前状态：设计 v0.5，第一轮已发布 M1-A/M1-B1 只读 Go 核心与 CLI、M2-A 工作区库，以及两种独立 Amp 接入实验。第二轮 Medium 并行开发校验打包与元数据候选编辑，尚未验收。没有 GUI、确定性编辑命令、生产 Agent、安装包或已完成的 Mac 实机测试。**
 
 ## 已实现：M1-A / M1-B1 只读 CLI
 
@@ -45,7 +45,7 @@ go build -o kepub ./cmd/kepub
 
 ## 文档
 
-- [开发方案 v0.4](docs/DEVELOPMENT_PLAN.md)：产品范围、MyGo 0.2.0 桌面层、Amp 接入 A/B 实验、工作区与四条并行工作线。
+- [开发方案 v0.5](docs/DEVELOPMENT_PLAN.md)：产品范围、MyGo 0.2.0 桌面层、Amp 接入 A/B 实验、工作区与第二轮 Medium 分工。
 - [CLI 与操作契约](docs/CLI_CONTRACT.md)：拟定命令、OperationRegistry、plan/apply、机器输出、退出码与验收要求。
 - [Calibre CLI 与编辑内核研究](docs/research/CALIBRE_CLI_REVIEW.md)：官方命令全景、关键源码调用链、证据及采用/不采用的设计。
 - [开发方案 v0.2 历史原文](docs/history/DEVELOPMENT_PLAN_V0_2.md)：Calibre 研究后形成的上一版设计。
@@ -71,7 +71,7 @@ Amp 负责内容理解与编辑；Kepub 提供不依赖模型的确定性 EPUB �
 
 Go 仍负责出版物、工作区、写租约、候选冻结、审核和导出。Amp 接入并行验证 **A：Go 直接管理 CLI/JSONL** 与 **B：Go 监督 Node/TypeScript SDK 辅助进程，再调用 CLI**，按相同输入/事件约定和取消、异常退出等故障场景比较，最终择一进入生产适配。SDK 不放入 WebView，也不成为只读 CLI 的依赖。
 
-四条 Ultra 工作线分别是：M1-B1 目录/引用/覆盖、M2-A 工作区快照与单写者、M0-A CLI 原型、M0-B SDK 原型。实现目录与依赖边界见 [并行分工](docs/DEVELOPMENT_PLAN.md#111-第一轮并行工作与文件所有权)。原型成功不等于生产 Agent 已接入；真实 Amp 与 Mac 实机验证单独列为门槛。
+第一轮四条 Ultra 工作线已经完成：M1-B1 目录/引用/覆盖、M2-A 工作区快照与单写者、M0-A CLI 原型、M0-B SDK 原型。实现目录与依赖边界见 [第一轮分工](docs/DEVELOPMENT_PLAN.md#111-第一轮并行工作与文件所有权)。第二轮改用 Medium，先并行完成 M1-B2 校验/打包和 M2-B 元数据计划/候选/diff，再集成审核与导出；范围见 [第二轮计划](docs/DEVELOPMENT_PLAN.md#112-第二轮medium-并行实现随后集成编辑闭环)。原型成功不等于生产 Agent 已接入；真实 Amp 与 Mac 实机验证单独列为门槛。
 
 本轮建议 **A 作为下一轮接入候选，B 暂不晋级**。固定 SDK 实包复现 stderr 排空、退出早于 EOF、原始未结束消息无大小上限的缺口；其测试通过代表成功复现并收敛失败，不是协议门槛通过。A 无需新增运行时，已通过 Linux 受控协议与进程测试，但两者都未验证真实 Amp、配置/权限发现、任意脱组写者或 Mac 回收。证据与离线命令见 [CLI 原型](docs/verification/AMP_CLI_SPIKE.md) / [SDK 原型](docs/verification/AMP_SDK_SPIKE.md)；后者为独立模块，根目录 `go test ./...` 不运行其 Node/Go 测试，须在 `experiments/amp-sdk` 执行 `npm test` 和 `npm run check`。
 
