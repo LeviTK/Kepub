@@ -2,9 +2,9 @@
 
 面向 Amp 的 EPUB 阅读、制作预览与编辑工作台。
 
-**当前状态：设计 v0.4，已实现首个 M1-A 只读 Go 核心与 CLI。后续由四条 Ultra orb 工作线并行开发。没有 GUI、编辑操作、安装包或已完成的 Mac 实机测试。**
+**当前状态：设计 v0.4，已实现 M1-A/M1-B1 只读 Go 核心与 CLI、M2-A 工作区库，以及两种独立 Amp 接入实验。没有 GUI、确定性编辑命令、生产 Agent、安装包或已完成的 Mac 实机测试。**
 
-## 已实现：M1-A
+## 已实现：M1-A / M1-B1 只读 CLI
 
 需要 Go **1.27.1**。纯核心只依赖标准库、`golang.org/x/text v0.29.0`（Unicode 碰撞检查）和 `golang.org/x/sys v0.36.0`（原子不覆盖发布），不依赖 MyGo、Amp、Calibre、Java 或前端工具链。
 
@@ -13,22 +13,31 @@ go build -o kepub ./cmd/kepub
 ./kepub capabilities --json
 ./kepub info 'book.epub' --json
 ./kepub inspect 'book.epub' --section manifest --json
+./kepub toc 'book.epub' --json
+./kepub inspect 'book.epub' --section references --resource 'EPUB/chapter.xhtml' --direction incoming --json
 ./kepub unpack 'book.epub' --output 'new directory' --json
 ./kepub info --json -- '-book.epub'
 ```
 
-- `inspect` 当前支持 `metadata`、`manifest`、`spine`、`capabilities`；`info` 复用相同读取用例。多 rootfile 必须传 `--rootfile '书/Deep/package.opf'`，值是精确 BookPath，不是 URL。
+- `inspect` 支持 `metadata`、`manifest`、`spine`、`navigation`、`references`、`capabilities`。`toc` 与 navigation 共用读取用例，按声明选择 EPUB3 nav / EPUB2 NCX，不从 spine 合成目录。多 rootfile 必须传 `--rootfile '书/Deep/package.opf'`，值是精确 BookPath，不是 URL。
+- 引用边保留源位置、原 href、精确目标路径、query/fragment 和解析器版本；`--resource` / `--direction incoming|outgoing` 只过滤边，保留全局 coverage 与诊断。CSS 仅提取 literal url/import 子集，完整 CSS grammar 为 partial；脚本、SMIL、srcset 等明确不完整。**complete 只表示相应语法的提取覆盖，不是 EPUB 合规或编辑授权。**
 - 仅支持 EPUB2/3 ZIP 与 UTF-8 XML（含 BOM、内建/数字实体）；目录输入、UTF-16、DTD、自定义实体、`xml:base`、远程 manifest href 不支持，明确失败而非容错改写。
-- 拒绝穿越、绝对路径、特殊/符号链接/加密 ZIP 条目、重复和大小写/Unicode 碰撞（包括隐式父目录）。实际解压限制：20,000 条目、256MiB/文件、2GiB 总量；路径 4096 字节/128 层；解析 XML 8MiB/128 层/200,000 tokens。这些是初始产品策略，不是 EPUB 标准。
+- 拒绝穿越、绝对路径、特殊/符号链接/加密 ZIP 条目、重复和大小写/Unicode 碰撞（包括隐式父目录）。实际解压限制：20,000 条目、256MiB/文件、2GiB 总量；路径 4096 字节/128 层；解析 XML 8MiB/128 层/200,000 tokens、累计文本/位置索引 32MiB。这些是初始产品策略，不是 EPUB 标准。
 - 原书只读，所有资源（含非 manifest 文件与空目录）保留；unpack 完整 staging 后原子发布，不覆盖已有路径。输出父目录必须已存在。Linux 和 macOS 支持原子不覆盖发布；macOS **只做交叉编译，尚未实机验证**。突然终止可能留下私有临时 staging，但不会发布半成品目录；不宣称断电耐久性。
 - `--json` 成功/失败 stdout 都是一个统一 envelope；失败用稳定 code，退出码 1 内容/安全问题、2 参数、3 未实现能力、6 I/O。`--output/-o`、`--rootfile`、`--section` 可置于 BOOK 前后，`--` 结束选项，JSON 和 `--no-input` 不问答。其他契约中的选项尚未实现，会拒绝，不忽略。
 - 固定版式、脚本标记、SMIL/音视频、签名、加密/字体混淆声明会记录限制；不执行、不解密、不验证签名、不删除内容。缺失 manifest 资源显式报告。成功只表示只读请求完成，**不是 EPUB 合规验证**。
 
-`toc`、引用图、`validate`、`pack` 留给 M1-B；`doctor`、workspace、plan/apply、GUI、预览、Agent、Mac 发布仍未实现。capabilities 中这些项为 `planned`，不能据此执行。当前 schema 描述查询参数和结果形状，完整 OperationRegistry schema/help 生成及编辑注册表仍待后续完成。
+`validate`、`pack` 留给 M1-B2；`doctor`、workspace CLI、plan/apply、GUI、预览、生产 Agent、Mac 发布仍未实现。capabilities 中这些项为 `planned`，不能据此执行。当前 schema 描述查询参数和结果形状，完整 OperationRegistry schema/help 生成及编辑注册表仍待后续完成。
 
-验证：`go test ./...`、`go test -race ./...`、`go vet ./...`；生成的小型 EPUB2/3 与恶意输入样本在测试中创建，无第三方书籍。详细证据见 [M1-A 验证记录](docs/verification/M1_A.md)。
+验证：`go test -count=1 ./...`、`go test -race -count=1 ./...`、`go vet ./...`；真实 CLI smoke 含 EPUB2/3、双向引用与错误 envelope。小型 EPUB 与恶意输入由测试生成，无第三方书籍。证据见 [M1-A](docs/verification/M1_A.md) 和 [M1-B1](docs/verification/M1_B1.md)。
 
-### Orb 启动
+## 已实现：M2-A 工作区库
+
+`internal/workspace` 提供 Create/Open/Close、唯一独立候选、Checkpoint/Checkpoints/Restore 和精确内容树 SHA-256。原书、初始版本、候选与检查点均为独立副本；flock 保证协作进程单写者，恢复 journal 处理已记录的中断边界。候选普通写入不会污染基线；已知不支持内容和书内 Agent 配置保留但限制候选创建。
+
+这还不是 `kepub workspace` 命令，没有 accept/export 或校验通过状态。外部写者必须先停止；flock 与 cwd 不是同用户 OS 沙箱，断电和 ENOSPC 未证明。详见 [M2-A 验证与限制](docs/verification/M2_A.md)。
+
+## Orb 启动
 
 `.agents/setup` 为 Linux amd64 orb 固定安装 Go 1.27.1，校验官方 SHA-256，在临时目录完整验证后发布；有模块时从锁文件副本预热/验证缓存，不改仓库锁文件，无模块时跳过。`.agents/resume` 仅检查固定版本与恢复 Go/gofmt 链接，不装依赖、不启动服务。非交互 login shell 可用；没有为后续 Java/Calibre/GUI 预装依赖。Mac 本机请自行安装 Go，此 orb 脚本不是 Mac 安装器。
 
@@ -94,4 +103,4 @@ v0.2 的 Calibre 优化继续保留：转换、整理、结构编辑和只读查
 | M5 | Apple Silicon 打包分发和实机验收 |
 | M6 | 可选 Calibre 适配及其他受控扩展 |
 
-除上面明确列出的 M1-A 命令外，设计文档中的命令和接口仍待实现；不能将其他设计示例当作当前安装使用说明。
+除上面明确列出的 M1 命令、内部工作区库和独立实验外，设计文档中的命令和接口仍待实现；不能将其他设计示例当作当前安装使用说明。

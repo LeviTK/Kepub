@@ -2,7 +2,7 @@
 
 > 文档版本：0.4 · 更新日期：2026-10-04
 >
-> 状态：M1-A 只读核心与 CLI 已实现并通过 Linux 单测、race 和 vet；实际支持范围见 README 与 M1-A 验证记录。其余内容仍是设计与实施契约，未完成 Mac 实机验证，不能将后续命令、接口或性能目标当成现有能力。
+> 状态：M1-A/M1-B1 只读核心与 CLI、M2-A 内部工作区库已通过父 orb 的 Linux 组合测试、race 和 vet；两个 Amp 原型仅供对照实验。实际支持范围见 README 与各验证记录。未完成 GUI、生产 Agent 或 Mac 实机验证，不能将后续命令、接口或性能目标当成现有能力。
 >
 > 首发：Apple Silicon Mac；MyGo 0.2.0 为当前桌面层候选基线，主编辑窗口采用 Go + TypeScript + WKWebView；独立 `kepub` CLI。Amp 为唯一首期 Agent，Calibre 仅作为设计参考和可选外部适配器。
 
@@ -492,6 +492,8 @@ P2 只依赖本轮冻结的 M1-A 读 API，不等待 P1 的新接口；P3/P4 使
 
 各 orb 从包含 M1-A 与本版方案的同一 Git 基线开始。远端尚未包含的提交通过文件传输工具传 Git bundle，再建立各自分支；线程消息中的 SHA 不等于代码已同步。每条线在自己的 checkout 中实现、修复和验证后回报路径、测试与限制；集成线程检查差异并运行组合测试。未通过验收的 prototype 不提升 capabilities，未推送的工作不声称远端已交付。
 
+本轮已合入本地的核心成果：P1 的 nav/NCX、toc、引用图和逐语法 coverage；P2 的独立候选、内容树哈希、检查点/恢复与协作单写者锁。父 orb 已执行组合 `go test -count=1 ./...`、`go test -race -count=1 ./...`、`go vet ./...` 及真实 CLI smoke。workspace 仍是内部库，未开放命令或审核/导出。P3/P4 保留为独立实验，不提升生产能力；协议和进程证据见各自报告。
+
 下一轮在本轮验收后安排 M1-B2 的校验/正式打包、M2-B 的计划/审核用例，以及选定 Agent 适配。预览开发仍受 M0 Mac 隔离门槛约束；不把 Linux orb 的并行数量当作目标平台验证。
 
 ## 12. 验收矩阵
@@ -535,4 +537,4 @@ MyGo v0.3 文档修订依据固定在 2026-10-03 发布的 **v0.2.0**（tag/comm
 
 既有 Amp/EPUB 来源入口保留于 [v0.1 来源记录](history/DEVELOPMENT_PLAN_V0_1.md#18-来源与核验记录)，v0.2 的 Calibre 设计原文保留于 [历史文档](history/DEVELOPMENT_PLAN_V0_2.md)。EPUB 规范与检查器的实施基线仍需 M0 锁定，参考 [EPUB 3.3](https://www.w3.org/TR/epub-33/)、[Reading Systems](https://www.w3.org/TR/epub-rs-33/) 和 [EPUBCheck CLI](https://www.w3.org/publishing/epubcheck/docs/cli/)。
 
-v0.3 修订只记录了上游 MyGo 0.2.0 事实。v0.4 的实际实现证据限于 [M1-A 验证记录](verification/M1_A.md)；不得据此宣称目标 Mac 实机、MyGo 预览、真实 Amp 集成、Calibre/EPUBCheck 或性能与安全矩阵已通过。
+v0.3 修订只记录了上游 MyGo 0.2.0 事实。v0.4 的实际证据见 [M1-A](verification/M1_A.md)、[M1-B1](verification/M1_B1.md)、[M2-A](verification/M2_A.md)、[CLI 实验](verification/AMP_CLI_SPIKE.md) 和 [SDK 实验](verification/AMP_SDK_SPIKE.md)。不得据此宣称目标 Mac 实机、MyGo 预览、真实 Amp 集成、Calibre/EPUBCheck 或全部性能与安全矩阵已通过。
