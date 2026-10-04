@@ -19,3 +19,18 @@ if [[ -f experiments/amp-sdk/package-lock.json ]]; then
   fi
   echo '[node] Node 26.10.0 / npm 10.9.9 and SDK dependencies ready'
 fi
+java_major=$(java -version 2>&1 | sed -n 's/.*version "\([0-9]*\).*/\1/p' || true)
+checker_dest="$HOME/.local/lib/kepub-epubcheck-5.3.0"
+if [[ ! "$java_major" =~ ^[0-9]+$ ]] || ((java_major < 17)); then
+  echo 'PATH java must be Java 17+; rerun .agents/setup' >&2
+  exit 1
+fi
+if [[ ! -f "$checker_dest/SHA256SUMS" ]] ||
+   ! echo "2a5456d59b1a2aebedea1a58afc98fb36546d74be39624c3f79ae624fe34a835  $checker_dest/SHA256SUMS" | sha256sum --status -c - ||
+   ! (cd "$checker_dest" && sha256sum --status -c SHA256SUMS); then
+  echo 'Managed EPUBCheck is missing or damaged; rerun .agents/setup' >&2
+  exit 1
+fi
+java -version
+[[ "$(java -jar "$checker_dest/epubcheck.jar" --version)" == 'EPUBCheck v5.3.0' ]]
+echo '[epubcheck] Java 17+ / EPUBCheck 5.3.0 ready'
