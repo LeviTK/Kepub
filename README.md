@@ -2,7 +2,7 @@
 
 面向 Amp 的 EPUB 阅读、制作预览与编辑工作台。
 
-**当前状态：设计 v0.3，已实现首个 M1-A 只读 Go 核心与 CLI。没有 GUI、编辑操作、安装包或已完成的 Mac 实机测试。**
+**当前状态：设计 v0.4，已实现首个 M1-A 只读 Go 核心与 CLI。后续由四条 Ultra orb 工作线并行开发。没有 GUI、编辑操作、安装包或已完成的 Mac 实机测试。**
 
 ## 已实现：M1-A
 
@@ -34,7 +34,7 @@ go build -o kepub ./cmd/kepub
 
 ## 文档
 
-- [开发方案 v0.3](docs/DEVELOPMENT_PLAN.md)：产品范围、MyGo 0.2.0 桌面层、工作区、预览隔离、操作内核、校验与实施阶段。
+- [开发方案 v0.4](docs/DEVELOPMENT_PLAN.md)：产品范围、MyGo 0.2.0 桌面层、Amp 接入 A/B 实验、工作区与四条并行工作线。
 - [CLI 与操作契约](docs/CLI_CONTRACT.md)：拟定命令、OperationRegistry、plan/apply、机器输出、退出码与验收要求。
 - [Calibre CLI 与编辑内核研究](docs/research/CALIBRE_CLI_REVIEW.md)：官方命令全景、关键源码调用链、证据及采用/不采用的设计。
 - [开发方案 v0.2 历史原文](docs/history/DEVELOPMENT_PLAN_V0_2.md)：Calibre 研究后形成的上一版设计。
@@ -55,6 +55,14 @@ Amp 负责内容理解与编辑；Kepub 提供不依赖模型的确定性 EPUB �
                 ↓
  差异 + 检查覆盖 → 审核接受 → 导出
 ```
+
+## v0.4：核心继续开发，Amp 接入做对照实验
+
+Go 仍负责出版物、工作区、写租约、候选冻结、审核和导出。Amp 接入并行验证 **A：Go 直接管理 CLI/JSONL** 与 **B：Go 监督 Node/TypeScript SDK 辅助进程，再调用 CLI**，按相同输入/事件约定和取消、异常退出等故障场景比较，最终择一进入生产适配。SDK 不放入 WebView，也不成为只读 CLI 的依赖。
+
+四条 Ultra 工作线分别是：M1-B1 目录/引用/覆盖、M2-A 工作区快照与单写者、M0-A CLI 原型、M0-B SDK 原型。实现目录与依赖边界见 [并行分工](docs/DEVELOPMENT_PLAN.md#111-第一轮并行工作与文件所有权)。原型成功不等于生产 Agent 已接入；真实 Amp 与 Mac 实机验证单独列为门槛。
+
+编辑器集成只借鉴文档/选区/诊断与 Agent 分离的职责，不复刻已停用 VS Code 侧栏或其私有协议。后续如需实时工具交接，再在 OperationRegistry 稳定后评估公开 MCP/插件 API。
 
 ## v0.3 的关键变化
 
@@ -78,7 +86,7 @@ v0.2 的 Calibre 优化继续保留：转换、整理、结构编辑和只读查
 
 | 阶段 | 目标 |
 |---|---|
-| M0 | 验证 MyGo 0.2.0 Page API、目标页面 readiness、安全预览、Amp 协议及依赖版本 |
+| M0 | 验证 MyGo 0.2.0 Page API、目标页面 readiness、安全预览、Amp CLI/SDK 两方案及依赖版本 |
 | M1 | EPUB 核心、路径/引用模型、文件级 CLI、覆盖报告 |
 | M2 | 工作区与确定性编辑，plan/apply、检查点、审核 |
 | M3 | MyGo Page 生命周期、制作预览、Locator 与本机预览服务 |

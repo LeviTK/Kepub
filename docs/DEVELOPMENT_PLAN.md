@@ -1,12 +1,14 @@
 # Kepub 开发方案
 
-> 文档版本：0.3 · 更新日期：2026-10-03
+> 文档版本：0.4 · 更新日期：2026-10-04
 >
-> 状态：设计与实施契约，尚未实现或通过实机验证。文中的命令、接口、性能目标均不是现有可用功能。
+> 状态：M1-A 只读核心与 CLI 已实现并通过 Linux 单测、race 和 vet；实际支持范围见 README 与 M1-A 验证记录。其余内容仍是设计与实施契约，未完成 Mac 实机验证，不能将后续命令、接口或性能目标当成现有能力。
 >
 > 首发：Apple Silicon Mac；MyGo 0.2.0 为当前桌面层候选基线，主编辑窗口采用 Go + TypeScript + WKWebView；独立 `kepub` CLI。Amp 为唯一首期 Agent，Calibre 仅作为设计参考和可选外部适配器。
 
 ## 0. 本次修订与阅读顺序
+
+v0.4 在 v0.3 的 MyGo 0.2.0 与出版物安全边界上，增加 Amp CLI 直连 / TypeScript SDK 辅助进程的并行验证，以及互不重叠的 Ultra orb 开发分工。两种接入方式不是两套产品；最终只选一条程序化接入路径。已完成的 M1-A 是后续工作的共同代码基线。
 
 v0.2 基于 Calibre 官方 CLI 手册、编辑/转换说明和相关源码修订；v0.3 在此基础上纳入 MyGo 0.2.0 的正式发行变化。Calibre 的研究范围、固定源码版本、证据及不应照搬的实现见 [Calibre CLI 研究](research/CALIBRE_CLI_REVIEW.md)；命令、计划、操作和机器输出见 [CLI 与操作契约](CLI_CONTRACT.md)。[v0.1 原文](history/DEVELOPMENT_PLAN_V0_1.md) 与 [v0.2 原文](history/DEVELOPMENT_PLAN_V0_2.md) 保留供追溯，不再作为优先实施基线。
 
@@ -31,7 +33,7 @@ MyGo 0.2.0 带来的 v0.3 调整：
 | CEF 可作为近期统一渲染后备 | MyGo 0.2.0 正式版未包含 CEF；当前公开 CEF PR 仍未合并且针对 Linux。Apple Silicon 首发继续只以 WKWebView 为基线 |
 | dev reload 的进程重叠由应用自行规避 | MyGo 0.2 已改为先停止旧 build 再启动新 build；Kepub 的 workspace 单写者、journal 和进程回收仍由自身负责，不能依赖 dev 行为代替生产数据保护 |
 
-保持不变：Mac-first、MyGo 可替换、纯 Go 核心、Amp CLI 优先、EPUBCheck 主校验、原书保护、候选审核、书籍预览与本机权限隔离。
+保持不变：Mac-first、MyGo 可替换、纯 Go 核心、Amp CLI 作为执行底座、EPUBCheck 主校验、原书保护、候选审核、书籍预览与本机权限隔离。SDK 只参与 Agent 接入方案比较，不成为 EPUB 核心或只读 CLI 的依赖。
 
 ## 1. 产品定位与范围
 
@@ -80,7 +82,7 @@ MVP 不做书库数据库、OPDS/远程书库、多设备同步、邮件发送�
 | 主窗口 UI | TypeScript + Vite + React | Web 页面承载 Amp 面板、资源/目录导航和 Preview 容器；窄接口，不直接获得任意文件和进程权限 |
 | MyGo 原生 UI | 可选辅助窗口 | `github.com/egoist/mygo/ui`；macOS 使用 Metal 绘制、Core Text 排版。适合设置/诊断/检查器，不是 EPUB 渲染引擎；当前不假设能与 Web Page 任意混排在同一窗口 |
 | 预览 | WKWebView + MyGo `Page` API 的隔离出版物视图 | 页面加载、刷新、导航、崩溃恢复统一经过 `Window.Page()`；原书内容与可信 UI 不共享特权 |
-| Agent | Go 启动 Amp CLI，消费 JSONL | 不解析 ANSI 作为协议；SDK helper 可替换而非前置 |
+| Agent | 并行验证 Go → CLI 与 Go → Node/TypeScript SDK → CLI | 相同任务/事件约定与故障矩阵；择一进入生产适配，不把 SDK 导入 WebView |
 | 正式出版物检查 | EPUBCheck 独立进程 | 锁定版本、记录规则与输入哈希 |
 | Calibre | 可选外部工具 | 不导入核心；内部 API/Qt 依赖需逐能力验证 |
 | 历史 | 不可变 revision + 文件快照 | 不要求用户安装 Git；不以普通硬链接创建可写候选 |
@@ -358,13 +360,43 @@ Calibre 内部 CSS checker 在本次核查版本依赖 QtWebEngine；可选调�
 
 ### 8.1 Amp
 
-首期 Go 启动本机 Amp CLI，程序化模式使用已核验并锁定的 execute/JSONL 协议。prompt 经 stdin，参数数组启动，不拼接任意 `sh -c`；同时读取 stdout/stderr，设置消息上限、解析未知字段、测试分块 UTF-8/异常 EOF/终止事件。
+首期以本机 Amp CLI 为执行底座，接入层按 §8.1.1 同时验证两个候选。Go 应用服务始终管理 workspace/task、写租约、候选冻结、审核和导出；不把这些责任交给 SDK。进入生产前必须核验并锁定 CLI、所选适配器及其运行时版本。prompt 经 stdin 或 SDK 消息输入，参数数组启动，不拼接任意 `sh -c`；同时读取 stdout/stderr，设置消息上限、兼容未知字段、测试分块 UTF-8/异常 EOF/终止事件。
 
 线程 ID 显式绑定 workspace/task/cwd/revision，不继续“最近线程”。普通终端 `kepub amp` 保留原生 TUI，必须有 TTY；GUI 用结构化事件，不要求 Ghostty 或终端模拟器。
 
 注册操作可以减少模型重复实现，但 raw Amp 仍可拥有当前用户 shell 权限。cwd、AGENTS 和候选副本不是 OS 沙箱。不得默认跳过权限，首次启用说明书籍片段可能发送服务端；本地进程不代表离线模型。
 
 受管进程组统一取消、宽限、强杀和回收。接受前确认已无写入进程；关闭窗口不得悄悄删除活动目录。工具调用与候选数据都不自动拥有 accepted/export 权限。
+
+### 8.1.1 两种接入方案用同一门槛比较
+
+| 方案 | 原型目录 | 执行路径 | 需要证明 |
+|---|---|---|---|
+| A：Go 直连 | `experiments/amp-cli/` | Go → Amp CLI 的 execute/JSONL | 协议解析、stdin 流、错误分类、进程组取消及版本兼容可维护 |
+| B：TypeScript SDK | `experiments/amp-sdk/` | Go 进程监督 → Node 辅助进程 → `@ampcode/sdk` → Amp CLI | SDK 减少的适配成本大于新增 IPC/运行时成本，取消可穿透辅助进程，干净机器可打包 |
+
+TypeScript SDK 不是浏览器 SDK，也没有移除 CLI 依赖。Node 包、锁文件和测试留在原型目录；不把 Node 引入 `cmd/kepub` 的普通查询路径，不为比较重写 Go 出版物核心。方案 B 可以在自己的目录提供最小 Go 监督程序，不修改方案 A。两个原型均不注册生产 `capabilities`，也不提前开放 `kepub amp` 或 `task run`。
+
+共同实验约定（版本 1，仅用于对照，不是新的公共 CLI）：
+
+- 宿主通过 stdin JSONL 发 `start`：`schemaVersion:1`、`type:"start"`、`requestId`、`workspaceId`、`taskId`、`baseRevision`、显式绝对 `cwd`、`prompt`，续接时另带明确 `threadId`。上下文可附 `bookPath/fragment/progression/selectedText/generation`；不自动读取或上传整书，也不把内容字符串解释为进程参数。
+- `cancel` 控制消息含 `schemaVersion:1`、`type:"cancel"`、同一 `requestId`。首批每个辅助进程只处理一个任务；不以会话池扩大比较范围。
+- stdout 事件采用 CLI 契约的 envelope：`schemaVersion/requestId/workspaceId/taskId/sequence/generation/type/data`。`sequence` 从 1 严格递增，`generation` 未提供时为 null，日志只进 stderr。实验事件类型为 `started/assistant/tool/completed/failed/cancelled`；terminal 恰好一个。
+- `completed` 只在协议成功结果、完整结束及成功进程退出均成立后发出，必须含 `data.reviewRequired:true`；不表示已接受或已通过出版物检查。缺失终止消息、异常退出或取消后仍可能写入都不能报告可冻结成功。
+- 默认使用明确本机执行和 private 线程可见性；不使用 `continue:true`、不自动开启全权限。续接上下文由 Go 宿主复核，SDK 的消息 requestId 去重不能替代出版物事务幂等性。
+- 自动验证使用临时候选与 fake CLI/受控 SDK 测试替身，不调用付费模型、不发送用户书籍。SDK 原型须另证明实际固定版本 SDK 的加载和参数映射，不能仅测试自写 mock 后宣称 SDK 已联通。
+
+两条线分别提供同名场景和预期结果：分块 UTF-8、流式输入、未知字段、stderr 并行输出、消息超限、无 result 的 EOF、success result 后非零退出、取消前/后及重复取消、带迟延写入的子进程清理、明确 threadId 续接。报告区分协议/进程已测、SDK 实包已测、真实 Amp 未测、Mac 未测；Linux fake 结果不能证明真实 Amp 子进程或 macOS 退出语义。
+
+评选顺序为：数据保护和取消门槛 → 协议与权限可验证性 → Apple Silicon 打包可行性 → 维护成本。安全门槛相同且收益不明显时选 A；B 若显著减少可靠对话适配工作且通过运行时/回收门槛，可替换生产 Agent 适配层。初轮实验只给证据和建议，不默认同时长期维护两个生产后端。
+
+### 8.1.2 借鉴编辑器边界，不复刻旧 VS Code 扩展
+
+IDE 上下文桥与 Agent 调用适配是两个职责：前者传递当前文档、选区、诊断和受控操作，后者负责发起执行、收取事件及取消。Kepub 对应的上下文是 BookPath、Locator、generation、用户选区与检查覆盖；出版物视图不直接持有 SDK、凭证、进程或任意文件权限。
+
+Amp 已宣布停用旧 VS Code/Cursor 侧栏扩展；其内部架构不能由旧商店链接推断。公开 `amp.nvim` 的本机鉴权桥可作历史设计参考，但也已停止维护。Kepub 不冒充 VS Code、不复制私有 IDE 发现协议。首期通过明确任务输入传上下文；OperationRegistry 和写入交接稳定后，再评估公开 MCP/插件 API，不能因收到工具调用事件就认定已取得候选写租约。
+
+依据：[SDK 概览](https://ampcode.com/docs/sdk)、[TypeScript API](https://ampcode.com/docs/sdk/typescript)、[CLI IDE 连接](https://ampcode.com/docs/cli#connect-an-editor)、[扩展停用公告](https://ampcode.com/news/the-coding-agent-is-dead)、[已弃用 Neovim 实现](https://github.com/ampcode/amp.nvim/tree/01ede44322220da5dc0b73ad8ace328a5ec1f5bf)。以上支持职责划分，不是 Kepub 真实 Agent 联调或 Mac 实测证据。
 
 ### 8.2 Calibre：可选，按能力而非按安装状态
 
@@ -419,11 +451,11 @@ encryption.xml 存在不直接判为 DRM；识别算法，字体混淆与 DRM �
 
 ## 11. 开发阶段与通过条件
 
-不承诺固定工期；以下全部待实现。
+不承诺固定工期；M1-A 已完成首批只读查询与安全导入，其余按下列门槛推进。M0 的 Linux 协议实验与纯 Go 核心可并行，MyGo/WKWebView 的 Apple Silicon release 隔离仍是桌面集成门槛，不能被浏览器或交叉编译替代。
 
 | 阶段 | 交付 | 必须通过 |
 |---|---|---|
-| M0 风险验证 | MyGo 0.2.0 release 隔离与 Page API、Amp JSONL、EPUBCheck、版本矩阵 | 主窗口按 `Window.Page()` 工作；目标 generation readiness 无空白页竞态；不可信书页不可调用 Go；真实继续/取消可复现；依赖与规则可追溯 |
+| M0 风险验证 | MyGo 0.2.0 release 隔离与 Page API、Amp A/B 接入实验、EPUBCheck、版本矩阵 | 主窗口按 `Window.Page()` 工作；目标 generation readiness 无空白页竞态；不可信书页不可调用 Go；两方案按同一矩阵比较，真实继续/取消另行实测；依赖与规则可追溯 |
 | M1 纯核心 | 安全归档、Publication/BookPath、只读引用图、file CLI、注册表元数据 | 不起 GUI、不需 Amp/Calibre；无改动条目字节保持；partial coverage 显式 |
 | M2 确定性编辑 | 工作区/锁/快照、plan/apply、局部 metadata、安全 rename 子集 | 原子跨文件变更；过期计划拒绝；API外写不污染基线；失败回滚 |
 | M3 制作预览 | MyGo `Page` 生命周期、隔离视图、稳定代际、Locator、CLI serve | CSS/资源更新可见；页面 commit/readiness 可验证；render process 异常可恢复；中间坏状态不误导；本机服务无写越权 |
@@ -441,6 +473,23 @@ encryption.xml 存在不直接判为 DRM；识别算法，字体混淆与 DRM �
 - K-019：MyGo 0.2.0 desktop spike：`Window.Page()`、`PageOptions`、readiness nonce、`OnRenderProcessGone`、native UI 独立辅助窗口和 release 隔离，纳入 M0/M3。
 
 上述是任务标识，不代表已创建 Issues。不要一次性生成整套应用后才补安全测试。
+
+### 11.1 第一轮并行工作与文件所有权
+
+按用户最新要求，后续四条工作线全部由独立 Ultra orb 承担，覆盖此前的 Medium 分配。保留已经由 Medium 完成的 M1-A 代码和验证证据，不重复重写；集成线程维护计划、共同基线和验收结果。四个 orb 各自拥有明确模块，不是把整个应用复制四份同时开发。
+
+| 工作线 | 本轮交付 | 独占修改范围 | 暂不进入本轮 |
+|---|---|---|---|
+| P1：M1-B1 只读结构 | EPUB3 nav / EPUB2 NCX、toc、只读引用图及逐语法 coverage | `internal/publication/`、`internal/references/`、必要的 `internal/bookpath/` 和 `internal/testfixture/`；`internal/app/`、`cmd/kepub/` 的对应入口；`docs/verification/M1_B1.md` | pack、EPUBCheck 适配、编辑和 GUI |
+| P2：M2-A 工作区基础 | 原书保留、初始 revision、独立候选与检查点、内容树哈希、单写者锁和失败清理 | `internal/workspace/` 及其内部平台文件/测试；`docs/verification/M2_A.md` | 对外 workspace CLI、socket 服务、plan/apply、accept/export |
+| P3：M0-A CLI 原型 | §8.1.1 的 Go 直连实验与故障证据 | `experiments/amp-cli/`、`docs/verification/AMP_CLI_SPIKE.md` | 生产 Agent 注册和真实书籍任务 |
+| P4：M0-B SDK 原型 | §8.1.1 的 Node/SDK 辅助进程、监督及故障证据 | `experiments/amp-sdk/`（含独立 package/锁文件）、`docs/verification/AMP_SDK_SPIKE.md` | 生产 Node 依赖与 GUI 接入 |
+
+P2 只依赖本轮冻结的 M1-A 读 API，不等待 P1 的新接口；P3/P4 使用相同文字契约和一次性候选 fixture，不等待工作区实现。新增代码可在独占目录内组织，不为并行人为抽出共享大框架。跨所有权目录、根 go.mod/go.sum、README、主方案、CLI 契约和 orb setup 的变更先由集成线程协调，避免分别改出不一致契约。
+
+各 orb 从包含 M1-A 与本版方案的同一 Git 基线开始。远端尚未包含的提交通过文件传输工具传 Git bundle，再建立各自分支；线程消息中的 SHA 不等于代码已同步。每条线在自己的 checkout 中实现、修复和验证后回报路径、测试与限制；集成线程检查差异并运行组合测试。未通过验收的 prototype 不提升 capabilities，未推送的工作不声称远端已交付。
+
+下一轮在本轮验收后安排 M1-B2 的校验/正式打包、M2-B 的计划/审核用例，以及选定 Agent 适配。预览开发仍受 M0 Mac 隔离门槛约束；不把 Linux orb 的并行数量当作目标平台验证。
 
 ## 12. 验收矩阵
 
@@ -483,4 +532,4 @@ MyGo v0.3 文档修订依据固定在 2026-10-03 发布的 **v0.2.0**（tag/comm
 
 既有 Amp/EPUB 来源入口保留于 [v0.1 来源记录](history/DEVELOPMENT_PLAN_V0_1.md#18-来源与核验记录)，v0.2 的 Calibre 设计原文保留于 [历史文档](history/DEVELOPMENT_PLAN_V0_2.md)。EPUB 规范与检查器的实施基线仍需 M0 锁定，参考 [EPUB 3.3](https://www.w3.org/TR/epub-33/)、[Reading Systems](https://www.w3.org/TR/epub-rs-33/) 和 [EPUBCheck CLI](https://www.w3.org/publishing/epubcheck/docs/cli/)。
 
-本次只更新设计文档并记录上游 MyGo 0.2.0 事实，不宣称已经在目标 Mac 编译 Kepub、实现 CLI、运行 Calibre/EPUBCheck/Amp 或完成性能与安全测试。
+v0.3 修订只记录了上游 MyGo 0.2.0 事实。v0.4 的实际实现证据限于 [M1-A 验证记录](verification/M1_A.md)；不得据此宣称目标 Mac 实机、MyGo 预览、真实 Amp 集成、Calibre/EPUBCheck 或性能与安全矩阵已通过。
