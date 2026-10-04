@@ -1,0 +1,5 @@
+{
+  "amp.updates.mode": "disabled",
+  "amp.runner.autoUpdate.enabled": false,
+  "amp.dangerouslyAllowAll": false
+}

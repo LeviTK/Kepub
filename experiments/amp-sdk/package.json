@@ -1,0 +1,24 @@
+{
+  "name": "kepub-amp-sdk-spike",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": { "node": "26.10.0", "npm": "10.9.9" },
+  "packageManager": "npm@10.9.9",
+  "scripts": {
+    "build": "tsc && go build -o dist/supervisor ./supervisor",
+    "check": "tsc --noEmit && go vet ./...",
+    "test": "npm run build && node --test --test-concurrency=1 test/*.test.mjs && go test -race -count=1 ./...",
+    "demo": "node scripts/demo.mjs",
+    "versions": "node scripts/versions.mjs"
+  },
+  "dependencies": {
+    "@ampcode/sdk": "0.1.0-20260918210405-g81edbf0",
+    "@ampcode/cli": "0.0.1791146283-g5c3f72"
+  },
+  "overrides": { "@ampcode/cli": "$@ampcode/cli" },
+  "devDependencies": {
+    "@types/node": "26.6.4",
+    "typescript": "7.0.2"
+  }
+}
