@@ -508,6 +508,7 @@ P2 只依赖本轮冻结的 M1-A 读 API，不等待 P1 的新接口；P3/P4 使
 |---|---|---|
 | Q1：M1-B2 | 安全目录快照、清单式打包、分层校验、固定版本 EPUBCheck 适配、`pack`/`validate` CLI | `internal/archive/`、必要的 `internal/publication/` 读取适配、`internal/validation/`、`internal/app/`、`cmd/kepub/`、`docs/verification/M1_B2.md` |
 | Q2：M2-B | 局部 `metadata.set`、严格计划绑定与重算、独立候选、操作前检查点、失败回滚、真实树 diff | `internal/workspace/`、`internal/metadata/`、必要的 `internal/editing/`、`docs/verification/M2_B.md` |
+| Q3：验证环境 | 将 Java 与固定 EPUBCheck 开发依赖加入幂等 setup；resume 仅快速验证，缺工具不安装 | `.agents/setup`、`.agents/resume`、`docs/verification/ORB_EPUBCHECK.md` |
 
 先完成两条线可独立验证的库和命令，再将精确代码基线交给 Medium 接入工作区 CLI、检查、审核接受和导出。第一批 Q2 到 `review_required` 为止，不通过调用者提供的 `passed:true` 伪造接受门槛。集成阶段才开放相应 capabilities；共享 app/CLI 同一时间只有一个所有者。父线程负责方案、范围、差异复核和组合验收，不把前一批推送授权沿用为本批发布授权。
 

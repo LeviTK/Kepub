@@ -41,7 +41,9 @@ go build -o kepub ./cmd/kepub
 
 `.agents/setup` 仅支持 Linux amd64，固定 Go 1.27.1，从根及 SDK 实验的锁文件副本预热/验证 Go 缓存。存在 SDK 实验 npm 锁时，复用精确 Node 26.10.0 / npm 10.9.9，否则校验官方归档后局部安装；`npm ci` 从固定锁和完整性校验缓存准备实验依赖。没有 SDK 锁时不安装 Node/npm。所有工具链通过非交互 login shell 可用，不改系统 Node 或仓库锁文件。
 
-`.agents/resume` 只修复 Go 链接与快速检查工具/依赖，不安装、不认证、不启动服务。父 orb 的空 HOME 完整冷安装 10.40s、离线热启动 2.53s、resume 0.10s；实测命令与其他安装路径见 [setup 验证](docs/verification/M2_A.md#独立后续sdk-实验的-orb-setup-验证)。这是开发环境预热，不把 SDK 加入核心运行依赖，也没有预装未来 Java/Calibre/GUI 工具；不是 Mac 安装器。新版 setup 必须到达默认分支后才影响未来 orbs。
+第二轮 setup 另准备 Java 17+ 与官方 EPUBCheck 5.3.0：验证完整下载包，保留全部依赖 JAR，暖运行核对精确文件集合和内容，并持久提供 `KEPUB_EPUBCHECK_JAR`。这只是开发/正式检查依赖，不使只读 CLI 依赖 Java。缺失时才安装 Debian JRE；其安全更新版本不伪称为固定 patch。
+
+`.agents/resume` 只修复 Go 链接与快速检查工具/依赖，不安装、不认证、不启动服务。已有 Go/SDK 的父 orb 补装 Java/checker 为 10.92s，最终暖运行 3.51s、resume 0.57s；额外 JAR 被 resume 拒绝，setup 重装修复 4.73s，干净 login shell 验证通过。证据见 [EPUBCheck 环境验证](docs/verification/ORB_EPUBCHECK.md)，此前 Go/SDK 的空 HOME 测试见 [原 setup 验证](docs/verification/M2_A.md#独立后续sdk-实验的-orb-setup-验证)。不预装 Calibre/GUI，不是 Mac 安装器；第二轮 setup 仍待推送默认分支后才影响未来 orbs，尚未证明新服务端快照。
 
 ## 文档
 
