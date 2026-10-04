@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -8,16 +9,23 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/LeviTK/Kepub/internal/app"
 	"github.com/LeviTK/Kepub/internal/fault"
+	"github.com/LeviTK/Kepub/internal/validation"
 )
 
 type options struct {
 	command, book, section, output, rootfile string
 	resource, direction                      string
 	json, help                               bool
+	strict, draft                            bool
+	timeout                                  time.Duration
 }
 type envelope struct {
 	SchemaVersion int          `json:"schemaVersion"`
@@ -57,6 +65,18 @@ func parse(args []string) (o options, err error) {
 		if s == "--no-input" {
 			continue
 		}
+		if s == "--strict" || s == "--draft" {
+			if seen[s] {
+				return o, fault.New(2, "INVALID_ARGUMENT", "duplicate option %s", s)
+			}
+			seen[s] = true
+			if s == "--strict" {
+				o.strict = true
+			} else {
+				o.draft = true
+			}
+			continue
+		}
 		if s == "--help" || s == "-h" {
 			o.help = true
 			continue
@@ -64,7 +84,7 @@ func parse(args []string) (o options, err error) {
 		if strings.HasPrefix(s, "-") {
 			key, val, has := strings.Cut(s, "=")
 			switch key {
-			case "--section", "--rootfile", "--output", "-o", "--resource", "--direction":
+			case "--section", "--rootfile", "--output", "-o", "--resource", "--direction", "--timeout":
 			default:
 				return o, fault.New(2, "INVALID_ARGUMENT", "unknown option %q", s)
 			}
@@ -86,6 +106,12 @@ func parse(args []string) (o options, err error) {
 				return o, fault.New(2, "INVALID_ARGUMENT", "empty option value")
 			}
 			switch key {
+			case "--timeout":
+				n, e := strconv.ParseUint(val, 10, 32)
+				if e != nil || n == 0 {
+					return o, fault.New(2, "INVALID_ARGUMENT", "--timeout requires positive integer seconds")
+				}
+				o.timeout = time.Duration(n) * time.Second
 			case "--section":
 				o.section = val
 			case "--rootfile":
@@ -115,7 +141,10 @@ func parse(args []string) (o options, err error) {
 
 func execute(o options) (any, error) {
 	if o.help {
-		return map[string]any{"usage": "kepub [--json] capabilities | info BOOK | toc BOOK | inspect BOOK --section metadata|manifest|spine|navigation|references|capabilities [--resource BOOK_PATH --direction incoming|outgoing (references only)] | unpack BOOK --output DIR; --rootfile BOOK_PATH; -- ends options", "capabilities": app.Capabilities()}, nil
+		return map[string]any{"usage": "kepub [--json] capabilities | info BOOK | toc BOOK | inspect BOOK --section metadata|manifest|spine|navigation|references|capabilities [--resource BOOK_PATH --direction incoming|outgoing (references only)] | unpack BOOK --output DIR | validate BOOK_OR_DIR [--strict --timeout SECONDS] | pack DIR --output OUT.epub [--draft --strict --timeout SECONDS]; --rootfile BOOK_PATH; -- ends options; EPUBCheck: KEPUB_EPUBCHECK_JAR", "capabilities": app.Capabilities()}, nil
+	}
+	if o.command != "validate" && o.command != "pack" && (o.strict || o.draft || o.timeout != 0) {
+		return nil, fault.New(2, "INVALID_ARGUMENT", "strict/draft/timeout require validate or pack")
 	}
 	if o.command == "capabilities" {
 		if o.book != "" || o.rootfile != "" || o.section != "" || o.output != "" || o.resource != "" || o.direction != "" {
@@ -124,7 +153,7 @@ func execute(o options) (any, error) {
 		return app.Capabilities(), nil
 	}
 	switch o.command {
-	case "info", "inspect", "toc", "unpack":
+	case "info", "inspect", "toc", "unpack", "validate", "pack":
 	default:
 		for _, c := range app.Capabilities() {
 			for _, command := range c.Commands {
@@ -138,13 +167,13 @@ func execute(o options) (any, error) {
 	if o.book == "" {
 		return nil, fault.New(2, "INVALID_ARGUMENT", "BOOK is required")
 	}
-	if o.command != "unpack" && o.output != "" {
-		return nil, fault.New(2, "INVALID_ARGUMENT", "--output is only for unpack")
+	if o.command != "unpack" && o.command != "pack" && o.output != "" {
+		return nil, fault.New(2, "INVALID_ARGUMENT", "--output is only for unpack/pack")
 	}
 	if o.command != "inspect" && o.section != "" {
 		return nil, fault.New(2, "INVALID_ARGUMENT", "--section is only for inspect")
 	}
-	if o.command == "unpack" && o.output == "" {
+	if (o.command == "unpack" || o.command == "pack") && o.output == "" {
 		return nil, fault.New(2, "INVALID_ARGUMENT", "--output is required")
 	}
 	if (o.resource != "" || o.direction != "") && (o.command != "inspect" || o.section != "references") {
@@ -154,6 +183,30 @@ func execute(o options) (any, error) {
 		if err := app.ValidateInspect(o.section, o.resource, o.direction); err != nil {
 			return nil, err
 		}
+	}
+	if o.draft && o.command != "pack" {
+		return nil, fault.New(2, "INVALID_ARGUMENT", "--draft is only for pack")
+	}
+	if o.command == "validate" || o.command == "pack" {
+		v := validation.Options{Rootfile: o.rootfile, Strict: o.strict, Draft: o.draft, Timeout: o.timeout}
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		if o.timeout != 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, o.timeout)
+			defer cancel()
+		}
+		var data any
+		var err error
+		if o.command == "validate" {
+			data, err = validation.Validate(ctx, o.book, v)
+		} else {
+			data, err = app.Pack(ctx, o.book, o.output, v)
+		}
+		if errors.Is(ctx.Err(), context.Canceled) {
+			err = fault.New(130, "CANCELLED", "request cancelled")
+		}
+		return data, err
 	}
 	a, p, err := app.Read(o.book, o.rootfile)
 	if err != nil {

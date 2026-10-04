@@ -47,9 +47,18 @@ func Capabilities() []Capability {
 		out[i].PostChecks = []string{}
 		out[i].Idempotency = "read only; unpack retries reject an existing destination"
 	}
+	for _, id := range []string{"validate", "pack"} {
+		properties := map[string]any{"book": stringSchema, "rootfile": stringSchema, "strict": map[string]any{"type": "boolean"}, "timeout": map[string]any{"type": "integer", "minimum": 1}}
+		required := []string{"book"}
+		if id == "pack" {
+			properties["output"] = stringSchema
+			properties["draft"] = map[string]any{"type": "boolean"}
+			required = append(required, "output")
+		}
+		out = append(out, Capability{ID: "publication." + id, Version: 1, Status: "available", Reason: "Implemented; formal validation requires locally installed pinned EPUBCheck 5.3.0 and Java; no download or automatic draft fallback", Commands: []string{id}, Risk: "external", InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": required, "properties": properties}, OutputSchema: map[string]any{"type": "object"}, SupportedFeatures: []string{"safe ZIP / explicit publication directory snapshot", "kepub-tree-v1 approved inventory", "full EPUBCheck conformance", "partial reference coverage is not a conformance gate"}, Preconditions: []string{"frozen input", "explicit rootfile if ambiguous", "pack output outside publication root and absent"}, PostChecks: []string{"final ZIP safety and input hash", "EPUBCheck full report except explicit draft"}, Idempotency: "read only input; pack never replaces output"})
+	}
 	for _, c := range []Capability{
 		{ID: "doctor", Commands: []string{"doctor"}},
-		{ID: "publication.validate", Commands: []string{"validate"}}, {ID: "publication.pack", Commands: []string{"pack"}},
 		{ID: "metadata.set", Mutates: true}, {ID: "resource.rename", Mutates: true}, {ID: "workspace", Commands: []string{"workspace"}},
 		{ID: "plan", Commands: []string{"plan"}}, {ID: "apply", Commands: []string{"apply"}, Mutates: true},
 		{ID: "preview", Commands: []string{"preview", "serve"}, RequiresGUI: true}, {ID: "amp", Commands: []string{"amp", "task"}, RequiresModel: true},

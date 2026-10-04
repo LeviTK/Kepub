@@ -29,6 +29,21 @@ type Archive struct {
 
 func (a *Archive) Close() { _ = os.RemoveAll(a.dir) }
 
+// Canonicalize only our own newly created staging path. System temp roots can
+// have aliases (notably on macOS); publication input links remain forbidden.
+func privateDir(prefix string) (string, error) {
+	dir, err := os.MkdirTemp("", prefix)
+	if err != nil {
+		return "", err
+	}
+	real, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		os.RemoveAll(dir)
+		return "", err
+	}
+	return real, nil
+}
+
 func Open(filename string, limits Limits) (*Archive, error) {
 	z, err := zip.OpenReader(filename)
 	if err != nil {
@@ -76,7 +91,7 @@ func Open(filename string, limits Limits) (*Archive, error) {
 			kinds[q] = dir
 		}
 	}
-	dir, err := os.MkdirTemp("", "kepub-read-")
+	dir, err := privateDir("kepub-read-")
 	if err != nil {
 		return nil, err
 	}

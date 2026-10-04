@@ -39,6 +39,7 @@ func invoke(t *testing.T, args []string, want int) map[string]any {
 }
 
 func TestJSONSuccessFailureAndSelection(t *testing.T) {
+	t.Setenv("KEPUB_EPUBCHECK_JAR", "")
 	dir := t.TempDir()
 	book := filepath.Join(dir, "含 空格.epub")
 	testfixture.ZIP(t, book, testfixture.EPUB("3.0", false))
@@ -67,8 +68,11 @@ func TestJSONSuccessFailureAndSelection(t *testing.T) {
 		{[]string{"--json", "info", book, "--bogus"}, 2, "INVALID_ARGUMENT"},
 		{[]string{"info", book, "--rootfile", "书/Deep/package.opf", "--rootfile", "alternate.opf"}, 2, "INVALID_ARGUMENT"},
 		{[]string{"toc", book, "--resource", "x"}, 2, "INVALID_ARGUMENT"},
-		{[]string{"pack", dir}, 3, "CAPABILITY_UNAVAILABLE"},
-		{[]string{"validate", book}, 3, "CAPABILITY_UNAVAILABLE"},
+		{[]string{"pack", dir}, 2, "INVALID_ARGUMENT"},
+		{[]string{"validate", book}, 3, "DEPENDENCY_UNAVAILABLE"},
+		{[]string{"validate", book, "--draft"}, 2, "INVALID_ARGUMENT"},
+		{[]string{"validate", book, "--timeout", "0"}, 2, "INVALID_ARGUMENT"},
+		{[]string{"info", book, "--strict"}, 2, "INVALID_ARGUMENT"},
 		{[]string{"info", filepath.Join(dir, "missing")}, 6, "IO_ERROR"},
 		{[]string{"inspect", book, "--section", "references", "--direction", "incoming"}, 2, "INVALID_ARGUMENT"},
 		{[]string{"inspect", book, "--section", "references", "--resource", "x", "--direction", "sideways"}, 2, "INVALID_ARGUMENT"},
@@ -101,7 +105,7 @@ func TestJSONSuccessFailureAndSelection(t *testing.T) {
 			available++
 		}
 	}
-	if available != 5 {
+	if available != 7 {
 		t.Fatal("overstated capabilities", cap)
 	}
 }
