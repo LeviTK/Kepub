@@ -7,12 +7,12 @@ fi
 version=1.27.1
 sha=63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445
 dest="$HOME/.local/lib/kepub-go-$version"
+mkdir -p "$HOME/.local/lib"
+tmp=$(mktemp -d "$HOME/.local/lib/.kepub-setup-XXXXXX")
+trap 'rm -rf "$tmp"' EXIT
 started=$SECONDS
 if [[ ! -x "$dest/go/bin/go" ]]; then
   echo "[toolchain] installing Go $version"
-  mkdir -p "$(dirname "$dest")"
-  tmp=$(mktemp -d "$(dirname "$dest")/.kepub-go-XXXXXX")
-  trap 'rm -rf "$tmp"' EXIT
   curl --connect-timeout 15 --max-time 120 -fsSL "https://go.dev/dl/go$version.linux-amd64.tar.gz" -o "$tmp/go.tgz"
   echo "$sha  $tmp/go.tgz" | sha256sum -c -
   mkdir "$tmp/install"
@@ -33,17 +33,71 @@ marker='# Kepub orb Go toolchain'
 if ! grep -Fqx "$marker" "$HOME/.bash_profile" 2>/dev/null; then
   printf '\n%s\nexport PATH="$HOME/.local/bin:$PATH"\n' "$marker" >> "$HOME/.bash_profile"
 fi
+export PATH="$HOME/.local/bin:$PATH"
 "$dest/go/bin/go" version
 started=$SECONDS
-if [[ -f go.mod ]]; then
-  echo '[modules] warming and verifying cache from copied locks'
-  # Work on copied locks: cache prewarming must never rewrite repository files.
-  cache_dir=$(mktemp -d)
-  trap 'rm -rf "${tmp:-}" "$cache_dir"' EXIT
-  cp go.mod "$cache_dir/"
-  if [[ -f go.sum ]]; then cp go.sum "$cache_dir/"; fi
-  (cd "$cache_dir" && GOTOOLCHAIN=local "$dest/go/bin/go" mod download && GOTOOLCHAIN=local "$dest/go/bin/go" mod verify)
-else
-  echo '[modules] skip: no go.mod'
-fi
+for module in . experiments/amp-sdk; do
+  if [[ -f "$module/go.mod" ]]; then
+    echo "[modules] warming and verifying $module from copied locks"
+    # Never rewrite repository locks or pick up an unrelated parent go.work.
+    cache_dir=$(mktemp -d "$tmp/modules-XXXXXX")
+    cp "$module/go.mod" "$cache_dir/"
+    if [[ -f "$module/go.sum" ]]; then cp "$module/go.sum" "$cache_dir/"; fi
+    (cd "$cache_dir" && GOWORK=off GOTOOLCHAIN=local "$dest/go/bin/go" mod download && GOWORK=off GOTOOLCHAIN=local "$dest/go/bin/go" mod verify)
+  else
+    echo "[modules] skip $module: no go.mod"
+  fi
+done
 echo "[modules] completed in $((SECONDS-started))s"
+
+if [[ -f experiments/amp-sdk/package-lock.json ]]; then
+  started=$SECONDS
+  node_version=26.10.0
+  npm_version=10.9.9
+  node_dest="$HOME/.local/lib/kepub-node-$node_version-npm-$npm_version"
+  if [[ -x "$node_dest/bin/node" ]]; then
+    echo '[node] reusing pinned local toolchain'
+    node_bin="$node_dest/bin/node"
+    npm_cli="$node_dest/lib/node_modules/npm/bin/npm-cli.js"
+  elif [[ "$(node --version 2>/dev/null || true)" == "v$node_version" && "$(npm --version 2>/dev/null || true)" == "$npm_version" ]]; then
+    echo '[node] reusing matching base toolchain'
+    # Resolve existing user-bin links before recreating them; never self-link.
+    node_bin=$(readlink -f "$(command -v node)")
+    npm_cli=$(readlink -f "$(command -v npm)")
+  else
+    echo "[node] installing local Node $node_version / npm $npm_version"
+    # Pinned from nodejs.org's release SHASUMS256.txt and the official npm
+    # registry's npm@10.9.9 dist.integrity (SHA-512), respectively.
+    node_sha=ca70e9e349de048b9522abb3adc05b3bd6f43c5ffd3ec57916c7da292f59f022
+    npm_sha=d60fba8cb42f688b81e33c2f1cbef2ad7b977166700ec0ad057f1b6d60ea6ef2524abf673e20c35931cd8305d1dbb8887134d6eefdc0e7b8435bd458bf65b862
+    curl --connect-timeout 15 --max-time 120 -fsSL "https://nodejs.org/dist/v$node_version/node-v$node_version-linux-x64.tar.xz" -o "$tmp/node.tar.xz"
+    echo "$node_sha  $tmp/node.tar.xz" | sha256sum -c -
+    mkdir "$tmp/node"
+    tar -xJf "$tmp/node.tar.xz" -C "$tmp/node" --strip-components=1
+    curl --connect-timeout 15 --max-time 120 -fsSL "https://registry.npmjs.org/npm/-/npm-$npm_version.tgz" -o "$tmp/npm.tgz"
+    echo "$npm_sha  $tmp/npm.tgz" | sha512sum -c -
+    rm -rf "$tmp/node/lib/node_modules/npm"
+    mkdir "$tmp/node/lib/node_modules/npm"
+    tar -xzf "$tmp/npm.tgz" -C "$tmp/node/lib/node_modules/npm" --strip-components=1
+    [[ "$("$tmp/node/bin/node" --version)" == "v$node_version" ]]
+    [[ "$("$tmp/node/bin/node" "$tmp/node/lib/node_modules/npm/bin/npm-cli.js" --version)" == "$npm_version" ]]
+    mv -T "$tmp/node" "$node_dest"
+    node_bin="$node_dest/bin/node"
+    npm_cli="$node_dest/lib/node_modules/npm/bin/npm-cli.js"
+  fi
+  [[ "$("$node_bin" --version)" == "v$node_version" ]]
+  [[ "$("$node_bin" "$npm_cli" --version)" == "$npm_version" ]]
+  ln -sf "$node_bin" "$HOME/.local/bin/node"
+  ln -sf "$npm_cli" "$HOME/.local/bin/npm"
+  ln -sf "${npm_cli%/*}/npx-cli.js" "$HOME/.local/bin/npx"
+  echo "[node] Node $node_version / npm $npm_version ready in $((SECONDS-started))s"
+  started=$SECONDS
+  echo '[npm] installing SDK experiment from lock (including dev and platform packages)'
+  # Warm npm ci is cheap (~2s); use its integrity-checked cache, not a custom
+  # fingerprint. Keep the CLI's local binary installation script enabled, but
+  # never invoke/authenticate Amp or run a model task during setup.
+  npm ci --prefix experiments/amp-sdk --include=dev --include=optional --ignore-scripts=false --prefer-offline --no-audit --no-fund --update-notifier=false
+  echo "[npm] completed in $((SECONDS-started))s"
+else
+  echo '[npm] skip: no SDK experiment lockfile (core needs no Node/npm)'
+fi

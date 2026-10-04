@@ -84,3 +84,40 @@ GOOS=darwin GOARCH=arm64 go test -c -o <temporary>/workspace.test ./internal/wor
 - 创建阶段若进程在最终发布前被强杀，目标仍不存在，但父目录中可能保留私有 `.kepub-create-*`。本轮不会扫描删除用户目录中这些兄弟项；需人工核实后删除，不能把名字前缀当作删除授权。已发布工作区内的候选/检查点 staging 则由 `Open` 清理。
 - 候选可能是无效出版物；本库不运行引用检查/EPUBCheck，不保证审核可接受。Open 遇到候选危险文件系统条目会拒绝，保留磁盘供人工检查，不静默移除链接。没有容量淘汰策略、空间配额或性能验收。
 - 原书签名/加密、配置隔离和全部出版结构的生产编辑政策仍由后续应用层负责；本轮保守只读策略不是完整安全认证。
+
+## 独立后续：SDK 实验的 orb setup 验证
+
+本小节对应四条工作线集成后的限定 setup 增量，不改变 M2-A 工作区库或 SDK 实验实现。只修改 `.agents/setup`、`.agents/resume` 和本小节；两脚本保持 100755。没有修改根或实验依赖锁、README、方案、实验代码，也没有推送此增量。
+
+### 安装策略
+
+- Go 仍固定 1.27.1；分别复制根模块及存在的 `experiments/amp-sdk/go.mod/go.sum` 到临时目录，再以 `GOWORK=off GOTOOLCHAIN=local` 下载并验证缓存，不改原锁。本轮 SDK Go 模块仅标准库，因此会输出 `no module dependencies to download`，不是漏跑。
+- 仅当 `experiments/amp-sdk/package-lock.json` 存在才检查/准备 Node **26.10.0**、npm **10.9.9**。base 精确匹配时复用；否则下载到 `$HOME/.local/lib/kepub-node-26.10.0-npm-10.9.9`，先校验并验证版本，再从同文件系统 staging 发布，不覆盖系统 Node/npm。
+- Node Linux x64 tar.xz 使用官方 [SHASUMS256.txt](https://nodejs.org/dist/v26.10.0/SHASUMS256.txt) 的固定 SHA-256：`ca70e9e349de048b9522abb3adc05b3bd6f43c5ffd3ec57916c7da292f59f022`。npm tarball 使用官方 [registry npm/10.9.9](https://registry.npmjs.org/npm/10.9.9) 的固定 SHA-512 integrity，脚本保存其十六进制值。不是下载后临时相信一个浮动版本，也没有声称执行 GPG 签名验证。
+- `node/npm/npx` 与已有 `go/gofmt` 共用 `$HOME/.local/bin` 和既有 login PATH hook；重建链接前解析真实目标，避免热运行创建自引用链接。profile marker 没有重复追加。
+- 执行 `npm ci --prefix experiments/amp-sdk --include=dev --include=optional --ignore-scripts=false --prefer-offline --no-audit --no-fund --update-notifier=false`，保留开发依赖和固定 CLI 的平台安装脚本。先实测 npm 单独冷/热安装 **2.99/1.81 秒**，热路径足够便宜，因此**没有自造依赖指纹/缓存标记**。setup 重跑使用 npm 的锁与完整性校验缓存；精确 orb 快照直接保留安装好的依赖。
+- 没有 SDK 锁时不探测或安装 Node/npm，核心仍不需要它们。resume 只修复既有 Go 链接并快速检查已装 Node/npm/SDK；缺失即明确报错要求重跑 setup，绝不下载或安装依赖。setup/resume 均不认证、不启动服务、不调用真实 Amp 命令或模型任务。
+
+### 实测结果
+
+Linux x86_64、非 root、Go 1.27.1。各冷运行使用独立空 HOME、空 Go/npm 缓存及复制的仓库锁；强制不匹配路径由 PATH 前置的版本 0.0.0 测试替身触发，随后使用真实官方归档完成安装。时间来自 `/usr/bin/time -f '%e'`，不是性能 SLA。
+
+| 场景 | setup 冷 | setup 热 | resume |
+|---|---:|---:|---:|
+| base Node/npm 精确匹配；空 HOME 下载 Go 与全部依赖 | 5.85s | 2.20s | 0.08s |
+| 版本不匹配；额外下载并校验局部 Node/npm | 8.96s | 2.24s | 0.10s |
+| 无 SDK 锁、仅核心；禁止 Node/npm 探测的替身未被触发 | 3.24s | 0.28s | <0.01s |
+| 实际仓库/既有 orb；Go 已装 | 2.96s | 2.25s | 0.10s |
+
+所有热运行用 `npm_config_offline=true GOPROXY=off`（核心路径仅需后者）完成，锁文件 SHA-256 前后完全一致；系统 `/usr/local/bin/node` 与 npm CLI 文件 SHA-256 也完全一致。
+
+额外验证：
+
+- `bash -n .agents/setup .agents/resume` 与 `git diff --check` 通过。
+- 使用最小环境 `env -i HOME=<isolated-home> PATH=/usr/bin:/bin /bin/bash -lc ...`，分别验证 base 复用、局部安装和核心路径；`command -v` 命中用户 bin，实际版本为 Go 1.27.1、Node 26.10.0、npm/npx 10.9.9。profile marker 恰好一次。没有用当前 shell `source` 假装持久环境生效。
+- 独立安装中 TypeScript 实际输出 `Version 7.0.2`，真实 SDK import 成功，固定本地 CLI 二进制已存在且可执行；检查没有运行该 CLI。
+- 注入损坏的 Node 下载内容：SHA-256 拒绝，setup 非零退出，局部 Node 目标没有发布，临时 staging 清理完成。
+- 临时移走 `node_modules`：resume 非零退出并提示重跑 setup，没有重新创建依赖目录。
+- 实际仓库的干净 login shell 中，`go test -count=1 ./...`、`go test -race -count=1 ./...`、`go vet ./...` 和 `npm --prefix experiments/amp-sdk run check`（TypeScript noEmit + 独立 Go vet）全部通过。此 setup 增量没有重做真实 Amp 联调或运行 SDK 的模型任务。
+
+这是当前 Linux orb 的安装/环境证据，不是新项目快照服务端生成的实测，也不是 macOS 安装证据。增量提交需经集成并到达项目默认分支后，才会成为未来 orbs 的新 setup；本工作线未获推送授权，未推送。

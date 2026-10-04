@@ -10,3 +10,12 @@ mkdir -p "$HOME/.local/bin"
 ln -sf "$go_bin" "$HOME/.local/bin/go"
 ln -sf "${go_bin%/go}/gofmt" "$HOME/.local/bin/gofmt"
 "$go_bin" version
+if [[ -f experiments/amp-sdk/package-lock.json ]]; then
+  node_bin="$HOME/.local/bin/node"
+  npm_cli="$HOME/.local/bin/npm"
+  if [[ "$("$node_bin" --version 2>/dev/null || true)" != 'v26.10.0' || "$("$node_bin" "$npm_cli" --version 2>/dev/null || true)" != '10.9.9' || ! -f experiments/amp-sdk/node_modules/@ampcode/sdk/package.json ]]; then
+    echo 'Pinned SDK toolchain/dependencies are missing or mismatched; rerun .agents/setup' >&2
+    exit 1
+  fi
+  echo '[node] Node 26.10.0 / npm 10.9.9 and SDK dependencies ready'
+fi
