@@ -142,13 +142,14 @@ func TestSharedScenarios(t *testing.T) {
 			if exit != 0 || len(all) != 5 || all[1].Type != "assistant" || all[1].Data["text"] != "中文🙂分块" || all[2].Type != "tool" || all[3].Type != "tool" || all[4].Data["threadId"] != fakeThread {
 				t.Fatalf("wrong stream: exit %d, %+v", exit, all)
 			}
-			if !strings.Contains(diagnostics.String(), "fixture diagnostic") || bytes.Contains(output.Bytes(), []byte("fixture diagnostic")) {
+			if diagnostics.Len() != 190000 || !strings.Contains(diagnostics.String(), "fixture diagnostic") || bytes.Contains(output.Bytes(), []byte("fixture diagnostic")) {
 				t.Fatal("stderr not separated")
 			}
 			data, _ := os.ReadFile(filepath.Join(s.CWD, "captured-input"))
 			var input struct {
-				Type, RequestID string
-				Message         struct {
+				Type      string
+				RequestID string `json:"request_id"`
+				Message   struct {
 					Role    string
 					Content []struct{ Type, Text string }
 				}
@@ -156,9 +157,10 @@ func TestSharedScenarios(t *testing.T) {
 			if json.Unmarshal(data, &input) != nil || input.Type != "user" || input.RequestID != s.RequestID || input.Message.Role != "user" || len(input.Message.Content) != 1 {
 				t.Fatalf("wrong Amp input: %s", data)
 			}
-			var captured Start
-			text := strings.TrimPrefix(input.Message.Content[0].Text, "Kepub task context (JSON):\n")
-			if json.Unmarshal([]byte(text), &captured) != nil || !reflect.DeepEqual(captured, s) {
+			var captured map[string]any
+			text := strings.TrimPrefix(input.Message.Content[0].Text, s.Prompt+"\n\nKepub task context (JSON):\n")
+			want := map[string]any{"bookPath": "EPUB/ch01.xhtml", "fragment": "note-8", "selectedText": "只发送选区", "generation": float64(13)}
+			if json.Unmarshal([]byte(text), &captured) != nil || !reflect.DeepEqual(captured, want) {
 				t.Fatalf("context not preserved: %s", text)
 			}
 			if _, err := os.Stat(filepath.Join(s.CWD, "should-not-exist")); !errors.Is(err, os.ErrNotExist) {
@@ -227,7 +229,10 @@ func TestCancellationAndDelayedWriters(t *testing.T) {
 						t.Fatalf("exit=%d", exit)
 					}
 				} else {
-					checkTerminal(t, all, "completed", nil, true)
+					checkTerminal(t, all, "failed", "WRITERS_AFTER_CLI", true)
+					if exit != 1 {
+						t.Fatalf("exit=%d", exit)
+					}
 				}
 			case <-time.After(2 * time.Second):
 				t.Fatal("unbounded cancellation")
@@ -438,5 +443,37 @@ func TestClosedHostOutputDoesNotSIGPIPE(t *testing.T) {
 	var exit *exec.ExitError
 	if !errors.As(err, &exit) || exit.ExitCode() != 1 {
 		t.Fatalf("want handled EPIPE exit 1, not SIGPIPE: %v", err)
+	}
+}
+
+func TestMatchingBoundaryScenarios(t *testing.T) {
+	for _, tc := range []struct{ scenario, code, marker string }{
+		{"exit_before_eof", "EXIT_ERROR", "result-sent"},
+		{"unterminated_oversize", "STREAM_ERROR", "raw-started"},
+		{"stderr_parallel", "STDERR_ERROR", "stderr-started"},
+	} {
+		t.Run(tc.scenario, func(t *testing.T) {
+			s, cfg := fixture(t, tc.scenario)
+			var output, diagnostics bytes.Buffer
+			started := time.Now()
+			exit := run(context.Background(), cfg, io.NopCloser(bytes.NewReader(startJSON(s))), &output, &diagnostics)
+			elapsed := time.Since(started)
+			checkTerminal(t, events(t, output.Bytes(), s), "failed", tc.code, true)
+			if exit != 1 || elapsed > 2*time.Second {
+				t.Fatalf("expected early bounded failure, exit=%d elapsed=%s", exit, elapsed)
+			}
+			if _, err := os.Stat(filepath.Join(s.CWD, tc.marker)); err != nil {
+				t.Fatal(err)
+			}
+			if tc.scenario == "stderr_parallel" {
+				if diagnostics.Len() != 1<<20+1 {
+					t.Fatalf("retained %d stderr bytes, want limit+1", diagnostics.Len())
+				}
+				if _, err := os.Stat(filepath.Join(s.CWD, "stderr-finished")); !errors.Is(err, os.ErrNotExist) {
+					t.Fatal("large stderr unexpectedly drained fully")
+				}
+			}
+			t.Logf("%s: %s, cleanup confirmed, elapsed=%s, retained stderr=%d", tc.scenario, tc.code, elapsed, diagnostics.Len())
+		})
 	}
 }

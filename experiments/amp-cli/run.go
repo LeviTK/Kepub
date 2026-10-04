@@ -219,6 +219,17 @@ func run(ctx context.Context, cfg config, input io.ReadCloser, output, diagnosti
 			}
 		case waitErr = <-waitCh:
 			waitCh, waited = nil, true
+			if !stopping {
+				if waitErr != nil {
+					stop("EXIT_ERROR")
+				} else if present, err := groupPresent(cmd.Process.Pid); err != nil {
+					stop("GROUP_PROBE_ERROR")
+				} else if present {
+					// Cleanup success cannot turn an incomplete writer lifecycle
+					// into task success, even if a success result was emitted.
+					stop("WRITERS_AFTER_CLI")
+				}
+			}
 			stop("") // Cleanup descendants even after result + root exit 0.
 		case cleaned = <-cleanupCh:
 			cleanupCh, cleanupDone = nil, true

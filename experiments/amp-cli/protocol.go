@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,7 +30,33 @@ type Start struct {
 	Fragment      string   `json:"fragment,omitempty"`
 	Progression   *float64 `json:"progression,omitempty"`
 	SelectedText  string   `json:"selectedText,omitempty"`
-	Generation    *int64   `json:"generation"`
+	Generation    *int64   `json:"generation,omitempty"`
+	context       map[string]json.RawMessage
+}
+
+// Preserve explicit null and empty strings separately from absent context.
+// Typed decoding still enforces int64 generation and numeric progression.
+func (s *Start) UnmarshalJSON(data []byte) error {
+	type plain Start
+	var decoded plain
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	decoded.context = make(map[string]json.RawMessage)
+	for _, key := range []string{"bookPath", "fragment", "progression", "selectedText", "generation"} {
+		if raw, present := fields[key]; present {
+			if key != "progression" && key != "generation" && bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+				return fmt.Errorf("%s must be a string, not null", key)
+			}
+			decoded.context[key] = raw
+		}
+	}
+	*s = Start(decoded)
+	return nil
 }
 
 type Binding struct {
@@ -74,9 +101,15 @@ func ampArgs(s Start) []string {
 
 func ampInput(s Start) []byte {
 	// Explicit supplied context only: no file reads, attachments or argument interpolation.
-	context, _ := json.Marshal(s)
-	value := map[string]any{"type": "user", "requestId": s.RequestID, "message": map[string]any{
-		"role": "user", "content": []any{map[string]any{"type": "text", "text": "Kepub task context (JSON):\n" + string(context)}},
+	text := s.Prompt
+	if len(s.context) > 0 {
+		context, _ := json.Marshal(s.context)
+		text += "\n\nKepub task context (JSON):\n" + string(context)
+	}
+	// The pinned SDK's public API uses requestId, but its CLI serializer uses
+	// request_id. Neither spelling's acceptance/deduplication is real-CLI tested.
+	value := map[string]any{"type": "user", "request_id": s.RequestID, "message": map[string]any{
+		"role": "user", "content": []any{map[string]any{"type": "text", "text": text}},
 	}}
 	line, _ := json.Marshal(value)
 	return append(line, '\n')
@@ -124,6 +157,11 @@ func readFrame(r *bufio.Reader, limit int) ([]byte, error) {
 		}
 		line = append(line, part...)
 		if errors.Is(err, bufio.ErrBufferFull) {
+			if len(line) == limit {
+				// The required newline would exceed the limit. Do not wait
+				// for another byte or EOF from a stalled producer.
+				return nil, errors.New("message has no room for newline")
+			}
 			continue
 		}
 		if err != nil {

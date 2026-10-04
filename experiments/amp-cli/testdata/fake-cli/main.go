@@ -21,6 +21,11 @@ import (
 const threadID = "T-11111111-2222-4333-8444-555555555555"
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "hold-stdout" {
+		os.WriteFile("child-ready", []byte(strconv.Itoa(os.Getpid())), 0600)
+		time.Sleep(250 * time.Millisecond)
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "child" {
 		signal.Ignore(syscall.SIGTERM)
 		os.WriteFile("child-ready", []byte(strconv.Itoa(os.Getpid())), 0600)
@@ -53,6 +58,30 @@ func main() {
 	case "oversize":
 		os.Stdout.Write(bytes.Repeat([]byte("x"), 1<<20+1))
 		return
+	case "unterminated_oversize":
+		os.WriteFile("raw-started", nil, 0600)
+		os.Stdout.Write(bytes.Repeat([]byte("x"), 1<<20))
+		os.WriteFile("oversize-sent", nil, 0600)
+		time.Sleep(10 * time.Second) // No newline or EOF; limit must fire first.
+		return
+	case "exit_before_eof":
+		fmt.Fprintln(os.Stderr, "fixture diagnostic")
+		ready()
+		emit(result)
+		os.WriteFile("result-sent", nil, 0600)
+		exe, _ := os.Executable()
+		child := exec.Command(exe, "hold-stdout")
+		child.Stdout = os.Stdout
+		if err := child.Start(); err != nil {
+			panic(err)
+		}
+		for {
+			if _, err := os.Stat("child-ready"); err == nil {
+				break
+			}
+			time.Sleep(time.Millisecond)
+		}
+		os.Exit(23)
 	case "malformed":
 		fmt.Println("{broken}")
 		return
@@ -61,6 +90,18 @@ func main() {
 		return
 	case "stderr-limit":
 		os.Stderr.Write(bytes.Repeat([]byte("!"), 1<<20+1))
+	case "stderr_parallel":
+		os.WriteFile("stderr-started", []byte("2883584"), 0600)
+		// os.File.Write blocks until all bytes are written or an error occurs;
+		// the success result is never sent before this explicit drain completes.
+		chunk := bytes.Repeat([]byte("d"), 8192)
+		for written := 0; written < 2883584; written += len(chunk) {
+			n, err := os.Stderr.Write(chunk)
+			if err != nil || n != len(chunk) {
+				os.Exit(24)
+			}
+		}
+		os.WriteFile("stderr-finished", nil, 0600)
 	case "total-limit":
 		for range 10 {
 			emit(map[string]any{"type": "future", "payload": strings.Repeat("x", 900000)})

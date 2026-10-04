@@ -14,6 +14,16 @@ func configureProcess(cmd *exec.Cmd) error {
 	return nil
 }
 
+// Presence includes zombies: before cleanup, uncertain residual members must
+// conservatively block completion rather than race a live process snapshot.
+func groupPresent(pid int) (bool, error) {
+	err := syscall.Kill(-pid, 0)
+	if errors.Is(err, syscall.ESRCH) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
 func signalGroup(pid int, signal syscall.Signal) error {
 	err := syscall.Kill(-pid, signal)
 	if errors.Is(err, syscall.ESRCH) {
@@ -31,12 +41,12 @@ func stopGroup(pid int, grace, timeout time.Duration) bool {
 	killAt, end := time.Now().Add(grace), time.Now().Add(grace+timeout)
 	killed := false
 	for {
-		err := syscall.Kill(-pid, 0)
-		if errors.Is(err, syscall.ESRCH) {
-			return true
-		}
+		present, err := groupPresent(pid)
 		if err != nil {
 			return false
+		}
+		if !present {
+			return true
 		}
 		if killed {
 			// Only inspect Linux zombie-only groups after SIGKILL, when live
