@@ -380,9 +380,10 @@ TypeScript SDK 不是浏览器 SDK，也没有移除 CLI 依赖。Node 包、锁
 共同实验约定（版本 1，仅用于对照，不是新的公共 CLI）：
 
 - 宿主通过 stdin JSONL 发 `start`：`schemaVersion:1`、`type:"start"`、`requestId`、`workspaceId`、`taskId`、`baseRevision`、显式绝对 `cwd`、`prompt`，续接时另带明确 `threadId`。上下文可附顶层字段 `bookPath/fragment/progression/selectedText/generation`；不自动读取或上传整书，也不把内容字符串解释为进程参数。
+- 两个原型发送相同的显式上下文：模型文本先保留原 `prompt`，仅在提供上下文字段时追加 `\n\nKepub task context (JSON):\n` 和 JSON 对象。该对象只含上述五个已提供字段，不加入未知字段、内部绑定或自动文件内容。三项文本必须为字符串；`progression` 为 null 或 0～1，`generation` 为 null 或非负 int64；保留空字符串与显式 null，缺省字段不补入上下文。公共事件的缺省 generation 仍为 null。
 - `cancel` 控制消息含 `schemaVersion:1`、`type:"cancel"`、同一 `requestId`。首批每个辅助进程只处理一个任务；不以会话池扩大比较范围。
 - stdout 事件采用 CLI 契约的 envelope：`schemaVersion/requestId/workspaceId/taskId/sequence/generation/type/data`。`sequence` 从 1 严格递增，`generation` 未提供时为 null，日志只进 stderr。实验事件类型为 `started/assistant/tool/completed/failed/cancelled`；terminal 恰好一个。
-- `completed` 只在协议成功结果、完整结束及成功进程退出均成立后发出，必须含 `data.reviewRequired:true`；不表示已接受或已通过出版物检查。缺失终止消息、异常退出或取消后仍可能写入都不能报告可冻结成功。
+- `completed` 只在协议成功结果、完整结束及成功进程退出均成立后发出，必须含 `data.reviewRequired:true`；不表示已接受或已通过出版物检查。缺失终止消息、异常退出或取消后仍可能写入都不能报告可冻结成功。正常执行结束后若仍有活写者必须终止，清理成功也应报告失败，而不是把被中断的工具结果升级为 completed。
 - terminal 的 `data` 统一包含 `reviewRequired`、`code`（成功为 null，失败/取消为稳定字符串）、`threadId`（未知为 null）、`cleanup:{scope:"process-group",confirmed:boolean}`。无法确认受管进程组清理时报告 `failed` / `CLEANUP_UNCONFIRMED`，不发 `completed`；此范围不涵盖通过 setsid 等方式脱离进程组的同用户进程，不是 OS 沙箱或所有写者已停止的证明。
 - 默认使用明确本机执行和 private 线程可见性；不使用 `continue:true`、不自动开启全权限。续接上下文由 Go 宿主复核，SDK 的消息 requestId 去重不能替代出版物事务幂等性。
 - 原型宿主通过启动参数 `--bindings FILE` 提供可信续接绑定，文件形状为 `{"schemaVersion":1,"threads":[{"threadId":"…","workspaceId":"…","taskId":"…","cwd":"绝对路径","baseRevision":"…"}]}`。续接前逐项匹配，缺失/不匹配则拒绝；不能用 start 消息里的自我声明生成信任。新线程无需预存绑定，返回 ID 后由宿主登记；绑定文件是宿主输入，不从书籍或模型消息发现。
