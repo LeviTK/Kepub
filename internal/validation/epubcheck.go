@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/LeviTK/Kepub/internal/archive"
-	"github.com/LeviTK/Kepub/internal/bookpath"
 	"github.com/LeviTK/Kepub/internal/fault"
 	"golang.org/x/text/unicode/norm"
 )
@@ -478,9 +477,6 @@ func validateReport(u upstream, tree archive.Tree, successful bool) error {
 				// Feature-only rows have all four inventory fields at explicit
 				// defaults. Neither NFC nor URI aliases ever prove ZIP inventory.
 				if *e.Size != 0 || e.CompressedSize == nil || *e.CompressedSize != 0 || !bytes.Equal(bytes.TrimSpace(e.CompressionMethod), []byte("null")) || aliases[e.Name] == "" {
-					return fmt.Errorf("report metadata alias mismatch")
-				}
-				if _, err := bookpath.Parse(e.Name); err != nil {
 					return fmt.Errorf("report metadata alias mismatch")
 				}
 				continue

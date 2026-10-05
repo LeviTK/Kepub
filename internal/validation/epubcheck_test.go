@@ -77,7 +77,9 @@ func TestReportInventoryAndMetadataAliases(t *testing.T) {
 	}
 	var tree archive.Tree
 	var inventory []any
-	for i, name := range []string{"literal%20.xhtml", "literal .xhtml", "章 节.xhtml", "plus+.xhtml", "hash#.xhtml", "query?.xhtml", "cafe\u0301.xhtml", "cafe\u0301!'().xhtml", "cafe\u0301%20 .xhtml", "empty"} {
+	longRaw := strings.Repeat("目录目录目录/", 100) + "chapter.xhtml"
+	longURI := strings.Repeat("%E7%9B%AE%E5%BD%95%E7%9B%AE%E5%BD%95%E7%9B%AE%E5%BD%95/", 100) + "chapter.xhtml"
+	for i, name := range []string{"literal%20.xhtml", "literal .xhtml", "章 节.xhtml", "plus+.xhtml", "hash#.xhtml", "query?.xhtml", "cafe\u0301.xhtml", "cafe\u0301!'().xhtml", "cafe\u0301%20 .xhtml", longRaw, "empty"} {
 		payload := []byte(fmt.Sprintf("independent payload %d", i))
 		if name == "empty" {
 			payload = nil
@@ -92,7 +94,7 @@ func TestReportInventoryAndMetadataAliases(t *testing.T) {
 	}
 	// Independent expected spellings from official URLUtils/Galimatias:
 	// literal percent is escaped, plus/!'() are preserved, and Unicode is NFC.
-	aliases := []any{alias("literal%2520.xhtml"), alias("%E7%AB%A0%20%E8%8A%82.xhtml"), alias("hash%23.xhtml"), alias("query%3F.xhtml"), alias("café.xhtml"), alias("caf%C3%A9.xhtml"), alias("café!'().xhtml"), alias("caf%C3%A9!'().xhtml"), alias("café%20 .xhtml"), alias("caf%C3%A9%2520%20.xhtml")}
+	aliases := []any{alias("literal%2520.xhtml"), alias("%E7%AB%A0%20%E8%8A%82.xhtml"), alias("hash%23.xhtml"), alias("query%3F.xhtml"), alias("café.xhtml"), alias("caf%C3%A9.xhtml"), alias("café!'().xhtml"), alias("caf%C3%A9!'().xhtml"), alias("café%20 .xhtml"), alias("caf%C3%A9%2520%20.xhtml"), alias(longURI)}
 	// Only raw, complete size/checksum rows prove inventory. URI metadata
 	// aliases are independent, and must not choose between literal %20 and space.
 	for _, tc := range []struct {

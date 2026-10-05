@@ -115,6 +115,17 @@ func TestRealEncodedReportInventory(t *testing.T) {
 				{"cafe\u0301!'().xhtml", "cafe%CC%81%21%27%28%29.xhtml"},
 				{"cafe\u0301%20 .xhtml", "cafe%CC%81%2520%20.xhtml"},
 			}
+			var longRaw, longURI strings.Builder
+			for i := 0; i < 10; i++ {
+				fmt.Fprintf(&longRaw, "%s%d/", strings.Repeat("章", 50), i)
+				fmt.Fprintf(&longURI, "%s%d/", strings.Repeat("%E7%AB%A0", 50), i)
+			}
+			longRaw.WriteString("叶.xhtml")
+			longURI.WriteString("%E5%8F%B6.xhtml")
+			if longRaw.Len() >= 4096 || longURI.Len() <= 4096 {
+				t.Fatal("fixture does not straddle raw/URI path boundary")
+			}
+			resources = append(resources, struct{ name, href string }{longRaw.String(), longURI.String()})
 			if tc.query {
 				resources = append(resources, struct{ name, href string }{"query?.xhtml", "query%3F.xhtml"})
 			}
@@ -173,7 +184,7 @@ func TestRealEncodedReportInventory(t *testing.T) {
 						for _, row := range raw.Items {
 							aux[row.Name] = row.Checksum == nil
 						}
-						for _, name := range []string{"EPUB/café.xhtml", "EPUB/caf%C3%A9.xhtml", "EPUB/café!'().xhtml", "EPUB/caf%C3%A9!'().xhtml", "EPUB/café%20 .xhtml", "EPUB/caf%C3%A9%2520%20.xhtml"} {
+						for _, name := range []string{"EPUB/café.xhtml", "EPUB/caf%C3%A9.xhtml", "EPUB/café!'().xhtml", "EPUB/caf%C3%A9!'().xhtml", "EPUB/café%20 .xhtml", "EPUB/caf%C3%A9%2520%20.xhtml", "EPUB/" + longURI.String()} {
 							if !aux[name] {
 								t.Fatalf("fixture did not exercise expected real auxiliary row %q", name)
 							}
