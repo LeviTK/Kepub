@@ -22,6 +22,7 @@ import (
 
 type options struct {
 	command, book, section, output, rootfile string
+	action, workspace, operations, plan      string
 	resource, direction                      string
 	json, help                               bool
 	strict, draft                            bool
@@ -42,7 +43,15 @@ func parse(args []string) (o options, err error) {
 		if len(positional) > 0 {
 			o.command = positional[0]
 		}
-		if len(positional) > 1 {
+		if o.command == "workspace" || o.command == "task" {
+			o.book = ""
+			if len(positional) > 1 {
+				o.action = positional[1]
+			}
+			if len(positional) > 2 {
+				o.book = positional[2]
+			}
+		} else if len(positional) > 1 {
 			o.book = positional[1]
 		}
 	}()
@@ -84,7 +93,7 @@ func parse(args []string) (o options, err error) {
 		if strings.HasPrefix(s, "-") {
 			key, val, has := strings.Cut(s, "=")
 			switch key {
-			case "--section", "--rootfile", "--output", "-o", "--resource", "--direction", "--timeout":
+			case "--section", "--rootfile", "--output", "-o", "--resource", "--direction", "--timeout", "--workspace", "--operations", "--plan":
 			default:
 				return o, fault.New(2, "INVALID_ARGUMENT", "unknown option %q", s)
 			}
@@ -106,6 +115,12 @@ func parse(args []string) (o options, err error) {
 				return o, fault.New(2, "INVALID_ARGUMENT", "empty option value")
 			}
 			switch key {
+			case "--workspace":
+				o.workspace = val
+			case "--operations":
+				o.operations = val
+			case "--plan":
+				o.plan = val
 			case "--timeout":
 				n, e := strconv.ParseUint(val, 10, 32)
 				if e != nil || n == 0 {
@@ -133,7 +148,11 @@ func parse(args []string) (o options, err error) {
 	if len(positional) > 1 {
 		o.book = positional[1]
 	}
-	if len(positional) > 2 {
+	max := 2
+	if len(positional) > 0 && (positional[0] == "workspace" || positional[0] == "task") {
+		max = 3
+	}
+	if len(positional) > max {
 		return o, fault.New(2, "INVALID_ARGUMENT", "too many positional arguments")
 	}
 	return o, nil
@@ -141,7 +160,17 @@ func parse(args []string) (o options, err error) {
 
 func execute(ctx context.Context, o options) (any, error) {
 	if o.help {
-		return map[string]any{"usage": "kepub [--json] capabilities | info BOOK | toc BOOK | inspect BOOK --section metadata|manifest|spine|navigation|references|capabilities [--resource BOOK_PATH --direction incoming|outgoing (references only)] | unpack BOOK --output DIR | validate BOOK_OR_DIR [--strict --timeout SECONDS] | pack DIR --output OUT.epub [--draft --strict --timeout SECONDS]; --rootfile BOOK_PATH; -- ends options; EPUBCheck: KEPUB_EPUBCHECK_JAR", "capabilities": app.Capabilities()}, nil
+		return map[string]any{"usage": "kepub [--json] capabilities | info BOOK | toc BOOK | inspect BOOK --section metadata|manifest|spine|navigation|references|capabilities [--resource BOOK_PATH --direction incoming|outgoing (references only)] | unpack BOOK --output DIR | validate BOOK_OR_DIR [--strict --timeout SECONDS] | pack DIR --output OUT.epub [--draft --strict --timeout SECONDS] | workspace open BOOK --output DIR | plan --workspace DIR --operations FILE --output PLAN.json | apply --workspace DIR --plan PLAN.json | task diff|accept|reject TASK --workspace DIR | workspace export DIR --output OUT.epub [--draft --strict --timeout SECONDS]; accept permits --strict --timeout SECONDS; plan/export outputs must be outside workspace and absent; --rootfile BOOK_PATH (import/read); -- ends options; EPUBCheck: KEPUB_EPUBCHECK_JAR; workspace list/registry and task run remain planned", "capabilities": app.Capabilities()}, nil
+	}
+	if o.command == "workspace" || o.command == "task" || o.command == "plan" || o.command == "apply" {
+		data, err := executeWorkspace(ctx, o)
+		if err != nil && errors.Is(ctx.Err(), context.Canceled) {
+			err = fault.New(130, "CANCELLED", "request cancelled")
+		}
+		return data, err
+	}
+	if o.workspace != "" || o.operations != "" || o.plan != "" {
+		return nil, fault.New(2, "INVALID_ARGUMENT", "workspace/operations/plan options require workspace editing commands")
 	}
 	if o.command != "validate" && o.command != "pack" && (o.strict || o.draft || o.timeout != 0) {
 		return nil, fault.New(2, "INVALID_ARGUMENT", "strict/draft/timeout require validate or pack")
@@ -242,7 +271,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	var data any
 	if err == nil {
 		ctx := context.Background()
-		if o.command == "validate" || o.command == "pack" {
+		if o.command == "validate" || o.command == "pack" || o.command == "workspace" && o.action == "export" || o.command == "task" && o.action == "accept" {
 			var stop context.CancelFunc
 			ctx, stop = signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 			defer stop()

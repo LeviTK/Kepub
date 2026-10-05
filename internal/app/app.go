@@ -57,11 +57,42 @@ func Capabilities() []Capability {
 		}
 		out = append(out, Capability{ID: "publication." + id, Version: 1, Status: "available", Reason: "Implemented; formal validation requires locally installed pinned EPUBCheck 5.3.0 and Java; no download or automatic draft fallback", Commands: []string{id}, Risk: "external", InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": required, "properties": properties}, OutputSchema: map[string]any{"type": "object"}, SupportedFeatures: []string{"safe ZIP / explicit publication directory snapshot", "kepub-tree-v1 approved inventory", "full EPUBCheck conformance", "partial reference coverage is not a conformance gate"}, Preconditions: []string{"frozen input", "explicit rootfile if ambiguous", "pack output outside publication root and absent"}, PostChecks: []string{"final ZIP safety and input hash", "EPUBCheck full report except explicit draft"}, Idempotency: "read only input; pack never replaces output"})
 	}
+	metadataSchema := map[string]any{"type": "object", "additionalProperties": false, "required": []string{"namespace", "localName", "expectedOldValue", "newValue"}, "properties": map[string]any{"namespace": map[string]any{"const": "http://purl.org/dc/elements/1.1/"}, "localName": map[string]any{"enum": []string{"title", "creator"}}, "id": stringSchema, "expectedOldValue": map[string]any{"type": "string"}, "newValue": map[string]any{"type": "string"}}}
+	for _, c := range []Capability{
+		{ID: "metadata.set", Mutates: true, Risk: "bounded_edit", InputSchema: metadataSchema, SupportedFeatures: []string{"unique existing dc:title/dc:creator simple text", "exact namespace/local name/optional ID", "expected old value", "local escaped byte replacement", "no-op preserves bytes; no automatic timestamp"}},
+		{ID: "workspace.open", Commands: []string{"workspace open"}, InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"book", "output"}, "properties": map[string]any{"book": stringSchema, "output": stringSchema, "rootfile": stringSchema}}},
+		{ID: "plan", Commands: []string{"plan"}, InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "operations", "output"}, "properties": map[string]any{"workspace": stringSchema, "operations": stringSchema, "output": stringSchema}}},
+		{ID: "apply", Commands: []string{"apply"}, Mutates: true, Risk: "bounded_edit", InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "plan"}, "properties": map[string]any{"workspace": stringSchema, "plan": stringSchema}}},
+		{ID: "task.diff", Commands: []string{"task diff"}}, {ID: "task.accept", Commands: []string{"task accept"}, Mutates: true, Risk: "external"}, {ID: "task.reject", Commands: []string{"task reject"}},
+		{ID: "workspace.export", Commands: []string{"workspace export"}, Risk: "external"},
+	} {
+		c.Version, c.Status = 1, "available"
+		c.Reason = "M2 explicit workspace directory; one metadata.set v1; apply remains review_required/conformance not_run; accept and formal export run pinned EPUBCheck (must be installed)"
+		if c.Risk == "" {
+			c.Risk = "read_only"
+		}
+		if c.InputSchema == nil {
+			c.InputSchema = map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "task"}, "properties": map[string]any{"workspace": stringSchema, "task": stringSchema}}
+			if c.ID == "task.accept" {
+				c.InputSchema = map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "task"}, "properties": map[string]any{"workspace": stringSchema, "task": stringSchema, "strict": map[string]any{"type": "boolean"}, "timeout": map[string]any{"type": "integer", "minimum": 1}}}
+			}
+			if c.ID == "workspace.export" {
+				c.InputSchema = map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "output"}, "properties": map[string]any{"workspace": stringSchema, "output": stringSchema, "draft": map[string]any{"type": "boolean"}, "strict": map[string]any{"type": "boolean"}, "timeout": map[string]any{"type": "integer", "minimum": 1}}}
+			}
+		}
+		c.OutputSchema = map[string]any{"type": "object"}
+		if c.SupportedFeatures == nil {
+			c.SupportedFeatures = []string{"explicit path/identity/rootfile", "immutable initial and accepted revisions", "real full-tree diff and old/new metadata", "audited accept/reject", "accepted-only export"}
+		}
+		c.Preconditions = []string{"exclusive workspace owner; external writers stopped", "exact baseline and persisted plan/task provenance", "plan/export output absent and outside workspace root"}
+		c.PostChecks = []string{"actual full tree hash/write set", "formal checks for acceptance and final ZIP export; no passed flag", "partial CSS coverage remains diagnostic, not permission to rename"}
+		c.Idempotency = "no overwrite; plans/tasks bound to revision; consumed plans cannot be reapplied; no-op changed:false"
+		out = append(out, c)
+	}
 	for _, c := range []Capability{
 		{ID: "doctor", Commands: []string{"doctor"}},
-		{ID: "metadata.set", Mutates: true}, {ID: "resource.rename", Mutates: true}, {ID: "workspace", Commands: []string{"workspace"}},
-		{ID: "plan", Commands: []string{"plan"}}, {ID: "apply", Commands: []string{"apply"}, Mutates: true},
-		{ID: "preview", Commands: []string{"preview", "serve"}, RequiresGUI: true}, {ID: "amp", Commands: []string{"amp", "task"}, RequiresModel: true},
+		{ID: "resource.rename", Mutates: true}, {ID: "workspace.list", Commands: []string{"workspace list"}},
+		{ID: "preview", Commands: []string{"preview", "serve"}, RequiresGUI: true}, {ID: "amp", Commands: []string{"amp", "task run"}, RequiresModel: true},
 	} {
 		c.Version = 1
 		c.Status = "planned"

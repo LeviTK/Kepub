@@ -52,7 +52,7 @@ func (w *Workspace) checkpoint() (_ Snapshot, err error) {
 	if tree.SHA256 != before.SHA256 || tree.SHA256 != after.SHA256 {
 		return Snapshot{}, fmt.Errorf("candidate changed during checkpoint")
 	}
-	s := Snapshot{1, id, "initial", tree}
+	s := Snapshot{1, id, w.current, tree}
 	if err := writeJSON(w.root, stage+"/checkpoint.json", s); err != nil {
 		return Snapshot{}, err
 	}
@@ -113,7 +113,7 @@ func (w *Workspace) snapshot(id string) (Snapshot, error) {
 	if err := readJSON(w.root, checkpointDir(id)+"/checkpoint.json", &s); err != nil {
 		return s, err
 	}
-	if s.Version != 1 || s.ID != id || s.BaseRevision != w.state.InitialRevision {
+	if s.Version != 1 || s.ID != id || s.BaseRevision != w.current {
 		return s, fmt.Errorf("invalid checkpoint provenance")
 	}
 	tree, err := hashAt(w.root, checkpointDir(id)+"/pub")

@@ -1,7 +1,7 @@
-// Package workspace provides owned snapshots and bounded deterministic candidate
-// editing, not acceptance or EPUB validation. One handle owns the writer lock
-// until Close. External writers must stop before plan/apply/checkpoint/restore/
-// hash/Close; flock is advisory, not a
+// Package workspace provides owned snapshots, bounded deterministic candidate
+// editing and audited acceptance using real formal validation. One handle owns
+// the writer lock until Close. External writers must stop before all operations;
+// flock is advisory, not a
 // sandbox against another process with the same user's filesystem permissions.
 package workspace
 
@@ -55,6 +55,8 @@ type Workspace struct {
 	owner    *os.File
 	dir      string
 	state    State
+	current  string
+	base     Tree
 	id       string
 	closed   bool
 	recovery bool
@@ -63,6 +65,7 @@ type Workspace struct {
 type taskRecord struct {
 	Version      int    `json:"version"`
 	BaseRevision string `json:"baseRevision"`
+	ID           string `json:"id,omitempty"`
 }
 
 // Create requires an absent destination and an existing real parent directory.
@@ -221,6 +224,9 @@ func Open(dir string) (_ *Workspace, err error) {
 			return nil, err
 		}
 	}
+	if err := w.recoverSettlement(); err != nil {
+		return nil, err
+	}
 	if exists(r, "tasks/active") {
 		if _, err := w.checkpoints(); err != nil {
 			return nil, err
@@ -236,7 +242,7 @@ func Open(dir string) (_ *Workspace, err error) {
 			return nil, err
 		}
 		if exists(r, "tasks/active/edit-intent.json") {
-			if _, err := w.execution(); err != nil {
+			if _, err := w.execution(); err != nil && !errors.Is(err, ErrCandidateDrift) {
 				return nil, err
 			}
 		} else if exists(r, "tasks/active/edit-start.json") || exists(r, "tasks/active/edit-result.json") {
@@ -283,7 +289,7 @@ func (w *Workspace) ready() error {
 }
 
 // NewCandidate publishes one independent writable copy. A second candidate is
-// refused; lifecycle/accept/reject and authorizing an Agent are future layers.
+// refused until the active task is settled.
 func (w *Workspace) NewCandidate() (_ string, err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -310,14 +316,15 @@ func (w *Workspace) createCandidate(plan *Plan) (_ string, err error) {
 			return "", err
 		}
 	}
-	tree, err := copyTree(w.root, revision, stage+"/work/pub")
+	tree, err := copyTree(w.root, revisionPath(w.current), stage+"/work/pub")
 	if err != nil {
 		return "", err
 	}
-	if tree.SHA256 != w.state.Tree.SHA256 {
+	if tree.SHA256 != w.base.SHA256 {
 		return "", fmt.Errorf("baseline changed during copy")
 	}
-	if err := writeJSON(w.root, stage+"/task.json", taskRecord{1, "initial"}); err != nil {
+	task := taskRecord{Version: 2, BaseRevision: w.current, ID: randomID()}
+	if err := writeJSON(w.root, stage+"/task.json", task); err != nil {
 		return "", err
 	}
 	if plan != nil {
@@ -330,6 +337,14 @@ func (w *Workspace) createCandidate(plan *Plan) (_ string, err error) {
 	}
 	if err := syncDir(w.root, stage); err != nil {
 		return "", err
+	}
+	if plan != nil {
+		if err := writeJSON(w.root, "plans/"+plan.ID+".used.json", planUse{1, task.ID, digest(plan)}); err != nil {
+			return "", err
+		}
+		if err := syncDir(w.root, "plans"); err != nil {
+			return "", err
+		}
 	}
 	if err := publish(w.root, stage, "tasks/active"); err != nil {
 		return "", err
@@ -364,7 +379,7 @@ func (w *Workspace) verifyTask() error {
 	if err := readJSON(w.root, "tasks/active/task.json", &t); err != nil {
 		return err
 	}
-	if t.Version != 1 || t.BaseRevision != w.state.InitialRevision || len(w.state.ReadOnlyReasons) != 0 {
+	if (t.Version != 1 && t.Version != 2) || t.BaseRevision != w.current || (t.Version == 1 && (t.ID != "" || t.BaseRevision != "initial")) || (t.Version == 2 && !validID(t.ID)) || len(w.state.ReadOnlyReasons) != 0 {
 		return fmt.Errorf("invalid candidate provenance")
 	}
 	r, err := subdir(w.root, "tasks/active/checkpoints")
@@ -395,7 +410,7 @@ func (w *Workspace) verifyBaseline() error {
 	if tree.SHA256 != w.state.Tree.SHA256 || !slices.Equal(tree.Entries, w.state.Tree.Entries) {
 		return fmt.Errorf("initial revision manifest mismatch")
 	}
-	return nil
+	return w.loadCurrent()
 }
 
 func copyOriginal(dst *os.Root, source string) (string, error) {

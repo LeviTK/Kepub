@@ -169,15 +169,20 @@ func TestJSONSuccessFailureAndSelection(t *testing.T) {
 		t.Fatal(r)
 	}
 	cap := invoke(t, []string{"capabilities", "--json"}, 0)
-	available := 0
+	statuses := map[string]string{}
 	for _, v := range cap["data"].([]any) {
 		c := v.(map[string]any)
-		if c["implementationStatus"] == "available" {
-			available++
+		statuses[c["operationId"].(string)] = c["implementationStatus"].(string)
+	}
+	for _, id := range []string{"publication.inspect", "publication.validate", "publication.pack", "metadata.set", "plan", "apply", "workspace.open", "workspace.export", "task.diff", "task.accept", "task.reject"} {
+		if statuses[id] != "available" {
+			t.Fatalf("missing implemented capability %s", id)
 		}
 	}
-	if available != 7 {
-		t.Fatal("overstated capabilities", cap)
+	for _, id := range []string{"resource.rename", "workspace.list", "amp", "preview", "doctor"} {
+		if statuses[id] != "planned" {
+			t.Fatalf("overstated capability %s", id)
+		}
 	}
 }
 

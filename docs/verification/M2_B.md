@@ -1,6 +1,6 @@
-# M2-B：metadata.set 与 workspace plan/apply/diff 库
+# M2-B：metadata.set、workspace 库与编辑审核导出闭环
 
-日期：2026-10-04。共同基线：[77821e6](https://github.com/LeviTK/Kepub/commit/77821e6b163f45f81134394873d35f3ede8774ad)。本阶段是独立库交付，不是公共 CLI 或审核/导出闭环。
+第一批日期：2026-10-04。共同基线：[77821e6](https://github.com/LeviTK/Kepub/commit/77821e6b163f45f81134394873d35f3ede8774ad)。以下保留第一批独立库交付的范围与证据；第二批公共 CLI / 审核导出闭环见本文末节。
 
 ## 范围与接口
 
@@ -102,4 +102,94 @@ git diff --check
 
 保真 fuzz 的受支持输入约束避开大部分随机解析拒绝，以独立转义 oracle 构造 old/new 文本，并检查 changed 语义与完整字节结果。通过普通单测中的种子，并单独运行有界 fuzz。
 
-限制：flock/mutex 是协作单写者，不是同用户恶意进程沙箱；计划记录不是对整个可写工作区的密码学认证。外部写者必须停止。未证明断电、ENOSPC、任意阶段磁盘损坏恢复；不可恢复/不完整记录拒绝打开而非猜测成功。macOS 仅交叉编译，没有 Mac 实机测试。没有运行 EPUBCheck，不可宣称 conformance passed、已接受或可正式导出。
+第一批限制：flock/mutex 是协作单写者，不是同用户恶意进程沙箱；计划记录不是对整个可写工作区的密码学认证。外部写者必须停止。未证明断电、ENOSPC、任意阶段磁盘损坏恢复；不可恢复/不完整记录拒绝打开而非猜测成功。macOS 仅交叉编译，没有 Mac 实机测试。第一批没有运行 EPUBCheck，不宣称 conformance passed、已接受或可正式导出。
+
+## 第二批：可执行编辑→审核接受→accepted-only 导出
+
+日期：2026-10-05，Medium，亲自实现，无子线程。本批从父提供的精确本地基线 `94854e87470508fbcf200c306510415dbfd87e33` 开始：已含第一批 M2-B、Q1 校验/pack 和最终取消/进程组修复、Q3 环境准备。输入 bundle SHA-256 为 `a15ebeba2c8bca8d896c89cc17ed1dd1bc6c6c85838d697c88d13a97d9d9b7be`，验证 prerequisite 后快进并删除传输文件。父另行负责 README/DEVELOPMENT_PLAN，本批不修改 archive/validation/setup/锁文件，不推送。
+
+### 导出 API 与命令
+
+第一批及 M2-A API 保留。新增：
+
+```go
+// workspace：生命周期均保持 mutex + 跨进程 owner lock
+func (*Workspace) TaskID() (string, error)
+func (*Workspace) TaskDiff(taskID string) (Review, error)
+func (*Workspace) Accept(ctx context.Context, taskID string, opts validation.Options) (Decision, error)
+func (*Workspace) Reject(taskID string) (Decision, error)
+func (*Workspace) AcceptedSnapshot() (*archive.Archive, archive.Tree, Revision, error)
+func (*Workspace) OutputPath(output string) (string, error)
+func (*Workspace) WritePlanReport(plan Plan, output string) error
+func ReadEditFile(file string) ([]byte, error)
+
+// app：CLI/其他入口共用应用用例，不要求模型或 GUI
+func OpenWorkspace(book, dir, rootfile string) (WorkspaceResult, error)
+func PlanWorkspace(dir, operationsFile, output string) (workspace.Plan, error)
+func ApplyWorkspace(dir, planFile string) (workspace.Execution, error)
+func WorkspaceTask(ctx context.Context, dir, taskID, action string, opts validation.Options) (any, error)
+func ExportWorkspace(ctx context.Context, dir, output string, opts validation.Options) (WorkspaceExportResult, error)
+```
+
+`Review` 包含实际完整 `Diff`、baseRevision、taskId、matchesExecution，以及所选字段的 oldValue / plannedValue / 实际 newValue。复杂、歧义或无法解析的实际字段返回 newValue:null 和 unavailable，不把计划新值冒充实测。`Execution` 增加 taskId；新增 ErrTaskConflict / ErrCandidateDrift。CLI 映射 WORKSPACE_BUSY、TASK_CONFLICT、INPUT_DRIFT、RECOVERY_REQUIRED 到退出4，参数/非法输出到2，依赖/检查超时沿用 Q1 退出5，普通 I/O 到6，取消到130；stdout 始终单 envelope，嵌套命令 command 使用顶层 workspace/task。
+
+```sh
+kepub workspace open BOOK.epub --output WORKSPACE_DIR --json
+kepub plan --workspace WORKSPACE_DIR --operations operations.json --output PLAN.json --json
+kepub apply --workspace WORKSPACE_DIR --plan PLAN.json --json
+kepub task diff TASK_ID --workspace WORKSPACE_DIR --json
+kepub task accept TASK_ID --workspace WORKSPACE_DIR --json
+kepub workspace export WORKSPACE_DIR --output OUT.epub --json
+# 或显式拒绝：保留审计，之后生成新计划再编辑
+kepub task reject TASK_ID --workspace WORKSPACE_DIR --json
+```
+
+workspace open 仅新建，已有目录通过其他命令 Open；无隐式注册表、发现或 latest。TASK_ID 必须取 apply 返回的持久 ID，不能猜测 active/latest。Plan/export 输出均要求在整个 workspace 根之外、父目录已存在且所有祖先为真实目录、输出不存在，包括保护树内不存在的新文件。符号链接别名不能绕过该边界。operations/plan 输入拒绝符号链接、硬链接和特殊文件；复用既有 O_NONBLOCK/O_NOFOLLOW + 前后 inode 核对，FIFO 无 writer 也不会卡在打开阶段。
+
+capabilities 仅开放已实现的 metadata.set（上述单字段子集）、workspace.open/export、plan/apply、task.diff/accept/reject；resource.rename、workspace.list/registry、Amp task.run、preview 和 doctor 保持 planned。不改变 Q1 PackSnapshot 签名或成功发布后的取消语义。
+
+### 持久状态和提交/恢复语义
+
+- state v1 和 original/initial 永不推进或标记为已验证。`accepted.json` 独立绑定持久 workspaceId 与当前 revision；不存在时仅允许未推进的 legacy initial。随机 task record v2 保留唯一 active 目录。旧 task v1 用显式 legacy ID active 读取/diff/reject，接受须重新生成现代计划；旧 M2-B initial-only policy 可以读，现代计划策略改为 accepted-baseline v2，操作仍是 metadata.set v1。
+- Plan/apply/checkpoint/restore/diff 从当前 accepted revision 工作。每次接受建立独立 revision/pub 和精确 manifest，包含父 revision、task、rootfile、执行摘要与真实 validation；全部父链、来源计划/执行/决策/检查点和实际树在重开时验证。候选、checkpoint、initial、已接受 revision 都是独立内容副本。No-op 不写 OPF；显式接受仍建立审计 revision，Tree SHA 与字节不变。
+- `plans/<id>.used.json` 将计划消费绑定任务；拒绝或接受后旧计划不能再次当新任务运行，基线推进即使内容 hash 相同也使旧 generation 计划 stale。Apply 仍只到 review_required / conformance:not_run，不借用 accept 后的检查结果改写执行历史。
+- Accept 检查独立冻结树，直接调用实际 validation.Validate；没有 passed:true、可替换 checker 回调或 draft acceptance。archive、parse.structure、固定 EPUBCheck 5.3.0 必须完整 passed，InputTree/Archive/Config/check evidence 精确绑定；error/fatal 或缺检查阻断。Q1 的 CSS partial coverage/诊断保留，但它不是 conformance 必需检查，也不开放 rename。
+- 检查尝试单独保留 checks_passed/checks_failed，检查通过不等于已接受。冻结复制、检查、重扫与 revision/日志准备完成后，紧邻持久 settlement journal 发布前最后核对 ctx；这是取消可撤回的最后边界。Journal 发布提交不可撤回意图；随后独立 revision 发布、accepted 指针原子替换安装可见基线、decision 写入、task 归档、journal 清理。发布意图后的重开永远 roll-forward，不重跑检查；冻结 bytes/来源/报告不一致则拒绝恢复。中断失败返回 accept_pending 并要求重开；意图发布前取消只留下真实检查尝试，不推进指针。
+- Reject 使用同一小型结算 journal 保留 task/检查点/检查尝试与 decision，不删原书、revision 或审计。没有执行的旧 M2-A 手工候选可安全拒绝，不冒充检查通过。已结算 task ID 不可再接受/拒绝，新的 edit 使用新任务。
+- 完成候选被普通外部写者修改后，Open 允许安全文件树重开 diff/reject，Execution/Accept 返回 ErrCandidateDrift，matchesExecution:false。路径逃逸或记录损坏仍拒绝，而不是为便利跳过来源验证。
+- Export 只从 AcceptedSnapshot（初始为未验证 initial）传入 app.PackSnapshot(ctx,a,approved,output,options)。未接受 active 候选从不进入产物；正式导出独立检查最终 ZIP 并按 Q1 no-replace 边界发布。显式 --draft 保留未正式验证标记，缺依赖绝不自动降级。导入状态不因 export 前已有候选报告而冒称 pass。
+
+### 验证环境、用例与证据
+
+本 orb 执行仓库 `.agents/setup`，安装 Java `17.0.20.1+1-1~deb12u1`，校验 EPUBCheck 5.3.0 release/main JAR/完整 JAR 集；正式测试用全新干净 login shell 获取 profile 中工具路径，而非继承旧 shell 或因缺变量跳过：
+
+```sh
+env -i HOME="$HOME" USER=user PATH=/usr/bin:/bin /bin/bash -lc 'go test ./... -count=1'
+env -i HOME="$HOME" USER=user PATH=/usr/bin:/bin /bin/bash -lc 'go test -race ./... -count=1'
+env -i HOME="$HOME" USER=user PATH=/usr/bin:/bin /bin/bash -lc 'go vet ./...'
+GOOS=darwin GOARCH=arm64 go build ./...
+# go test -c 对所有根模块包交叉编译测试，只编译、不运行 Mac 二进制
+git diff --check
+```
+
+新增区分性测试：
+
+- 独立生成合规 EPUB2/3，真实连续 title/creator edit/accept，重开后基线推进；accepted 基线上的越界写失败回滚和拒绝后再次编辑；旧 plan/task 拒绝；no-op 字节和树不变。
+- 编译真正 CLI 二进制并逐命令执行 EPUB2/3 闭环，每步重新 Open；候选 diff 有实际 old/new 文本与完整资源变化；接受前正式 export 精确输出 initial，而不是候选；两次接受后正式 export 检查最终 ZIP，并逐资源比较原字节，OPF 只存在独立推导出的两个局部替换。
+- 参数/未实现边界、未知 passed 标志、输出已存在不覆盖，保护树内此前不存在的新文件不能成为 Plan 或 export 输出，符号链接别名拒绝；无 writer 的真实 FIFO operations/plan 各在3秒有界进程内非零退出、单 envelope、无候选。
+- 缺检查器、真实非法 EPUB、draft acceptance、取消均不推进 accepted；持久检查尝试是真实成功/失败，不改变 apply 的 not_run。最终取消检查观察已准备的 settlement 文件，证明晚于所有昂贵扫描；取消后可重开重试该显式任务。
+- 候选实际 tamper 加/删/改仍可重开 review/reject，接受拒绝继承状态；accepted bytes 和归档执行来源 tamper 使重开失败。
+- 接受 journal 的无意图预备、意图已发布、revision 已发布、指针已安装、decision 已写、task 已归档、journal 已清理边界逐一重开恢复；被冻结内容篡改不能推进指针。保留已有锁/跨进程/中断 apply/restore/byte-preservation 测试。
+
+最后两处增量为 initial snapshot manifest slice 隔离，以及接受提交后晚到取消不能重写成功的 CLI 回归测试。早先 PID39300 的整仓检查完成时仍有这些增量，不把该次检查笼统算为最终版本。PID49951 启动前已完成增量、gofmt 与重读；此后 Go 源码保持不变，仅补充本文的事实证据。该进程退出0，最终输出 `FINAL TREE VERIFIED`：
+
+| 最终稳定源码检查 | 结果 / 决定性输出 |
+|---|---|
+| `go test ./... -count=1`，干净 login / 真实 EPUBCheck | 全部通过；cmd 111.242s、workspace 130.693s、validation 180.656s |
+| `go test -race ./... -count=1`，相同环境 | 全部通过；cmd 104.887s、workspace 135.465s、validation 172.716s |
+| `go vet ./...` | 退出0，无诊断 |
+| `GOOS=darwin GOARCH=arm64 go build ./...` | 退出0 |
+| `GOOS=darwin GOARCH=arm64 go test -c -o "$cross/" ./...` | 所有根模块测试包编译；`file` 显示9个 Mach-O 64-bit arm64 executable；不运行 Mac 二进制，临时目录清理 |
+| `git diff --check` | 无输出，退出0 |
+
+交付提交/bundle 见本线程最终报告。限制仍是协作单写者、非同 UID 沙箱；不宣称断电/任意磁盘损坏恢复。Mac 仅 Darwin arm64 交叉编译，无实机运行；不执行真实 Amp、用户书籍、GUI、rename、Calibre 或独立 amp-sdk 模块认证。

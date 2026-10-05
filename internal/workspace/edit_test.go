@@ -111,9 +111,13 @@ func TestPlanApplyDiffReopenAndIsolation(t *testing.T) {
 				t.Fatal("changed candidate inherited review record")
 			}
 			w.Close()
-			if opened, err := Open(dir); err == nil {
-				opened.Close()
-				t.Fatal("Open trusted changed candidate")
+			opened, err := Open(dir)
+			if err != nil {
+				t.Fatalf("changed candidate must remain reviewable: %v", err)
+			}
+			defer opened.Close()
+			if _, err := opened.Execution(); !errors.Is(err, ErrCandidateDrift) {
+				t.Fatalf("reopened candidate inherited review record: %v", err)
 			}
 		})
 	}
@@ -181,7 +185,11 @@ func prepareExecution(t *testing.T, w *Workspace, p Plan) (Execution, []byte) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := Execution{Version: 1, Plan: p, Checkpoint: s.ID, Status: "running", Conformance: "not_run", Diff: compareTrees(s.Tree, s.Tree)}
+	task, err := w.TaskID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := Execution{Version: 1, TaskID: task, Plan: p, Checkpoint: s.ID, Status: "running", Conformance: "not_run", Diff: compareTrees(s.Tree, s.Tree)}
 	if err := writeJSON(w.root, "tasks/active/edit-start.json", e); err != nil {
 		t.Fatal(err)
 	}

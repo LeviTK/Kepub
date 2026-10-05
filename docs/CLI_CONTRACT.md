@@ -22,14 +22,14 @@ CLI 是与 GUI 平级的产品入口，也是 Agent 的确定性工具层。不�
 | `kepub unpack BOOK --output DIR` | 解到新目录，安全检查，不覆盖 | M1 |
 | `kepub pack DIR --output OUT.epub` | 清单式归档及正式检查，不是convert | M1 |
 | `kepub validate BOOK_OR_DIR --json` | 分层诊断及覆盖报告 | M1 |
-| `kepub workspace open BOOK --json` | 创建/显式恢复工作区，返回ID，不弹窗 | M2 |
-| `kepub workspace list --json` | 列出可访问工作区与状态 | M2 |
-| `kepub plan --workspace ID --operations FILE --output PLAN.json` | 从accepted基线生成操作计划，不写出版内容 | M2 |
-| `kepub apply PLAN.json --json` | 核对计划，创建并处理候选任务；不接受/不导出 | M2 |
-| `kepub task diff TASK --json` | 真实文件增删改、路径变化和内容差异 | M2 |
-| `kepub task accept TASK` | 审核后的显式接受，冻结检查并创建新revision | M2 |
-| `kepub task reject TASK` | 拒绝候选并记录状态，不删除原书 | M2 |
-| `kepub workspace export ID --output OUT.epub` | 仅从accepted导出、检查最终归档 | M2 |
+| `kepub workspace open BOOK --output DIR --json` | 仅新建工作区，返回持久ID；已有路径不覆盖 | M2 已实现 |
+| `kepub workspace list --json` | 全局工作区发现/注册表尚未实现 | planned |
+| `kepub plan --workspace DIR --operations FILE --output PLAN.json` | 从当前accepted基线生成单字段操作计划，不写出版内容 | M2 已实现 |
+| `kepub apply --workspace DIR --plan PLAN.json --json` | 核对计划，创建候选任务；不接受/不导出 | M2 已实现 |
+| `kepub task diff TASK --workspace DIR --json` | 实际完整文件增删改及old/new元数据文本 | M2 已实现 |
+| `kepub task accept TASK --workspace DIR [--strict --timeout SECONDS]` | 冻结候选，真实正式检查，显式接受新revision | M2 已实现 |
+| `kepub task reject TASK --workspace DIR` | 保留审计，不删除原书或revision；随后可再编辑 | M2 已实现 |
+| `kepub workspace export DIR --output OUT.epub [--draft --strict --timeout SECONDS]` | 仅从当前accepted导出，重新检查最终ZIP | M2 已实现 |
 | `kepub preview --workspace ID --at 'EPUB/Text/ch01.xhtml#note1'` | 启动GUI预览并定位；不启动Amp | M3 |
 | `kepub serve --workspace ID` | 受限本机只读预览服务 | M3 |
 | `kepub amp --workspace ID` | 建候选后启动原生Amp TUI，要求TTY | M4 |
@@ -40,6 +40,8 @@ CLI 是与 GUI 平级的产品入口，也是 Agent 的确定性工具层。不�
 `info` 和 `toc` 是同一读用例的便捷入口。暂不增加一串同义顶层命令；改名、metadata和未来polish由操作注册表表达。`convert`、任意Calibre透传、MCP、书库、邮件、批量删除不属于首批命令。
 
 上述命令按阶段逐步实现，`capabilities` 不能把表中所有设计都提前报告为 available。
+
+当前 M2 通过显式目录定位，不接收用户填的 workspaceId 代替实际状态，不查询全局注册表或“latest”。除 `workspace open` 新建外，各命令 Open 已有目录并验证持久身份、来源与锁。Plan 报告与 export 输出统一要求在整个 workspace 根之外、父目录已存在且为真实目录、输出此前不存在；不存在的新文件也不得放入 original、revision 或候选 pub。操作/计划输入拒绝符号链接、硬链接及特殊文件，打开使用非阻塞 regular-file 检查，FIFO 不等待 writer。
 
 ## 3. 目标选择与全局约定
 
@@ -101,6 +103,8 @@ serve默认在stderr显示本机访问说明，结构化使用场景用受控事
 `metadata.set` 首期不改变package unique identifier、语言体系、复杂关联或升级EPUB版本。无变化返回 `changed:false`，不借机重新格式化整份OPF或更新时间。
 
 第二轮实现范围进一步限定为：每个计划恰好一个 `metadata.set` v1，仅现有 `dc:title` 或 `dc:creator` 的简单文本。按 namespace、local name 和可选明确 ID 选择，预期旧值必须匹配且目标必须唯一；不能通过选择第一个同名字段消除歧义。局部替换保留目标外全部 OPF 字节，复杂子内容或无法确定字节区间时拒绝。标识符、语言、批量操作和 `resource.rename` 仍不开放；这不是把未来操作契约缩减为永远只支持一个字段。
+
+本轮可执行请求的字段和 Go/CLI API 见 [M2-B 验证记录](verification/M2_B.md)。以下 rename/impact 示例仍是未来设计，不能作为当前可执行计划输入。
 
 未来操作如 `css.prune`、`image.optimize`、`font.subset`、`toc.rebuild`、`publication.convert` 分别设计参数与风险，不通过一个任意字符串的 `run_command` 逃离注册表。
 
@@ -197,6 +201,10 @@ plan从指定accepted revision读取，完成参数、能力和引用覆盖检�
 ```
 
 计划读取后输入变化返回STALE_PLAN；越界改动、未知语法、阶段失败均不接受。必须验证创建/删除/改名与内容写入的完整文件集合，不仅检查被写文件的后缀。
+
+当前 M2 的 apply 只返回显式 taskId、`status:"review_required"`、`reviewRequired:true`、`conformance:"not_run"`，包括 no-op；正式检查在 accept/export 执行。计划登记并绑定绝对 workspacePath、持久ID、baseRevision、rootfile、精确Tree及操作/策略摘要，apply重算写集；已消费计划不能重跑，基线推进使旧计划返回 `INPUT_DRIFT`（退出4），已有/已结算/不匹配任务返回 `TASK_CONFLICT`（退出4）。候选被外部改动后仍可重开 diff/reject，`matchesExecution:false`，不能继承原执行或检查状态。
+
+accept 不接受 passed 布尔值、检查替换回调或 draft 模式。它检查独立冻结树，要求 archive、parse.structure、固定 EPUBCheck 正式检查完整通过且无 error/fatal，再验证实际字节和来源。检查尝试记录为 checks_passed/checks_failed；通过检查本身不等于已接受。最终取消检查位于全部昂贵重算和日志准备之后、持久 settlement journal 发布紧前；journal 发布是不可撤回的接受意图，之后重开始终 roll-forward。随后 accepted 指针原子替换安装新可见基线，任务和检查点归档保留。无 journal 的预备快照不接受。初始导入不标为 pass；export 仅选当前accepted（初始为未验证的 initial），重新检查最终ZIP，显式草稿标记未获正式验证。No-op 接受仍建立独立审计revision，但内容树和字节不变。
 
 ### 6.4 与Amp候选的衔接
 

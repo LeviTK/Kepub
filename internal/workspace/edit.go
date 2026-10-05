@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"slices"
 	"unicode/utf8"
 
@@ -19,6 +20,7 @@ import (
 
 var ErrStalePlan = errors.New("stale or altered plan")
 var ErrCandidateConflict = errors.New("workspace already has a candidate")
+var ErrCandidateDrift = errors.New("candidate changed since execution; review actual diff or reject")
 
 type Operation struct {
 	ID      string       `json:"operationId"`
@@ -57,6 +59,7 @@ type Diff struct {
 }
 type Execution struct {
 	Version        int    `json:"version"`
+	TaskID         string `json:"taskId,omitempty"`
 	Plan           Plan   `json:"plan"`
 	Checkpoint     string `json:"checkpoint"`
 	Status         string `json:"status"`
@@ -144,11 +147,17 @@ func digest(v any) string {
 	return hex.EncodeToString(h[:])
 }
 
-const editPolicy = "kepub-metadata-v1:initial-only;single-set;simple-text;no-timestamp;review-required;conformance-not-run"
+const legacyEditPolicy = "kepub-metadata-v1:initial-only;single-set;simple-text;no-timestamp;review-required;conformance-not-run"
+const editPolicy = "kepub-metadata-v2:accepted-baseline;single-set;simple-text;no-timestamp;review-required;conformance-not-run"
 
 type identity struct {
 	Version int    `json:"version"`
 	ID      string `json:"workspaceId"`
+}
+type planUse struct {
+	Version    int    `json:"version"`
+	TaskID     string `json:"taskId"`
+	PlanSHA256 string `json:"planSha256"`
 }
 
 // ID persists a random identity for legacy M2-A workspaces on first use. State
@@ -205,11 +214,36 @@ func readEditJSON(r *os.Root, name string, out any) error {
 	return decodeStrict(b, out)
 }
 
+// ReadEditFile rejects symlink ancestors/leaves, special files and hard links.
+// openRegular uses O_NONBLOCK and inode rechecking, so FIFO/device replacement
+// cannot block before the regular-file test. Host paths are explicit, not found.
+func ReadEditFile(file string) ([]byte, error) {
+	abs, err := filepath.Abs(file)
+	if err != nil {
+		return nil, err
+	}
+	r, err := openDir(filepath.Dir(abs))
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	f, err := openRegular(r, filepath.Base(abs))
+	if err != nil {
+		return nil, err
+	}
+	b, err := io.ReadAll(io.LimitReader(f, (32<<20)+1))
+	err = errors.Join(err, f.Close())
+	if len(b) > 32<<20 {
+		return nil, fmt.Errorf("edit file exceeds 32 MiB")
+	}
+	return b, err
+}
+
 func (w *Workspace) recompute(ops []Operation) ([]byte, []string, error) {
 	if len(ops) != 1 || ops[0].ID != "metadata.set" || ops[0].Version != 1 {
 		return nil, nil, fmt.Errorf("requires exactly one metadata.set version 1")
 	}
-	r, err := subdir(w.root, revision)
+	r, err := subdir(w.root, revisionPath(w.current))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -267,7 +301,7 @@ func (w *Workspace) Plan(requestJSON []byte) (Plan, error) {
 	if err != nil {
 		return Plan{}, err
 	}
-	p := Plan{1, randomID(), w.id, w.dir, "initial", w.state.Tree.SHA256, digest(request.Operations), digest(editPolicy), w.state.Rootfile, request.Operations, writes, true}
+	p := Plan{1, randomID(), w.id, w.dir, w.current, w.base.SHA256, digest(request.Operations), digest(editPolicy), w.state.Rootfile, request.Operations, writes, true}
 	if !exists(w.root, "plans") {
 		if err := w.root.Mkdir("plans", 0700); err != nil {
 			return Plan{}, err
@@ -288,7 +322,11 @@ func (w *Workspace) verifyPlan(p Plan) ([]byte, error) {
 	if err := w.ensureIdentity(); err != nil {
 		return nil, err
 	}
-	if p.SchemaVersion != 1 || !validID(p.ID) || p.WriteSet == nil || p.WorkspaceID != w.id || p.WorkspacePath != w.dir || p.BaseRevision != "initial" || p.InputTreeSHA256 != w.state.Tree.SHA256 || p.Rootfile != w.state.Rootfile || p.PolicySHA256 != digest(editPolicy) || p.OperationSetSHA256 != digest(p.Operations) {
+	if err := w.verifyBaseline(); err != nil {
+		return nil, errors.Join(ErrStalePlan, err)
+	}
+	policyOK := p.PolicySHA256 == digest(editPolicy) || p.BaseRevision == "initial" && p.PolicySHA256 == digest(legacyEditPolicy)
+	if p.SchemaVersion != 1 || !validID(p.ID) || p.WriteSet == nil || p.WorkspaceID != w.id || p.WorkspacePath != w.dir || p.BaseRevision != w.current || p.InputTreeSHA256 != w.base.SHA256 || p.Rootfile != w.state.Rootfile || !policyOK || p.OperationSetSHA256 != digest(p.Operations) {
 		return nil, ErrStalePlan
 	}
 	var stored Plan
@@ -330,6 +368,9 @@ func (w *Workspace) Apply(planJSON []byte) (Execution, error) {
 	if exists(w.root, "tasks/active") {
 		return Execution{}, ErrCandidateConflict
 	}
+	if exists(w.root, "plans/"+p.ID+".used.json") {
+		return Execution{}, ErrTaskConflict
+	}
 	if _, err := w.createCandidate(&p); err != nil {
 		return Execution{}, err
 	}
@@ -338,7 +379,11 @@ func (w *Workspace) Apply(planJSON []byte) (Execution, error) {
 		w.recovery = true
 		return Execution{}, err
 	}
-	e := Execution{Version: 1, Plan: p, Checkpoint: s.ID, Status: "running", Conformance: "not_run", Diff: compareTrees(s.Tree, s.Tree)}
+	task, err := w.taskID()
+	if err != nil {
+		return Execution{}, err
+	}
+	e := Execution{Version: 1, TaskID: task, Plan: p, Checkpoint: s.ID, Status: "running", Conformance: "not_run", Diff: compareTrees(s.Tree, s.Tree)}
 	if err := writeJSON(w.root, "tasks/active/edit-start.json", e); err != nil {
 		w.recovery = true
 		return Execution{}, err
@@ -394,7 +439,7 @@ func (w *Workspace) execute(e Execution, out []byte, hook func() error) (Executi
 		var actual Tree
 		actual, err = hashAt(w.root, candidate)
 		if err == nil {
-			e.Diff = compareTrees(w.state.Tree, actual)
+			e.Diff = compareTrees(w.base, actual)
 			paths := []string{}
 			for _, c := range e.Diff.Changes {
 				paths = append(paths, c.Path)
@@ -514,7 +559,7 @@ func (w *Workspace) Diff() (Diff, error) {
 	if err != nil {
 		return Diff{}, err
 	}
-	return compareTrees(w.state.Tree, a), nil
+	return compareTrees(w.base, a), nil
 }
 
 // Execution verifies persisted execution provenance. A returned review record is
@@ -548,14 +593,18 @@ func (w *Workspace) execution() (Execution, error) {
 		if err != nil {
 			return e, err
 		}
-		if tree.SHA256 != w.state.Tree.SHA256 {
+		if tree.SHA256 != w.base.SHA256 {
 			return e, fmt.Errorf("interrupted apply without baseline candidate")
 		}
 		s, err := w.checkpoint()
 		if err != nil {
 			return e, err
 		}
-		start = Execution{Version: 1, Plan: intent, Checkpoint: s.ID, Status: "running", Conformance: "not_run", Diff: compareTrees(s.Tree, s.Tree)}
+		task, err := w.taskID()
+		if err != nil {
+			return e, err
+		}
+		start = Execution{Version: 1, TaskID: task, Plan: intent, Checkpoint: s.ID, Status: "running", Conformance: "not_run", Diff: compareTrees(s.Tree, s.Tree)}
 		if err := writeJSON(w.root, "tasks/active/edit-start.json", start); err != nil {
 			return e, err
 		}
@@ -569,7 +618,7 @@ func (w *Workspace) execution() (Execution, error) {
 	if err != nil {
 		return e, err
 	}
-	if start.Version != 1 || start.Status != "running" || start.ReviewRequired || start.Conformance != "not_run" || digest(start.Diff) != digest(compareTrees(s.Tree, s.Tree)) || s.Tree.SHA256 != w.state.Tree.SHA256 {
+	if start.Version != 1 || start.Status != "running" || start.ReviewRequired || start.Conformance != "not_run" || digest(start.Diff) != digest(compareTrees(s.Tree, s.Tree)) || s.Tree.SHA256 != w.base.SHA256 {
 		return e, fmt.Errorf("invalid execution start")
 	}
 	if !exists(w.root, "tasks/active/edit-result.json") {
@@ -579,7 +628,7 @@ func (w *Workspace) execution() (Execution, error) {
 			return e, err
 		}
 		e = start
-		e.Diff = compareTrees(w.state.Tree, actual)
+		e.Diff = compareTrees(w.base, actual)
 		if err := w.restore(start.Checkpoint); err != nil {
 			return e, err
 		}
@@ -594,6 +643,19 @@ func (w *Workspace) execution() (Execution, error) {
 	} else if err := readEditJSON(w.root, "tasks/active/edit-result.json", &e); err != nil {
 		return e, err
 	}
+	task, err := w.taskID()
+	if err != nil || (start.TaskID != task && !(start.TaskID == "" && task == "active")) || e.TaskID != start.TaskID {
+		return e, fmt.Errorf("execution task identity mismatch")
+	}
+	if task != "active" {
+		var used planUse
+		if err := readEditJSON(w.root, "plans/"+intent.ID+".used.json", &used); err != nil {
+			return e, err
+		}
+		if used.Version != 1 || used.TaskID != task || used.PlanSHA256 != digest(intent) {
+			return e, fmt.Errorf("execution plan consumption mismatch")
+		}
+	}
 	if e.Version != 1 || e.Diff.Changes == nil || digest(e.Plan) != digest(start.Plan) || e.Checkpoint != start.Checkpoint || e.Conformance != "not_run" {
 		return e, fmt.Errorf("invalid execution provenance")
 	}
@@ -607,7 +669,7 @@ func (w *Workspace) execution() (Execution, error) {
 			return e, fmt.Errorf("failed execution not restored")
 		}
 	case "review_required":
-		if !e.ReviewRequired || e.Failure != "" || digest(e.Diff) != digest(compareTrees(w.state.Tree, tree)) {
+		if !e.ReviewRequired || e.Failure != "" {
 			return e, fmt.Errorf("stale execution result")
 		}
 		paths := []string{}
@@ -622,6 +684,9 @@ func (w *Workspace) execution() (Execution, error) {
 			if len(e.Diff.Changes) != 1 || e.Diff.Changes[0].After == nil || e.Diff.Changes[0].After.SHA256 != hex.EncodeToString(h[:]) || e.Diff.Changes[0].After.Size != int64(len(out)) {
 				return e, fmt.Errorf("execution content mismatch")
 			}
+		}
+		if digest(e.Diff) != digest(compareTrees(w.base, tree)) {
+			return e, ErrCandidateDrift
 		}
 	default:
 		return e, fmt.Errorf("invalid execution state")
