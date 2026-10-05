@@ -166,7 +166,10 @@ func TestCLIWorkspaceLifecycle(t *testing.T) {
 			if opened["conformance"] != "not_run" || opened["workspaceId"] == "" {
 				t.Fatal("import pretended conformance", opened)
 			}
-			run([]string{"workspace", "open", book, "--output", ws}, 6)
+			refusal := run([]string{"workspace", "open", book, "--output", ws}, 2)
+			if refusal["error"].(map[string]any)["code"] != "OUTPUT_EXISTS" {
+				t.Fatal("existing output was not a policy refusal", refusal)
+			}
 			operationFile(t, ops, "title", "Title", "New < & >")
 			for _, root := range []string{"original", "revisions/initial/pub", "."} {
 				out := filepath.Join(ws, root, "absent-new-file")
