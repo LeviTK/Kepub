@@ -70,7 +70,19 @@ go vet ./internal/validation
 | 最终 race | PASS，55.705s，12/12，无 skip |
 | vet | exit 0，无诊断 |
 
-组合进程实际 exit 0，最后输出 `S0_REC2026_NORMAL_RACE_VET_PASS`。这轮未跑全仓组合；没有产品改动，S0 集成后仍须对应组合及真实 Droid 审查。本记录不替代整个 S0 的归档／矩阵／测试来源验收，不授权恢复 T1。
+定向组合进程实际 exit 0，最后输出 `S0_REC2026_NORMAL_RACE_VET_PASS`。另独立比对普通／race 两份日志：12 例 backend 结果、归档 hash、tree hash 逐项一致，记录中的 12 个归档 hash 均吻合，无 skip。
+
+随后在已提交的相同测试与产品树上执行全仓组合，原进程实际 exit 0，输出 `S0_CHECKER_ROOT_NORMAL_RACE_VET_DARWIN_PASS`：
+
+| 命令 | 实际结果 |
+|---|---|
+| `go test -count=1 ./...` | 全部 PASS；CLI 125.112s、workspace 155.776s、validation 233.693s |
+| `go test -race -count=1 ./...` | 全部 PASS；CLI 124.026s、workspace 191.144s、validation 248.511s |
+| `go vet ./...` | exit 0，无诊断 |
+| `GOOS=darwin GOARCH=arm64 go build ./...` | exit 0 |
+| `GOOS=darwin GOARCH=arm64 go test -c -o /tmp/kepub-s0-validation-darwin.test ./internal/validation` | exit 0；`file` 确认为 Mach-O arm64；未在 Mac 运行 |
+
+本记录不替代整个 S0 的归档／矩阵／测试来源验收；完整 S0 资产集成后仍须其离线检查和真实 Droid 审查，不能据本轮结果恢复 T1。
 
 临时原始日志保存在父 Orb `/tmp/kepub-s0-rec2026-{normal,normal-final,race}.log`；不是已发布资产，持久证据是本记录的结果、输入 hash 和可重建测试。对应日志 SHA-256 依次为：
 
