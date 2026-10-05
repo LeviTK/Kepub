@@ -9,6 +9,7 @@ import (
 	"slices"
 
 	"github.com/LeviTK/Kepub/internal/archive"
+	"github.com/LeviTK/Kepub/internal/fault"
 	"github.com/LeviTK/Kepub/internal/metadata"
 	"github.com/LeviTK/Kepub/internal/publication"
 	"github.com/LeviTK/Kepub/internal/validation"
@@ -412,17 +413,17 @@ func (w *Workspace) Accept(ctx context.Context, id string, o validation.Options)
 		return d, err
 	}
 	if id == "active" {
-		return d, fmt.Errorf("legacy task must be rejected and replanned before acceptance")
+		return d, fmt.Errorf("%w: legacy task must be rejected and replanned before acceptance", ErrTaskConflict)
 	}
 	if o.Draft || o.Rootfile != "" && o.Rootfile != w.state.Rootfile {
-		return d, fmt.Errorf("accept requires formal checks of the selected rootfile")
+		return d, fault.New(2, "INVALID_ARGUMENT", "accept requires formal checks of the selected rootfile")
 	}
 	e, err := w.execution()
 	if err != nil {
 		return d, err
 	}
 	if e.Status != "review_required" {
-		return d, fmt.Errorf("only a completed review task can be accepted")
+		return d, fmt.Errorf("%w: only a completed review task can be accepted", ErrTaskConflict)
 	}
 	idRevision := randomID()
 	stage := "staging/accept-" + idRevision

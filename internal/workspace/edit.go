@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -418,6 +419,9 @@ func (w *Workspace) verifyPlan(p Plan, bindPath bool) ([]byte, error) {
 	}
 	var stored Plan
 	if err := readEditJSON(w.root, "plans/"+p.ID+".json", &stored); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, ErrStalePlan
+		}
 		return nil, err
 	}
 	if digest(stored) != digest(p) {

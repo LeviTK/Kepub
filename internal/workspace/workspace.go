@@ -444,17 +444,25 @@ func randomID() string {
 	return hex.EncodeToString(b[:])
 }
 
-func writeJSON(r *os.Root, name string, value any) error {
+func writeJSON(r *os.Root, name string, value any) (err error) {
 	b, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
-	f, err := r.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	// A recovery record must be absent or complete after a short write or
+	// process interruption. Keep create-only semantics at atomic publication;
+	// callers retain their existing containing-directory durability boundary.
+	tmp := path.Join(path.Dir(name), ".kepub-json-"+randomID())
+	f, err := r.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
 		return err
 	}
+	defer func() { err = errors.Join(err, r.RemoveAll(tmp)) }()
 	_, err = f.Write(append(b, '\n'))
-	return errors.Join(err, f.Sync(), f.Close())
+	if err = errors.Join(err, f.Sync(), f.Close()); err != nil {
+		return err
+	}
+	return publish(r, tmp, name)
 }
 
 func readJSON(r *os.Root, name string, value any) error {

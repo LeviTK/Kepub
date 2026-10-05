@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -25,6 +26,28 @@ func TestWorkspaceProcessHelper(t *testing.T) {
 		return
 	}
 	dir := os.Getenv("KEPUB_WORKSPACE_DIR")
+	if mode == "limited-recovery" {
+		// Confine the real short-write fault to this subprocess, not the test
+		// runner or concurrent tests. Metadata is larger than 2 KiB, while
+		// checkpoint/tree metadata and original publication files are smaller.
+		signal.Ignore(unix.SIGXFSZ)
+		var limit unix.Rlimit
+		if err := unix.Getrlimit(unix.RLIMIT_FSIZE, &limit); err != nil {
+			t.Fatal(err)
+		}
+		limit.Cur = 2048
+		if err := unix.Setrlimit(unix.RLIMIT_FSIZE, &limit); err != nil {
+			t.Fatal(err)
+		}
+		w, err := Open(dir)
+		if w != nil {
+			w.Close()
+		}
+		if !errors.Is(err, unix.EFBIG) {
+			t.Fatalf("expected actual short-write failure, got %v", err)
+		}
+		return
+	}
 	if mode == "create" {
 		fmt.Println("ready")
 		_, _ = bufio.NewReader(os.Stdin).ReadString('\n')
@@ -67,6 +90,72 @@ func helper(t *testing.T, mode, dir, source string) *exec.Cmd {
 	c := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestWorkspaceProcessHelper$")
 	c.Env = append(os.Environ(), "KEPUB_WORKSPACE_HELPER="+mode, "KEPUB_WORKSPACE_DIR="+dir, "KEPUB_WORKSPACE_SOURCE="+source)
 	return c
+}
+
+func TestRecoveryShortWriteCanBeRetried(t *testing.T) {
+	for _, stage := range []string{"start", "result"} {
+		t.Run(stage, func(t *testing.T) {
+			w, dir := makeWorkspace(t)
+			p := planTitle(t, w, strings.Repeat("x", 4096))
+			if _, err := w.createCandidate(&p); err != nil {
+				t.Fatal(err)
+			}
+			id, err := w.TaskID()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if stage == "result" {
+				if _, err := w.startExecution(p); err != nil {
+					t.Fatal(err)
+				}
+			}
+			w.Close()
+			if out, err := helper(t, "limited-recovery", dir, "").CombinedOutput(); err != nil {
+				t.Fatalf("fault subprocess: %v\n%s", err, out)
+			}
+			if _, err := os.Stat(filepath.Join(dir, "tasks/active/edit-"+stage+".json")); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("partial record was published: %v", err)
+			}
+			w, err = Open(dir)
+			if err != nil {
+				t.Fatal("retry with recovered I/O environment", err)
+			}
+			defer w.Close()
+			d, err := w.TaskDiff(id)
+			if err != nil || d.Diff.Changed {
+				t.Fatalf("retry diff: %+v, %v", d, err)
+			}
+			if _, err := w.Reject(id); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestJSONPublicationDoesNotReplace(t *testing.T) {
+	r, err := os.OpenRoot(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	if err := writeJSON(r, "record.json", "original"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Symlink("record.json", "link.json"); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"record.json", "link.json"} {
+		if err := writeJSON(r, name, "replacement"); !errors.Is(err, os.ErrExist) {
+			t.Fatalf("replaced existing %s: %v", name, err)
+		}
+	}
+	b, err := r.ReadFile("record.json")
+	if err != nil || string(b) != "\"original\"\n" {
+		t.Fatalf("original record changed: %q, %v", b, err)
+	}
+	if target, err := r.Readlink("link.json"); err != nil || target != "record.json" {
+		t.Fatalf("link replaced: %q, %v", target, err)
+	}
 }
 
 func TestCrossProcessLockAndExitRecovery(t *testing.T) {
