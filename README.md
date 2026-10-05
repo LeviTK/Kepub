@@ -2,7 +2,7 @@
 
 面向 Amp 的 EPUB 阅读、制作预览与编辑工作台。
 
-**当前状态：设计 v0.5，第一轮已发布只读 Go 核心与 CLI、工作区库，以及两种独立 Amp 接入实验。第二轮 Medium 的 validate/pack CLI、metadata.set 与 plan/apply/diff 库已本地集成；公共编辑、审核接受和工作区导出闭环正在实现，第二轮尚未发布。没有 GUI、生产 Agent、安装包或已完成的 Mac 实机测试。**
+**当前状态：设计 v0.5，第一轮已发布只读 Go 核心与 CLI、工作区库及两种独立 Amp 接入实验。第二轮由 Medium 实现的 validate/pack、单字段元数据编辑、候选审阅、接受／拒绝与工作区导出已本地集成，尚未发布。没有 GUI、生产 Agent、安装包或已完成的 Mac 实机测试。**
 
 ## 已实现：M1-A / M1-B1 只读 CLI
 
@@ -27,7 +27,7 @@ go build -o kepub ./cmd/kepub
 - `--json` 成功/失败 stdout 都是一个统一 envelope；失败用稳定 code，退出码 1 内容/安全问题、2 参数、3 未实现能力、6 I/O。`--output/-o`、`--rootfile`、`--section` 可置于 BOOK 前后，`--` 结束选项，JSON 和 `--no-input` 不问答。其他契约中的选项尚未实现，会拒绝，不忽略。
 - 固定版式、脚本标记、SMIL/音视频、签名、加密/字体混淆声明会记录限制；不执行、不解密、不验证签名、不删除内容。缺失 manifest 资源显式报告。成功只表示只读请求完成，**不是 EPUB 合规验证**。
 
-`doctor`、workspace CLI、plan/apply 命令、GUI、预览、生产 Agent、Mac 发布仍未实现。capabilities 中这些项为 `planned`，不能据此执行。当前 schema 描述查询参数和结果形状，完整 OperationRegistry schema/help 生成及编辑注册表仍待后续完成。
+`doctor`、workspace list/注册表、资源改名、GUI、预览、生产 Agent、Mac 发布仍未实现。capabilities 中这些项为 `planned`，不能据此执行。当前 schema 描述已实现命令的参数和结果基本形状，完整 OperationRegistry schema/help 自动生成仍待后续完成。
 
 验证：`go test -count=1 ./...`、`go test -race -count=1 ./...`、`go vet ./...`；真实 CLI smoke 含 EPUB2/3、双向引用与错误 envelope。小型 EPUB 与恶意输入由测试生成，无第三方书籍。证据见 [M1-A](docs/verification/M1_A.md) 和 [M1-B1](docs/verification/M1_B1.md)。
 
@@ -46,15 +46,48 @@ pack 从明确的出版根冻结完整资源清单，不递归归档工作区；
 
 报告分别保留必需检查和引用提取 coverage；CSS partial 不自行阻止无结构修改的打包，实际 error/fatal 仍阻止。工具缺失、超时、残留受管进程或不完整报告不能记为 pass。进程组回收不是同用户 OS 沙箱，不覆盖脱组进程；合规通过也不代表阅读器渲染或人工可访问性审核。接口、真实 EPUB2/3 fixtures 和边界验证见 [M1-B2](docs/verification/M1_B2.md)。
 
-父 orb 在干净非交互 login shell 中配置真实 EPUBCheck 5.3.0，合并后 `go test -count=1 ./...`、`go test -race -count=1 ./...`、`go vet ./...` 全通过；validation 分别为 93.575s / 99.354s。Darwin arm64 交叉编译得到 Mach-O，没有执行。普通未配置 checker 的测试会跳过外部检查用例，不能代替上述验证。
+父 orb 在干净非交互 login shell 中配置真实 EPUBCheck 5.3.0，最终闭环合并后 `go test -count=1 ./...`、`go test -race -count=1 ./...`、`go vet ./...` 全通过；普通／race 的 CLI 为 87.583s / 81.906s，workspace 为 108.225s / 108.602s，validation 为 151.116s / 142.217s。Darwin arm64 全仓交叉编译通过，没有执行。普通未配置 checker 的测试会跳过外部检查用例，不能代替上述验证。独立 SDK 模块另跑 `npm run check` 与 `npm test`：31/31 Node 场景及 Go race 通过，既有 SDK 失败门槛结论不变。
 
-## 已实现：M2-A / 本地已集成：M2-B 工作区库
+## 本地已集成：M2-B 确定性编辑与审核导出
 
 `internal/workspace` 提供 Create/Open/Close、唯一独立候选、Checkpoint/Checkpoints/Restore 和精确内容树 SHA-256。原书、初始版本、候选与检查点均为独立副本；flock 保证协作进程单写者，恢复 journal 处理已记录的中断边界。候选普通写入不会污染基线；已知不支持内容和书内 Agent 配置保留但限制候选创建。
 
-M2-B 库增加 `metadata.set`、Plan/Apply/Diff/Execution。每个计划仅修改一个唯一选中的现有 `dc:title` 或 `dc:creator` 简单文本，匹配预期旧值；目标外 OPF 与资源字节不变，no-op 不重排 XML 或更新时间。计划绑定工作区身份、绝对路径、初始版本、完整树和策略；应用时重新计算，失败回滚，成功仍是 `review_required` / `conformance:not_run`。
+每个计划仅修改一个唯一选中的现有 `dc:title` 或 `dc:creator` 简单文本，匹配预期旧值；目标外 OPF 与资源字节不变，no-op 不重排 XML 或更新时间。计划绑定工作区身份、绝对路径、当前 accepted revision、完整树和策略；apply 重新计算，失败回滚，成功仍是 `review_required` / `conformance:not_run`，不是自动接受。
 
-这还不是 `kepub workspace` 命令，没有 accept/export 或校验通过状态。后续闭环会将计划基线推进到当前 accepted revision。外部写者必须先停止；flock 与 cwd 不是同用户 OS 沙箱，断电和 ENOSPC 未证明。详见 [M2-A](docs/verification/M2_A.md) 与 [M2-B 验证与限制](docs/verification/M2_B.md)。
+将下面请求保存为工作区外的 `operations.json`，并把旧值替换为书内的实际标题。若有多个标题，须提供明确的可选 `id`，不能自动选择第一个。
+
+```json
+{
+  "schemaVersion": 1,
+  "operations": [{
+    "operationId": "metadata.set",
+    "operationVersion": 1,
+    "params": {
+      "namespace": "http://purl.org/dc/elements/1.1/",
+      "localName": "title",
+      "expectedOldValue": "原书标题",
+      "newValue": "修订标题"
+    }
+  }]
+}
+```
+
+```sh
+./kepub workspace open 'book.epub' --output 'work' --json
+./kepub plan --workspace 'work' --operations 'operations.json' --output 'plan.json' --json
+./kepub apply --workspace 'work' --plan 'plan.json' --json
+# 将 TASK_ID 替换为 apply 返回的 data.taskId，先审阅再接受
+./kepub task diff TASK_ID --workspace 'work' --json
+./kepub task accept TASK_ID --workspace 'work' --json
+./kepub workspace export 'work' --output 'edited.epub' --json
+```
+
+- 不接受修改时，在 accept 前执行 `task reject TASK_ID --workspace work`；记录与检查点保留，随后可生成新计划。已消费计划不能重跑，旧 task ID 不能操作新的候选。
+- accept 对独立冻结树运行正式检查，通过后生成独立 revision；下一次编辑使用新基线。检查尝试与接受决策分开记录；最终取消检查位于持久 journal 发布之前，意图提交后重开只向前完成。没有草稿接受或既有错误豁免。
+- export 只读取当前 accepted，而不是 active 候选；初始导入不带合规通过状态。正式导出重新检查最终 ZIP，显式 `--draft` 才允许未正式验证的草稿。候选被普通外部写者改动后可以重开 diff/reject，但不能沿用旧执行状态接受。
+- 工作区用明确目录定位，不使用全局注册表或 latest。open 只新建，不覆盖；plan 报告和 export 输出必须在整个工作区根之外、父目录已存在且输出不存在。操作／计划文件拒绝链接和特殊文件，FIFO 无 writer 不阻塞。
+
+父 orb 另用含 BOM/CRLF/注释、特殊字符及空目录的自制 EPUB3 执行 27 次真实 CLI 调用：两次接受推进基线、旧计划拒绝、未接受内容隔离、缺 checker 拒绝、候选新增文件的 diff/reject、no-op、FIFO 与输出保护均通过。导出仅含预期两处 OPF 文本替换，其他文件字节完全一致；原书 SHA-256 未变。外部写者必须先停止；flock 与 cwd 不是同用户 OS 沙箱，断电和 ENOSPC 未证明。接口、恢复边界与 EPUB2/3 验证见 [M2-A](docs/verification/M2_A.md) 和 [M2-B](docs/verification/M2_B.md)。
 
 ## Orb 启动
 
@@ -62,7 +95,7 @@ M2-B 库增加 `metadata.set`、Plan/Apply/Diff/Execution。每个计划仅修�
 
 第二轮 setup 另准备 Java 17+ 与官方 EPUBCheck 5.3.0：验证完整下载包，保留全部依赖 JAR，暖运行核对精确文件集合和内容，并持久提供 `KEPUB_EPUBCHECK_JAR`。这只是开发/正式检查依赖，不使只读 CLI 依赖 Java。缺失时才安装 Debian JRE；其安全更新版本不伪称为固定 patch。
 
-`.agents/resume` 只修复 Go 链接与快速检查工具/依赖，不安装、不认证、不启动服务。已有 Go/SDK 的父 orb 补装 Java/checker 为 10.92s，最终暖运行 3.51s、resume 0.57s；额外 JAR 被 resume 拒绝，setup 重装修复 4.73s，干净 login shell 验证通过。证据见 [EPUBCheck 环境验证](docs/verification/ORB_EPUBCHECK.md)，此前 Go/SDK 的空 HOME 测试见 [原 setup 验证](docs/verification/M2_A.md#独立后续sdk-实验的-orb-setup-验证)。不预装 Calibre/GUI，不是 Mac 安装器；第二轮 setup 仍待推送默认分支后才影响未来 orbs，尚未证明新服务端快照。
+`.agents/resume` 只修复 Go 链接与快速检查工具/依赖，不安装、不认证、不启动服务。已有 Go/SDK 的父 orb 补装 Java/checker 为 10.92s；最新暖 setup 3.14s、resume 0.44s，锁文件未变。额外 JAR 被 resume 拒绝，setup 重装修复 4.73s，干净 login shell 验证通过。证据见 [EPUBCheck 环境验证](docs/verification/ORB_EPUBCHECK.md)，此前 Go/SDK 的空 HOME 测试见 [原 setup 验证](docs/verification/M2_A.md#独立后续sdk-实验的-orb-setup-验证)。不预装 Calibre/GUI，不是 Mac 安装器；第二轮 setup 仍待推送默认分支后才影响未来 orbs，尚未证明新服务端快照。
 
 ## 文档
 
@@ -128,4 +161,4 @@ v0.2 的 Calibre 优化继续保留：转换、整理、结构编辑和只读查
 | M5 | Apple Silicon 打包分发和实机验收 |
 | M6 | 可选 Calibre 适配及其他受控扩展 |
 
-除上面明确列出的 M1 命令、内部工作区库和独立实验外，设计文档中的命令和接口仍待实现；不能将其他设计示例当作当前安装使用说明。
+除上面明确列出的命令、库与独立实验外，设计文档中的命令和接口仍待实现；不能将其他设计示例当作当前安装使用说明。

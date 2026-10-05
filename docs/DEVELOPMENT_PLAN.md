@@ -512,6 +512,10 @@ P2 只依赖本轮冻结的 M1-A 读 API，不等待 P1 的新接口；P3/P4 使
 
 先完成两条线可独立验证的库和命令，再将精确代码基线交给 Medium 接入工作区 CLI、检查、审核接受和导出。第一批 Q2 到 `review_required` 为止，不通过调用者提供的 `passed:true` 伪造接受门槛。集成阶段才开放相应 capabilities；共享 app/CLI 同一时间只有一个所有者。父线程负责方案、范围、差异复核和组合验收，不把前一批推送授权沿用为本批发布授权。
 
+本轮库、validate/pack、环境脚本和公共编辑闭环均已本地集成，尚未发布。Q1 收尾后将 app/CLI 所有权移交给原 Q2 Medium orb，由其完成 accepted revision、公开命令与审核导出。父另用独立 EPUB3 样本执行 27 次真实 CLI 调用，通过连续接受、旧计划拒绝、候选隔离、缺依赖、外部改动后审阅／拒绝、no-op、FIFO 与输出边界检查；导出符合独立预期字节，原书未变。详细执行证据见 README 与各工作线验证记录。
+
+集成首版用显式目录定位工作区，不加入全局注册表：`workspace open BOOK --output DIR` 创建新工作区，后续 `plan/apply/task` 使用 `--workspace DIR`，`task diff/accept/reject` 另需明确 task ID。报告与 EPUB 输出必须在工作区根之外且目标不存在；`workspace list`、历史任务浏览仍未纳入。首次导入的 initial 可作为基线，但不带合规通过状态；后续计划以当前 accepted revision 为基线，接受前真实检查，导出时重新检查最终归档。本轮不提供既有错误豁免或草稿接受，草稿仅是用户明确请求的导出选项。
+
 第二轮限定：
 
 - 每个计划恰好一个 `metadata.set` v1，仅支持现有 `dc:title` / `dc:creator` 的简单文本。选择器为 namespace、local name、可选明确 ID，另给预期旧值；必须唯一命中。复杂子内容、标识符、语言、版本升级、批量操作和资源改名不进入本轮。局部替换保留目标外原字节；no-op 不格式化 OPF，也不自动更新时间。
