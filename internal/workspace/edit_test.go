@@ -155,7 +155,9 @@ func TestRequestsAndPlansRejectTampering(t *testing.T) {
 	changes := []func(*Plan){
 		func(p *Plan) { p.SchemaVersion = 2 }, func(p *Plan) { p.WorkspaceID = randomID() }, func(p *Plan) { p.WorkspacePath += "/else" }, func(p *Plan) { p.BaseRevision = "later" }, func(p *Plan) { p.InputTreeSHA256 = digest("wrong") }, func(p *Plan) { p.PolicySHA256 = digest("wrong") }, func(p *Plan) { p.Rootfile = "mimetype" }, func(p *Plan) { p.WriteSet = []string{} }, func(p *Plan) { p.Applicable = false }, func(p *Plan) {
 			p.Operations = slices.Clone(p.Operations)
-			p.Operations[0].Params.NewValue = "Altered"
+			param := p.Operations[0].Params.(metadata.Set)
+			param.NewValue = "Altered"
+			p.Operations[0].Params = param
 			p.OperationSetSHA256 = digest(p.Operations)
 		},
 	}
@@ -199,7 +201,7 @@ func prepareExecution(t *testing.T, w *Workspace, p Plan) (Execution, []byte) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	e := Execution{Version: 1, TaskID: task, Plan: p, Checkpoint: s.ID, Status: "running", Conformance: "not_run", Diff: compareTrees(s.Tree, s.Tree)}
+	e := Execution{Version: p.SchemaVersion, TaskID: task, Plan: p, Checkpoint: s.ID, Status: "running", Conformance: "not_run", Diff: compareTrees(s.Tree, s.Tree)}
 	if err := writeJSON(w.root, "tasks/active/edit-start.json", e); err != nil {
 		t.Fatal(err)
 	}

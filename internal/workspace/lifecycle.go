@@ -9,6 +9,7 @@ import (
 	"slices"
 
 	"github.com/LeviTK/Kepub/internal/archive"
+	"github.com/LeviTK/Kepub/internal/metadata"
 	"github.com/LeviTK/Kepub/internal/publication"
 	"github.com/LeviTK/Kepub/internal/validation"
 )
@@ -57,6 +58,17 @@ type Review struct {
 	Diff             Diff           `json:"diff"`
 	MatchesExecution bool           `json:"matchesExecution"`
 	Metadata         MetadataReview `json:"metadata"`
+	Content          *ContentReview `json:"content,omitempty"`
+}
+
+type ContentReview struct {
+	BookPath       string  `json:"bookPath"`
+	LocatorVersion int     `json:"locatorVersion"`
+	Locator        string  `json:"locator"`
+	OldValue       string  `json:"oldValue"`
+	PlannedValue   string  `json:"plannedValue"`
+	NewValue       *string `json:"newValue"`
+	Unavailable    string  `json:"unavailable,omitempty"`
 }
 
 func revisionPath(id string) string { return "revisions/" + id + "/pub" }
@@ -285,8 +297,13 @@ func (w *Workspace) TaskDiff(id string) (Review, error) {
 	if err2 != nil {
 		return Review{}, err2
 	}
-	param := e.Plan.Operations[0].Params
-	r := Review{TaskID: id, BaseRevision: w.current, Diff: compareTrees(w.base, t), MatchesExecution: err == nil, Metadata: MetadataReview{Namespace: param.Namespace, LocalName: param.LocalName, ID: param.ID, OldValue: param.ExpectedOldValue, PlannedValue: param.NewValue}}
+	r := Review{TaskID: id, BaseRevision: w.current, Diff: compareTrees(w.base, t), MatchesExecution: err == nil}
+	if param, ok := e.Plan.Operations[0].Params.(publication.TextSet); ok {
+		r.Content = &ContentReview{BookPath: string(param.BookPath), LocatorVersion: param.LocatorVersion, Locator: param.Locator, OldValue: param.ExpectedOldValue, PlannedValue: param.NewValue}
+	} else {
+		param := e.Plan.Operations[0].Params.(metadata.Set)
+		r.Metadata = MetadataReview{Namespace: param.Namespace, LocalName: param.LocalName, ID: param.ID, OldValue: param.ExpectedOldValue, PlannedValue: param.NewValue}
+	}
 	a, frozen, err := archive.SnapshotDirectory(filepath.Join(w.dir, filepath.FromSlash(candidate)), archive.DefaultLimits)
 	if err != nil {
 		return r, err
@@ -295,6 +312,22 @@ func (w *Workspace) TaskDiff(id string) (Review, error) {
 	if frozen.SHA256 != t.SHA256 {
 		return r, ErrCandidateDrift
 	}
+	if r.Content != nil {
+		param := e.Plan.Operations[0].Params.(publication.TextSet)
+		b, err := a.Read(param.BookPath, publication.XMLLimit)
+		if err != nil {
+			r.Content.Unavailable = err.Error()
+			return r, nil
+		}
+		value, err := publication.ContentText(b, param.Locator)
+		if err != nil {
+			r.Content.Unavailable = err.Error()
+		} else {
+			r.Content.NewValue = &value
+		}
+		return r, nil
+	}
+	param := e.Plan.Operations[0].Params.(metadata.Set)
 	p, err := publication.Load(a, w.state.Rootfile)
 	if err != nil {
 		r.Metadata.Unavailable = err.Error()
@@ -616,11 +649,31 @@ func (w *Workspace) taskDigests(dir string, j *settlement) error {
 	if snap.Version != 1 || snap.ID != s.Checkpoint || snap.BaseRevision != t.BaseRevision || digest(snap.Tree) != digest(tree) || tree.SHA256 != p.InputTreeSHA256 {
 		return fmt.Errorf("settlement checkpoint mismatch")
 	}
+	if !validPlanOperation(p) || p.Rootfile != w.state.Rootfile || p.OperationSetSHA256 != digest(p.Operations) || s.Version != p.SchemaVersion || e.Version != s.Version || s.TaskID != e.TaskID || s.TaskID != id && !(id == "active" && s.TaskID == "") || s.Status != "running" || s.ReviewRequired || s.Conformance != "not_run" || digest(s.Diff) != digest(compareTrees(tree, tree)) || e.Conformance != "not_run" || e.Diff.Changes == nil {
+		return fmt.Errorf("settlement operation/execution version mismatch")
+	}
+	out, writes, err := w.recomputeAt(p.Operations, dir+"/checkpoints/"+s.Checkpoint+"/pub", p.BaseRevision)
+	if err != nil {
+		return err
+	}
+	if !p.Applicable || !slices.Equal(writes, p.WriteSet) {
+		return fmt.Errorf("settlement write set mismatch")
+	}
+	if e.Status == "review_required" {
+		if !e.ReviewRequired || e.Failure != "" || digest(e.Diff) != digest(expectedDiff(tree, writes, out)) {
+			return fmt.Errorf("settlement content mismatch")
+		}
+	} else if e.Status != "failed" || e.ReviewRequired || e.Failure == "" || j.Decision.Status == "accepted" {
+		return fmt.Errorf("invalid settlement execution status")
+	}
 	actual, err := hashAt(w.root, dir+"/work/pub")
 	if err != nil {
 		return err
 	}
 	if actual.SHA256 != j.Decision.TreeSHA256 {
+		return ErrCandidateDrift
+	}
+	if j.Decision.Status == "accepted" && (digest(e.Diff) != digest(compareTrees(tree, actual)) || !e.ReviewRequired) {
 		return ErrCandidateDrift
 	}
 	j.TaskSHA256, j.IntentSHA256, j.StartSHA256, j.ResultSHA256 = digest(t), digest(p), digest(s), digest(e)

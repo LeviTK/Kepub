@@ -82,8 +82,15 @@ func Capabilities() []Capability {
 		PostChecks:        []string{"resource hash from original bytes", "matched/returned counts and explicit truncation"}, Idempotency: "read only; no publication changes",
 	})
 	metadataSchema := map[string]any{"type": "object", "additionalProperties": false, "required": []string{"namespace", "localName", "expectedOldValue", "newValue"}, "properties": map[string]any{"namespace": map[string]any{"const": "http://purl.org/dc/elements/1.1/"}, "localName": map[string]any{"enum": []string{"title", "creator"}}, "id": stringSchema, "expectedOldValue": map[string]any{"type": "string"}, "newValue": map[string]any{"type": "string"}}}
+	contentSchema := map[string]any{"type": "object", "additionalProperties": false, "required": []string{"bookPath", "revisionId", "resourceSha256", "locatorVersion", "locator", "expectedOldValue", "newValue"}, "properties": map[string]any{
+		"bookPath": stringSchema, "revisionId": stringSchema,
+		"resourceSha256": map[string]any{"type": "string", "pattern": "^[0-9a-f]{64}$"},
+		"locatorVersion": map[string]any{"const": 1}, "locator": map[string]any{"type": "string", "minLength": 1, "x-maxUtf8Bytes": 4096},
+		"expectedOldValue": map[string]any{"type": "string", "x-maxUtf8Bytes": publication.ContentTextLimit}, "newValue": map[string]any{"type": "string", "x-maxUtf8Bytes": publication.ContentTextLimit},
+	}}
 	for _, c := range []Capability{
 		{ID: "metadata.set", Mutates: true, Risk: "bounded_edit", InputSchema: metadataSchema, SupportedFeatures: []string{"unique existing dc:title/dc:creator simple text", "exact namespace/local name/optional ID", "expected old value", "local escaped byte replacement", "no-op preserves bytes; no automatic timestamp"}},
+		{ID: "content.text.set", Mutates: true, Risk: "bounded_edit", InputSchema: contentSchema, SupportedFeatures: []string{"request/plan schema 2; execution 2; operation 1", "accepted revision and original resource SHA-256 binding", "exact manifest XHTML and structural locator v1", "simple independently closed body text only; no mixed/foreign/script/style/head subtree", "escaped local byte replacement; no-op preserves bytes; no automatic timestamp"}},
 		{ID: "workspace.open", Commands: []string{"workspace open"}, InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"book", "output"}, "properties": map[string]any{"book": stringSchema, "output": stringSchema, "rootfile": stringSchema}}},
 		{ID: "plan", Commands: []string{"plan"}, InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "operations", "output"}, "properties": map[string]any{"workspace": stringSchema, "operations": stringSchema, "output": stringSchema}}},
 		{ID: "apply", Commands: []string{"apply"}, Mutates: true, Risk: "bounded_edit", InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "plan"}, "properties": map[string]any{"workspace": stringSchema, "plan": stringSchema}}},
@@ -91,7 +98,7 @@ func Capabilities() []Capability {
 		{ID: "workspace.export", Commands: []string{"workspace export"}, Risk: "external"},
 	} {
 		c.Version, c.Status = 1, "available"
-		c.Reason = "M2 explicit workspace directory; one metadata.set v1; apply remains review_required/conformance not_run; accept and formal export run pinned EPUBCheck (must be installed)"
+		c.Reason = "Explicit workspace directory; one metadata.set v1 (schema 1) or content.text.set v1 (schema 2); apply remains review_required/conformance not_run; accept and formal export run pinned EPUBCheck (must be installed)"
 		if c.Risk == "" {
 			c.Risk = "read_only"
 		}
@@ -106,7 +113,7 @@ func Capabilities() []Capability {
 		}
 		c.OutputSchema = map[string]any{"type": "object"}
 		if c.SupportedFeatures == nil {
-			c.SupportedFeatures = []string{"explicit path/identity/rootfile", "immutable initial and accepted revisions", "real full-tree diff and old/new metadata", "audited accept/reject", "accepted-only export"}
+			c.SupportedFeatures = []string{"explicit path/identity/rootfile", "immutable initial and accepted revisions", "real full-tree diff and actual old/new metadata or content", "audited accept/reject", "accepted-only export"}
 		}
 		c.Preconditions = []string{"exclusive workspace owner; external writers stopped", "exact baseline and persisted plan/task provenance", "plan/export output absent and outside workspace root"}
 		c.PostChecks = []string{"actual full tree hash/write set", "formal checks for acceptance and final ZIP export; no passed flag", "partial CSS coverage remains diagnostic, not permission to rename"}

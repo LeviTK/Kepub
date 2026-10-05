@@ -111,12 +111,7 @@ func scanTree(src, dst *os.Root) (Tree, error) {
 	// Explicit sorting makes the hash contract independent of traversal order.
 	sort.Slice(tree.Entries, func(i, j int) bool { return tree.Entries[i].Path < tree.Entries[j].Path })
 	// JSON arrays/objects frame every field unambiguously (including odd names).
-	data, err := json.Marshal(tree.Entries)
-	if err != nil {
-		return Tree{}, err
-	}
-	digest := sha256.Sum256(append([]byte("kepub-tree-v1\n"), data...))
-	tree.SHA256 = hex.EncodeToString(digest[:])
+	tree.SHA256 = hashEntries(tree.Entries)
 	if dst != nil {
 		// Child directories before their parents; files were synced above.
 		for i := len(tree.Entries) - 1; i >= 0; i-- {
@@ -131,6 +126,12 @@ func scanTree(src, dst *os.Root) (Tree, error) {
 		}
 	}
 	return tree, nil
+}
+
+func hashEntries(entries []Entry) string {
+	data, _ := json.Marshal(entries)
+	h := sha256.Sum256(append([]byte("kepub-tree-v1\n"), data...))
+	return hex.EncodeToString(h[:])
 }
 
 // openDir rejects symlinks in user-supplied directory paths, not just the leaf.
