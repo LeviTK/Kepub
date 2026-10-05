@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/LeviTK/Kepub/internal/app"
 )
@@ -148,5 +149,40 @@ func TestHelpAndCapabilityDescriptionsMatch(t *testing.T) {
 	}
 	if len(descriptions) != 0 {
 		t.Fatal("unadvertised commands", descriptions)
+	}
+}
+
+func TestTimeoutSchemaUint32Boundary(t *testing.T) {
+	want := map[string]bool{"publication.validate": true, "publication.pack": true, "task.accept": true, "workspace.export": true}
+	capabilities := invoke(t, []string{"capabilities", "--json"}, 0)["data"].([]any)
+	for _, value := range capabilities {
+		c := value.(map[string]any)
+		id := c["operationId"].(string)
+		if !want[id] {
+			continue
+		}
+		delete(want, id)
+		source := c["inputSchema"].(map[string]any)["properties"].(map[string]any)["timeout"].(map[string]any)
+		if source["minimum"] != float64(1) || source["maximum"] != float64(4294967295) {
+			t.Fatal("timeout source boundary", id, source)
+		}
+		for _, schema := range c["commandSchemas"].([]any) {
+			s := schema.(map[string]any)
+			inherited := s["inputSchema"].(map[string]any)["properties"].(map[string]any)["timeout"]
+			if !reflect.DeepEqual(source, inherited) {
+				t.Fatal("timeout boundary not inherited", s["name"])
+			}
+			args := append(strings.Fields(s["name"].(string)), "--help", "--timeout", "4294967295", "--json")
+			invoke(t, args, 0)
+			o, e := parse(args)
+			if e != nil || o.timeout != time.Duration(4294967295)*time.Second {
+				t.Fatal("maximum timeout parsed incorrectly", o.timeout, e)
+			}
+			args[len(args)-2] = "4294967296"
+			invoke(t, args, 2)
+		}
+	}
+	if len(want) != 0 {
+		t.Fatal("missing timeout schema", want)
 	}
 }

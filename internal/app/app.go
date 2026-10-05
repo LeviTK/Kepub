@@ -59,7 +59,7 @@ func Capabilities() []Capability {
 		}
 	}
 	for _, id := range []string{"validate", "pack"} {
-		properties := map[string]any{"book": stringSchema, "rootfile": stringSchema, "strict": map[string]any{"type": "boolean"}, "timeout": map[string]any{"type": "integer", "minimum": 1}}
+		properties := map[string]any{"book": stringSchema, "rootfile": stringSchema, "strict": map[string]any{"type": "boolean"}, "timeout": map[string]any{"type": "integer", "minimum": 1, "maximum": 4294967295}}
 		required := []string{"book"}
 		if id == "pack" {
 			properties["output"] = stringSchema
@@ -85,10 +85,10 @@ func Capabilities() []Capability {
 		if c.InputSchema == nil {
 			c.InputSchema = map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "task"}, "properties": map[string]any{"workspace": stringSchema, "task": stringSchema}}
 			if c.ID == "task.accept" {
-				c.InputSchema = map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "task"}, "properties": map[string]any{"workspace": stringSchema, "task": stringSchema, "strict": map[string]any{"type": "boolean"}, "timeout": map[string]any{"type": "integer", "minimum": 1}}}
+				c.InputSchema = map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "task"}, "properties": map[string]any{"workspace": stringSchema, "task": stringSchema, "strict": map[string]any{"type": "boolean"}, "timeout": map[string]any{"type": "integer", "minimum": 1, "maximum": 4294967295}}}
 			}
 			if c.ID == "workspace.export" {
-				c.InputSchema = map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "output"}, "properties": map[string]any{"workspace": stringSchema, "output": stringSchema, "draft": map[string]any{"type": "boolean"}, "strict": map[string]any{"type": "boolean"}, "timeout": map[string]any{"type": "integer", "minimum": 1}}}
+				c.InputSchema = map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "output"}, "properties": map[string]any{"workspace": stringSchema, "output": stringSchema, "draft": map[string]any{"type": "boolean"}, "strict": map[string]any{"type": "boolean"}, "timeout": map[string]any{"type": "integer", "minimum": 1, "maximum": 4294967295}}}
 			}
 		}
 		c.OutputSchema = map[string]any{"type": "object"}
