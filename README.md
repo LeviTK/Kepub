@@ -139,6 +139,8 @@ EPUBCheck 报告的完整 ZIP 库存仍按原始文件名、显式大小和校�
 
 来源复验会遍历 accepted 历史及完整内容树，历史增长会增加读取成本；大型书籍与长历史的目标平台性能尚未验收，当前不缓存跳过这些校验。
 
+本次未发布代码经真实 Factory Droid CLI 0.233.0／Claude Opus 5.5／medium 的 12 轮审查与修复；最后一轮独立重读全部生产 Go 和当前契约，正常 completion／exit 0，未发现剩余可复现实质缺陷。稳定产品的全仓普通／race／vet、真实 EPUB2/3 接受／导出及 Darwin 交叉构建通过。各轮失败、修复反例、准确覆盖范围和未验证限制保留在 [完整审查记录](docs/verification/DROID_REVIEW.md)；这不是绝对无 bug 或 Mac 实机、断电耐久性保证。全部仅本地提交，尚未推送／发布。
+
 ## Orb 启动
 
 `.agents/setup` 仅支持 Linux amd64，固定 Go 1.27.1，从根及 SDK 实验的锁文件副本预热/验证 Go 缓存。存在 SDK 实验 npm 锁时，复用精确 Node 26.10.0 / npm 10.9.9，否则校验官方归档后局部安装；`npm ci` 从固定锁和完整性校验缓存准备实验依赖。没有 SDK 锁时不安装 Node/npm。所有工具链通过非交互 login shell 可用，不改系统 Node 或仓库锁文件。
