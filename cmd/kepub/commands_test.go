@@ -73,6 +73,10 @@ func TestHelpDoesNotHideInvalidInput(t *testing.T) {
 		{"unknown", "--help"}, {"task", "unknown", "--help"}, {"workspace", "unknown", "--help"},
 		{"info", "--help", "--unknown"}, {"version", "target", "--help"},
 		{"inspect", "--help", "--section", "invalid"}, {"info", "missing", "--output", "out"},
+		{"inspect", "--help", "--direction", "sideways"},
+		{"inspect", "--help", "--direction", "incoming"},
+		{"inspect", "--help", "--resource", "../bad"},
+		{"inspect", "--help", "--resource", "EPUB/chapter.xhtml"},
 		{"task", "diff", "missing", "--workspace", "missing", "--rootfile", "x"},
 		{"--help", "--output", "x"}, {"doctor", "--timeout", "1"},
 		{"info", "missing", "--rootfile", "../package.opf"},
@@ -80,6 +84,7 @@ func TestHelpDoesNotHideInvalidInput(t *testing.T) {
 	} {
 		invoke(t, append(args, "--json"), 2)
 	}
+	invoke(t, []string{"inspect", "--help", "--json"}, 0)
 	for _, name := range []string{"workspace list", "task run", "preview", "serve", "amp"} {
 		invoke(t, append(strings.Fields(name), "--json"), 3)
 	}

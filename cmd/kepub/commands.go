@@ -71,7 +71,7 @@ func validateCommand(o options) (string, error) {
 				}
 			}
 		}
-		if name == "inspect" && (o.section != "" || !o.help) {
+		if name == "inspect" && (o.section != "" || o.resource != "" || o.direction != "" || !o.help) {
 			if err := app.ValidateInspect(o.section, o.resource, o.direction); err != nil {
 				return name, err
 			}
