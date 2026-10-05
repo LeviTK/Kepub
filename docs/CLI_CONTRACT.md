@@ -60,7 +60,7 @@ C2 首版命令形态为 `kepub content --workspace DIR --resource BOOK_PATH [--
 - 工作区使用已有 `AcceptedSnapshot` 冻结当前 accepted；返回真实 workspaceId、revisionId、rootfile、精确 bookPath、resourceSha256 和 locatorVersion。查询期间保持现有协作锁，关闭快照和工作区；不从内部目录猜当前版本，不修改出版内容。
 - 仅支持所选 publication manifest 声明的 `application/xhtml+xml`，路径必须为精确 BookPath，不是 href／fragment／本机路径。沿用 UTF-8 XML、8 MiB、深度／token／索引限制；不支持的资源类型明确失败，CSS 查询留到后续，不为本批增加第二套语法。
 - 结果节点取 XHTML body 内的 XHTML 元素：叶元素，或有非空白直接文本的非叶元素；不包括 body 容器、head、script/style 子树和外来命名空间子树。含被排除子树的祖先元素也不作为结果，仍遍历其受支持子元素，避免经祖先 text 返回被排除内容；这不是全书全文索引。`text` 为 XML 解码后的后代文本原顺序，不 trim、不做 Unicode／空白归一化；同时返回元素 namespace/localName、可选 id、结构 locator 和 `hasChildElements`。混合内容仅供读取，不能由这个布尔值推导已允许编辑；locator 不是 XPath 执行器或可写偏移。
-- query 缺省表示全部上述节点；显式 query 必须非空且不超过 4096 UTF-8 字节，以区分大小写的字面子串匹配解码后的 text，不支持正则，不跨节点拼接搜索。每个匹配元素返回一次，不默认选择首个；重叠父子节点可分别返回且 locator 不同。
+- query 缺省表示全部上述节点；显式 query 必须非空且不超过 4096 UTF-8 字节，以区分大小写的字面子串匹配解码后的 text，不支持正则，不将不同返回元素拼接搜索。一个混合元素自身的后代文本已按原顺序合并，因此可匹配跨内联标签的短语。每个匹配元素返回一次，不默认选择首个；重叠父子节点可分别返回且 locator 不同。
 - limit 缺省 50，范围 1～200；按文档顺序返回。报告匹配元素总数、返回数量和 truncated；无命中是成功的空数组。返回文本累计上限 1 MiB，超限明确 `CONTENT_LIMIT`，不裁剪单节点文本或悄悄遗漏。所有上限校验在访问工作区前尽可能完成。
 - 整本与资源原字节不变；同文多处、实体、非 BMP、BOM/CRLF、命名空间、活动候选存在但只读 accepted、并发 busy、超限与哈希独立核对均须测试。本批不开放正文写入，也不把定位信息当编辑授权。
 
