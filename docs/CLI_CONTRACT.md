@@ -43,11 +43,15 @@ Obsidian CLI 的参考取舍见 [开发方案 §9.1／§9.2](DEVELOPMENT_PLAN.md
 
 `inspect --section` 首批枚举 `metadata`、`manifest`、`spine`、`navigation`、`references`、`capabilities`。引用查询可加 `--resource BOOK_PATH` 和 `--direction incoming|outgoing`；查询不完整时在数据中返回 coverage，不能把空列表当全书无引用。
 
+XHTML 的 href／src（含 EPUB3 nav）在解析目标前，仅去掉属性值两端的 ASCII 空白；引用边与导航结果仍保留 XML 解析后的原属性值，出版资源字节不变。不去掉 NBSP 等 Unicode 空白，不把百分号编码后的文件名空格当作分隔空白；此规则不全局应用于 BookPath、OPF、NCX、SVG 或 CSS。
+
 `info` 和 `toc` 是同一读用例的便捷入口。暂不增加一串同义顶层命令；改名、metadata和未来polish由操作注册表表达。`convert`、任意Calibre透传、MCP、书库、邮件、批量删除不属于首批命令。
 
 上述命令按阶段逐步实现，`capabilities` 不能把表中所有设计都提前报告为 available。
 
 当前 M2 通过显式目录定位，不接收用户填的 workspaceId 代替实际状态，不查询全局注册表或“latest”。除 `workspace open` 新建外，各命令 Open 已有目录并验证持久身份、来源与锁。Plan 报告与 export 输出统一要求在整个 workspace 根之外、父目录已存在且为真实目录、输出此前不存在；不存在的新文件也不得放入 original、revision 或候选 pub。操作/计划输入拒绝符号链接、硬链接及特殊文件，打开使用非阻塞 regular-file 检查，FIFO 不等待 writer。
+
+`workspace open` 的创建目标已存在时返回 exit 2／`OUTPUT_EXISTS`，包括已有文件、目录和符号链接；源文件被确认不是稳定的单链接普通文件时返回 exit 2／`INVALID_ARGUMENT`，不跟随链接或等待 FIFO。源／父目录缺失、权限失败等真实文件系统故障仍为 exit 6／`IO_ERROR`；不将任意内部文件存在错误全局映射成参数错误。
 
 本文允许审阅／拒绝的候选漂移，限于安全、可完整散列的普通文件与真实目录树的字节或文件增删变化。符号链接（包括树内链接）、硬链接、特殊文件、非规范路径、大小写／Unicode 碰撞仍拒绝；文件不可读取也不能伪装成完整 diff。任务、来源记录或检查点损坏不是候选字节漂移。即使 accepted 本身未变，工作区 `content`／export 也须通过 Open 的完整核验，不提供绕过不安全 active 候选的入口。这沿用 [M2-B 的安全树边界](verification/M2_B.md#持久状态和提交恢复语义)，不是新增不安全条目审计／归档能力。
 
