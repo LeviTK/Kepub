@@ -11,11 +11,12 @@ import (
 	"github.com/LeviTK/Kepub/internal/archive"
 	"github.com/LeviTK/Kepub/internal/bookpath"
 	"github.com/LeviTK/Kepub/internal/fault"
+	"github.com/LeviTK/Kepub/internal/xmltext"
 )
 
 const opfNS = "http://www.idpf.org/2007/opf"
 const containerNS = "urn:oasis:names:tc:opendocument:xmlns:container"
-const XMLLimit = 8 << 20
+const XMLLimit = xmltext.Limit
 
 type Element struct {
 	Name                   xml.Name   `json:"name"`

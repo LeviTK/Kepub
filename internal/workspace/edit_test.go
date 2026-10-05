@@ -35,6 +35,16 @@ func planTitle(t *testing.T, w *Workspace, new string) Plan {
 	return p
 }
 
+func TestMetadataV1CanonicalBaselineEvidence(t *testing.T) {
+	// Recorded with the unmodified 06474154 baseline binary, not regenerated
+	// from the implementation under test. Optional id is absent, order fixed.
+	const encoded = `[{"operationId":"metadata.set","operationVersion":1,"params":{"namespace":"http://purl.org/dc/elements/1.1/","localName":"title","expectedOldValue":"Title","newValue":"Legacy Title"}}]`
+	ops := []Operation{{"metadata.set", 1, metadata.Set{Namespace: metadata.DC, LocalName: "title", ExpectedOldValue: "Title", NewValue: "Legacy Title"}}}
+	if string(editJSON(t, ops)) != encoded || digest(ops) != "9b544b3cf576ef62d5b671ed32118c7edc4192121e08ef86bf891f4d22a35891" || digest(editPolicy) != "305b43d37304f964e79396386309a865e10a0f4516873c961d47015e45612935" {
+		t.Fatal("legacy canonical encoding/policy changed")
+	}
+}
+
 func TestPlanApplyDiffReopenAndIsolation(t *testing.T) {
 	for _, new := range []string{"新 < & >", "测试 & Space"} {
 		t.Run(new, func(t *testing.T) {
