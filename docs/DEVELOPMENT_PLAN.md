@@ -1,18 +1,22 @@
 # Kepub 开发方案
 
-> 文档版本：0.7（开发计划；新接口暂定）· 更新日期：2026-10-05
+> 文档版本：0.9（开发计划；新接口暂定）· 更新日期：2026-10-05
 >
-> 路线：CLI + 外部 Amp 协作 → MyGo UI → UI 内集成 Amp。CLI 与 UI 共用 Go EPUB 核心；受管 Amp 不是 UI 前置条件。C0/C1/C2/C3 已本地集成，下一批为 C4 外部 Amp 经 CLI 协作验证，不自动启动真实模型调用或发布。
+> 当前路线：先补 Issue #3 的规范资产与差距矩阵 S0，再按 §11.7 完成独立 CLI 的 T1～T6，默认 EPUB3、显式 EPUB2 → EPUB3 转换，不新增嵌入字体。近期不集成外部编辑器、UI 或 Amp；真实预览、完整排版和无障碍验收保留在后续 S2～S4，不从最终目标删除。T6 完成不等于 Issue #3 关闭，阶段映射和关闭门槛见 §11.8。
 >
 > 状态：只读核心与 CLI、工作区库及 Amp 对照实验，以及 validate/pack、单字段元数据编辑、候选审阅、接受／拒绝与工作区导出、C1 命令框架、C2 正文查询、C3 单节点简单文本修改和独立审查修复，均已作为源码发布到默认分支 main。GUI、生产 Agent、真实 Amp 编辑联调、版本化安装包和 Mac 实机验收未完成。实际支持范围以 README、capabilities 和验证记录为准；文档版本不是软件发行版本。
 >
-> 目标平台：Apple Silicon Mac；Linux orb 用于开发验证。MyGo 与系统 WebView 已确认，当前接口基线为 MyGo 0.2.0，macOS 使用 WKWebView，不捆绑 Chromium。React + TypeScript + Vite 仍是前端计划。UI 暂缓不取消选型，也不让 WebView 验收阻塞纯 CLI 开发。
+> 平台顺序：Linux CLI 先功能测试，随后打包并实机验收 Apple Silicon Mac CLI。MyGo 与系统 WebView 选型保留给后续 UI；当前接口基线为 MyGo 0.2.0，macOS 使用 WKWebView，不捆绑 Chromium。前端与预览不作为 CLI 完成条件。
 
 ## 0. 本次修订与阅读顺序
 
-v0.7 将当前方向拆成可验收批次：先完善独立 CLI，增加受限正文读写，让外部 Amp 通过 CLI 完成编辑；随后交付不依赖模型的 MyGo UI；最后接入 UI 内的 Amp 任务。受管 Agent 从 UI 的前置条件移到后续阶段。近期不引入 SDK、MCP、常驻 Agent 服务或完整资源改名作为 CLI 前置。
+v0.9 对齐 [Issue #3：EPUB 3.3 全规范兼容与 XHTML／CSS 全面排版](https://github.com/LeviTK/Kepub/issues/3) 的完整正文（2026-10-05 核对，当前无评论）。该 issue 是跨 CLI、核心、预览和验收的总目标；本版补齐规范归档、五维能力证据、阶段映射和关闭条件，不把它误缩为六批终端功能，也不把后续 GUI 强行放进当前 CLI 批次。编码 Orb 报告的 T1 初稿尚未编译／测试／集成，现暂停新增实现；旧基线普通／race／vet 通过不是新功能证据。
 
-优先阅读 §1 的三方职责、§8.1 的两种 Amp 协作方向，以及 §11.3～§11.6 的批次、编辑边界、Medium 分工和验收。M0～M6 保留为技术工作包编号，不代表执行先后；§11.1／§11.2 保留已完成轮次的记录。本文不冻结新命令的最终 schema，也不代替实现、模型调用、推送或发布授权。
+v0.8 按用户最新范围将近期目标调整为独立终端制书：以官方 EPUB3 为默认新建和编辑目标，优先完成其 XHTML 语法处理、内置编辑操作、书籍 CSS 和本机系统字体发现；新增 EPUB2 → EPUB3 转换，不并行建设完整 EPUB2 编辑语法。已有 EPUB2 读取、校验与受限编辑保持，不因计划修订移除。不向 EPUB 新增字体本体，不集成外部编辑器。基础图片插入与简单排列纳入，复杂图文排版、固定版式等进阶制作能力后置。现有工作区和审核机制继续复用，不把计划修订当作代码已实现。
+
+优先阅读 §0.1 的范围对应、§3.4～§3.9 的内容边界（含新增按标题拆章）、§7.4 的能力与诊断，以及 §11.7～§11.8 的实施顺序。§11.1～§11.6 保留既有交付和 v0.7 路线，不改写历史证据；其中 C4／U／A 依赖不约束新 CLI 主线。除 CLI 契约已单列的 T1 语义外，新命令/schema 尚待冻结；计划不代替实际实现、验证或发布授权。
+
+v0.7 已完成 C1/C2/C3 受限读写；其“先外部 Amp 协作，再 UI”的推进顺序由本版取代。当前二进制仍限制为单操作、简单文本和 UTF-8，并拒绝 DOCTYPE。用户上传的 EPUB3 已实际通过 EPUBCheck，但因 38 处简单 `<!DOCTYPE html>` 被 Kepub 阻断；去除声明后的副本才跑通编辑闭环。这是标准兼容缺口，不是私有格式，也不能作为原书直接通过的证据。修复后的首要验收必须直接使用未经预处理的原书；私有书籍不提交到公共测试仓库。
 
 v0.6 的 Obsidian 官方 CLI、Amp External API v2 与 TypeScript SDK 核对记录继续保留：§9.1／§9.2 记录 CLI 借鉴，§8.1.3 区分工具调用、Agent 执行和工作区管理 API；参考文档不等于引入对应依赖。
 
@@ -43,37 +47,53 @@ MyGo 0.2.0 带来的 v0.3 调整：
 | CEF 可作为近期统一渲染后备 | MyGo 0.2.0 正式版未包含 CEF；当前公开 CEF PR 仍未合并且针对 Linux。Apple Silicon 首发继续只以 WKWebView 为基线 |
 | dev reload 的进程重叠由应用自行规避 | MyGo 0.2 已改为先停止旧 build 再启动新 build；Kepub 的 workspace 单写者、journal 和进程回收仍由自身负责，不能依赖 dev 行为代替生产数据保护 |
 
-当前确认：Mac-first、MyGo + 系统 WebView、纯 Go 核心、Amp CLI 作为执行底座、EPUBCheck 主校验、原书保护、候选审核、书籍预览与本机权限隔离。MyGo 留在 desktop 适配层，不渗入出版物核心；隔离能力不足时补充或调整 MyGo／WKWebView 预览适配，不重新引入捆绑浏览器。SDK 只参与 Agent 接入方案比较，不成为 EPUB 核心或只读 CLI 的依赖。
+当前确认：独立 Go CLI 优先、默认官方 EPUB3、EPUB2 显式转换到 EPUB3、EPUBCheck 主校验、原书保护、候选审核与无字体嵌入的系统字体选择。MyGo 和 Amp 保留在后续适配层，不渗入出版物核心；SDK、浏览器与外部编辑器不是本阶段依赖。后续预览仍须完成独立隔离验收。
+
+### 0.1 Issue #3 的最终目标与近期范围
+
+“全面支持”分别证明保留、解析、编辑、渲染、验证，不能压成一个 `valid:true`。EPUBCheck pass、引用 complete、CSS 属性探测或使用 WKWebView，都不等于完整支持。目标是固定 EPUB 3.3 及其适用 XHTML/CSS 基线，不是所有未来 CSS 草案或跨阅读器像素一致。
+
+| 决策来源 | 本计划执行方式 |
+|---|---|
+| 用户已确定的近期产品范围 | 默认 EPUB3；EPUB2 显式转换；不新增嵌入字体；内置编辑；基础图片；Linux 先测试、Mac 后打包；UI／外部编辑器／Amp 后置 |
+| Issue #3 的总目标 | S0 规范归档与条款映射、S1 内容与编辑、S2 作者原样预览、S3 完整排版／媒体交互、S4 官方测试与 Mac／无障碍验收，全部保留 |
+| 字体读取与字体写入的区别 | 不新增字体本体，不妨碍保留和验证原书 `@font-face`、TTF／OTF／WOFF／WOFF2；规范字体混淆的读取与预览另有明确后续任务，不等于绕过 DRM |
+| 开发验证流程由用户指定 | 父 Orb 主导，Medium 子 Orb 编码，真实 Droid demo／代码审查与修复复测；这不是 Issue #3 原文指定的工具，也不能代替官方／实机测试 |
+
+关联 [Issue #1](https://github.com/LeviTK/Kepub/issues/1) 的 Source／Semantic Diff 与样式影响说明：CLI 先提供真实数据，后续审核面板复用，不重复另造 Pierre Diff UI。关联 [Issue #2](https://github.com/LeviTK/Kepub/issues/2) 的 Revision／Tree／Blob：沿同一版本事实来源演进，预览与结构编辑不新建平行版本库；不能把关联 issue 的设计当作已经落地。
 
 ## 1. 产品定位与范围
 
-Kepub 是面向 Agent 的 EPUB 阅读、制作预览与编辑工作台，不是完整 Sigil，也不是新的 Calibre 书库。
+Kepub 当前目标是独立终端 EPUB 创建、修改与维护工具，后续再扩展阅读／制作 UI 和 Agent。完整制书闭环不等于完整阅读系统，不扩展为 Calibre 式书库。
 
 三方职责固定为：**CLI 是可脚本调用的操作入口，UI 是阅读与审核入口，Amp 是理解需求和提出编辑的智能执行者。** 文件、计划、候选、检查和导出规则由共享 Go 核心负责；只有新增并通过验收的操作才能被任一入口使用。
 
-首阶段用户直接在 Amp Code 中提要求，Amp 调用 Kepub CLI 并读取 JSON；Kepub 不启动 Amp。后续 UI 直接调用 Go 用例，不反向解析 CLI 文本。下面的实时预览和自由 Agent 文件编辑是完整产品目标，不是现有能力。
+首阶段用户通过终端命令与声明式操作输入完成制作；不接入 Amp、不启动外部编辑器，也不通过直接覆盖内部候选文件绕过审核。后续 UI 直接调用 Go 用例，不反向解析 CLI 文本。当前目标流程如下，其中新增能力仍待实现。
 
-```text
-打开 EPUB → 建立工作区 → 阅读/定位
-                         ↓
-              确定性操作 或 Amp 内容编辑
-                         ↓
-                 候选结果 ↔ 实时预览
-                         ↓
-              差异 + 检查覆盖 + 用户审核
-                         ↓
-                  接受 → 校验 → 导出
+```diagram
+新建／导入 EPUB → 工作区 → 查询／定位
+                            ↓
+              内置内容／结构／样式操作
+                            ↓
+                  计划 → 候选 → 差异
+                            ↓
+                正式检查 → 接受／拒绝
+                            ↓
+                   最终 ZIP 检查 → 导出
 ```
 
 CLI 不登录 Amp 也能查询、检查和执行已实现的确定性操作；后续阅读 UI 同样不应要求模型登录。不安装 Calibre 也能使用核心功能。正式检查仍需要 Java／EPUBCheck；模型是可选执行者，不是 EPUB 文件操作的必需依赖。
 
-### 1.1 CLI 优先的首批交付
+### 1.1 独立 CLI 的当前交付目标
 
 - 整理并交付现有查询、安全解包、validate/pack、workspace、plan/apply、diff、accept/reject 和 export，不从头重写 CLI。
 - 元数据操作可修改一个现有 `dc:title` 或 `dc:creator` 简单文本；C2 已本地实现绑定 accepted revision 的单资源 XHTML 内容读取，C3 已增加 `content.text.set` v1 的单节点简单正文修改。每计划一个操作，不代表支持任意 XHTML 编辑。
 - C1 已本地补齐命令帮助／schema 同源、构建版本、只检查不安装的 `doctor`、源码构建／安装说明及测试；保留 JSON envelope、错误码与非交互行为。发行安装包和 Mac 安装验收仍未完成。
-- C4 经单独授权先用合成 EPUB 做真实 Amp 联调，覆盖元数据与正文操作；所有写入走 CLI 注册操作，用户明确决定 accept/reject/export。不依赖 SDK、MCP、常驻会话服务或桌面窗口。
-- CSS 可纳入受限只读内容查询；CSS 写入、跨节点排版修改、资源新增／删除／改名、批量操作及任意候选文件写入不进入首个正文编辑版本，另行冻结支持子集并验收。
+- 待实现：默认新建 EPUB3、EPUB2 → EPUB3 转换、完整常用元数据、章节增删和阅读顺序、目录生成与维护、资源与引用更新、全书查询／替换、多操作事务、任务／版本历史及恢复；通过这些能力形成“创建—修改—维护”闭环。新建 EPUB2 和 EPUB3 → EPUB2 降级不纳入本阶段。
+- 网络小说按章节标题自动拆章纳入 T4b：从 XHTML 标题或明确规则识别候选边界，审阅后生成独立章节并同步目录／引用；不是仅生成目录，也不扩展为 TXT 导入、爬取或模型猜测章节，具体边界见 §3.9。
+- 完整 EPUB3 XHTML 语法处理与内置混合内容／结构编辑进入主线，不再以“只有简单文本节点”作为最终目标。EPUB2 补足安全读取和迁移所需语法，不另做同等完整的编辑器；需要新编辑能力时先显式转换。CSS 管理和系统字体发现是正式能力，不只是后续 UI 设置。
+- 新书和新增样式只声明字体族与回退，不复制字体文件；已有书籍字体资源及引用保留。基础图片增删替换、替代文本、尺寸、居中／简单并列与图注纳入；复杂图文绕排、固定版式与精确分页后置。
+- 不集成外部编辑器、资源编辑往返或任意脚本入口。用户提供的文本／XHTML 片段／CSS／图片作为内置操作的明确输入，冻结并绑定 hash；不是对 workspace 内部文件的写权限。
 - Linux 验证可先进行；面向 Apple Silicon 的 CLI 正式发布仍须实机安装和运行验证。Darwin 交叉编译不算 Mac 验收，CLI 检查也不替代视觉排版审核。
 
 ### 1.2 后续桌面目标
@@ -87,9 +107,13 @@ CLI 不登录 Amp 也能查询、检查和执行已实现的确定性操作；�
 
 固定版式、Media Overlays、书籍脚本、复杂音视频、签名、DRM、未支持字体混淆必须被识别。无法保证安全保真的输入进入明确的受限只读状态或拒绝编辑，不能删掉不支持内容后声称成功。
 
+这是当前限制而非永久排除：Issue #3 的 S2／S3 仍须实现并实测相应字体、SVG／MathML、固定／混合版式、媒体与安全交互 profile；MUST 缺口不能靠标注“后期”视为关闭。
+
 ### 1.3 不做的事
 
 MVP 不做书库数据库、OPDS/远程书库、多设备同步、邮件发送、设备管理、格式大全、完整分页、完整代码编辑器、内嵌终端、任意插件代码执行或完整阅读系统一致性认证。
+
+本阶段不做 UI、Amp 接入、外部编辑器集成、字体下载／安装／嵌入／子集化、厂商私有协议或非 EPUB 格式转换。章节合并、任意嵌套位置拆分、按字数强制切分、复杂图片排布、CSS 自动清理、图片压缩、媒体叠加、音视频与脚本交互制作列入后期；按标题的安全边界自动拆章已纳入 T4b。其中不少后置项是官方 EPUB 能力，只是制作操作后置，不能把它们统称非标准。
 
 项目名 Kepub 不等于 Kobo KEPUB 格式。默认输出普通 `.epub`；不能因为项目同名而自动注入 Kobo 标记、改变扩展名或执行 kepubify。Kobo 输入的识别、保留策略和可选转换另列能力，不把扩展名当充分证明。[研究 §2、§7]
 
@@ -101,6 +125,7 @@ MVP 不做书库数据库、OPDS/远程书库、多设备同步、邮件发送�
 |---|---|---|
 | EPUB 核心 | Go 1.27.1 独立 package | 当前依赖标准库、x/text v0.29.0、x/sys v0.36.0；不依赖 MyGo、Amp、Calibre 或 Java |
 | 应用服务 | Go | 命令调度、任务、操作、锁、审核与导出 |
+| 系统字体发现 | 计划评估 Linux Fontconfig／macOS Core Text | 仅平台适配读取字体清单和属性，不把字体文件、系统路径或 GUI 依赖带入出版物核心；后端尚未实现或冻结 |
 | 桌面壳 | MyGo（已确认），0.2.0 为当前接口基线 | 只存在于 desktop 适配；M0 实测生命周期、隔离与打包，不能将框架选型当成验证通过 |
 | 主窗口 UI | TypeScript + Vite + React（计划，未实现） | Web 页面承载 Amp 面板、资源/目录导航和 Preview 容器；窄接口，不直接获得任意文件和进程权限 |
 | MyGo 原生 UI | 可选辅助窗口 | `github.com/egoist/mygo/ui`；macOS 使用 Metal 绘制、Core Text 排版。适合设置/诊断/检查器，不是 EPUB 渲染引擎；当前不假设能与 Web Page 任意混排在同一窗口 |
@@ -183,7 +208,7 @@ docs/verification/
 
 未改文件保留原字节。更改 XML/CSS 时优先进行带位置的局部修改；命名空间、未知属性、元数据 refinement、外部词汇和顺序不能被简化 struct 的重序列化吞掉。无法保真的操作应拒绝或报告扩大改写范围，不谎称只改一个字段。
 
-当前仅支持 UTF-8 XML 及内建／数字实体，UTF-16、DTD 和自定义实体明确拒绝；扩展支持另行设计和验证。禁止联网获取外部实体与无界展开。严格出版解析与可选容错诊断分离；不能用 HTML 容错解析后自动写回来掩盖 XML 错误。
+当前仅支持 UTF-8 XML 及内建／数字实体，UTF-16、DOCTYPE／DTD 和自定义实体明确拒绝；v0.8 将标准语法兼容列为首批，目标与安全边界见 §3.4。禁止联网获取外部实体与无界展开。严格出版解析与可选容错诊断分离；不能用 HTML 容错解析后自动写回来掩盖 XML 错误。
 
 ### 3.3 引用图
 
@@ -194,6 +219,91 @@ docs/verification/
 `resource.rename` 必须同时处理：文件移动、移动文件内部相对链接重定基准、其他文件的入站链接、OPF/nav/NCX 相关引用、保留 ID 与 fragment。只调用低层 rename 不足以完成此操作。源/目标重叠、循环改名、大小写改名和目标碰撞先做 preflight。[研究 §3.2]
 
 第一版拒绝 OPF 文件本身改名、跨 rootfile 结构重写及引用覆盖不足的改名。安全子集通过测试后逐项扩展，不靠“尽量修复”隐藏遗漏。
+
+### 3.4 标准 XHTML：语法、编辑与渲染分开验收
+
+“完整 XHTML 支持”本阶段以 EPUB3 的 HTML XML 内容文档要求为准，不把任意 HTML 标签拼接或浏览器容错解析称为 XHTML 合规。默认制作目标对齐 EPUB 3.3，OPF `package@version` 仍为 `3.0`，不是 `3.3`；规则与固定检查器的覆盖范围如实记录。EPUB2 的 OPS／XHTML 只扩展安全迁移所需解析，不并行新增完整 EPUB2 编辑能力，不为兼容增加厂商私有标记。
+
+| 层次 | 本阶段目标 | 不能据此声称 |
+|---|---|---|
+| 解析与保留 | UTF-8／UTF-16、命名空间、合法 XML 声明和 DOCTYPE、目标规范允许的实体、注释／CDATA／处理指令、空元素、混合内容；保留合法未知属性和未修改内容 | 任意 DTD、非法 XML 或超限输入均可接受 |
+| 内置编辑 | EPUB3 混合文本、段落／标题、强调、链接／锚点、列表、表格、ruby 等结构；安全插入、替换、删除与属性修改 | 原 `content.text.set` v1 自动拥有结构写权限，或把任意文件覆盖当结构操作 |
+| 规范与显示 | 版本化结构规则、引用完整性和真实 EPUBCheck；生成可重排文档 | CLI 实现阅读器、字体塑形／排版引擎，或保证所有阅读设备视觉一致 |
+
+简单 `<!DOCTYPE html>` 不能继续被当作危险实体声明一概拒绝。标准需要的 DTD／实体可用固定、可审计的离线资源解析；不得联网或读取任意本机路径解析外部实体，必须限制展开量、深度和耗时。合法但超出安全策略／编辑能力的文档明确报告限制，与“XML 错误／EPUB 不合规”区分；保留不能安全编辑的内容，不静默删减。
+
+编码支持必须贯穿 publication 读取、定位、编辑、执行来源重算与重新打开，不只是前端转码。未改资源保持原字节；修改资源保留编码与声明，确需转换或重序列化时作为显式操作列入 diff。新结构操作按版本扩展请求和持久格式，旧元数据及简单文本操作语义不变。先修复原始上传 EPUB 的 DOCTYPE 兼容，用合成 EPUB3 补齐编码、语法和拒绝矩阵；EPUB2 保留既有回归，迁移所需语法在转换批次补齐。
+
+T1a 的原生 HTML DOCTYPE／UTF-16 是第一增量，不是完整 EPUB3 语法验收；T1b 按固定规范 §3.9／附录 B 补齐允许的声明、实体和命名空间矩阵。合法但未实现的 DTD 子集可暂报 unsupported，却必须留在差距表，不能全部推给 EPUB2 的 T3 或据此宣布 T1 完整。XML 1.0 语法、非法字符与资源限额、未实现能力分别诊断，并给出可得的精确位置。
+
+T2 内容矩阵还须覆盖 span/em/strong/a、ruby/rt/rp、上下标、表格、figure、代码空白、脚注往返、lang/xml:lang、dir/bdi/bdo、ARIA／epub:type／RDFa、内联 SVG／MathML。嵌入语法的保留／引用与专用编辑、真实呈现分别记状态；`base`／`xml:base`、脚本和嵌入限制逐条按规范判定。不能导出浏览器修补后的 DOM 充当作者源文，也不能通过扩大简单文本操作的含义注入 HTML。
+
+### 3.5 系统字体：只发现和引用，不嵌入
+
+计划提供本机字体族、可用字重／样式及名称查询，供 CSS 字体栈选择；Linux 评估 Fontconfig，macOS 评估 Core Text，核心不需要 UI。字体后端缺失时应报告功能不可用，不阻断无关编辑，也不把合法 EPUB 判为不合规。具体命令和后端依赖在实现批次冻结。
+
+- 只向书内 CSS 写入显式字体族与有顺序的回退，例如 `font-family: "Noto Serif CJK SC", serif;`；本机没有目标字体时提示，允许按明确的跨设备用途保留声明。
+- 不复制／嵌入／子集化字体，不安装或下载字体，不生成指向本机路径的 `@font-face url(file:...)`。导出清单不得新增字体二进制或泄漏字体文件绝对路径。
+- 区分“精确安装了该字体族”和“系统匹配到替代字体”；Fontconfig 的 closest match 不是前者的证据。字形覆盖可作诊断，不等于文本塑形或显示效果验证。
+- 不移除原书已有字体及其引用；当前不支持的字体混淆等沿用明确能力限制，不能借“不新增嵌入”之名删原书资源。
+
+系统字体属于运行 Kepub 的机器，不属于 EPUB：在 Linux orb 扫描到的不是用户 Mac 字体，生成声明也不能保证另一台阅读设备安装或采用它。CLI 完成字体发现和 CSS 输出；实际渲染、读者覆盖样式及视觉预览留给后续 UI／阅读器验收。
+
+已有书籍字体的兼容性必须进入 S1／S2：保留原文件，解析字体来源与规范混淆算法；修改出版物标识符时核验混淆密钥依赖，不能生成无法解码的字体。S2 用自制或许可明确的四种字体格式验证加载、回退、缺字、特性与可变字体，等待字体就绪后做布局断言；字体许可和环境进入证据。这不新增用户系统字体的嵌入、安装或下载功能。
+
+### 3.6 书籍样式与基础图片
+
+CSS 从目前的 literal 引用提取扩展为可解析、可定位的样式操作：样式表增删／关联、选择器和声明查询／修改、元素 class 赋值，以及段落缩进、行高、段间距、标题、字体栈、对齐、颜色、列表与表格样式。维护外部样式表、内联样式和 CSS 资源引用，不用正则全局替换代替语法解析；保留层叠顺序、选择器优先级、注释及合法但暂不理解的规则。输出遵守目标 EPUB 的 CSS 要求，不默认清理或格式化整书。
+
+T5 的 tokenizer/parser 须覆盖递归 `@import`、转义／引号／注释、命名空间、嵌套和条件规则、变量及函数中的资源引用；每层 URL 按该样式表自己的路径解析，设置导入深度、循环与总预算。font src、背景、mask／SVG 引用不能统一按章节寻址；动态不可确定引用保留且标 partial，阻止受影响的危险改名／删除。不得从 computedStyle 重建作者 CSS。
+
+CSS Snapshot 的 official definition、适用 CR、草案增强与 EPUB 引用层级分别记录。T5 提供解析／编辑，S2／S3 才验证渲染；作者 CSS `direction`／`unicode-bidi` 的 EPUB 限制与阅读器内部方向实现分开诊断，不因“全面 CSS”放行不合规书籍。
+
+基础图片包括导入／替换／删除、封面关联、alt 文本、尺寸与宽高比、行内／独立块、居中、简单并列和图注；同时维护 manifest、资源路径与相关引用。新增操作只生成 EPUB3 适用结构，可用 `figure`／`figcaption`；EPUB2 先显式转换，不把新元素直接写入旧版本。被引用资源的删除必须提供已审阅的引用更新方案，否则拒绝；新资源绑定输入 hash，不允许任意本机路径由书内内容驱动读取。
+
+简单排列以随屏幕宽度可重排、窄屏可回退为目标，不承诺像素级位置或分页。复杂图文绕排、自动拼版、固定版式、图片优化及高级媒体制作后置；样式语法正确和 EPUBCheck 通过不能代替真实阅读效果检查。
+
+### 3.7 EPUB2 → EPUB3：显式、可审阅的版本转换
+
+默认 EPUB3 指新建书籍与新编辑功能的目标，不代表 `open`、`validate`、`pack` 或 `export` 遇到 EPUB2 就偷偷升级。现有 EPUB2 流程保持原版本；调用新增结构／样式能力前，明确提示先转换。转换走独立的版本化操作，复用计划、候选、差异、正式校验和接受／拒绝；原书与转换前版本保留，不做 EPUB3 → EPUB2 降级或非 EPUB 格式转换。
+
+转换不能只把 `package@version` 改为 `3.0`，至少需要：
+
+1. **迁移前检查：** 识别真实包版本，读取 EPUB2 OPF／NCX／XHTML／CSS，列出支持与阻断项。补足标准 DTD／实体的离线解析，拒绝外部任意读取和无界展开。多 rootfile 明确选择；无法保真处理的加密、签名、未知结构等明确阻断，不删内容强行通过。
+2. **包与元数据：** 保留书名、语言、唯一标识符、作者及角色等含义，按 EPUB3 规则迁移必要属性／refinements，加入合法且唯一的 `dcterms:modified`。缺失的语义信息须明确补充，不猜语言或作者；新增 ID、时间戳与策略绑定计划，重算不得产生不同结果。
+3. **导航与封面：** 从 NCX 的层级、顺序与链接生成 EPUB3 navigation document，正确登记 `properties="nav"`；迁移适用的 page-list 和 guide／landmarks，维护 spine 顺序与 `linear`，补 EPUB3 封面标识。NCX 如为兼容而保留，必须与后续目录修改同步，不能以 NCX 代替 EPUB3 必需的 nav。
+4. **内容与样式：** 按 EPUB3 XHTML／CSS 要求迁移不兼容语法，维护资源路径、ID／fragment、相对链接与原有样式含义。只做必要变换，未知且无法确认保真的项阻断或要求明确处理；不全书重排版、压图、删字体或自动拆合章节。
+5. **结果验收：** 报告版本与文件级／语义差异，真实 EPUBCheck 验证转换候选及最终 ZIP，保留原书 hash、未改资源字节。失败或拒绝不改变 accepted；转换成功不等于各阅读器视觉完全一致。
+
+不以“原 EPUB2 已通过检查”代替新 EPUB3 验证，也不把“可转换”冒充“支持全部 EPUB2 制作语法”。新增命令、操作 ID、转换支持矩阵与失败策略在实现前冻结；当前没有可执行转换命令。
+
+### 3.8 容器、Package 与资源完整性不能只看正文
+
+S0 先映射已有实现和未覆盖项，再由 S1／T3／T4 补齐：OCF／mimetype／META-INF、选定 rootfile 与多 rendition、唯一标识符和语言、modified/refines/prefix、manifest properties、spine/linear/阅读方向、collection 与 legacy 信息、fallback 链、媒体类型、缺失／循环引用。nav 的 toc、page-list、landmarks、层级与非线性内容均有独立样本，不能以 spine 生成的列表代替原导航。阅读时默认选择与编辑时显式 rootfile 的策略分开定义。
+
+manifest／spine／content 三层资源归属分别核验。远程资源须按规范允许的类别识别，网络默认拒绝是一项策略，不等于资源语法非法；出版物 `file:` 访问宿主仍禁止，用户从本机路径打开 EPUB 不受此混淆。签名、ZIP 加密、DRM 和字体混淆分别声明；修改可能破坏签名时明确报告，不声称签名继续有效，不破解 DRM。
+
+结构改动同步维护 OPF、nav、spine、ID／fragment、跨资源链接及相关 SMIL 等依赖。无法证明受影响引用覆盖时拒绝危险写入，但不能一概阻断原样读取或安全保留式打包；已有安全树、独立副本、锁、staging、事务和原书保护不放宽。
+
+### 3.9 网络小说按标题自动拆章（T4b，待实现）
+
+**可行，纳入近期 CLI 计划，但不是当前已有能力。** 目标是将一个 EPUB3 XHTML 中连续包含的多个章节，按标题边界拆成独立 XHTML，并同步书籍结构；也可显式选择多个源资源，按现有 spine 顺序分别处理，不跨源文件拼接正文。EPUB2 先显式转换；不在打开、转换或导出时自动触发拆章，不新增 TXT／任意 HTML 导入或联网爬取。
+
+现有 XML 位置索引、Publication、引用图、树 diff 和 checkpoint 可复用；当前编辑器只有简单文本单文件替换，未提供资源新增、多文件执行和 OPF／nav 写入 API。因此 T4b 依赖 T1 的保真解析、T2 的多资源事务、T4a 的章节／目录／资源维护；涉及复杂 CSS 引用的支持须经 T5 验证，不能靠 literal 引用扫描宣称完整。T5 可基于 T4a 先行，不等待 T4b 的 CSS 扩展，避免循环依赖。
+
+| 环节 | 首版设计与安全边界 |
+|---|---|
+| 标题候选 | 支持选择 `h1`～`h6` 层级，或对明确选择的独立段落／class 应用内置章名规则、用户字面规则或有界正则。覆盖“第一章”“第001章”“第１２章”等；“序章／楔子／番外／第×卷”须由明确规则纳入，不将卷标题自动当普通章节或猜卷章层级。按 XML 解码后的完整元素文本匹配，可处理标题内 span/em；仅为识别使用的空白处理不改原文。正则匹配文本，不扫描原始 XML 切标签。 |
+| 避免误拆 | 默认只查所选 spine 正文，排除 nav、head、script/style 及已标识的目录列表／脚注，不搜索正文任意子串。“他翻到第一章”不因包含章号成为边界；没有语义标记的伪标题仍可能误命中，须预览选择，不能承诺完全自动判定。章号跳号／重复／标题重复只提示，不自动修号、去重、删文或重新排序。 |
+| 只读预览 | 先列出每个候选的 BookPath、源 revision／hash、结构 locator、原始标题、匹配理由、可拆与阻断原因、预计文件名／章节数及前言处理。用户可排除误命中并以明确 locator 补选安全边界，重新生成计划；非交互调用提交明确规则和选定边界，不要求 TTY 或外部编辑器。 |
+| 结构边界 | 在标题前拆，标题属于新章；首版只支持 body 直接子节点边界，包括标题位于 body 直属章节容器开头时移动整个容器，不拆穿段落、表格、列表、ruby 或共享嵌套容器。不能安全划分的候选明确阻断，不为凑匹配数克隆祖先或丢标签。首个标题前的内容保留在首片段，文件开头命中不产生空章；无实际内部切点时报告无可拆分，不创建空任务。 |
+| 输出与内容保留 | 默认首片段保留原 BookPath，其余在同目录使用稳定序号命名，不直接用标题当路径；路径／manifest ID／新增锚点在计划中确定并检查碰撞，apply 不临时改名。生成合法 XHTML，保留编码、语言、命名空间、所需 head／CSS 关联、正文节点顺序及图片资源；正文不改写、不重复、不遗漏。包装节点 ID 的归属须明确，不盲目复制；新增封装、必要属性／链接改写与标题元数据变化均进入 diff。未改资源保持原字节，不承诺拆分后的源文件字节整体不变。 |
+| 目录与引用 | 在原 spine 位置替换为按原序排列的片段，保留适用属性并重算 manifest properties。维护 nav toc／page-list／landmarks 和保留的 NCX，不抹去无关目录项。以“原路径＋fragment → 新路径＋fragment”重定向入站链接、跨片段的 `#id`、脚注往返及出站资源 URL；无 fragment 的旧文件链接仍指向首片段。不同源文件同名 ID 或同名章标题不能合并；受影响引用覆盖不足、目标歧义、SMIL／脚本等无法安全维护时拒绝，不删除关联资源强行通过。 |
+| 样式与成本 | 拆文件可能改变 CSS 计数器、兄弟／位置选择器及分页效果；保留 CSS 不等于视觉完全不变。计划单列这些影响，无法安全处理的依赖明确限制，不默认重排版或复制字体／图片。扫描、正则、候选数量与输出文件数有界；沿用 XML／归档硬上限，大于当前单 XML 8 MiB 的超长小说不在首版承诺内，不为拆章静默提高限额。 |
+
+写入使用独立的版本化结构操作，不扩大 `content.text.set` v1。扫描只提供候选；计划绑定规则、选定切点、源树／revision／hash、输出路径与完整增改集合，apply 重算后才生成候选。整个选定拆分批次原子成功或按 journal 恢复，不留下已接受的半本书；仍须 diff、真实 EPUBCheck、显式 accept／reject 与最终 ZIP 检查。操作 ID、请求 schema、匹配细节和具体预算在 T4b 实现前冻结，当前不提供可执行命令。
+
+验收须包括中文数字／阿拉伯数字／全角数字、重复章名、卷／序／番外显式选择、伪标题正文／目录、内联标题、UTF-16／实体、前言／连续标题／无命中／首尾边界、已有分章重跑无内部切点、嵌套不安全拒绝、路径碰撞和预算边界。用不对称样本独立比对各章应包含的节点序列，证明正文只出现一次且按原序；跨章脚注、旧入站锚点、CSS／图片、nav／NCX／spine、来源漂移、失败中断／恢复和拒绝分别测试，接受／导出验证原书 hash 与非目标资源字节保持。外观影响另列限制，不以 EPUBCheck 通过冒充排版等价。
 
 ## 4. 确定性操作与 Agent 的分工
 
@@ -214,7 +324,7 @@ docs/verification/
 
 注册表生成 CLI help、capabilities 和参数文档；同一 schema 供 GUI 与 Agent 使用。不能把后端某函数存在推导为公共命令可用。未来 `capabilities` 应区分 `planned`、`available`、`unavailable`、`unsupported`，并解释原因。
 
-当前已实现元数据/目录/资源/引用查询和有限单字段修改。引用覆盖充分时的单资源改名仍是后续能力，不阻塞首批 CLI 交付。自动删除、拆章合章、批量重命名、字体子集、整书 CSS 清理不塞进第一批。
+当前已实现元数据/目录/资源/引用查询和有限单字段修改。引用覆盖充分时的单资源改名仍是后续能力，不阻塞首批 CLI 交付。自动删除、合章、批量重命名、字体子集、整书 CSS 清理不塞进第一批；按标题拆章在 T4b 复用结构事务实现，不提前塞入 T1。
 
 ### 4.3 Plan → Apply → Review
 
@@ -345,7 +455,7 @@ Apple Silicon release 验收必须覆盖 frame IPC、`file:`/`about:` 导航、�
 
 ### 6.3 资源与稳定代际
 
-GUI scheme 和 CLI loopback HTTP 共用只读 PublicationHandler。每次访问验证 workspace/generation/BookPath；真实缺失返回错误，禁止 SPA fallback，禁止读出版清单以外的文件及符号链接逃逸。
+自定义 scheme 与 loopback 资源服务的后端选择须在 S2 原型实测后冻结；无论选哪种，都复用只读 PublicationHandler。每次访问验证 workspace/generation/BookPath；真实缺失返回错误，禁止 SPA fallback，禁止读出版清单以外的文件及符号链接逃逸。每书／会话隔离 origin，校验 MIME／相对路径／CORS／字体／媒体 range／缓存，不以注册 scheme 推导兼容或隔离成立。
 
 XHTML 使用正确媒体类型；资源 MIME、字体、SVG、图片与 range 请求通过样本验证。不要为显示破损书籍普遍改成 `text/html`。
 
@@ -364,6 +474,24 @@ XHTML 使用正确媒体类型；资源 MIME、字体、SVG、图片与 range �
 ### 6.5 浏览器预览服务
 
 只监听 loopback；会话令牌不可预测，校验 Host/Origin，限制 CORS，日志脱敏且不加载远程追踪。GET 不能编辑，控制走独立本机 IPC。服务关闭撤销令牌。浏览器预览与 WKWebView 不作像素一致承诺。
+
+### 6.6 Issue #3 的后续排版、媒体与无障碍验收
+
+S2／S3 继续以 Go Publication／Workspace／Revision 为事实来源，冻结 accepted 或 candidate 整树后提供版本化资源；禁止新 XHTML、旧 CSS、旧图片混用。热更新失败显示错误并保留上一完整快照，撤销／恢复使关联缓存失效。作者原样预览不得注入全局 reset 或强制字体／颜色／行高；阅读偏好覆盖单独显示，不写回书籍。
+
+| 测试族 | S2／S3 必须保留的目标 |
+|---|---|
+| 级联与条件 | origin、specificity、inheritance、important、变量、layers、media／supports；nesting／container queries 按固定模块等级与目标 WebKit 实测分级 |
+| 字体与国际化 | 四类字体格式、特性／可变字体／回退／缺字；字号、行高、字距、连字、断词、装饰、首字下沉；lang、RTL／双向混排、逻辑属性，段落方向与翻页方向分离 |
+| 中文／东亚 | 横竖排、writing-mode、text-orientation、text-combine-upright、ruby、着重号、禁则、line-break／word-break、标点挤压与中英数字混排 |
+| 布局与图形 | 盒模型、float／clear、position／overflow、表格、Flex／Grid、多栏、逻辑对齐、背景／渐变、object-fit、transform／opacity、clip／mask／filter；规范 `-epub-*` 与标准属性共存 |
+| 分页与固定版式 | 滚动／分页、单／双页、break／widows／orphans、长表格／大图／代码／ruby 跨页和每字一页等极端样本；作者 columns 与阅读器分页隔离；rendition layout/orientation/spread、spine overrides、page-spread、viewport 与混合版式 |
+| 资源与媒体 | SVG 独立／内联及视口、PNG／JPEG／GIF／WebP 真实解码；MathML 行内／块级／字体／可访问性；audio／video、poster／source／track、字幕、控件、fallback 与实际解码能力 |
+| Media Overlays／脚本 | SMIL 片段与时间、同步高亮、导航和 skip／escape；资源变更后的引用一致性；静态 profile 可禁脚本但保留内容/fallback，交互 profile 先验 sandbox、reading-system API、导航及网络，书内脚本无桥权限 |
+
+每项布局证据绑定 macOS／WebKit 版本、视口、缩放、字体环境及资源快照；等字体／图片就绪，冻结或明确控制动画和异步内容，再结合 DOM 语义／几何断言与已检查截图。位置用逻辑锚点，重排、缩放或迟到资源不丢阅读位置。`CSS.supports()` 仅作探测，Apple Books 等对照仅作兼容证据；未实测为 `not-tested`，MUST 引擎缺口须保持开放并评估受支持系统升级／隔离兼容方案，不删作者样式掩盖。
+
+S4 将 Accessibility 1.1 discovery metadata 与 WCAG 内容符合性分开：逐条核对必需 accessMode／accessibilityFeature／accessibilityHazard 与推荐 accessibilitySummary／accessModeSufficient 等字段，不由 AI 猜填认证。标题／地标／阅读顺序、alt、表格、语言、页码、脚注、ruby、SVG／MathML、媒体替代、字体缩放有检查记录；VoiceOver、键盘、焦点、选择复制、放大和偏好覆盖须实际 Mac 人工验收。自动检查不替代人工证据，EU EAA 配套映射不等于法律合规认证。
 
 ## 7. 校验：问题列表之外必须有覆盖范围
 
@@ -386,6 +514,8 @@ XHTML 使用正确媒体类型；资源 MIME、字体、SVG、图片与 range �
 
 可复用报告必须匹配内容树哈希、checker 二进制/规则版本和策略摘要。保留 baseline 与新增/消失问题，但“没有新增错误”不等于出版物有效。自动修复最多两轮，错误集合无进展则停止，不能无限消耗模型调用。
 
+上段是产品运行时的自动修复提案限制，不是本次开发的 Droid 审查轮数上限；开发循环按 §11.8 的固定树、复现与重新验收规则执行。
+
 ### 7.3 EPUBCheck 与规范
 
 制作目标、OPF `package@version` 和检查规则分别保存。EPUB 3 package version 不因制作目标 3.3 而写成 3.3。选择实际工具支持的规则，无法证明规则版本时记录 unknown，不通过虚构参数伪装。
@@ -394,13 +524,23 @@ XHTML 使用正确媒体类型；资源 MIME、字体、SVG、图片与 range �
 
 Calibre 内部 CSS checker 在本次核查版本依赖 QtWebEngine；可选调用必须探测环境，不能把它放入轻量 headless CLI 的必需路径。[研究 §3.5]
 
+### 7.4 可机读的规范支持矩阵与诊断
+
+S0 建立单一机读来源，生成供人阅读的矩阵；后续 capabilities／doctor 增量接入同一事实，不维护互相漂移的两套声明。计划字段为 `featureId`、`specVersion`、`specSection`、`normativeLevel`、`applicability`、`preserve`、`parse`、`edit`、`render`、`validate`、`platform`、`testIds`、`evidence`；按功能／条款拆行，不能只有一个 `css:supported`。
+
+五维分别使用 `supported | partial | unsupported | policy-disabled | not-tested`；条款不适用另写理由。规范 MUST／SHALL、SHOULD、MAY、deprecated 与产品预算／安全策略分别记录；条件要求在启用对应功能时纳入，不通过选择低能力 profile 隐藏适用 MUST。实现状态 `planned/available/unavailable` 和单次检查 `passed/failed/not_run` 是不同维度，保留既有 schema，不替换旧枚举。
+
+诊断区分非法输入、产品预算、未实现能力和策略禁用，携带规范来源、精确 BookPath／位置、处理阶段及 revision／snapshot。publication conformance、引用覆盖、rendering 和人工 accessibility 独立出结果；缺工具、超时、未测、部分覆盖都不能提升成 supported。矩阵、机读字段和自动生成尚未实现，本次只完善其设计。
+
 ## 8. Amp 与可选 Calibre 适配
+
+本节保留后续适配设计；v0.8 的独立 CLI 批次不启动模型、不要求 Amp，也不引入 Calibre 运行依赖。下述先后只适用于未来重新进入 Agent 阶段，不是近期开发顺序。
 
 ### 8.1 Amp
 
 先让 Amp 使用 Kepub，再让 Kepub 管理 Amp。两个方向的责任不同，不能把 §8.1.1 的适配器 A/B 比较误读成必须先实现受管 Agent 才能使用 CLI。
 
-**近期：Amp → Kepub CLI。** 用户在 Amp 中提出要求，Amp 经 shell 调用同一环境内的 `kepub`，读取 JSON 和退出码。先 `capabilities` 确认能力，用 `inspect` 获取实际元数据，或在工作区建立后用 `content` 获取正文及读取绑定；生成显式操作请求后，经 `plan → apply → task diff` 形成可审阅候选。用户审阅后明确决定 `task accept/reject` 与 `workspace export`。请求／计划报告位于整个工作区之外，操作使用实际返回的 task ID，不猜最近任务。此路径不需要新增 SDK、MCP 或私有 IDE 协议；Amp、二进制、书籍及检查依赖必须位于同一可访问环境，orb 不会自动取得用户本机文件。
+**后续第一步：Amp → Kepub CLI。** 用户在 Amp 中提出要求，Amp 经 shell 调用同一环境内的 `kepub`，读取 JSON 和退出码。先 `capabilities` 确认能力，用 `inspect` 获取实际元数据，或在工作区建立后用 `content` 获取正文及读取绑定；生成显式操作请求后，经 `plan → apply → task diff` 形成可审阅候选。用户审阅后明确决定 `task accept/reject` 与 `workspace export`。请求／计划报告位于整个工作区之外，操作使用实际返回的 task ID，不猜最近任务。此路径不需要新增 SDK、MCP 或私有 IDE 协议；Amp、二进制、书籍及检查依赖必须位于同一可访问环境，orb 不会自动取得用户本机文件。
 
 当前开放有限 `metadata.set` 与 `content.text.set`；不能让 Amp 自由改写既有 deterministic 候选后沿用原执行记录接受。候选漂移可供 diff/reject，但不能绕过来源和输入绑定。C3 正文修改作为确定性操作走同一计划／候选／审核流程，即使参数来自模型也不必启动受管 Agent。任意 XHTML/CSS 文件编辑才需要后续 Agent 任务、写入交接和冻结协议，不以手工修改内部状态代替实现。C3 的二进制验收不是 C4 真实模型联调的替代。
 
@@ -524,7 +664,7 @@ Kepub 自己的 schema 吸收外部差异，不把私有函数名作为公开 AB
 
 当前 `cmd/kepub/main.go` 保留自有参数解析、分派和 envelope 输出；工作区命令调用 `internal/app/workspace.go` 的共享用例。C1 已在既有能力 schema 上统一命令帮助、`commandSchemas`、允许／必填参数来源，并提供构建版本与 `doctor`；细粒度操作结果 schema 仍可增量完善。根模块没有 Cobra 等第三方 CLI 框架，不为借鉴 Obsidian 重写解析器或加入 Node；若以后更换解析库，单独评估现有语法和错误优先级的兼容性。
 
-第一阶段 CLI + 外部 Amp 的增量顺序见 C1～C4，构建原则为：
+以下保留 v0.7 的 C1～C4 构建原则和后续 Agent 接入参考；当前实施顺序改为 §11.7，不以真实模型协作为前置：
 
 1. **命令与能力描述一致。** 在既有来源中补齐命令参数、结果、风险和已实现状态，让 help、capabilities 与实际验证规则可相互校验；不额外造另一份 Agent 专用能力表。版本化 JSON，错误路径同样能被机器读取。
 2. **独立运行可诊断。** C1 已本地实现构建版本、源码安装说明及只检查不安装的 `doctor`；分清核心、Java／EPUBCheck 与可选 Amp。没有 Amp 登录不妨碍离线 EPUB 操作；缺 Java 可正常返回诊断，但必须报告正式检查不可用，不能伪装检查通过。Amp 仅做路径发现，不执行或验证登录。
@@ -554,7 +694,7 @@ encryption.xml 存在不直接判为 DRM；识别算法，字体混淆与 DRM �
 
 ## 11. 开发阶段与通过条件
 
-不承诺固定工期。当前顺序以 §11.3 为准；下表保留 M0～M6 技术工作包与目标门槛，编号不代表必须先完成所有 M0 才能交付 CLI，也不表示 M1/M2 的全部设想已经完成。MyGo/WKWebView 的 Apple Silicon release 隔离仍是桌面集成门槛，不能被 Linux WebKitGTK 或交叉编译替代。
+不承诺固定工期。当前顺序以 §11.7 为准；下表保留 M0～M6 技术工作包与目标门槛，编号不代表必须先完成所有 M0 才能交付 CLI，也不表示 M1/M2 的全部设想已经完成。MyGo/WKWebView 的 Apple Silicon release 隔离仍是后续桌面集成门槛，不阻塞当前 CLI，也不能被 Linux WebKitGTK 或交叉编译替代。
 
 | 工作包 | 目标交付 | 对应能力必须通过 |
 |---|---|---|
@@ -622,7 +762,7 @@ P2 只依赖本轮冻结的 M1-A 读 API，不等待 P1 的新接口；P3/P4 使
 
 ### 11.3 v0.7 开发批次与依赖
 
-截至本版：第一轮代码、第二轮闭环与环境更新、C0/C1/C2/C3 及独立审查修复均已验证并作为源码发布到默认分支 main；MyGo 边界实验已在 Linux 验证，不是 Mac GUI 验收。已实现命令描述／帮助同源、version／doctor、accepted-only 的有界 XHTML 查询、绑定读取版本的单节点简单正文修改。接口见 CLI 契约 §2.1／§2.2，证据见 [C1](verification/C1_CLI.md)／[C2](verification/C2_CONTENT.md)／[C3](verification/C3_CONTENT_EDIT.md)及[完整审查记录](verification/DROID_REVIEW.md)。下一批 C4 需另获真实模型授权；CSS 查询／写入、结构修改与批量操作仍未开放。其余批次按依赖推进，不重做已完成轮次；源码推送不等于真实模型联调、Mac 安装验收或版本化安装包发布。
+本节至 §11.6 保留 v0.7 的交付边界与历史安排；v0.8 不将 C4 作为下一批。第一轮代码、第二轮闭环与环境更新、C0/C1/C2/C3 及独立审查修复均已验证并作为源码发布到默认分支 main；MyGo 边界实验已在 Linux 验证，不是 Mac GUI 验收。已实现命令描述／帮助同源、version／doctor、accepted-only 的有界 XHTML 查询、绑定读取版本的单节点简单正文修改。接口见 CLI 契约 §2.1／§2.2，证据见 [C1](verification/C1_CLI.md)／[C2](verification/C2_CONTENT.md)／[C3](verification/C3_CONTENT_EDIT.md)及[完整审查记录](verification/DROID_REVIEW.md)。CSS 查询／写入、结构修改与批量操作仍未开放。未来 C4 仍需另获真实模型授权；源码推送不等于真实模型联调、Mac 安装验收或版本化安装包发布。
 
 三阶段产品终点分别为：**C：外部 Amp 可经 CLI 提交受限 EPUB 正文修改；U：用户不登录 Amp 也能阅读、修改、审阅和导出；A：用户可在 UI 中发起并控制 Amp 任务。** 发布各自有安装验收，不必等所有阶段完成才交付 CLI。
 
@@ -681,6 +821,61 @@ C2/C3 的查询／匹配／定位 schema 和兼容策略已冻结在 CLI 契约 
 
 首版外部 Amp 使用合作式审批，必须明确 `task accept` 无法鉴别人类与同用户 Agent。若要承诺强制人工批准，需另验模型无法取得的批准凭据及受限执行环境；不能通过提示词或隐藏命令名宣称实现。Mac 环境或模型授权暂缺时继续可独立验证的工作，阻塞门槛保留为未通过，不承诺固定完成日期。
 
+### 11.7 v0.9 独立 CLI 批次与完成标准
+
+现有代码提供安全编辑闭环的底座，尚不是完整制书工具。先通过 §11.8 的 S0 规范与差距门槛，再完成下列批次，目标是覆盖普通可重排 EPUB3 的创建、修改与维护，并将受支持的 EPUB2 转为 EPUB3 后进入同一编辑流程；不以完整阅读系统、高级 EPUB 制作或所有合法输入均可编辑为承诺。以下为开发计划，不注册新命令、不改变现有操作 schema。T1～T6 完成只能交付有明确支持范围的 CLI，不能关闭 Issue #3。
+
+| 批次 | 交付范围与依赖 | 通过条件 |
+|---|---|---|
+| T1：EPUB3 标准兼容与终端基础 | T1a 先修原生 HTML DOCTYPE／严格 UTF-8、UTF-16 全链路保真及终端输出、分文件 diff、status、search；T1b 对照固定规范补齐其余允许的声明／实体／命名空间与 XML 诊断，不能全部推迟到 T3；JSON 保持兼容 | 未预处理的上传 EPUB3 直接查询、编辑、正式接受／导出；规范语法矩阵每项有正反例和状态，原字节定位／来源重算／历史重开一致；外部实体、非法字符和超限独立拒绝；T1a 通过不等于 T1 完整 |
+| T2：多操作与内置 XHTML 编辑 | 基于 T1 扩展多操作／多资源事务，再加入 §3.4 的混合内容、属性和结构操作及显式范围的字面／正则替换；定义命中数、空匹配和跨节点语义 | ruby、表格、脚注、方向标记及外来语法保留有样本；多文件任一步失败或中断可恢复，旧版本来源可验证；OPF／nav／ID／链接等受影响依赖同步，覆盖不足拒绝危险写入，不扩大简单文本 v1 权限 |
+| T3：EPUB2 → EPUB3 转换 | 基于 T1/T2 按 §3.7 补迁移输入解析、OPF 元数据、NCX → nav、封面和必要 XHTML／CSS 变换；不建设完整 EPUB2 编辑器 | 多层目录、页码、guide、混合内容、旧 DTD／实体、编码路径、封面与字体保留有对照；明确拒绝不能保真的输入；转换后再编辑、接受和正式导出通过，原 EPUB2 hash 不变 |
+| T4：默认新建 EPUB3 与日常维护 | T4a 复用 T2/T3 提供模板、元数据、章节／spine／nav／资源／封面、§3.8 包结构与历史回退；T4b 按 §3.9 增加网络小说按标题拆章，先预览切点再执行，复杂 CSS 支持等待 T5 相应能力 | 从零制书、长 XHTML 拆章均正式导出；正文无重复／丢失，目录／ID／链接同步，保留 NCX 时同步更新；样式影响显式，不安全边界拒绝；原书字体与旧历史证据保留 |
+| T5：样式、系统字体与基础图片 | 复用多资源事务，实现 §3.5／§3.6 的 CSS tokenizer/parser、定位编辑、逐层 URL／import、字体发现与基础图片；动态引用显式 partial | CSS 保留注释／未知规则／声明顺序，深层导入／循环／转义和预算有反例；缺字体与替代字体区分，ZIP 无新增字体文件／系统路径；原生与转换 EPUB3 正式检查通过，不把语法通过当排版通过 |
+| T6：终端闭环与发行 | 每批持续做 Linux 功能测试；完整 CLI 先交 Linux amd64 构建及哈希／依赖说明，再打包并实测 Apple Silicon Mac；无需 UI、Amp 或外部编辑器 | 分别从新建 EPUB3、转换 EPUB2 开始，脚本完成写章节、按标题拆章、元数据、目录、样式、图片、搜索替换、拒绝／接受、历史回退、校验和导出；Linux／Mac 各自验证字体发现和安装，报告包体大小；未实测平台不宣称通过 |
+
+**T2 不是去掉单操作长度检查。** 当前 `internal/workspace/edit.go` 只推导一份输出并写入 `WriteSet[0]`；新增多操作须一起扩展预演、写集合、冻结输入、检查点、执行日志、恢复、差异、接受和历史来源重算。先做保持现有行为的必要重构并回归，再版本化新增能力；不通过任意 patch／shell／外部编辑器获得绕过。
+
+各批继续执行 §11.6 的 Go 普通／race／vet、真实 EPUBCheck 和不对称反例；新增解析和引用语法补 fuzz 与版本矩阵。标准语法接纳与安全上限并存，未改条目字节、原书 hash、失败无正式产物、已有输出不覆盖仍是共同门槛。私有上传书仅在获授权环境验证，公共回归用最小合成样本。格式检查不保证视觉美观；本阶段不新建 UI 作为验收前置。
+
+参考 Sigil 的制书能力边界：元数据、内容编辑、全书检索、目录、资源／引用维护和检查点；迁移的是功能与约束，不是引入 Qt GUI 或直接搬用 GPLv3 实现。Calibre 的 inspect/edit/polish/convert 分离继续保留。按标题拆章已纳入 T4b；合并章节、任意位置拆分、高级排版／媒体、自动优化等仍在上述闭环稳定后另立批次，UI、外部编辑器和 Amp 单独定范围与验收。
+
+### 11.8 Issue #3 阶段映射、规范资产与关闭门槛
+
+S 编号对应总目标，T 编号对应近期 CLI 的实现批次；不是两套重复开发清单。所有新能力当前均待实现或验收，先完成 S0，再恢复 T1；后续渲染工作不在本次 T1～T6 的执行授权范围中。
+
+| 总阶段 | 与 CLI 批次的关系 | 阶段完成证据 |
+|---|---|---|
+| S0：规范资产与差距矩阵 | T1～T6 的前置；先固定标准，映射已有代码而非假定全部重写 | 下述原文归档完整性、版本／条款／依赖／测试索引，五维能力矩阵和明确缺口；不是只有下载脚本 |
+| S1：内容模型与无损往返 | 主要由 T1～T4 实现，引用与样式相关部分由 T5 补齐 | 编码／XML、OCF／Package、导航／资源、混合内容与事务的正反例；no-op、局部编辑、恢复、正式接受／导出字节对照 |
+| S2：CSS 与作者原样预览 | T5 提供无 UI 的 CSS／字体数据能力；真实预览在 CLI 后单独开展 | §6 的隔离原型与版本化资源服务；XHTML／SVG／MathML、字体、级联和国际化的目标 Mac 布局证据 |
+| S3：完整排版与交互 | 后续独立批次，不塞入 T5 的简单图片排列 | 分页／固定／混合版式、CJK／RTL、媒体／SMIL／脚本 profile、偏好覆盖与重排定位；按 §6.6 逐族验收 |
+| S4：规范回归与发布声明 | 每批持续积累证据，最终在 S1～S3 后验收；与 T6 的 CLI 发行不同 | 固定 3.3 官方用例、2026 修订增量、Mac／WebKit 矩阵、人工无障碍及准确能力声明，满足下述关闭门槛 |
+
+**S0 的规范资产清单与固定基线：**
+
+- 核心正式文档固定为 [EPUB 3.3 REC 2026-01-13](https://www.w3.org/TR/2026/REC-epub-33-20260113/)、[Reading Systems 3.3 REC 2024-10-17](https://www.w3.org/TR/2024/REC-epub-rs-33-20241017/)、[Accessibility 1.1 REC 2024-10-17](https://www.w3.org/TR/2024/REC-epub-a11y-11-20241017/)；CSS 盘点固定 [CSS Snapshot 2026-06-22](https://www.w3.org/TR/2026/NOTE-css-2026-20260622/)，按其等级和 EPUB 引用判定适用性，不把所有 CSS 草案归为 MUST。
+- 配套归档 [Overview](https://www.w3.org/TR/epub-overview-33/)、[Accessibility Techniques](https://www.w3.org/TR/epub-a11y-tech-11/)、[Structural Semantics Vocabulary](https://www.w3.org/TR/epub-ssv-11/)、[EPUB→ARIA Guide](https://www.w3.org/TR/epub-aria-authoring-11/)、[Multiple Rendition](https://www.w3.org/TR/epub-multi-rend-11/)、[TTS](https://www.w3.org/TR/epub-tts-10/) 与 [EU EAA Mapping](https://www.w3.org/TR/epub-a11y-eaa-mapping/)，记录各自固定版本／取得日期，不能统称规范性要求或法律认证。
+- 归档 [3.3 Errata](https://w3c.github.io/epub-specs/epub33/errata.html) 的 HTML 和实际 issue 数据，区分确认与待讨论；归档[实现报告](https://w3c.github.io/epub-specs/epub33/reports/)、[3.3 测试集](https://w3c.github.io/epub-tests/epub33/)及[结果](https://w3c.github.io/epub-tests/epub33/results.html)，固定源码提交／用例 ID。测试站默认入口指向 3.4，不能代替 3.3 或静默升级基线。
+- 从 References 建立 HTML／XML／CSS 模块／SVG／MathML／SMIL／URL／WCAG 等外部依赖清单，记录固定快照或取得日期；几份 EPUB 文档不等于整个 Web 标准体系。不可获得或付费资料明确列出缺口，不以目录页充当全文。
+
+**S0 完整性验收：** 保留完整原文、章节、附录、示例、图示、schema、必要静态资源及版权／许可；生成 manifest，包含文档名、`normative/supporting-note/external-dependency/test/errata` 类别、规范等级、请求与最终 URL、固定版本、下载时间、字节数、SHA-256、依赖与失败项。缺页／缺图、失败下载、占位或验证码页、空动态壳、版本漂移均不能通过完整性检查。下载脚本可重复执行、原文可离线索引；升级有 diff 和审核，不覆盖旧证据。
+
+建议落点为 `docs/specs/epub-3.3/`、`docs/EPUB33_SUPPORT_MATRIX.md` 与 `scripts/fetch-epub33-specs.*`；机读矩阵字段见 §7.4，具体存储格式在 S0 冻结。当前未创建这些资产，本次只修订计划。Issue #3 的前次调查明确原文下载未完成；本次读取 issue 正文不改变该状态。S0 将条款对应到代码、诊断和测试，不只复制一份规范目录。
+
+**Orb 实现与 Droid 循环：** 原父 Orb 唯一协调，负责三份主文档、文件所有权、精确基线传输、集成与独立验收；现有 Medium 编码子 Orb 保留未提交初稿，收到新基线并核对后按父指令恢复。子 Orb 不能创建子 Orb，所需独立环境由父创建；不以普通 Task 冒称子 Orb。当前无需新增工作线程。
+
+每个可审阅增量先跑独立预期的反例／定向测试，随后普通／race／vet、相关 fuzz 和真实 checker；稳定代码与契约以提交或完整快照固定。按用户授权使用真实 Factory Droid 做终端 demo 与代码 review，记录实际 CLI／模型／reasoning、基线／文档哈希、会话、命令、失败、completion 和进程退出。沿已验证组合核对 Droid 0.233.0／Claude Opus 5.5／medium，不能静默换模型或沿用旧树结论。发现问题先复现、最小修复、回归，再对新固定树重新审查；同一审查未结束不重复启动。父检查返回 diff／bundle 后独立运行组合测试和新建／转换／编辑／拒绝／接受／导出字节对照。阻塞、未测及工具失败如实保留，不能为结束循环修改测试期待或收窄规范承诺；Droid 无发现不替代实机与官方验收。
+
+**关闭 Issue #3 的必要条件：**
+
+1. 原文资料包完整性通过，规范各章及附录完成条款映射；适用 MUST／SHALL 均有通过证据，不适用有理由。
+2. SHOULD／MAY、deprecated、策略禁用、引擎缺口及条件要求逐项声明；未完成目标继续开放，不以 skip 或低能力 profile 隐藏。
+3. XHTML／CSS／资源／导航的无改动往返与编辑／恢复／导出通过保真检查；所有新编辑仍受同一 Go 工作区审核与事务控制。
+4. 真实 CSS、字体、CJK／竖排／RTL、流式／固定／混合版式及复杂分页均有语义／几何／截图证据；阅读系统测试与必要人工无障碍审核另有记录。
+5. 固定 EPUBCheck 版本、完整工具文件与 JAR SHA-256、适用规则，核验对 2026-01-13 修订的覆盖并补回归。现用 5.3.0 不等于已经证明覆盖全部该修订；升级需评估，不静默转 3.4。缺工具、超时、未测均不通过。
+6. CLI／前端显示的能力与矩阵一致，Mac 实机报告、环境、限制及回归用例入版本控制。T6 发行或“使用 WKWebView”均不代替此终验；推送、发布和关闭 issue 仍需用户明确授权。
+
 ## 12. 验收矩阵
 
 | 场景 | 预期证据 |
@@ -725,3 +920,7 @@ MyGo v0.3 文档修订依据固定在 2026-10-03 发布的 **v0.2.0**（tag/comm
 v0.3 修订只记录了上游 MyGo 0.2.0 事实。v0.4 的实际证据见 [M1-A](verification/M1_A.md)、[M1-B1](verification/M1_B1.md)、[M2-A](verification/M2_A.md)、[CLI 实验](verification/AMP_CLI_SPIKE.md) 和 [SDK 实验](verification/AMP_SDK_SPIKE.md)。不得据此宣称目标 Mac 实机、MyGo 预览、真实 Amp 集成、Calibre/EPUBCheck 或全部性能与安全矩阵已通过。
 
 v0.5 的本地编辑闭环证据另见 [M1-B2](verification/M1_B2.md)、[M2-B](verification/M2_B.md) 和 [检查器环境](verification/ORB_EPUBCHECK.md)；v0.6 纳入 [MyGo 边界实验](../experiments/mygo-boundary/README.md)与 CLI-first 暂定顺序。文档版本、代码已实现、本地已验证、默认分支已发布是四种不同状态，后续维护须分别更新。
+
+v0.8 独立 CLI 范围参考：[Sigil 官方功能](https://sigil-ebook.com/sigil/)、[EPUB 3.3 内容文档要求](https://www.w3.org/TR/epub-33/)、[HTML XML 语法](https://html.spec.whatwg.org/multipage/xhtml.html)、[CSS Fonts 的字体族与回退](https://www.w3.org/TR/css-fonts-4/)、[Fontconfig 用户文档](https://www.freedesktop.org/software/fontconfig/fontconfig-user.html)。这些规范和参考实现用于冻结后续支持矩阵，不是当前 Kepub 已实现字体／完整 XHTML／CSS 的证据。
+
+v0.9 依据 [Issue #3](https://github.com/LeviTK/Kepub/issues/3) 在 2026-10-05 的完整正文（无评论）完善当前路线；固定规范、配套资料与下载门槛见 §11.8。这里只确认计划追踪范围，没有完成规范原文包、能力矩阵实现、官方测试或 Mac 验收，也没有修改远端 issue 状态。

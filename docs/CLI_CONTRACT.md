@@ -1,6 +1,6 @@
 # Kepub CLI 与操作契约
 
-> 设计版本：0.3 · 日期：2026-10-04 · 状态：分阶段实现；实际可用命令以 README 与 `capabilities` 为准。
+> 设计版本：0.5 · 日期：2026-10-05 · 状态：分阶段实现；对齐 Issue #3 与开发方案 v0.9，补 T1 语义和规范证据设计，不改变已实现 schema。实际可用命令以 README 与 `capabilities` 为准。
 >
 > 本文定义 Kepub 自己的命令和协议，不是 Calibre 或 Amp 的使用手册，也不表示命令已经能运行。架构见 [开发方案](DEVELOPMENT_PLAN.md)，设计依据见 [Calibre 研究](research/CALIBRE_CLI_REVIEW.md)。
 
@@ -14,7 +14,7 @@ Obsidian CLI 的参考取舍见 [开发方案 §9.1／§9.2](DEVELOPMENT_PLAN.md
 
 ## 2. 命令分组与实施次序
 
-下表 M0～M6 是技术工作包编号，不再表示执行先后。当前按 [开发方案 v0.7 §11.3](DEVELOPMENT_PLAN.md#113-v07-开发批次与依赖) 先完成 CLI + 外部 Amp 协作，再实现 MyGo UI，最后在 UI 内集成 Amp；受管 Agent 不是 UI 前置。C1 发现／诊断、C2 有界内容读取／定位、C3 单个 XHTML 简单文本确定性修改已实现并作为源码发布到 main，尚无版本化安装包。C3 操作 schema 在 §2.2 冻结；支持边界见 [§11.4](DEVELOPMENT_PLAN.md#114-首个正文读写版本的边界)。
+下表 M0～M6 是技术工作包编号，不再表示执行先后。当前先完成 [S0 规范资产与差距矩阵](DEVELOPMENT_PLAN.md#118-issue-3-阶段映射规范资产与关闭门槛)，再按 [开发方案 v0.9 §11.7](DEVELOPMENT_PLAN.md#117-v09-独立-cli-批次与完成标准) 完成独立终端制书：默认 EPUB3、EPUB2 → EPUB3 转换、完整 EPUB3 XHTML、样式和系统字体发现；本阶段不接入 UI、Amp 或外部编辑器。C1 发现／诊断、C2 有界内容读取／定位、C3 单个 XHTML 简单文本确定性修改已实现并作为源码发布到 main，尚无版本化安装包。C3 操作 schema 在 §2.2 冻结；支持边界见 [§11.4](DEVELOPMENT_PLAN.md#114-首个正文读写版本的边界)。新增能力仍为计划，见 §2.3～§2.5；CLI 完成不等于 Issue #3 的真实排版／无障碍目标完成。
 
 | 命令形态 | 语义 | 阶段 |
 |---|---|---|
@@ -106,6 +106,42 @@ C2 首版命令为 `kepub content --workspace DIR --resource BOOK_PATH [--query 
 Apply、Open 恢复和 Accept 都须重新推导相同的单资源写集合及精确结果哈希，不能只改分派入口。正文 review 增加可选 `content`，包含 bookPath、locatorVersion、locator、oldValue、plannedValue、实际候选 newValue（不可读取时为 null）及可选 unavailable；不把计划新值当实际候选值。既有 metadata review 字段含义保持。候选漂移仍可 diff／reject，不得接受或沿用旧检查；接受及正式导出仍运行真实固定 EPUBCheck，不自动接受、不自动草稿。
 
 先完成保持 metadata 行为的必要重构并独立提交／回归，再加入正文能力。验收包括旧二进制生成的计划及待审任务、新旧版本组合拒绝、节点局部字节保留、陈旧读取绑定、写集合／执行记录篡改、恢复回滚，以及真实二进制正文接受和拒绝闭环。正文能力通过本批验收后才提升为 available；C4 模型运行和 GUI 不进入本批。编码 href 的报告兼容问题未在 C3 初次交付时修复，后续独立审查已解决其库存／附属行区分，当前规则见 §7.1；不改变正文操作 schema 或旧摘要。
+
+### 2.3 独立 CLI 后续范围（计划，尚不可执行）
+
+新建和新增结构／样式操作默认面向 EPUB3，制作目标对齐 EPUB 3.3、OPF `package@version` 为 `3.0`。保留现有 EPUB2 读取、检查和受限编辑；不增加完整 EPUB2 编辑语法、新建 EPUB2 或 EPUB3 降级。现有 open／validate／pack／export 不隐式转换版本。
+
+- **EPUB2 → EPUB3：** 新增显式、版本化转换操作；维护元数据、唯一标识符、阅读顺序、NCX → nav、封面、必要 XHTML／CSS 和引用。冻结转换策略、输入与新增 ID／时间戳；展示真实差异，经正式 EPUBCheck 才能接受及正式导出。无法安全保留语义时明确阻断，不只改版本号、不删原书。边界见开发方案 §3.7；命令名称与 schema 尚未冻结。
+- **正文与书籍结构：** 完整 EPUB3 XHTML 解析／保留，以及混合内容、结构编辑、全书检索／替换、章节和资源维护、默认新建 EPUB3、常用元数据与历史回退。只读语法兼容不直接赋予写权限；输入片段由内置操作解析并绑定 hash，不提供外部编辑器往返或任意文件写入入口。
+- **按标题拆章（T4b）：** 将所选 EPUB3 spine XHTML 中的多个章节按标题元素或明确章名规则拆成独立文件。先只读预览候选切点，允许明确排除／补选；计划冻结规则、locator、源 revision／hash、输出路径与完整写集合，apply 重算，不把原始 XML 正则切割当结构编辑。只在安全节点边界拆，标题留在新章，前言不丢，重复标题不覆盖；同步 manifest／spine／nav／保留的 NCX 和跨章 ID／脚注／资源引用。引用覆盖不足或结构歧义拒绝，样式影响显式报告；不隐式合章、导入 TXT 或放宽资源上限。全批走候选／diff／正式检查／accept 或 reject，EPUB2 先显式转换。详见[开发方案 §3.9](DEVELOPMENT_PLAN.md#39-网络小说按标题自动拆章t4b待实现)；操作 ID、schema 与预算尚待冻结，当前没有可执行拆章命令。
+- **多操作事务：** 新请求／计划／执行格式另行版本化，贯穿写集合、恢复、接受与历史来源校验；不能仅移除“一个操作”限制。现有 `metadata.set` v1 与 `content.text.set` v1 的含义、旧计划摘要和安全门槛保持。
+- **字体与样式：** 发现本机字体族／字重／样式，区分精确安装与系统替代；只写 CSS 字体栈，不嵌入、下载或安装字体，不泄漏本机字体路径。已有字体资源保留；缺字体不等于 EPUB 不合规，也不保证别的阅读设备能用该字体。增加结构化 CSS 操作与基础图片排列，高级排版／媒体后置。
+- **终端与平台：** 人类可读输出、文本 diff、任务状态及发行说明；JSON 仍保持机器契约。Linux 先验收，随后 Mac 打包／实机测试；不以 GUI、Amp 或外部编辑器作为前置。
+
+以上通过实现与独立验收后才进入 capabilities 的可用项，不改变 §2.1／§2.2 的当前限制，也不使下文历史设计示例立即可执行。
+
+### 2.4 T1 终端增量实施契约（已冻结语义，尚待实现与验收）
+
+本节冻结 T1 新入口的语义，不声明当前二进制已可执行；通过独立验收后再更新命令表与可用状态。既有 JSON envelope、单资源 `content`、操作／计划／执行版本和正式检查门槛不变。
+
+- `kepub search --workspace DIR --query TEXT [--limit N] --json`：持锁读取所选 rootfile 的 accepted revision，按 manifest 顺序检索其中所有 XHTML，不读取活动候选、不选另一个 rootfile。沿用 `content` 的区分大小写字面子串及节点／排除规则；命中数是匹配结果元素数，不是短语出现次数，不跨资源拼接匹配，也不是浏览器可见文本。
+- query 必填，范围为 1～4096 UTF-8 字节；limit 默认 50、范围 1～200。返回工作区／revision／rootfile 身份、完整匹配数、返回数和 truncated；每个结果包含精确 bookPath、原资源 SHA-256、locatorVersion、locator 和解码文本。达到返回数限制仍须扫描剩余资源才能声称完整匹配数。不同资源出现同一 locator 不合并。
+- 每资源沿用 XML 8 MiB／深度 128／200,000 tokens／32 MiB 索引限制；全书 XHTML 原始扫描字节累计上限 128 MiB，返回文本累计上限 1 MiB。超限或任一应扫描资源不可读取／解析时明确失败，不把未扫描部分当零匹配，不静默跳过坏资源；truncated 仅表示返回条数限制。
+- `kepub task status TASK --workspace DIR --json`：查询精确任务的执行与结算状态，返回身份、基线及当前审核／接受／拒绝信息；未知任务明确失败，不以 latest 或其他任务替代。只读持锁，沿用 Open 的来源、恢复与安全树核验，不为状态查询绕过损坏记录。status 不产生批准或导出。
+- 非 JSON 输出使用面向终端的可读摘要；任务 diff 按资源展示实际文本差异，不能把计划文本当候选事实。二进制、不可解码或超显示预算的资源显示路径、变化类型与字节／哈希摘要并明确未展示文本；不伪称没有变化。机器输出既有字段与含义不因终端排版而改变。
+
+标准语法接纳不扩大 `content.text.set` v1 的结构权限。T1 编码支持须覆盖读取、定位、局部写入、来源重算与历史重开：未改资源保持原字节，已改资源保持原编码、BOM／声明和目标外字节。T1a 原生 HTML DOCTYPE／UTF-16 只是首个增量；T1b 须依据固定 [EPUB 3.3 §3.9](https://www.w3.org/TR/2026/REC-epub-33-20260113/#sec-xml-constraints) 与附录 B 补齐允许的声明／实体矩阵。合法但未覆盖的离线 DTD／实体子集暂报能力限制，留在差距表，不以 XML 不合规代替限制，也不全部推给 T3；不得读取任意外部 URL 或本机实体路径。EPUB2 迁移所需解析在 T3 增量实现。
+
+### 2.5 Issue #3 的能力证据设计（计划，尚未加入机器输出）
+
+规范支持与命令可用性分开。S0 固定规范原文和条款后，建立单一机读矩阵，未来向后兼容扩展 capabilities／doctor／诊断，不替换当前 envelope、退出码、operation ID 或检查状态枚举。
+
+- 逐特性记录 `featureId`、`specVersion`、`specSection`、`normativeLevel`、`applicability`、`preserve`、`parse`、`edit`、`render`、`validate`、`platform`、`testIds`、`evidence`；五维状态为 `supported | partial | unsupported | policy-disabled | not-tested`，不适用另给理由，不用 supported 代替。
+- MUST／SHALL、SHOULD、MAY、deprecated、条件要求与产品安全／预算策略区分。保留未知语法不表示可编辑；CSS 解析不表示渲染；规范允许但产品暂不支持或策略禁用，不伪称标准禁止。
+- 诊断区分非法输入、资源限额、能力不足与策略禁用，附规范条款、精确 BookPath／可得位置、处理阶段及 revision／snapshot。功能状态与单次检查结果分别提供；当前必需检查通过不等于五维全部 supported。
+- EPUBCheck、引用 coverage、阅读系统测试、真实布局和人工 accessibility 分列；证据绑定规范／checker／工具哈希、输入和实际平台。未测、缺工具、超时不能通过，不能只据 `CSS.supports()` 或 WKWebView 选型提升能力。
+
+字段容器、schema 和诊断 code 在对应实现批次另行冻结；上述是设计，不是当前 CLI 返回字段。规范资产、S0～S4 映射与关闭条件见开发方案 §7.4／§11.8；T1～T6 不承担后续 UI 渲染验收，也不能据此关闭 Issue #3。
 
 ## 3. 目标选择与全局约定
 

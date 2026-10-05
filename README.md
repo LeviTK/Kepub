@@ -1,8 +1,8 @@
 # Kepub
 
-面向 Amp 的 EPUB 阅读、制作预览与编辑工作台。
+独立终端 EPUB 创建、修改与维护工具；后续扩展阅读／制作 UI 和 Amp 协作。
 
-**当前状态：开发方案 v0.7，路线为 CLI + 外部 Amp 协作 → MyGo UI → UI 内集成 Amp，后续接口仍暂定。只读 Go 核心与 CLI、工作区库、两种独立 Amp 接入实验，以及第二轮编辑／审核／导出闭环、C1 命令框架、C2 正文查询、C3 单节点简单文本修改和独立审查修复，均已作为源码发布到默认分支 main。下一批 C4 验证外部 Amp 经 CLI 协作，真实模型调用另获授权；当前没有 GUI、生产 Agent、版本化安装包或已完成的 Mac 实机测试。文档 v0.7 不是软件发行版本。**
+**当前状态：开发方案 v0.9，按 Issue #3 先补规范原文资产与差距矩阵 S0，再推进独立 CLI 的 T1～T6。默认 EPUB3，计划补 EPUB2 → EPUB3 转换、完整 EPUB3 XHTML 编辑、样式、系统字体发现和基础图片；近期不集成外部编辑器、UI 或 Amp，不新增嵌入字体。现有只读核心、工作区、校验／审核／导出、C1 命令框架、C2 正文查询、C3 简单文本修改及独立审查修复已作为源码发布到 main；新增能力和规范资产尚未完成。Linux 先功能测试，再打包和实测 Apple Silicon Mac。当前没有 GUI、生产 Agent、版本化安装包或已完成的 Mac 实机测试；文档 v0.9 不是软件发行版本。**
 
 ## 已实现：M1-A / M1-B1 只读 CLI
 
@@ -151,7 +151,7 @@ EPUBCheck 报告的完整 ZIP 库存仍按原始文件名、显式大小和校�
 
 ## 文档
 
-- [开发方案 v0.7](docs/DEVELOPMENT_PLAN.md)：CLI／UI／Amp 三阶段、具体开发批次、正文编辑边界、Medium 分工与验收。
+- [开发方案 v0.9](docs/DEVELOPMENT_PLAN.md)：Issue #3 的 S0～S4 与近期 T1～T6 映射、固定规范、五维能力证据及关闭门槛；保留既有交付记录。
 - [CLI 与操作契约](docs/CLI_CONTRACT.md)：拟定命令、OperationRegistry、plan/apply、机器输出、退出码与验收要求。
 - [Calibre CLI 与编辑内核研究](docs/research/CALIBRE_CLI_REVIEW.md)：官方命令全景、关键源码调用链、证据及采用/不采用的设计。
 - [开发方案 v0.2 历史原文](docs/history/DEVELOPMENT_PLAN_V0_2.md)：Calibre 研究后形成的上一版设计。
@@ -159,11 +159,13 @@ EPUBCheck 报告的完整 ZIP 库存仍按原始文件名、显式大小和校�
 
 ## 产品方向
 
-首发只适配 Apple Silicon Mac，后期再考虑跨平台。**已确认采用 MyGo 与系统 WebView**，当前接口基线为 MyGo 0.2.0，macOS 使用 WKWebView，不捆绑 Chromium。主编辑窗口计划使用 Go + TypeScript，MyGo 网页控制通过 `Window.Page()` API；React + Vite 仍是前端计划，尚未实现。MyGo 纯 Go 原生 UI 只作为独立设置、诊断、检查器等辅助窗口的候选。独立 `kepub` CLI 与 GUI 共用 Go EPUB 核心。
+先完成普通可重排 EPUB3 的终端制书闭环；EPUB2 保留既有读取和受限操作，新增完整编辑能力前显式转换到 EPUB3。新建默认 EPUB3，不在打开或导出旧书时静默升级。当前 DOCTYPE／UTF-16 和单操作限制仍未解除，首先修复标准兼容；这不是宣称所有合法 EPUB 已可直接编辑。
+
+CLI 先验证 Linux，再打包并实测 Apple Silicon Mac。后续桌面首发仍面向 Apple Silicon，**已确认采用 MyGo 与系统 WebView**，当前接口基线为 MyGo 0.2.0，macOS 使用 WKWebView，不捆绑 Chromium。主编辑窗口计划使用 Go + TypeScript，MyGo 网页控制通过 `Window.Page()` API；React + Vite 仍是前端计划，尚未实现。MyGo 纯 Go 原生 UI 只作为独立设置、诊断、检查器等辅助窗口的候选。独立 `kepub` CLI 与 GUI 共用 Go EPUB 核心。
 
 Bridge 是系统 WebView 的脚本通信适配，与系统 WebView 本身不冲突；框架选型确认不代表预览安全已经通过。MyGo 0.2.0 公共网页窗口的顶层页面会注入 bridge，另开窗口不等于无桥或独立存储；导航拦截也不等于禁止所有网络请求。[边界实验](experiments/mygo-boundary/README.md)已在真实 Linux WebKitGTK 发布模式复现同源 iframe 经 `parent.mygo` 调用 Go，并验证受限 sandbox 对照；这不是 Mac 或完整 EPUB 预览验收。出版物隔离仍须在 MyGo／WKWebView 适配内解决并完成 Apple Silicon release 实测，详见 [预览安全边界](docs/DEVELOPMENT_PLAN.md#62-可信壳与不可信出版内容)。
 
-Amp 负责内容理解与编辑；Kepub 提供不依赖模型的确定性 EPUB 操作，并管理工作区、预览、差异、检查、审核和导出。Calibre 是参考和可选适配，不是运行核心功能的必需依赖。
+当前只建设不依赖模型的确定性 EPUB 操作和工作区、差异、检查、审核、导出；预览与 Amp 内容协作后置。Calibre 是参考和可选适配，不是运行核心功能的必需依赖。以下为后续桌面流程，不是当前 CLI 已实现的界面：
 
 ```text
 打开 EPUB → 阅读并定位
@@ -203,20 +205,30 @@ v0.2 的 Calibre 优化继续保留：转换、整理、结构编辑和只读查
 - 正式导出以冻结归档及明确版本的 EPUBCheck 报告为依据。
 - 项目名 Kepub 不表示默认输出 Kobo KEPUB，默认仍是普通 EPUB。
 
-## 开发路线：CLI 与外部 Amp → UI → UI 内 Amp
+## 开发路线：先完成独立 EPUB3 CLI
 
 | 阶段 | 开发批次与终点 |
 |---|---|
-| 1．CLI + 外部 Amp | C1 完善命令／能力契约和 doctor；C2 有界内容读取／定位；C3 单个 XHTML 简单文本的确定性编辑；C4 真实 Amp 经 CLI 生成候选、展示差异，用户决定接受／拒绝和导出 |
-| 2．MyGo UI | U1 在 Apple Silicon 验证 WKWebView 隔离／生命周期；U2 复用 Go 用例，实现导航、阅读、受限编辑、候选预览和可视审核，无需 Amp 登录 |
-| 3．UI 内集成 Amp | A1 由 Go 管理 Amp CLI，加入任务／线程绑定、进度、取消回收、冻结与失败恢复；仍不自动接受 |
+| S0．规范资产与差距矩阵 | 固定 EPUB 3.3／阅读系统／无障碍／CSS 基线，实际归档完整原文与依赖，条款映射到代码和测试；不能用链接表冒充完成 |
+| T1．标准兼容与终端基础 | T1a 先修原生 DOCTYPE／UTF-16 与可读输出、diff、status、search；T1b 补齐规范允许的 XML 声明／实体／命名空间矩阵，不以首批通过冒充完整语法支持 |
+| T2．内置编辑与多文件事务 | 混合内容、结构修改、批量替换；同步扩展来源重算、失败回滚和恢复 |
+| T3．EPUB2 → EPUB3 | 显式迁移 OPF、NCX／nav、封面、必要 XHTML／CSS，正式验证且保留原书 |
+| T4．新建与维护 | T4a 默认新建 EPUB3，元数据、章节／目录／资源与历史；T4b 网络小说按标题自动拆章，预览切点并同步阅读顺序和链接 |
+| T5．样式、系统字体与基础图片 | CSS 管理、字体族发现与回退声明；不嵌入字体；基础图片与简单排列 |
+| T6．CLI 验收与发行 | 新建／转换两条完整终端流程，Linux 功能测试与构建，再做 Mac 打包及实机验收 |
 
-先验证 **Amp → Kepub CLI**，不必先引入 SDK 或 MCP；**Kepub → Amp** 的受管执行不再作为 UI 前置。正文操作必须扩展已有计划、执行来源与恢复校验，不是直接写候选文件；CSS 写入、结构改名、批量修改另行验收。CLI 与桌面可分别发布，但均须通过对应的 Mac 安装与依赖检查，签名公证和发布另获授权。
+以上通过后才称为普通 EPUB3 的创建、修改与维护闭环。近期不做完整 EPUB2 编辑器、新建 EPUB2 或 EPUB3 降级；高级排版／媒体、UI、外部编辑器和 Amp 集成后置。T1 新入口的语义见 [契约 §2.4](docs/CLI_CONTRACT.md#24-t1-终端增量实施契约已冻结语义尚待实现与验收)，其余新增命令与操作 schema 仍待冻结；当前不可执行这些计划能力，编码子 Orb 的初稿尚未测试或集成。
+
+按标题自动拆章已加入计划：识别 XHTML 标题或明确规则匹配的独立章名（如“第一章”“第001章”），先列出边界供审阅，再拆为独立 XHTML，保留前言、正文、CSS／图片关联，并维护目录、阅读顺序与跨章链接。首版不在任意嵌套位置强切，不自动合章，不承诺拆前拆后的分页／样式完全相同；超过现有解析预算仍明确拒绝。可行性、依赖与反例见 [§3.9](docs/DEVELOPMENT_PLAN.md#39-网络小说按标题自动拆章t4b待实现)，当前尚未实现。
+
+[Issue #3](https://github.com/LeviTK/Kepub/issues/3) 的总目标继续保留：S1 内容模型与无损编辑由 CLI 批次落实；S2 作者原样预览、S3 完整排版／媒体交互、S4 官方测试／Mac／人工无障碍随后单独验收。**T6 通过不等于关闭 Issue #3。** 保留、解析、编辑、渲染、验证分别记录状态，EPUBCheck pass、引用 complete 或采用 WKWebView 均不能证明全部支持；固定 3.3 用例，不混用默认指向 3.4 的测试入口。
+
+系统字体只属于运行 CLI 的机器；书中只写字体族和回退，不复制字体本体，也不删原书已有字体。另一台阅读设备未安装或不采用所选字体时会替代，不能保证跨设备外观一致。EPUBCheck 合规不等于视觉排版验收。
 
 当前 `task accept` 不能鉴别人类和 Agent，“先询问用户”是合作约定，不是权限隔离。GUI 不通过拼接命令或解析终端文本复用业务逻辑，而与 CLI 共用 Go 用例。
 
 参考 Obsidian CLI 的命令发现、目标选择、查询与诊断，但 Kepub 保持无 GUI 可运行，不照搬当前活动文件或任意 eval；具体见 [CLI 构建取舍](docs/DEVELOPMENT_PLAN.md#91-参考-obsidian-cli但保持真正-headless)。[Amp 接口边界](docs/DEVELOPMENT_PLAN.md#813-external-apicli-与-typescript-sdk-的适用边界)另区分 SDK／CLI 的 Agent 执行与 External API 的工作区数据管理，后者不是发送编辑 prompt 的入口。
 
-依赖、范围和验收见 [v0.7 开发批次](docs/DEVELOPMENT_PLAN.md#113-v07-开发批次与依赖)。**Medium** 已先并行完成 C1 与 C2 读核心，再单一写者接入 C2 CLI 和 C3 编辑闭环；父线程复核并独立验收。本批接口约束见 [CLI 契约 §2.1／§2.2](docs/CLI_CONTRACT.md#21-c1c2-本批实施契约)。M0～M6 仅保留为技术工作包编号；本地实现不等于真实模型联调或远端发布。
+当前依赖、范围和验收见 [v0.9 开发批次](docs/DEVELOPMENT_PLAN.md#117-v09-独立-cli-批次与完成标准)、[S0 与关闭门槛](docs/DEVELOPMENT_PLAN.md#118-issue-3-阶段映射规范资产与关闭门槛)，转换边界见 [§3.7](docs/DEVELOPMENT_PLAN.md#37-epub2--epub3显式可审阅的版本转换)。原 C1～C3 交付和 C4／U／A 设想保留为历史／后续参考；既有接口约束见 [CLI 契约 §2.1／§2.2](docs/CLI_CONTRACT.md#21-c1c2-本批实施契约)。原父 Orb 统一协调，Medium 子 Orb 编码，固定新树经真实 Droid demo／审查、修复复测和父独立验收；旧基线检查不覆盖新代码。本地实现、源码推送和版本化发行分别记录，发布另获授权。
 
 除上面明确列出的命令、库与独立实验外，设计文档中的命令和接口仍待实现；不能将其他设计示例当作当前安装使用说明。
