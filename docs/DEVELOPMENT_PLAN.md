@@ -2,9 +2,9 @@
 
 > 文档版本：0.7（开发计划；新接口暂定）· 更新日期：2026-10-05
 >
-> 路线：CLI + 外部 Amp 协作 → MyGo UI → UI 内集成 Amp。CLI 与 UI 共用 Go EPUB 核心；受管 Amp 不是 UI 前置条件。C0/C1/C2 已本地集成，下一批为 C3 受限正文修改，不自动启动真实模型调用或发布。
+> 路线：CLI + 外部 Amp 协作 → MyGo UI → UI 内集成 Amp。CLI 与 UI 共用 Go EPUB 核心；受管 Amp 不是 UI 前置条件。C0/C1/C2/C3 已本地集成，下一批为 C4 外部 Amp 经 CLI 协作验证，不自动启动真实模型调用或发布。
 >
-> 状态：只读核心与 CLI、工作区库及 Amp 对照实验已发布到默认分支；validate/pack、单字段元数据编辑、候选审阅、接受／拒绝与工作区导出，以及 C1 命令框架与 C2 正文查询已本地集成，尚未发布。正文写入、GUI、生产 Agent、安装包和 Mac 实机验收未完成。实际支持范围以 README、capabilities 和验证记录为准。
+> 状态：只读核心与 CLI、工作区库及 Amp 对照实验已发布到默认分支；validate/pack、单字段元数据编辑、候选审阅、接受／拒绝与工作区导出，以及 C1 命令框架、C2 正文查询、C3 单节点简单文本修改已本地集成，尚未发布。GUI、生产 Agent、真实 Amp 编辑联调、安装包和 Mac 实机验收未完成。实际支持范围以 README、capabilities 和验证记录为准。
 >
 > 目标平台：Apple Silicon Mac；Linux orb 用于开发验证。MyGo 与系统 WebView 已确认，当前接口基线为 MyGo 0.2.0，macOS 使用 WKWebView，不捆绑 Chromium。React + TypeScript + Vite 仍是前端计划。UI 暂缓不取消选型，也不让 WebView 验收阻塞纯 CLI 开发。
 
@@ -70,9 +70,9 @@ CLI 不登录 Amp 也能查询、检查和执行已实现的确定性操作；�
 ### 1.1 CLI 优先的首批交付
 
 - 整理并交付现有查询、安全解包、validate/pack、workspace、plan/apply、diff、accept/reject 和 export，不从头重写 CLI。
-- 当前仅能修改一个现有 `dc:title` 或 `dc:creator` 简单文本。C2 已本地实现绑定 accepted revision 的单资源 XHTML 内容读取；C3 下一批增加已有 XHTML 的简单文本修改。正文编辑未实现，不能把当前元数据演示当成该目标完成。
+- 元数据操作可修改一个现有 `dc:title` 或 `dc:creator` 简单文本；C2 已本地实现绑定 accepted revision 的单资源 XHTML 内容读取，C3 已增加 `content.text.set` v1 的单节点简单正文修改。每计划一个操作，不代表支持任意 XHTML 编辑。
 - C1 已本地补齐命令帮助／schema 同源、构建版本、只检查不安装的 `doctor`、源码构建／安装说明及测试；保留 JSON envelope、错误码与非交互行为。发行安装包和 Mac 安装验收仍未完成。
-- 先用现有元数据闭环做 Amp 小样本联调，再在 C3 通过后验证正文编辑；所有写入走 CLI 注册操作，用户明确决定 accept/reject/export。不依赖 SDK、MCP、常驻会话服务或桌面窗口。
+- C4 经单独授权先用合成 EPUB 做真实 Amp 联调，覆盖元数据与正文操作；所有写入走 CLI 注册操作，用户明确决定 accept/reject/export。不依赖 SDK、MCP、常驻会话服务或桌面窗口。
 - CSS 可纳入受限只读内容查询；CSS 写入、跨节点排版修改、资源新增／删除／改名、批量操作及任意候选文件写入不进入首个正文编辑版本，另行冻结支持子集并验收。
 - Linux 验证可先进行；面向 Apple Silicon 的 CLI 正式发布仍须实机安装和运行验证。Darwin 交叉编译不算 Mac 验收，CLI 检查也不替代视觉排版审核。
 
@@ -400,9 +400,9 @@ Calibre 内部 CSS checker 在本次核查版本依赖 QtWebEngine；可选调�
 
 先让 Amp 使用 Kepub，再让 Kepub 管理 Amp。两个方向的责任不同，不能把 §8.1.1 的适配器 A/B 比较误读成必须先实现受管 Agent 才能使用 CLI。
 
-**近期：Amp → Kepub CLI。** 用户在 Amp 中提出要求，Amp 经 shell 调用同一环境内的 `kepub`，读取 JSON 和退出码。先 `capabilities` 确认能力，再 `inspect` 获取实际元数据；生成显式操作请求后，经 `workspace open → plan → apply → task diff` 形成可审阅候选。用户审阅后明确决定 `task accept/reject` 与 `workspace export`。请求／计划报告位于整个工作区之外，操作使用实际返回的 task ID，不猜最近任务。此路径不需要新增 SDK、MCP 或私有 IDE 协议；Amp、二进制、书籍及检查依赖必须位于同一可访问环境，orb 不会自动取得用户本机文件。
+**近期：Amp → Kepub CLI。** 用户在 Amp 中提出要求，Amp 经 shell 调用同一环境内的 `kepub`，读取 JSON 和退出码。先 `capabilities` 确认能力，用 `inspect` 获取实际元数据，或在工作区建立后用 `content` 获取正文及读取绑定；生成显式操作请求后，经 `plan → apply → task diff` 形成可审阅候选。用户审阅后明确决定 `task accept/reject` 与 `workspace export`。请求／计划报告位于整个工作区之外，操作使用实际返回的 task ID，不猜最近任务。此路径不需要新增 SDK、MCP 或私有 IDE 协议；Amp、二进制、书籍及检查依赖必须位于同一可访问环境，orb 不会自动取得用户本机文件。
 
-当前只开放有限 `metadata.set`；不能让 Amp 自由改写既有 deterministic 候选后沿用原执行记录接受。候选漂移可供 diff/reject，但不能绕过来源和输入绑定。C3 的受限正文修改将作为新的确定性操作走同一计划／候选／审核流程，即使参数来自模型也不必启动受管 Agent。任意 XHTML/CSS 文件编辑才需要后续 Agent 任务、写入交接和冻结协议，不以手工修改内部状态代替实现。
+当前开放有限 `metadata.set` 与 `content.text.set`；不能让 Amp 自由改写既有 deterministic 候选后沿用原执行记录接受。候选漂移可供 diff/reject，但不能绕过来源和输入绑定。C3 正文修改作为确定性操作走同一计划／候选／审核流程，即使参数来自模型也不必启动受管 Agent。任意 XHTML/CSS 文件编辑才需要后续 Agent 任务、写入交接和冻结协议，不以手工修改内部状态代替实现。C3 的二进制验收不是 C4 真实模型联调的替代。
 
 **后续：Kepub → Amp CLI。** Go 应用服务创建候选、绑定任务和线程、启动并监督 Amp，执行结束后进入差异与检查，仍不自动接受。优先将已有 Go 直连实验推进为受管适配；SDK 实验暂不进入生产。进入该阶段前先解决 §5.3 的锁交接和下述审批边界；`kepub amp`、`kepub task run` 均仍未实现，命令形态尚未冻结。将来 TUI 入口要求 TTY，程序化入口使用结构化事件，不要求内嵌终端。
 
@@ -622,7 +622,7 @@ P2 只依赖本轮冻结的 M1-A 读 API，不等待 P1 的新接口；P3/P4 使
 
 ### 11.3 v0.7 开发批次与依赖
 
-截至本版：第一轮代码已在默认分支，第二轮闭环与环境更新已本地验证但未发布；MyGo 边界实验已在 Linux 验证，不是 Mac GUI 验收。2026-10-05 用户授权开始 CLI 框架及后续开发，C0/C1/C2 已本地集成：命令描述／帮助同源、version／doctor、accepted-only 的有界 XHTML 查询。接口见 CLI 契约 §2.1，证据见 [C1](verification/C1_CLI.md)／[C2](verification/C2_CONTENT.md)。C2 未扩展 CSS 查询或正文写入；下一批为 C3。其余批次按依赖推进，不重做已完成轮次，不把开始开发视为真实模型调用或发布授权。
+截至本版：第一轮代码已在默认分支，第二轮闭环与环境更新已本地验证但未发布；MyGo 边界实验已在 Linux 验证，不是 Mac GUI 验收。2026-10-05 用户授权开始 CLI 框架及后续开发，并授权执行 C3；C0/C1/C2/C3 已本地集成：命令描述／帮助同源、version／doctor、accepted-only 的有界 XHTML 查询、绑定读取版本的单节点简单正文修改。接口见 CLI 契约 §2.1／§2.2，证据见 [C1](verification/C1_CLI.md)／[C2](verification/C2_CONTENT.md)／[C3](verification/C3_CONTENT_EDIT.md)。下一批 C4 需另获真实模型授权；CSS 查询／写入、结构修改与批量操作仍未开放。其余批次按依赖推进，不重做已完成轮次，不把本地实现视为模型联调或发布通过。
 
 三阶段产品终点分别为：**C：外部 Amp 可经 CLI 提交受限 EPUB 正文修改；U：用户不登录 Amp 也能阅读、修改、审阅和导出；A：用户可在 UI 中发起并控制 Amp 任务。** 发布各自有安装验收，不必等所有阶段完成才交付 CLI。
 
@@ -642,10 +642,10 @@ C1 与 C2 的读核心可并行；C3 等待两者接口稳定。C4 的元数据�
 
 ### 11.4 首个正文读写版本的边界
 
-当前 `internal/workspace/edit.go` 的参数类型、计划重算和执行记录限定为一个 `metadata.set` v1；`lifecycle.go` 的接受／恢复也复核这些来源。正文写入必须一起扩展这些契约。`internal/publication` 的 `Element.Location` 是结构位置，不是可写字节偏移；不能把现有引用查询结果直接当安全编辑 API。
+`internal/workspace/edit.go` 已区分 `metadata.set` v1（请求／计划／执行格式 1）与 `content.text.set` v1（格式 2）；`lifecycle.go` 接受／恢复按各任务的 checkpoint 和 BaseRevision 重推来源。共享 `internal/xmltext` 提供严格解析和局部字节替换。`internal/publication` 的 `Element.Location` 仍是结构位置，不是可写字节偏移；不能把引用或内容查询结果直接当安全编辑 API。
 
 - **读目标：** C2 首版只读显式 workspace 的 accepted revision；从同一稳定输入计算路径、文本、定位信息和资源 hash。查询匹配多个位置时返回有界列表与歧义，不返回“默认第一个”；截断必须明确，不能把残缺文本冒充完整内容。单次大小／结果数上限、文本解码和匹配语义须在编码前写入 CLI 契约。
-- **写目标：** 一个计划仍只含一个操作。正文操作暂定只改一个现有 XHTML 简单文本元素：明确 BookPath、读取时的 revision／资源 hash、唯一定位依据、预期旧值和新文本。定位依据由读取结果提供并绑定输入；不接受调用者指定原始字节区间作为写权限。命令名称、操作 ID 和字段 schema 在 C2/C3 启动时冻结，本文不提供假装已可执行的命令。
+- **写目标：** 一个计划仍只含一个操作。正文操作只改一个现有 XHTML 简单文本元素：明确 BookPath、读取时的 revision／资源 hash、locator v1、预期旧值和新文本。定位依据由读取结果提供并绑定输入；不接受调用者指定原始字节区间作为写权限。操作 ID、字段 schema 和新旧版本兼容已冻结在 CLI 契约 §2.2。
 - **修改算法：** plan/apply 在持锁且验证基线后重新解析并唯一定位，再计算局部替换范围；新文本按 XML 转义并重解析检查。保留元素、属性、ID、href、目标外字节及其他文件；no-op 不重新格式化。现有 `metadata.set` v1 的含义和元数据流程保持不变。
 - **明确拒绝：** 旧值／hash／revision 不匹配、定位歧义、非法 XML 字符、不支持编码或语法、子元素／混合内容、跨节点范围、脚本／样式目标和结构变更。新值是文本，不是可执行 HTML；包含 `<` 等字符应安全转义，不能解释成标签。全 CSS 写入、资源新增／删除／改名和任意文件补丁另立批次。
 - **执行与持久化：** 操作分派、计划摘要、真实写集合、执行来源、diff 和 accept/reopen 的重算必须一起版本化。旧工作区、旧计划与旧执行记录要么按旧版本正确读取，要么在修改前明确拒绝；不得静默用新算法解释旧摘要。先做保持元数据行为的必要重构并回归，再加入正文操作，不引入动态插件系统。
@@ -653,7 +653,7 @@ C1 与 C2 的读核心可并行；C3 等待两者接口稳定。C4 的元数据�
 
 ### 11.5 Medium 分工与集成顺序
 
-后续代码及其修复由 **Medium** 编写；父线程维护方案、冻结跨模块契约、复核差异和执行组合验收。用户已要求开始实施，先启动 C1 与 C2 读核心，不一次创建全部工作线程。
+代码及其修复由 **Medium** 编写；父线程维护方案、冻结跨模块契约、复核差异和执行组合验收。C1 与 C2 读核心先并行，交接后单一写者完成 C2 CLI 与 C3；C3 先提交保持元数据行为的 XML 重构，再提交正文能力。后续按批次安排，不一次创建全部工作线程。
 
 | 开发单元 | 文件所有权与交接 | 可独立验收的结果 |
 |---|---|---|
@@ -677,7 +677,7 @@ README、主开发方案、CLI 契约和根依赖／setup 的跨线变动由父�
 | C4 真实协作 | 经授权仅用合成 EPUB；记录实际工具调用、JSON、task ID、用户决定与最终字节校验。不支持请求必须停止或提出替代方案，不改内部 state／不静默降级；模型口头“完成”不是证据 |
 | U/A 平台与安全 | 实际渲染默认和错误／冲突／旧 generation 状态；Mac release 隔离、锁交接、真实 Amp 继续／取消、异常退出及冻结后无受管写入分别验证。fake 进程、Linux WebKitGTK、Darwin 编译分别标记，不能互相替代 |
 
-尚需在对应批次开始前冻结的决策：C2/C3 的查询／匹配／定位 schema 和兼容策略；U1 的受限 frame 或专用 WKWebView、React + TypeScript + Vite 是否正式采用；U2 的逐用例锁与状态刷新方式；A1 的会话转发或受控锁交接、审批边界与生产 Amp 协议版本；R 的最低 macOS、Java／EPUBCheck 随包或外部安装策略、Amp 发现、许可及签名更新流程。Unix socket、SDK、MCP 均不是已决定必须新增的依赖。
+C2/C3 的查询／匹配／定位 schema 和兼容策略已冻结在 CLI 契约 §2.1／§2.2。尚需在后续对应批次开始前冻结：U1 的受限 frame 或专用 WKWebView、React + TypeScript + Vite 是否正式采用；U2 的逐用例锁与状态刷新方式；A1 的会话转发或受控锁交接、审批边界与生产 Amp 协议版本；R 的最低 macOS、Java／EPUBCheck 随包或外部安装策略、Amp 发现、许可及签名更新流程。Unix socket、SDK、MCP 均不是已决定必须新增的依赖。
 
 首版外部 Amp 使用合作式审批，必须明确 `task accept` 无法鉴别人类与同用户 Agent。若要承诺强制人工批准，需另验模型无法取得的批准凭据及受限执行环境；不能通过提示词或隐藏命令名宣称实现。Mac 环境或模型授权暂缺时继续可独立验证的工作，阻塞门槛保留为未通过，不承诺固定完成日期。
 

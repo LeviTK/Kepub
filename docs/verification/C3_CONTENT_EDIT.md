@@ -22,7 +22,7 @@
 - 精确 manifest 路径，不修正编码、fragment、大小写或缺失路径；错误 MIME、未声明／缺失资源、旧值不匹配均失败。非法 UTF-8／XML 字符、locatorVersion、4096／4097 字节 locator、旧／新文本 1 MiB 两侧边界覆盖；沿用 XML 8 MiB、128 深度、200000 token 和 32 MiB 文本／位置索引预算。
 - 七个必需 params 分别测试缺失与 null；重复／未知／跨操作字段、多个操作、尾随 JSON、非法 UTF-8、schema／operationVersion 组合拒绝。独立顺序断言及正文 policy digest `8989bb59b95abd9a0434922f62ae7592009a139043a7e0e41ddae8be793d48fd` 固定。
 - 陈旧 revision／原资源 hash 返回 INPUT_DRIFT，不建候选；定位、旧值、目标子集和参数错误在 plan 返回 INVALID_OPERATIONS。篡改调用和持久 plan 的 policy、schema、writeSet、旧值；活动执行 version／精确结果 hash；同路径错误正文和额外 CSS 修改均不获成功状态。
-- 中断后有 start／没有 start 两条恢复路径均产生 version 2 failed 记录并恢复 checkpoint；缺 start 的合成记录不降为 v1。恢复 journal 和已接受 revision 两种入口测试 schema、operation、policy、execution、精确内容 hash 篡改，即使同步修改外围摘要证据也拒绝；正常 intent／pointer／archived 重开成功。已接受历史仍使用旧 checkpoint 重推，新计划使用推进后的 revision。
+- 构造中断状态后的有 start／没有 start 两条恢复路径均产生 version 2 failed 记录并恢复 checkpoint；缺 start 的合成记录不降为 v1。恢复 journal 的 intent／pointer 边界及已归档任务正常重开成功；已接受 revision 入口测试 schema、policy、execution、精确内容 hash 篡改，即使同步修改外围摘要证据也拒绝。已接受历史仍使用旧 checkpoint 重推，新计划使用推进后的 revision。这些是确定性故障状态测试，不是 C3 的断电或实进程强杀证明。
 - 中文／空格精确路径做 workspace 与 publication 字节验证；正式闭环使用独立合规 ASCII 资源路径 EPUB2／3。编码中文 href 的既有 checker 报告兼容问题不进入本批，没有放宽库存／正式检查。
 
 `FuzzContentSimpleTextReplacement` 把随机输入映射为合法 XML 文本，实际执行成功替换，核对固定目标外 prefix／suffix，再以 C2 的独立解码路径检查目标文本。空串、实体特殊字符、非 BMP、CR/LF/tab 和组合字符为种子；不是主要随机生成无效 XML 测拒绝。10 秒、2 workers，34337 executions，PASS。
@@ -70,6 +70,26 @@ go vet ./...
 父另报告已复核集成代码，并独立执行 67 次真实二进制调用全部通过，包括其旧 binary 生成的 v1 plan apply/reject 和待审 task accept/export、旧 execution 摘要不变、独立 Python 规范 JSON／policy 摘要、同文第二节点、正文正式闭环、empty/no-op、陈旧绑定及实际候选漂移。该证据属于父 orb，不代替上述本 orb 的测试；父的全仓检查单独记录。
 
 临时基线／重构／新版二进制、兼容夹具与测试工作区、日志和传输 bundle 在本批完成后清理；保留产品测试与本报告。未改根依赖、setup、validation 或 experiments；未推送或发布。
+
+## 父 orb 独立组合验收
+
+父在本地 `main` 先集成共享重构，再集成相同正文代码；未改写 Medium 的产品代码。Linux amd64、Go 1.27.1、Java 17.0.20.1、完整固定 EPUBCheck 5.3.0，干净 login shell 下执行一次：
+
+```sh
+go test -count=1 ./...
+go test -race -count=1 ./...
+go vet ./...
+go test ./internal/publication -run='^$' -fuzz='^FuzzContentSimpleTextReplacement$' -fuzztime=5s -parallel=2
+GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -o "$SCRATCH/kepub-c3-darwin" ./cmd/kepub
+```
+
+普通／race 全通过，vet 无诊断；CLI 122.663s／118.179s，workspace 113.823s／125.695s，validation 153.891s／153.373s，publication 0.703s／5.932s。父 fuzz 21666 次执行 PASS；Darwin 产物经 `file` 确认为 Mach-O 64-bit arm64，没有执行，不算 Mac 验收。共享重构集成时另跑 metadata fuzz 55816 次 PASS。
+
+父的独立 Python 驱动从不对称合成 EPUB3 开始：BOM/CRLF、两处相同解码文本但不同实体字节、混合／空／自闭合／CDATA／注释节点、CSS 和空目录。改动前的真实二进制留下未消费 v1 plan 和待审 v1 task，先核对全部工作区文件及计划 SHA-256，再用新版继续处理。v2 请求／policy 的规范 JSON 摘要由 Python 独立计算，没有调用 Go 实现生成预期值。
+
+67 次真实二进制调用的最终输出为 `PASS: 67 independent CLI calls`：v1 计划 apply/reject 与旧 task accept/export、旧 execution 摘要保持；v2 参数拒绝／过期绑定／busy、同文第二节点精确替换、接受前 accepted 隔离、缺 checker 拒绝、正文真实接受／正式导出、no-op／清空文本／显式空元素、实际候选漂移 diff/reject 全通过。每次均检查单 JSON envelope、空 stderr 和退出码；按原 ZIP 计算期望资源，只有预期文本字节变化，OPF 时间戳与其他资源不变，原书 SHA-256 保持。另核对 capabilities 的 `content.text.set` 为 available／bounded_edit、不要求模型或 GUI。
+
+父同步 README、主方案与 CLI 契约，记录 C3 本地交付、C4 待真实模型授权。传输 bundle 与父临时验证文件清理；源码与证据本地提交，未推送、发布或启动真实 Amp。
 
 ## 限制
 

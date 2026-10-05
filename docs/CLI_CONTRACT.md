@@ -14,7 +14,7 @@ Obsidian CLI 的参考取舍见 [开发方案 §9.1／§9.2](DEVELOPMENT_PLAN.md
 
 ## 2. 命令分组与实施次序
 
-下表 M0～M6 是技术工作包编号，不再表示执行先后。当前按 [开发方案 v0.7 §11.3](DEVELOPMENT_PLAN.md#113-v07-开发批次与依赖) 先完成 CLI + 外部 Amp 协作，再实现 MyGo UI，最后在 UI 内集成 Amp；受管 Agent 不是 UI 前置。C1 发现／诊断及 C2 有界内容读取／定位已本地实现。C3 的单个 XHTML 简单文本确定性修改仍未实现，其操作 schema 尚未冻结，边界见 [§11.4](DEVELOPMENT_PLAN.md#114-首个正文读写版本的边界)。
+下表 M0～M6 是技术工作包编号，不再表示执行先后。当前按 [开发方案 v0.7 §11.3](DEVELOPMENT_PLAN.md#113-v07-开发批次与依赖) 先完成 CLI + 外部 Amp 协作，再实现 MyGo UI，最后在 UI 内集成 Amp；受管 Agent 不是 UI 前置。C1 发现／诊断、C2 有界内容读取／定位、C3 单个 XHTML 简单文本确定性修改已本地实现，尚未发布。C3 操作 schema 在 §2.2 冻结；支持边界见 [§11.4](DEVELOPMENT_PLAN.md#114-首个正文读写版本的边界)。
 
 | 命令形态 | 语义 | 阶段 |
 |---|---|---|
@@ -32,7 +32,7 @@ Obsidian CLI 的参考取舍见 [开发方案 §9.1／§9.2](DEVELOPMENT_PLAN.md
 | `kepub workspace list --json` | 全局工作区发现/注册表尚未实现 | planned |
 | `kepub plan --workspace DIR --operations FILE --output PLAN.json` | 从当前accepted基线生成单字段操作计划，不写出版内容 | M2 已实现 |
 | `kepub apply --workspace DIR --plan PLAN.json --json` | 核对计划，创建候选任务；不接受/不导出 | M2 已实现 |
-| `kepub task diff TASK --workspace DIR --json` | 实际完整文件增删改及old/new元数据文本 | M2 已实现 |
+| `kepub task diff TASK --workspace DIR --json` | 实际完整文件增删改及元数据／正文目标的old/new文本 | M2／C3 已实现 |
 | `kepub task accept TASK --workspace DIR [--strict --timeout SECONDS]` | 冻结候选，真实正式检查，显式接受新revision | M2 已实现 |
 | `kepub task reject TASK --workspace DIR` | 保留审计，不删除原书或revision；随后可再编辑 | M2 已实现 |
 | `kepub workspace export DIR --output OUT.epub [--draft --strict --timeout SECONDS]` | 仅从当前accepted导出，重新检查最终ZIP | M2 已实现 |
@@ -69,7 +69,7 @@ C2 首版命令为 `kepub content --workspace DIR --resource BOOK_PATH [--query 
 
 ### 2.2 C3 受限正文修改实施契约
 
-2026-10-05 用户授权实施；本节冻结本批接口，不代表尚未验收的操作已经 available。复用 `plan → apply → task diff → task accept/reject → workspace export`，不新增直接写文件命令。
+2026-10-05 用户授权实施；本节接口已冻结并本地集成，`content.text.set` v1 为 available，尚未发布。验证记录见 [C3](verification/C3_CONTENT_EDIT.md)。复用 `plan → apply → task diff → task accept/reject → workspace export`，不新增直接写文件命令。
 
 新增 `content.text.set` v1。请求使用 `schemaVersion:2`，恰好一个操作；params 必须完整提供 `bookPath`、`revisionId`、`resourceSha256`、`locatorVersion`、`locator`、`expectedOldValue`、`newValue`，不接受 null、重复／未知字段或字节偏移。这些字段的 JSON 顺序作为正文操作的规范编码顺序。前五项及旧文本取自同一次 `content` 返回，不能只按相似文本重找首个匹配。
 
@@ -138,6 +138,7 @@ serve默认在stderr显示本机访问说明，结构化使用场景用受控事
 | `publication.inspect` | 已选择的publication和section | 只读结构与coverage |
 | `references.inspect` | BookPath与方向 | 返回引用边及未知/阻断范围 |
 | `metadata.set` | 明确且唯一命中的metadata元素、预期旧值、新值 | 保留无关字段/namespace/refinement；不能唯一选择则拒绝 |
+| `content.text.set` | 同次读取的BookPath、revision、资源hash、locator及旧／新文本；schema 2 | 仅简单正文元素局部替换；实际diff、正式检查和人工决定仍分开 |
 | `resource.rename` | 一个现有非OPF资源、未占用目标BookPath | 更新已证明覆盖的入站/出站引用，不修改内容语义 |
 
 初版 `resource.rename` 不支持循环交换、批量图改名、OPF改名、多rootfile重构、未知引用。只变大小写的改名必须有专门的平台安全流程和fixture，通过前显示unsupported。
@@ -146,9 +147,9 @@ serve默认在stderr显示本机访问说明，结构化使用场景用受控事
 
 第二轮实现范围进一步限定为：每个计划恰好一个 `metadata.set` v1，仅现有 `dc:title` 或 `dc:creator` 的简单文本。按 namespace、local name 和可选明确 ID 选择，预期旧值必须匹配且目标必须唯一；不能通过选择第一个同名字段消除歧义。局部替换保留目标外全部 OPF 字节，复杂子内容或无法确定字节区间时拒绝。标识符、语言、批量操作和 `resource.rename` 仍不开放；这不是把未来操作契约缩减为永远只支持一个字段。
 
-下一轮 C3 优先增加受限正文操作，`resource.rename` 不在该轮范围。新增操作须扩展版本化分派、计划重算、持久执行来源及接受／恢复验证，保留元数据 v1 语义；不能只把参数改成任意 JSON 或提供整文件覆盖入口。C2 的只读定位信息绑定 revision／资源 hash，不能直接作为可信字节偏移执行写入。
+C3 已增加 §2.2 的受限正文操作，`resource.rename` 仍为 planned。正文操作贯穿版本化分派、计划重算、持久执行来源及接受／恢复验证，保留元数据 v1 语义；不接收任意 JSON 操作或整文件覆盖请求。C2 的只读定位信息绑定 revision／资源 hash，不能直接作为可信字节偏移执行写入。
 
-本轮可执行请求的字段和 Go/CLI API 见 [M2-B 验证记录](verification/M2_B.md)。以下 rename/impact 示例仍是未来设计，不能作为当前可执行计划输入。
+可执行请求的字段和 Go/CLI API 见 [M2-B 验证记录](verification/M2_B.md)及 [C3 正文修改记录](verification/C3_CONTENT_EDIT.md)。以下 rename/impact 示例仍是未来设计，不能作为当前可执行计划输入。
 
 未来操作如 `css.prune`、`image.optimize`、`font.subset`、`toc.rebuild`、`publication.convert` 分别设计参数与风险，不通过一个任意字符串的 `run_command` 逃离注册表。
 

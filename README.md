@@ -2,7 +2,7 @@
 
 面向 Amp 的 EPUB 阅读、制作预览与编辑工作台。
 
-**当前状态：开发方案 v0.7，路线为 CLI + 外部 Amp 协作 → MyGo UI → UI 内集成 Amp，新接口仍暂定。第一轮已发布只读 Go 核心与 CLI、工作区库及两种独立 Amp 接入实验。第二轮编辑／审核／导出闭环，以及本轮 Medium 实现的 C1 命令框架和 C2 正文查询已本地集成，尚未发布。下一批 C3 增加受限正文修改；当前没有正文编辑、GUI、生产 Agent、安装包或已完成的 Mac 实机测试。**
+**当前状态：开发方案 v0.7，路线为 CLI + 外部 Amp 协作 → MyGo UI → UI 内集成 Amp，后续接口仍暂定。第一轮已发布只读 Go 核心与 CLI、工作区库及两种独立 Amp 接入实验。第二轮编辑／审核／导出闭环，以及 Medium 实现的 C1 命令框架、C2 正文查询、C3 单节点简单文本修改已本地集成，尚未发布。下一批 C4 验证外部 Amp 经 CLI 协作，真实模型调用另获授权；当前没有 GUI、生产 Agent、安装包或已完成的 Mac 实机测试。**
 
 ## 已实现：M1-A / M1-B1 只读 CLI
 
@@ -61,7 +61,17 @@ go install ./cmd/kepub  # 安装到 GOBIN，未设置时为 $(go env GOPATH)/bin
 
 query 区分大小写、按单个结果元素的文本做字面子串匹配；省略表示全部，显式值须为 1～4096 UTF-8 字节。limit 默认为 50，范围 1～200，另返回完整匹配数和 `truncated`，不会默选第一个匹配。XML 输入上限 8 MiB、返回文本累计上限 1 MiB；超限明确失败，不截断节点文本。
 
-结果排除 script/style/head、外来命名空间子树及含这些内容的祖先。混合内容可读，但不代表允许修改；这不是浏览器可见文本、全书搜索或 EPUB 合规检查，locator 也不是可写偏移。证据见 [C2 内容查询验证](docs/verification/C2_CONTENT.md)。外部 Amp 现在可通过 CLI 发现能力、查询正文并使用既有元数据编辑闭环；正文写入仍等待 C3。
+结果排除 script/style/head、外来命名空间子树及含这些内容的祖先。混合内容可读，但不代表允许修改；这不是浏览器可见文本、全书搜索或 EPUB 合规检查，locator 也不是可写偏移。证据见 [C2 内容查询验证](docs/verification/C2_CONTENT.md)。C3 在此基础上增加受限正文操作；这些 CLI 能力本身不等于真实 Amp 联调已通过。
+
+## 本地已集成：C3 受限正文修改
+
+正文请求使用 `schemaVersion:2`，恰好一个 `content.text.set` v1 操作。先运行 `content`，从同一次结果复制 `bookPath`、`revisionId`、`resourceSha256`、`locatorVersion` 和所选节点的 `locator`、`text`；将 `text` 作为 `expectedOldValue`，另填 `newValue`。不能只凭相似文本选择首个匹配。字段与兼容规则见 [CLI 契约 §2.2](docs/CLI_CONTRACT.md#22-c3-受限正文修改实施契约)。
+
+请求仍经下文的 `plan → apply → task diff → task accept/reject → workspace export`，没有直接正文写入命令。只修改 manifest XHTML 的单个 body 后代简单文本元素，支持显式空元素，不支持混合内容、子元素、注释、CDATA、处理指令、自闭合或脚本／样式目标。新值按 XML 文本转义，不解释成标签；目标外字节和 OPF 时间戳保持，no-op 不改字节。读取绑定过期明确拒绝，不自动重新找相似目标。
+
+正文 plan 和 execution 为 v2，已有 `metadata.set` 请求、计划、执行记录与摘要仍保持 v1。diff 的 `content.newValue` 是实际候选文本，不是计划新值；候选漂移可审阅／拒绝，不能接受。`content` 仍只读 accepted，accept 与正式 export 仍须真实 EPUBCheck。正文之外的结构、CSS、批量修改和真实 Amp 联调不在 C3 范围。
+
+父 orb 独立执行 67 次真实 CLI 调用：旧二进制生成的 v1 计划／待审任务兼容、v2 操作／策略摘要、同文第二节点的精确修改、正文接受／正式导出／拒绝、空值／no-op、陈旧读取绑定和候选漂移均通过。导出仅替换预期节点文本，其他字节与原书 SHA-256 保持。证据见 [C3 正文修改验证](docs/verification/C3_CONTENT_EDIT.md)。已知检查器对部分百分号编码中文 href 的报告兼容问题仍会明确失败，C3 未绕过或修复该问题。
 
 ## 本地已集成：M1-B2 校验与打包
 
@@ -84,7 +94,7 @@ pack 从明确的出版根冻结完整资源清单，不递归归档工作区；
 
 `internal/workspace` 提供 Create/Open/Close、唯一独立候选、Checkpoint/Checkpoints/Restore 和精确内容树 SHA-256。原书、初始版本、候选与检查点均为独立副本；flock 保证协作进程单写者，恢复 journal 处理已记录的中断边界。候选普通写入不会污染基线；已知不支持内容和书内 Agent 配置保留但限制候选创建。
 
-每个计划仅修改一个唯一选中的现有 `dc:title` 或 `dc:creator` 简单文本，匹配预期旧值；目标外 OPF 与资源字节不变，no-op 不重排 XML 或更新时间。计划绑定工作区身份、绝对路径、当前 accepted revision、完整树和策略；apply 重新计算，失败回滚，成功仍是 `review_required` / `conformance:not_run`，不是自动接受。
+元数据 v1 计划仅修改一个唯一选中的现有 `dc:title` 或 `dc:creator` 简单文本，匹配预期旧值；C3 正文 v2 计划见上节，两类均每计划一个操作。目标外 OPF 与资源字节不变，no-op 不重排 XML 或更新时间。计划绑定工作区身份、绝对路径、当前 accepted revision、完整树和策略；apply 重新计算，失败回滚，成功仍是 `review_required` / `conformance:not_run`，不是自动接受。
 
 将下面请求保存为工作区外的 `operations.json`，并把旧值替换为书内的实际标题。若有多个标题，须提供明确的可选 `id`，不能自动选择第一个。
 
@@ -197,6 +207,6 @@ v0.2 的 Calibre 优化继续保留：转换、整理、结构编辑和只读查
 
 参考 Obsidian CLI 的命令发现、目标选择、查询与诊断，但 Kepub 保持无 GUI 可运行，不照搬当前活动文件或任意 eval；具体见 [CLI 构建取舍](docs/DEVELOPMENT_PLAN.md#91-参考-obsidian-cli但保持真正-headless)。[Amp 接口边界](docs/DEVELOPMENT_PLAN.md#813-external-apicli-与-typescript-sdk-的适用边界)另区分 SDK／CLI 的 Agent 执行与 External API 的工作区数据管理，后者不是发送编辑 prompt 的入口。
 
-依赖、范围和验收见 [v0.7 开发批次](docs/DEVELOPMENT_PLAN.md#113-v07-开发批次与依赖)。现已开始整理共同基线，由 **Medium** 并行推进 C1 与 C2 读核心；共享 app/CLI 单一所有者，C3 接在两者之后。本批接口约束见 [CLI 契约 §2.1](docs/CLI_CONTRACT.md#21-c1c2-本批实施契约)。M0～M6 仅保留为技术工作包编号；开始开发不等于真实模型调用或远端发布。
+依赖、范围和验收见 [v0.7 开发批次](docs/DEVELOPMENT_PLAN.md#113-v07-开发批次与依赖)。**Medium** 已先并行完成 C1 与 C2 读核心，再单一写者接入 C2 CLI 和 C3 编辑闭环；父线程复核并独立验收。本批接口约束见 [CLI 契约 §2.1／§2.2](docs/CLI_CONTRACT.md#21-c1c2-本批实施契约)。M0～M6 仅保留为技术工作包编号；本地实现不等于真实模型联调或远端发布。
 
 除上面明确列出的命令、库与独立实验外，设计文档中的命令和接口仍待实现；不能将其他设计示例当作当前安装使用说明。
