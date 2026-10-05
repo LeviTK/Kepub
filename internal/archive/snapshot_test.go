@@ -3,6 +3,7 @@ package archive
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -88,7 +89,7 @@ func TestPackHeadersBytesAndNoClobber(t *testing.T) {
 	results := make(chan error, 2)
 	for range 2 {
 		wg.Add(1)
-		go func() { defer wg.Done(); _, e := a.PublishZIP(output, tree, check); results <- e }()
+		go func() { defer wg.Done(); _, e := a.PublishZIP(context.Background(), output, tree, check); results <- e }()
 	}
 	wg.Wait()
 	close(results)
@@ -101,7 +102,7 @@ func TestPackHeadersBytesAndNoClobber(t *testing.T) {
 	if success != 1 {
 		t.Fatal("atomic no-replace", success)
 	}
-	if _, e = a.PublishZIP(output, tree, check); e == nil {
+	if _, e = a.PublishZIP(context.Background(), output, tree, check); e == nil {
 		t.Fatal("clobbered existing output")
 	}
 	source := filepath.Join(filepath.Dir(root), "source.epub")
@@ -109,7 +110,7 @@ func TestPackHeadersBytesAndNoClobber(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	if _, e = a.PublishZIP(source, tree, check); e == nil {
+	if _, e = a.PublishZIP(context.Background(), source, tree, check); e == nil {
 		t.Fatal("overwrote source archive")
 	}
 	after, e := os.ReadFile(source)
@@ -120,12 +121,12 @@ func TestPackHeadersBytesAndNoClobber(t *testing.T) {
 	if e = os.Symlink(root, alias); e != nil {
 		t.Fatal(e)
 	}
-	if _, e = a.PublishZIP(filepath.Join(alias, "export.epub"), tree, check); e == nil {
+	if _, e = a.PublishZIP(context.Background(), filepath.Join(alias, "export.epub"), tree, check); e == nil {
 		t.Fatal("followed output parent link")
 	}
 	for _, mutate := range []bool{false, true} {
 		output = filepath.Join(t.TempDir(), "failed.epub")
-		_, e = a.PublishZIP(output, tree, func(f, h string) error {
+		_, e = a.PublishZIP(context.Background(), output, tree, func(f, h string) error {
 			if mutate {
 				return os.WriteFile(f, []byte("replacement"), 0600)
 			}
@@ -141,6 +142,25 @@ func TestPackHeadersBytesAndNoClobber(t *testing.T) {
 		if len(matches) != 0 {
 			t.Fatal("leaked private staging", matches)
 		}
+	}
+}
+
+func TestPublicationCancellationBeforeCommit(t *testing.T) {
+	a, tree, _ := fixtureSnapshot(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	output := filepath.Join(t.TempDir(), "cancelled.epub")
+	hash, e := a.PublishZIP(ctx, output, tree, func(string, string) error { cancel(); return nil })
+	var f *fault.Error
+	if !errors.As(e, &f) || f.Code != "PUBLICATION_CANCELLED" || hash != "" {
+		t.Fatal(hash, e)
+	}
+	if _, e := os.Stat(output); !errors.Is(e, os.ErrNotExist) {
+		t.Fatal("published after observed cancellation", e)
+	}
+	left, e := filepath.Glob(filepath.Join(filepath.Dir(output), ".kepub-pack-*"))
+	if e != nil || len(left) != 0 {
+		t.Fatal("staging leak", left, e)
 	}
 }
 

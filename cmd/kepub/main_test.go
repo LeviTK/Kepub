@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"os"
 	"os/exec"
@@ -10,8 +12,77 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/LeviTK/Kepub/internal/app"
+	"github.com/LeviTK/Kepub/internal/fault"
 	"github.com/LeviTK/Kepub/internal/testfixture"
 )
+
+// Deliver cancellation when the command next observes context after the output
+// exists. This deterministically exercises the old post-commit ctx.Err rewrite.
+type cancelAfterPublication struct {
+	context.Context
+	output string
+	cancel context.CancelFunc
+}
+
+func (c cancelAfterPublication) Err() error {
+	if _, e := os.Stat(c.output); e == nil {
+		c.cancel()
+	}
+	return c.Context.Err()
+}
+
+func TestPackCommitCancellationSemantics(t *testing.T) {
+	dir := t.TempDir()
+	files := map[string]string{
+		"mimetype":               "application/epub+zip",
+		"META-INF/container.xml": `<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0"><rootfiles><rootfile full-path="package.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`,
+		"package.opf":            `<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="uid"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="uid">urn:test:commit</dc:identifier><dc:title>Commit</dc:title><dc:language>en</dc:language></metadata><manifest><item id="chapter" href="chapter.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="chapter"/></spine></package>`,
+		"chapter.xhtml":          `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Commit</title></head><body><p>Unchanged.</p></body></html>`,
+	}
+	for path, b := range files {
+		file := filepath.Join(dir, path)
+		if e := os.MkdirAll(filepath.Dir(file), 0700); e != nil {
+			t.Fatal(e)
+		}
+		if e := os.WriteFile(file, []byte(b), 0600); e != nil {
+			t.Fatal(e)
+		}
+	}
+	for _, before := range []bool{true, false} {
+		out := filepath.Join(t.TempDir(), "output.epub")
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		var request context.Context = cancelAfterPublication{ctx, out, cancel}
+		if before {
+			cancel()
+		}
+		data, e := execute(request, options{command: "pack", book: dir, output: out, draft: true})
+		if before {
+			var f *fault.Error
+			if !errors.As(e, &f) || f.Exit != 130 {
+				t.Fatal("precommit cancellation", e)
+			}
+			if _, e := os.Stat(out); !errors.Is(e, os.ErrNotExist) {
+				t.Fatal("cancelled publication exists", e)
+			}
+		} else {
+			if e != nil {
+				t.Fatal("postcommit cancelled success", e)
+			}
+			p := data.(app.PackResult)
+			if p.ArchiveSHA256 == "" || !p.Draft || p.Verified {
+				t.Fatal(p)
+			}
+			if !errors.Is(request.Err(), context.Canceled) {
+				t.Fatal("postcommit cancellation not exercised")
+			}
+			if _, e := os.Stat(out); e != nil {
+				t.Fatal("committed artifact absent", e)
+			}
+		}
+	}
+}
 
 func invoke(t *testing.T, args []string, want int) map[string]any {
 	t.Helper()

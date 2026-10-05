@@ -134,6 +134,19 @@ func runProcess(ctx context.Context, java string, args []string) ([]byte, []byte
 		}
 	}
 	err := cmd.Run()
+	// Wait observes only the root and its pipes. Closed-pipe descendants and
+	// WaitDelay leftovers must be killed even after a normal/nonzero root exit.
+	if cmd.Process != nil {
+		pid := cmd.Process.Pid
+		present := syscall.Kill(-pid, 0)
+		if !errors.Is(present, syscall.ESRCH) {
+			if cleanupErr := stopBackendGroup(pid); cleanupErr != nil {
+				err = cleanupErr
+			} else if err == nil {
+				err = fmt.Errorf("backend left residual process group after root exit")
+			}
+		}
+	}
 	exit := -1
 	if cmd.ProcessState != nil {
 		exit = cmd.ProcessState.ExitCode()
@@ -145,6 +158,28 @@ func runProcess(ctx context.Context, java string, args []string) ([]byte, []byte
 		err = ctx.Err()
 	}
 	return out.Bytes(), stderr.Bytes(), exit, err
+}
+
+func stopBackendGroup(pid int) error {
+	if e := syscall.Kill(-pid, syscall.SIGKILL); e != nil && !errors.Is(e, syscall.ESRCH) {
+		return fmt.Errorf("backend group kill: %w", e)
+	}
+	// Inspect Linux Z/X only after SIGKILL stabilizes group membership. Darwin
+	// conservatively requires ESRCH. This is not reclamation of escaped groups.
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		alive, e := backendGroupAlive(pid)
+		if e != nil {
+			return fmt.Errorf("backend group inspection: %w", e)
+		}
+		if !alive {
+			return nil
+		}
+		if !time.Now().Before(deadline) {
+			return fmt.Errorf("backend group cleanup timed out")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 }
 
 // fingerprint pins the official release's complete executable JAR set, not

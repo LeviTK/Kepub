@@ -139,7 +139,7 @@ func parse(args []string) (o options, err error) {
 	return o, nil
 }
 
-func execute(o options) (any, error) {
+func execute(ctx context.Context, o options) (any, error) {
 	if o.help {
 		return map[string]any{"usage": "kepub [--json] capabilities | info BOOK | toc BOOK | inspect BOOK --section metadata|manifest|spine|navigation|references|capabilities [--resource BOOK_PATH --direction incoming|outgoing (references only)] | unpack BOOK --output DIR | validate BOOK_OR_DIR [--strict --timeout SECONDS] | pack DIR --output OUT.epub [--draft --strict --timeout SECONDS]; --rootfile BOOK_PATH; -- ends options; EPUBCheck: KEPUB_EPUBCHECK_JAR", "capabilities": app.Capabilities()}, nil
 	}
@@ -189,13 +189,6 @@ func execute(o options) (any, error) {
 	}
 	if o.command == "validate" || o.command == "pack" {
 		v := validation.Options{Rootfile: o.rootfile, Strict: o.strict, Draft: o.draft, Timeout: o.timeout}
-		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-		defer stop()
-		if o.timeout != 0 {
-			var cancel context.CancelFunc
-			ctx, cancel = context.WithTimeout(ctx, o.timeout)
-			defer cancel()
-		}
 		var data any
 		var err error
 		if o.command == "validate" {
@@ -203,7 +196,9 @@ func execute(o options) (any, error) {
 		} else {
 			data, err = app.Pack(ctx, o.book, o.output, v)
 		}
-		if errors.Is(ctx.Err(), context.Canceled) {
+		// Successful pack has crossed its atomic commit point. A later signal
+		// must not turn that published artifact into a cancellation failure.
+		if err != nil && errors.Is(ctx.Err(), context.Canceled) {
 			err = fault.New(130, "CANCELLED", "request cancelled")
 		}
 		return data, err
@@ -246,7 +241,18 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 	var data any
 	if err == nil {
-		data, err = execute(o)
+		ctx := context.Background()
+		if o.command == "validate" || o.command == "pack" {
+			var stop context.CancelFunc
+			ctx, stop = signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+			defer stop()
+			if o.timeout != 0 {
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithTimeout(ctx, o.timeout)
+				defer cancel()
+			}
+		}
+		data, err = execute(ctx, o)
 	}
 	code := 0
 	var fe *fault.Error

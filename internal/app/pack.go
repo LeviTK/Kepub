@@ -25,7 +25,7 @@ type PackResult struct {
 func PackSnapshot(ctx context.Context, a *archive.Archive, approved archive.Tree, output string, o validation.Options) (result PackResult, err error) {
 	result.Output = output
 	result.Draft = o.Draft
-	result.ArchiveSHA256, err = a.PublishZIP(output, approved, func(filename, hash string) error {
+	result.ArchiveSHA256, err = a.PublishZIP(ctx, output, approved, func(filename, hash string) error {
 		r, e := validation.CheckZIP(ctx, filename, hash, o)
 		result.Validation = r
 		return e

@@ -251,6 +251,63 @@ func TestProcessTimeoutOriginalSleepState(t *testing.T) {
 	}
 }
 
+func TestProcessRootExitReclaimsWriters(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("Linux PGID evidence")
+	}
+	for _, tc := range []struct{ name, pipes, exit string }{
+		{"normal closed pipes", ">/dev/null 2>&1", "0"},
+		{"nonzero closed pipes", ">/dev/null 2>&1", "7"},
+		{"WaitDelay inherited pipes", "", "0"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			late := filepath.Join(dir, "late")
+			group := filepath.Join(dir, "group")
+			script := filepath.Join(dir, "backend")
+			body := "#!/bin/sh\necho $$ > " + strconv.Quote(group) + "\nsh -c 'sleep 1.6; printf unsafe > \"$1\"' writer " + strconv.Quote(late) + " " + tc.pipes + " &\nif [ \"$1\" = control ]; then wait; else exit " + tc.exit + "; fi\n"
+			if e := os.WriteFile(script, []byte(body), 0700); e != nil {
+				t.Fatal(e)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			_, _, exit, e := runProcess(ctx, script, []string{"control"})
+			b, readErr := os.ReadFile(late)
+			if e != nil || exit != 0 || readErr != nil || string(b) != "unsafe" {
+				t.Fatalf("positive control: %d %v %q %v", exit, e, b, readErr)
+			}
+			if e := os.Remove(late); e != nil {
+				t.Fatal(e)
+			}
+			_, _, exit, e = runProcess(ctx, script, nil)
+			b, readErr = os.ReadFile(group)
+			if readErr != nil {
+				t.Fatal(readErr)
+			}
+			pgid, parseErr := strconv.Atoi(strings.TrimSpace(string(b)))
+			if parseErr != nil || pgid <= 0 {
+				t.Fatal("invalid pgid", string(b), parseErr)
+			}
+			t.Cleanup(func() { _ = syscall.Kill(-pgid, syscall.SIGKILL) })
+			states := processGroupStates(t, pgid)
+			time.Sleep(1800 * time.Millisecond)
+			_, lateErr := os.Stat(late)
+			t.Logf("exit=%d error=%v terminal states=%v late-write=%v", exit, e, states, lateErr)
+			if e == nil {
+				t.Error("residual writers accepted as success")
+			}
+			for _, state := range states {
+				if state != "Z" && state != "X" {
+					t.Errorf("live member at terminal: %v", states)
+				}
+			}
+			if !errors.Is(lateErr, os.ErrNotExist) {
+				t.Error("descendant wrote after terminal", lateErr)
+			}
+		})
+	}
+}
+
 func processGroupStates(t *testing.T, pgid int) map[int]string {
 	t.Helper()
 	entries, e := os.ReadDir("/proc")

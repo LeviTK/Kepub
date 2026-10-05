@@ -3,6 +3,7 @@ package archive
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -274,8 +275,10 @@ func FileSHA256(filename string) (string, error) {
 
 // PublishZIP creates private staging in the output directory, checks final ZIP
 // entries and bytes, calls check, rehashes, then atomically publishes no-replace.
-// A failed check never publishes. check must not modify the artifact.
-func (a *Archive) PublishZIP(output string, approved Tree, check func(string, string) error) (string, error) {
+// A failed check never publishes. check must not modify the artifact. The last
+// ctx check is immediately before atomic publication, which is the commit point.
+// Cancellation after that observation cannot turn a committed output into error.
+func (a *Archive) PublishZIP(ctx context.Context, output string, approved Tree, check func(string, string) error) (string, error) {
 	abs, err := filepath.Abs(output)
 	if err != nil {
 		return "", err
@@ -342,6 +345,9 @@ func (a *Archive) PublishZIP(output string, approved Tree, check func(string, st
 	}
 	if again != hash {
 		return "", fault.New(1, "INPUT_DRIFT", "archive changed during final check")
+	}
+	if err = ctx.Err(); err != nil {
+		return "", fault.New(5, "PUBLICATION_CANCELLED", "publication cancelled before commit: %v", err)
 	}
 	if err = publish(stage, abs); err != nil {
 		if os.IsExist(err) {
