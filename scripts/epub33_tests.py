@@ -238,6 +238,8 @@ def verify(root):
     expected = report_cases(root)
     if len(index["cases"]) != len(expected) or {r["id"] for r in index["cases"]} != set(expected):
         raise ValueError("missing/duplicate/extra official report mapping")
+    if index["failures"] or any(not r["sourceCommit"] for r in index["cases"]):
+        raise ValueError("unresolved official source gaps")
     report_hash = sha((root / "original/test-index.html").read_bytes())
     dest = root / "official-tests"
     if (sha((dest / "LICENSE.upstream.md").read_bytes()) != index["licenseSHA256"] or

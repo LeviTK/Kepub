@@ -89,7 +89,7 @@ download failures and upstream drift fail explicitly.
 
 ## Executed checks and limits
 
-18 offline asymmetric/adversarial tests pass: missing source, wrong hash,
+19 offline asymmetric/adversarial tests pass: missing source, wrong hash,
 fixed-version drift despite updated byte hash, dynamic shell, included body,
 missing matrix mapping, hiding a candidate from both inventory and matrix,
 upstream drift without overwrite, optional HTML closing tags, missing section
@@ -98,6 +98,9 @@ report omission, duplicate tar entry, deterministic ZIP and stored mimetype.
 An omitted CSS import also fails independently of the declared dependency list.
 An independent red test exposed omission of the same candidate from inventory
 and matrix; verification now independently re-extracts the archived inventory.
+Another independent red test exposed an unresolved official source with an
+empty failures list being reported as zero gaps. Source completeness is now
+checked against each actual case, independently of that failure list.
 
 Actual offline outputs: assets `104 / pending749 / semanticComplete:false`;
 official sources `169 / sourceGaps:0 / executed:false`; upstream research

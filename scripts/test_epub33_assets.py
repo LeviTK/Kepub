@@ -187,6 +187,24 @@ class OfficialArtifacts(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "official report mapping"):
                 official.verify(root)
 
+    def test_empty_source_cannot_be_reported_as_zero_gaps(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "original").mkdir()
+            report = b'<table><tr><td id="one">one</td><td>true</td><td>MUST</td><td>condition</td><td><a href="#constraint">spec</a></td></tr></table>'
+            (root / "original/test-index.html").write_bytes(report)
+            dest = root / "official-tests"
+            dest.mkdir()
+            (dest / "LICENSE.upstream.md").write_bytes(b"license")
+            (dest / "generateEpubs.upstream.sh").write_bytes(b"generator")
+            row = {"id": "one", **official.report_cases(root)["one"],
+                   "reportSHA256": assets.sha(report), "sourceCommit": None,
+                   "websiteArtifactPath": None, "sourceArchivePath": None, "generatedArtifactPath": None}
+            assets.write_json(dest / "index.json", {"cases": [row], "failures": [],
+                 "licenseSHA256": assets.sha(b"license"), "upstreamGeneratorSHA256": assets.sha(b"generator")})
+            with self.assertRaisesRegex(ValueError, "unresolved official source"):
+                official.verify(root)
+
 
 if __name__ == "__main__":
     unittest.main()
