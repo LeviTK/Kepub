@@ -27,6 +27,7 @@ type options struct {
 	json, help                               bool
 	strict, draft                            bool
 	timeout                                  time.Duration
+	seen                                     map[string]bool
 }
 type envelope struct {
 	SchemaVersion int          `json:"schemaVersion"`
@@ -56,6 +57,7 @@ func parse(args []string) (o options, err error) {
 		}
 	}()
 	seen := map[string]bool{}
+	o.seen = seen
 	end := false
 	for i := 0; i < len(args); i++ {
 		s := args[i]
@@ -68,10 +70,18 @@ func parse(args []string) (o options, err error) {
 			continue
 		}
 		if s == "--json" {
+			if seen[s] {
+				return o, fault.New(2, "INVALID_ARGUMENT", "duplicate option %s", s)
+			}
+			seen[s] = true
 			o.json = true
 			continue
 		}
 		if s == "--no-input" {
+			if seen[s] {
+				return o, fault.New(2, "INVALID_ARGUMENT", "duplicate option %s", s)
+			}
+			seen[s] = true
 			continue
 		}
 		if s == "--strict" || s == "--draft" {
@@ -87,18 +97,20 @@ func parse(args []string) (o options, err error) {
 			continue
 		}
 		if s == "--help" || s == "-h" {
+			if seen["--help"] {
+				return o, fault.New(2, "INVALID_ARGUMENT", "duplicate help")
+			}
+			seen["--help"] = true
 			o.help = true
 			continue
 		}
 		if strings.HasPrefix(s, "-") {
 			key, val, has := strings.Cut(s, "=")
-			switch key {
-			case "--section", "--rootfile", "--output", "-o", "--resource", "--direction", "--timeout", "--workspace", "--operations", "--plan":
-			default:
-				return o, fault.New(2, "INVALID_ARGUMENT", "unknown option %q", s)
-			}
 			if key == "-o" {
 				key = "--output"
+			}
+			if !valueOption(key) {
+				return o, fault.New(2, "INVALID_ARGUMENT", "unknown option %q", s)
 			}
 			if seen[key] {
 				return o, fault.New(2, "INVALID_ARGUMENT", "duplicate option %s", key)
@@ -159,8 +171,18 @@ func parse(args []string) (o options, err error) {
 }
 
 func execute(ctx context.Context, o options) (any, error) {
+	name, err := validateCommand(o)
+	if err != nil {
+		return nil, err
+	}
 	if o.help {
-		return map[string]any{"usage": "kepub [--json] capabilities | info BOOK | toc BOOK | inspect BOOK --section metadata|manifest|spine|navigation|references|capabilities [--resource BOOK_PATH --direction incoming|outgoing (references only)] | unpack BOOK --output DIR | validate BOOK_OR_DIR [--strict --timeout SECONDS] | pack DIR --output OUT.epub [--draft --strict --timeout SECONDS] | workspace open BOOK --output DIR | plan --workspace DIR --operations FILE --output PLAN.json | apply --workspace DIR --plan PLAN.json | task diff|accept|reject TASK --workspace DIR | workspace export DIR --output OUT.epub [--draft --strict --timeout SECONDS]; accept permits --strict --timeout SECONDS; plan/export outputs must be outside workspace and absent; --rootfile BOOK_PATH (import/read); -- ends options; EPUBCheck: KEPUB_EPUBCHECK_JAR; workspace list/registry and task run remain planned", "capabilities": app.Capabilities()}, nil
+		return app.Help(name), nil
+	}
+	if o.command == "version" {
+		return app.BuildVersion(), nil
+	}
+	if o.command == "doctor" {
+		return app.Doctor(ctx)
 	}
 	if o.command == "workspace" || o.command == "task" || o.command == "plan" || o.command == "apply" {
 		data, err := executeWorkspace(ctx, o)
@@ -169,52 +191,8 @@ func execute(ctx context.Context, o options) (any, error) {
 		}
 		return data, err
 	}
-	if o.workspace != "" || o.operations != "" || o.plan != "" {
-		return nil, fault.New(2, "INVALID_ARGUMENT", "workspace/operations/plan options require workspace editing commands")
-	}
-	if o.command != "validate" && o.command != "pack" && (o.strict || o.draft || o.timeout != 0) {
-		return nil, fault.New(2, "INVALID_ARGUMENT", "strict/draft/timeout require validate or pack")
-	}
 	if o.command == "capabilities" {
-		if o.book != "" || o.rootfile != "" || o.section != "" || o.output != "" || o.resource != "" || o.direction != "" {
-			return nil, fault.New(2, "INVALID_ARGUMENT", "capabilities takes no target/options")
-		}
 		return app.Capabilities(), nil
-	}
-	switch o.command {
-	case "info", "inspect", "toc", "unpack", "validate", "pack":
-	default:
-		for _, c := range app.Capabilities() {
-			for _, command := range c.Commands {
-				if command == o.command && c.Status == "planned" {
-					return nil, fault.New(3, "CAPABILITY_UNAVAILABLE", "%s is not implemented", o.command)
-				}
-			}
-		}
-		return nil, fault.New(2, "INVALID_ARGUMENT", "unknown/missing command %q", o.command)
-	}
-	if o.book == "" {
-		return nil, fault.New(2, "INVALID_ARGUMENT", "BOOK is required")
-	}
-	if o.command != "unpack" && o.command != "pack" && o.output != "" {
-		return nil, fault.New(2, "INVALID_ARGUMENT", "--output is only for unpack/pack")
-	}
-	if o.command != "inspect" && o.section != "" {
-		return nil, fault.New(2, "INVALID_ARGUMENT", "--section is only for inspect")
-	}
-	if (o.command == "unpack" || o.command == "pack") && o.output == "" {
-		return nil, fault.New(2, "INVALID_ARGUMENT", "--output is required")
-	}
-	if (o.resource != "" || o.direction != "") && (o.command != "inspect" || o.section != "references") {
-		return nil, fault.New(2, "INVALID_ARGUMENT", "resource/direction filters require inspect --section references")
-	}
-	if o.command == "inspect" {
-		if err := app.ValidateInspect(o.section, o.resource, o.direction); err != nil {
-			return nil, err
-		}
-	}
-	if o.draft && o.command != "pack" {
-		return nil, fault.New(2, "INVALID_ARGUMENT", "--draft is only for pack")
 	}
 	if o.command == "validate" || o.command == "pack" {
 		v := validation.Options{Rootfile: o.rootfile, Strict: o.strict, Draft: o.draft, Timeout: o.timeout}
@@ -271,7 +249,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	var data any
 	if err == nil {
 		ctx := context.Background()
-		if o.command == "validate" || o.command == "pack" || o.command == "workspace" && o.action == "export" || o.command == "task" && o.action == "accept" {
+		if o.command == "doctor" || o.command == "validate" || o.command == "pack" || o.command == "workspace" && o.action == "export" || o.command == "task" && o.action == "accept" {
 			var stop context.CancelFunc
 			ctx, stop = signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 			defer stop()

@@ -10,27 +10,30 @@ import (
 )
 
 type Capability struct {
-	ID                string   `json:"operationId"`
-	Version           int      `json:"operationVersion"`
-	Status            string   `json:"implementationStatus"`
-	Reason            string   `json:"reason"`
-	Mutates           bool     `json:"mutatesPublication"`
-	RequiresGUI       bool     `json:"requiresGUI"`
-	RequiresModel     bool     `json:"requiresModel"`
-	RequiresNetwork   bool     `json:"requiresNetwork"`
-	Commands          []string `json:"commands"`
-	Risk              string   `json:"risk"`
-	InputSchema       any      `json:"inputSchema"`
-	OutputSchema      any      `json:"outputSchema"`
-	SupportedFeatures []string `json:"supportedFeatures"`
-	Preconditions     []string `json:"preconditions"`
-	PostChecks        []string `json:"postChecks"`
-	Idempotency       string   `json:"idempotency"`
+	ID                string    `json:"operationId"`
+	Version           int       `json:"operationVersion"`
+	Status            string    `json:"implementationStatus"`
+	Reason            string    `json:"reason"`
+	Mutates           bool      `json:"mutatesPublication"`
+	RequiresGUI       bool      `json:"requiresGUI"`
+	RequiresModel     bool      `json:"requiresModel"`
+	RequiresNetwork   bool      `json:"requiresNetwork"`
+	Commands          []string  `json:"commands"`
+	Risk              string    `json:"risk"`
+	InputSchema       any       `json:"inputSchema"`
+	OutputSchema      any       `json:"outputSchema"`
+	SupportedFeatures []string  `json:"supportedFeatures"`
+	Preconditions     []string  `json:"preconditions"`
+	PostChecks        []string  `json:"postChecks"`
+	Idempotency       string    `json:"idempotency"`
+	CommandSchemas    []Command `json:"commandSchemas,omitempty"`
 }
 
 func Capabilities() []Capability {
 	stringSchema := map[string]any{"type": "string", "minLength": 1}
 	out := []Capability{
+		{ID: "version", Commands: []string{"version"}},
+		{ID: "doctor", Commands: []string{"doctor"}},
 		{ID: "capabilities", Commands: []string{"capabilities"}, InputSchema: map[string]any{"type": "object", "additionalProperties": false}, OutputSchema: map[string]any{"type": "array"}},
 		{ID: "publication.inspect", Commands: []string{"info", "inspect", "toc"}, InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"book"}, "properties": map[string]any{"book": stringSchema, "rootfile": stringSchema, "section": map[string]any{"enum": []string{"metadata", "manifest", "spine", "navigation", "references", "capabilities"}}, "resource": stringSchema, "direction": map[string]any{"enum": []string{"incoming", "outgoing"}}}}, OutputSchema: map[string]any{"type": "object"}},
 		{ID: "navigation.inspect", Commands: []string{"toc"}, InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"book"}, "properties": map[string]any{"book": stringSchema, "rootfile": stringSchema}}, OutputSchema: map[string]any{"type": "object", "required": []string{"rootfile", "section", "value", "limitations"}, "properties": map[string]any{"value": map[string]any{"type": "object", "required": []string{"entries", "diagnostics", "status"}}}}},
@@ -46,6 +49,14 @@ func Capabilities() []Capability {
 		out[i].Preconditions = []string{"safe bounded archive", "explicit rootfile if ambiguous"}
 		out[i].PostChecks = []string{}
 		out[i].Idempotency = "read only; unpack retries reject an existing destination"
+		if out[i].ID == "version" || out[i].ID == "doctor" {
+			out[i].InputSchema = map[string]any{"type": "object", "additionalProperties": false}
+			out[i].OutputSchema = map[string]any{"type": "object"}
+			out[i].Reason = "C1 build information and local readiness only; no install, authentication, network or model execution"
+			out[i].SupportedFeatures = []string{"headless core", "build metadata without runtime Git", "bounded Java/checker readiness; optional Amp discovery only"}
+			out[i].Preconditions = []string{}
+			out[i].Idempotency = "read only"
+		}
 	}
 	for _, id := range []string{"validate", "pack"} {
 		properties := map[string]any{"book": stringSchema, "rootfile": stringSchema, "strict": map[string]any{"type": "boolean"}, "timeout": map[string]any{"type": "integer", "minimum": 1}}
@@ -90,7 +101,6 @@ func Capabilities() []Capability {
 		out = append(out, c)
 	}
 	for _, c := range []Capability{
-		{ID: "doctor", Commands: []string{"doctor"}},
 		{ID: "resource.rename", Mutates: true}, {ID: "workspace.list", Commands: []string{"workspace list"}},
 		{ID: "preview", Commands: []string{"preview", "serve"}, RequiresGUI: true}, {ID: "amp", Commands: []string{"amp", "task run"}, RequiresModel: true},
 	} {
@@ -98,6 +108,15 @@ func Capabilities() []Capability {
 		c.Status = "planned"
 		c.Reason = "Not implemented in M1-A; schemas/requirements not yet frozen"
 		out = append(out, c)
+	}
+	for _, command := range describeCommands(out) {
+		for i := range out {
+			for _, name := range out[i].Commands {
+				if name == command.Name {
+					out[i].CommandSchemas = append(out[i].CommandSchemas, command)
+				}
+			}
+		}
 	}
 	return out
 }

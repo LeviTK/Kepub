@@ -104,10 +104,15 @@ type bounded struct {
 	bytes.Buffer
 	cancel   context.CancelFunc
 	overflow bool
+	limit    int
 }
 
 func (b *bounded) Write(p []byte) (int, error) {
-	if b.Len()+len(p) > ReportLimit {
+	limit := b.limit
+	if limit == 0 {
+		limit = ReportLimit
+	}
+	if b.Len()+len(p) > limit {
 		b.overflow = true
 		b.cancel()
 		return 0, fmt.Errorf("backend output limit")
@@ -116,10 +121,14 @@ func (b *bounded) Write(p []byte) (int, error) {
 }
 
 func runProcess(ctx context.Context, java string, args []string) ([]byte, []byte, int, error) {
+	return runProcessLimit(ctx, java, args, ReportLimit)
+}
+
+func runProcessLimit(ctx context.Context, java string, args []string, limit int) ([]byte, []byte, int, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	out := &bounded{cancel: cancel}
-	stderr := &bounded{cancel: cancel}
+	out := &bounded{cancel: cancel, limit: limit}
+	stderr := &bounded{cancel: cancel, limit: limit}
 	cmd := exec.CommandContext(ctx, java, args...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	cmd.Cancel = func() error { return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) }

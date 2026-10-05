@@ -174,12 +174,12 @@ func TestJSONSuccessFailureAndSelection(t *testing.T) {
 		c := v.(map[string]any)
 		statuses[c["operationId"].(string)] = c["implementationStatus"].(string)
 	}
-	for _, id := range []string{"publication.inspect", "publication.validate", "publication.pack", "metadata.set", "plan", "apply", "workspace.open", "workspace.export", "task.diff", "task.accept", "task.reject"} {
+	for _, id := range []string{"version", "doctor", "publication.inspect", "publication.validate", "publication.pack", "metadata.set", "plan", "apply", "workspace.open", "workspace.export", "task.diff", "task.accept", "task.reject"} {
 		if statuses[id] != "available" {
 			t.Fatalf("missing implemented capability %s", id)
 		}
 	}
-	for _, id := range []string{"resource.rename", "workspace.list", "amp", "preview", "doctor"} {
+	for _, id := range []string{"resource.rename", "workspace.list", "amp", "preview"} {
 		if statuses[id] != "planned" {
 			t.Fatalf("overstated capability %s", id)
 		}
