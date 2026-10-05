@@ -75,6 +75,32 @@ func TestWorkspaceProcessHelper(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if mode == "limited-apply" {
+		defer w.Close()
+		var p Plan
+		if err := readEditJSON(w.root, "plans/"+os.Getenv("KEPUB_WORKSPACE_SOURCE")+".json", &p); err != nil {
+			t.Fatal(err)
+		}
+		b := editJSON(t, p)
+		signal.Ignore(unix.SIGXFSZ)
+		var limit unix.Rlimit
+		if err := unix.Getrlimit(unix.RLIMIT_FSIZE, &limit); err != nil {
+			t.Fatal(err)
+		}
+		// Intent fits exactly; the containing Execution start is larger.
+		// Publication/checkpoint therefore precede the real startup fault.
+		limit.Cur = uint64(len(b) + 1)
+		if err := unix.Setrlimit(unix.RLIMIT_FSIZE, &limit); err != nil {
+			t.Fatal(err)
+		}
+		e, err := w.Apply(b)
+		id, idErr := w.taskID()
+		if !errors.Is(err, unix.EFBIG) || idErr != nil || !validID(id) || e.TaskID != id || e.Status != "failed" || e.ReviewRequired || e.Conformance != "not_run" || digest(e.Plan) != digest(p) {
+			t.Fatalf("Apply lost published failure identity: %+v, %v; durable %q, %v", e, err, id, idErr)
+		}
+		fmt.Println("task-id", e.TaskID)
+		return
+	}
 	// Keep the handle live but deliberately omit Close, including on normal
 	// process exit. PID-file conventions cannot satisfy this test.
 	fmt.Println("owned")
@@ -90,6 +116,36 @@ func helper(t *testing.T, mode, dir, source string) *exec.Cmd {
 	c := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestWorkspaceProcessHelper$")
 	c.Env = append(os.Environ(), "KEPUB_WORKSPACE_HELPER="+mode, "KEPUB_WORKSPACE_DIR="+dir, "KEPUB_WORKSPACE_SOURCE="+source)
 	return c
+}
+
+func TestPublicApplyStartupFailureRetainsID(t *testing.T) {
+	w, dir := makeWorkspace(t)
+	p := planTitle(t, w, strings.Repeat("x", 4096))
+	w.Close()
+	out, err := helper(t, "limited-apply", dir, p.ID).CombinedOutput()
+	if err != nil {
+		t.Fatalf("public Apply fault: %v\n%s", err, out)
+	}
+	fields := strings.Fields(string(out))
+	if len(fields) < 2 || fields[0] != "task-id" || !validID(fields[1]) {
+		t.Fatalf("missing public Apply ID: %s", out)
+	}
+	id := fields[1]
+	if _, err := os.Stat(filepath.Join(dir, "tasks/active/edit-start.json")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("partial start published: %v", err)
+	}
+	w, err = Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Close()
+	d, err := w.TaskDiff(id)
+	if err != nil || d.Diff.Changed {
+		t.Fatalf("published failure diff: %+v, %v", d, err)
+	}
+	if _, err := w.Reject(id); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestRecoveryShortWriteCanBeRetried(t *testing.T) {
