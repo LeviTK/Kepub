@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/LeviTK/Kepub/internal/bookpath"
 )
 
 func put(t *testing.T, name string, data []byte) {
@@ -125,5 +127,37 @@ func TestTreeRejectsUnsafeEntries(t *testing.T) {
 			}
 			assertBytes(t, filepath.Join(outside, "secret"), []byte("do not read or change"))
 		})
+	}
+}
+
+func TestPublicationRootBoundedAndAnchored(t *testing.T) {
+	dir, outside := t.TempDir(), t.TempDir()
+	put(t, filepath.Join(dir, "text"), []byte("four"))
+	put(t, filepath.Join(outside, "text"), []byte("outside"))
+	r, err := openDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	a := publicationRoot{r}
+	if b, err := a.Read("text", 4); err != nil || string(b) != "four" {
+		t.Fatal("exact boundary", string(b), err)
+	}
+	if _, err := a.Read("text", 3); err == nil {
+		t.Fatal("oversize resource allowed")
+	}
+	if err := os.Symlink(outside, filepath.Join(dir, "linked")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Link(filepath.Join(outside, "text"), filepath.Join(dir, "hard")); err != nil {
+		t.Fatal(err)
+	}
+	for _, bp := range []bookpath.BookPath{"../text", "linked/text", "hard"} {
+		if _, err := a.Read(bp, 32); err == nil {
+			t.Fatal("unsafe resource allowed", bp)
+		}
+	}
+	if a.HasFile("linked/text") || a.HasFile("../text") || !a.HasFile("text") {
+		t.Fatal("unsafe or incorrect file membership")
 	}
 }

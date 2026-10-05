@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"unicode/utf8"
 
-	"github.com/LeviTK/Kepub/internal/archive"
 	"github.com/LeviTK/Kepub/internal/bookpath"
 	"github.com/LeviTK/Kepub/internal/fault"
 	"github.com/LeviTK/Kepub/internal/xmltext"
@@ -51,7 +50,7 @@ func (s TextSet) Validate() error {
 
 // ApplyText requires the caller to verify revisionId against its locked accepted
 // revision. Resource hash, manifest selection and byte intervals are rederived.
-func ApplyText(a *archive.Archive, p *Publication, s TextSet) ([]byte, bool, error) {
+func ApplyText(a ResourceReader, p *Publication, s TextSet) ([]byte, bool, error) {
 	if err := s.Validate(); err != nil {
 		return nil, false, err
 	}

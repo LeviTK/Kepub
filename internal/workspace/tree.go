@@ -169,6 +169,44 @@ func subdir(r *os.Root, name string) (*os.Root, error) {
 	return r.OpenRoot(name)
 }
 
+// publicationRoot reads a locked, tree-verified revision or checkpoint. It does
+// not own/delete the root and never substitutes for full-tree provenance checks.
+type publicationRoot struct{ root *os.Root }
+
+func (r publicationRoot) HasFile(bp bookpath.BookPath) bool {
+	if _, err := bookpath.Parse(string(bp)); err != nil {
+		return false
+	}
+	p, err := subdir(r.root, path.Dir(string(bp)))
+	if err != nil {
+		return false
+	}
+	defer p.Close()
+	i, err := p.Lstat(path.Base(string(bp)))
+	return err == nil && i.Mode().IsRegular()
+}
+
+func (r publicationRoot) Read(bp bookpath.BookPath, max int64) ([]byte, error) {
+	if _, err := bookpath.Parse(string(bp)); err != nil {
+		return nil, err
+	}
+	p, err := subdir(r.root, path.Dir(string(bp)))
+	if err != nil {
+		return nil, err
+	}
+	defer p.Close()
+	f, err := openRegular(p, path.Base(string(bp)))
+	if err != nil {
+		return nil, err
+	}
+	b, err := io.ReadAll(io.LimitReader(f, max+1))
+	err = errors.Join(err, f.Close())
+	if int64(len(b)) > max {
+		return nil, fmt.Errorf("resource %q exceeds parsing limit", bp)
+	}
+	return b, err
+}
+
 func syncDir(r *os.Root, name string) error {
 	f, err := r.Open(name)
 	if err != nil {

@@ -163,6 +163,11 @@ func Open(filename string, limits Limits) (*Archive, error) {
 	return a, nil
 }
 
+func (a *Archive) HasFile(p bookpath.BookPath) bool {
+	_, ok := a.Files[p]
+	return ok
+}
+
 func (a *Archive) Read(p bookpath.BookPath, max int64) ([]byte, error) {
 	n, ok := a.Files[p]
 	if !ok {

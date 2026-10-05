@@ -582,3 +582,109 @@ func TestAcceptedSnapshotDoesNotExposeStateEntries(t *testing.T) {
 		t.Fatal("caller mutation affected baseline", err)
 	}
 }
+
+func TestAcceptedHistoryAfterWorkspaceMove(t *testing.T) {
+	requireChecker(t)
+	for _, content := range []bool{false, true} {
+		t.Run(fmt.Sprintf("content=%v", content), func(t *testing.T) {
+			w, dir, _ := legalWorkspace(t, "3.0")
+			p := fieldPlan(t, w, "title", "title", "Title", "New")
+			if content {
+				p = contentPlan(t, w, "Reviewed")
+			}
+			e := applyPlan(t, w, p)
+			d, err := w.Accept(context.Background(), e.TaskID, validation.Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			oldPlan := fieldPlan(t, w, "creator", "creator", "Writer", "Next")
+			w.Close()
+			moved := dir + "-moved"
+			if err := os.Rename(dir, moved); err != nil {
+				t.Fatal(err)
+			}
+			w, err = Open(moved)
+			if err != nil {
+				t.Fatal("moved accepted history unavailable", err)
+			}
+			defer w.Close()
+			if w.current != d.RevisionID {
+				t.Fatal("move changed accepted revision")
+			}
+			if _, err := w.Apply(editJSON(t, oldPlan)); !errors.Is(err, ErrStalePlan) {
+				t.Fatal("old absolute-path plan not stale", err)
+			}
+			a, _, r, err := w.AcceptedSnapshot()
+			if err != nil {
+				t.Fatal(err)
+			}
+			a.Close()
+			if r.ID != d.RevisionID {
+				t.Fatal("snapshot lost revision")
+			}
+			applyPlan(t, w, fieldPlan(t, w, "creator", "creator", "Writer", "Next"))
+		})
+	}
+}
+
+func TestContentHistoryReplayWithoutTempDirectory(t *testing.T) {
+	requireChecker(t)
+	w, dir, _ := legalWorkspace(t, "3.0")
+	e := applyPlan(t, w, contentPlan(t, w, "Reviewed"))
+	if _, err := w.Accept(context.Background(), e.TaskID, validation.Options{}); err != nil {
+		t.Fatal(err)
+	}
+	next := contentRequest(t, w, "EPUB/chapter.xhtml", "Next body")
+	w.Close()
+	t.Setenv("TMPDIR", filepath.Join(t.TempDir(), "missing"))
+	w, err := Open(dir)
+	if err != nil {
+		t.Fatal("history replay requires temp copy", err)
+	}
+	defer w.Close()
+	if _, err := w.Plan(editJSON(t, next)); err != nil {
+		t.Fatal("content planning requires temp copy", err)
+	}
+	applyPlan(t, w, fieldPlan(t, w, "creator", "creator", "Writer", "Next"))
+}
+
+func TestTaskDiffInvalidCandidateMimetype(t *testing.T) {
+	for _, content := range []bool{false, true} {
+		for _, missing := range []bool{false, true} {
+			t.Run(fmt.Sprintf("content=%v/missing=%v", content, missing), func(t *testing.T) {
+				w, dir, _ := legalWorkspace(t, "3.0")
+				defer w.Close()
+				p := fieldPlan(t, w, "title", "title", "Title", "New")
+				if content {
+					p = contentPlan(t, w, "Reviewed")
+				}
+				e := applyPlan(t, w, p)
+				mime := filepath.Join(dir, candidate, "mimetype")
+				if missing {
+					if err := os.Remove(mime); err != nil {
+						t.Fatal(err)
+					}
+				} else {
+					put(t, mime, []byte("application/x-drift"))
+				}
+				r, err := w.TaskDiff(e.TaskID)
+				if err != nil || r.MatchesExecution || len(r.Diff.Changes) != 2 {
+					t.Fatalf("drift review unavailable: %+v %v", r, err)
+				}
+				if content {
+					if r.Content == nil || r.Content.NewValue != nil || r.Content.Unavailable == "" {
+						t.Fatal("missing content unavailable reason", r)
+					}
+				} else if r.Metadata.NewValue != nil || r.Metadata.Unavailable == "" {
+					t.Fatal("missing metadata unavailable reason", r)
+				}
+				if _, err := w.Accept(context.Background(), e.TaskID, validation.Options{}); !errors.Is(err, ErrCandidateDrift) {
+					t.Fatal("invalid candidate accepted", err)
+				}
+				if _, err := w.Reject(e.TaskID); err != nil {
+					t.Fatal("invalid candidate not rejectable", err)
+				}
+			})
+		}
+	}
+}

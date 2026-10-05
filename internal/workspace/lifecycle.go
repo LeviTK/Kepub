@@ -306,7 +306,12 @@ func (w *Workspace) TaskDiff(id string) (Review, error) {
 	}
 	a, frozen, err := archive.SnapshotDirectory(filepath.Join(w.dir, filepath.FromSlash(candidate)), archive.DefaultLimits)
 	if err != nil {
-		return r, err
+		if r.Content != nil {
+			r.Content.Unavailable = err.Error()
+		} else {
+			r.Metadata.Unavailable = err.Error()
+		}
+		return r, nil
 	}
 	defer a.Close()
 	if frozen.SHA256 != t.SHA256 {
@@ -632,7 +637,9 @@ func (w *Workspace) taskDigests(dir string, j *settlement) error {
 			return err
 		}
 	}
-	if id != j.Decision.TaskID || t.BaseRevision != j.Decision.BaseRevision || p.BaseRevision != t.BaseRevision || p.WorkspaceID != j.WorkspaceID || p.WorkspacePath != w.dir || digest(s.Plan) != digest(p) || digest(e.Plan) != digest(p) || e.Checkpoint != s.Checkpoint {
+	// Settled history remains bound to identity, stored plan and exact bytes,
+	// not its former host directory. Active/unconsumed plans retain path binding.
+	if id != j.Decision.TaskID || t.BaseRevision != j.Decision.BaseRevision || p.BaseRevision != t.BaseRevision || p.WorkspaceID != j.WorkspaceID || dir == "tasks/active" && p.WorkspacePath != w.dir || digest(s.Plan) != digest(p) || digest(e.Plan) != digest(p) || e.Checkpoint != s.Checkpoint {
 		return fmt.Errorf("settlement task provenance mismatch")
 	}
 	var snap Snapshot

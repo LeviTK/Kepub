@@ -14,7 +14,7 @@ import (
 	"slices"
 	"unicode/utf8"
 
-	"github.com/LeviTK/Kepub/internal/archive"
+	"github.com/LeviTK/Kepub/internal/bookpath"
 	"github.com/LeviTK/Kepub/internal/metadata"
 	"github.com/LeviTK/Kepub/internal/publication"
 )
@@ -317,16 +317,17 @@ func (w *Workspace) recomputeAt(ops []Operation, baseDir, revision string) ([]by
 	if err != nil {
 		return nil, nil, err
 	}
+	r, err := subdir(w.root, baseDir)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer r.Close()
+	a := publicationRoot{r}
 	if version == 2 {
 		param := ops[0].Params.(publication.TextSet)
 		if param.RevisionID != revision {
 			return nil, nil, ErrStalePlan
 		}
-		a, _, err := archive.SnapshotDirectory(filepath.Join(w.dir, filepath.FromSlash(baseDir)), archive.DefaultLimits)
-		if err != nil {
-			return nil, nil, err
-		}
-		defer a.Close()
 		p, err := publication.Load(a, w.state.Rootfile)
 		if err != nil {
 			return nil, nil, err
@@ -341,22 +342,7 @@ func (w *Workspace) recomputeAt(ops []Operation, baseDir, revision string) ([]by
 		}
 		return out, writes, nil
 	}
-	r, err := subdir(w.root, baseDir)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer r.Close()
-	p, err := subdir(r, path.Dir(w.state.Rootfile))
-	if err != nil {
-		return nil, nil, err
-	}
-	defer p.Close()
-	f, err := openRegular(p, path.Base(w.state.Rootfile))
-	if err != nil {
-		return nil, nil, err
-	}
-	b, err := io.ReadAll(io.LimitReader(f, publication.XMLLimit+1))
-	err = errors.Join(err, f.Close())
+	b, err := a.Read(bookpath.BookPath(w.state.Rootfile), publication.XMLLimit)
 	if err != nil {
 		return nil, nil, err
 	}

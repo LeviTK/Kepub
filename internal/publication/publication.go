@@ -207,7 +207,14 @@ type Publication struct {
 	Limitations       []Limitation      `json:"limitations"`
 }
 
-func Load(a *archive.Archive, selected string) (*Publication, error) {
+// ResourceReader supplies bounded bytes and the approved file inventory. Locked
+// workspace history can use its root directly without copying an entire book.
+type ResourceReader interface {
+	Read(bookpath.BookPath, int64) ([]byte, error)
+	HasFile(bookpath.BookPath) bool
+}
+
+func Load(a ResourceReader, selected string) (*Publication, error) {
 	b, err := a.Read("META-INF/container.xml", XMLLimit)
 	if err != nil {
 		return nil, err
@@ -295,7 +302,7 @@ func Load(a *archive.Archive, selected string) (*Publication, error) {
 		if e != nil {
 			return nil, e
 		}
-		_, exists := a.Files[bp]
+		exists := a.HasFile(bp)
 		p.Manifest = append(p.Manifest, Item{id, bookpath.Href(i.attr("href")), bp, i.attr("media-type"), i.attr("properties"), i.Attributes, exists})
 		if !exists {
 			p.Limitations = append(p.Limitations, Limitation{"MISSING_MANIFEST_RESOURCE", string(bp)})
@@ -342,7 +349,7 @@ func Load(a *archive.Archive, selected string) (*Publication, error) {
 		}
 	}
 	scan(pkg)
-	if _, ok := a.Files["META-INF/encryption.xml"]; ok {
+	if a.HasFile("META-INF/encryption.xml") {
 		b, e := a.Read("META-INF/encryption.xml", XMLLimit)
 		if e != nil {
 			return nil, e
@@ -363,7 +370,7 @@ func Load(a *archive.Archive, selected string) (*Publication, error) {
 		}
 		algorithms(enc)
 	}
-	if _, ok := a.Files["META-INF/signatures.xml"]; ok {
+	if a.HasFile("META-INF/signatures.xml") {
 		p.Limitations = append(p.Limitations, Limitation{"SIGNATURES", "Signatures preserved but not verified"})
 	}
 	return p, nil
