@@ -67,6 +67,24 @@ C2 首版命令为 `kepub content --workspace DIR --resource BOOK_PATH [--query 
 - limit 缺省 50，范围 1～200；按文档顺序返回。报告匹配元素总数、返回数量和 truncated；无命中是成功的空数组。返回文本累计上限 1 MiB，超限明确 `CONTENT_LIMIT`，不裁剪单节点文本或悄悄遗漏。所有上限校验在访问工作区前尽可能完成。
 - 整本与资源原字节不变；同文多处、实体、非 BMP、BOM/CRLF、命名空间、活动候选存在但只读 accepted、并发 busy、超限与哈希独立核对均须测试。本批不开放正文写入，也不把定位信息当编辑授权。
 
+### 2.2 C3 受限正文修改实施契约
+
+2026-10-05 用户授权实施；本节冻结本批接口，不代表尚未验收的操作已经 available。复用 `plan → apply → task diff → task accept/reject → workspace export`，不新增直接写文件命令。
+
+新增 `content.text.set` v1。请求使用 `schemaVersion:2`，恰好一个操作；params 必须完整提供 `bookPath`、`revisionId`、`resourceSha256`、`locatorVersion`、`locator`、`expectedOldValue`、`newValue`，不接受 null、重复／未知字段或字节偏移。这些字段的 JSON 顺序作为正文操作的规范编码顺序。前五项及旧文本取自同一次 `content` 返回，不能只按相似文本重找首个匹配。
+
+- BookPath 必须精确匹配所选 manifest 的 `application/xhtml+xml`，不是 href／本机路径；revisionId 等于当前 accepted，resourceSha256 是原资源的 64 位小写十六进制 SHA-256。版本／资源哈希过期返回既有 exit 4／`INPUT_DRIFT`，不生成候选。
+- locatorVersion 仅为 1；locator 非空、合法 UTF-8、不超过 4096 字节，按 C2 的结构 locator 精确匹配，不执行 XPath。只允许唯一直接 body 中、未处于 head/script/style/外来命名空间子树的 XHTML 元素；body 自身不可写。
+- 目标必须是无子元素、注释、CDATA 或处理指令的简单文本，且有独立起止标签。显式空元素 `<p></p>` 可写；自闭合元素不写。混合内容即使可以查询也拒绝编辑，no-op 同样校验支持子集。
+- 旧值按 XML 解码后的文本精确匹配，不 trim／Unicode 归一化。旧值和新值均不超过 1 MiB UTF-8 字节；允许空字符串，新值必须是合法 XML 文本。`<`、`&` 等只作为转义文本，不解释为 markup。目标外字节、属性、ID、href、BOM／换行、其他文件和 OPF 时间戳保持；no-op 完全不改字节。
+- 对同一受锁基线重解析、计算字节范围并局部替换，替换后再次解析并核对目标新值；沿用 XML 8 MiB／深度／token／索引限制。locator 不直接转换成用户控制的写偏移。参数、定位／旧值不匹配或不支持目标在 plan 阶段明确拒绝，沿用 exit 2／`INVALID_OPERATIONS`，不自动降级。
+
+**兼容和来源校验：** metadata 请求／plan schemaVersion 1、execution version 1、params 规范编码及现有 policy 摘要保持不变，包括支持旧 initial-only policy 的既有规则。新正文请求／plan schemaVersion 2、execution version 2，operationVersion 1；正文 policy 使用字符串 `kepub-content-text-v1:accepted-baseline;single-set;locator-v1;simple-text;no-timestamp;review-required;conformance-not-run` 的既有 digest 算法。v1 不能携带正文操作，v2 本批仅支持正文操作；版本／操作／policy／execution 的不匹配必须拒绝，不静默升级。workspace、revision、task、settlement 的现有外层格式不为本批重新编号。
+
+Apply、Open 恢复和 Accept 都须重新推导相同的单资源写集合及精确结果哈希，不能只改分派入口。正文 review 增加可选 `content`，包含 bookPath、locatorVersion、locator、oldValue、plannedValue、实际候选 newValue（不可读取时为 null）及可选 unavailable；不把计划新值当实际候选值。既有 metadata review 字段含义保持。候选漂移仍可 diff／reject，不得接受或沿用旧检查；接受及正式导出仍运行真实固定 EPUBCheck，不自动接受、不自动草稿。
+
+先完成保持 metadata 行为的必要重构并独立提交／回归，再加入正文能力。验收包括旧二进制生成的计划及待审任务、新旧版本组合拒绝、节点局部字节保留、陈旧读取绑定、写集合／执行记录篡改、恢复回滚，以及真实二进制正文接受和拒绝闭环。正文能力通过本批验收后才提升为 available；C4 模型运行、GUI 和正式检查器既有编码 href 兼容问题不进入本批。
+
 ## 3. 目标选择与全局约定
 
 ### 3.1 明确目标
