@@ -235,6 +235,12 @@ func Open(dir string) (_ *Workspace, err error) {
 	if err := w.recoverRestore(); err != nil {
 		return nil, err
 	}
+	// Committed journals have now consumed their staging data. Discard only
+	// reserved, uncommitted leftovers before execution recovery may start a
+	// new rollback; a killed pre-journal restore must not block its retry.
+	if err := clearStaging(r); err != nil {
+		return nil, err
+	}
 	if exists(r, "tasks/active") {
 		// Malformed XHTML is permitted; filesystem escapes are not. No parsing
 		// success/validation label is attached to an externally edited candidate.
@@ -248,9 +254,6 @@ func Open(dir string) (_ *Workspace, err error) {
 		} else if exists(r, "tasks/active/edit-start.json") || exists(r, "tasks/active/edit-result.json") {
 			return nil, fmt.Errorf("execution records without intent")
 		}
-	}
-	if err := clearStaging(r); err != nil {
-		return nil, err
 	}
 	return w, nil
 }

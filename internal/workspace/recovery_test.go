@@ -1,10 +1,80 @@
 package workspace
 
 import (
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/LeviTK/Kepub/internal/validation"
 )
+
+func TestInterruptedApplyWithPreJournalRestoreLeftovers(t *testing.T) {
+	for _, operation := range []string{"metadata", "content"} {
+		for _, phase := range []string{"partial-copy", "unpublished-journal"} {
+			t.Run(operation+"/"+phase, func(t *testing.T) {
+				var w *Workspace
+				var dir string
+				var p Plan
+				if operation == "metadata" {
+					w, dir = makeWorkspace(t)
+					p = planTitle(t, w, "New")
+				} else {
+					w, dir, _ = legalWorkspace(t, "3.0")
+					p = contentPlan(t, w, "Changed body")
+				}
+				e, out := prepareExecution(t, w, p)
+				put(t, filepath.Join(dir, candidate, p.WriteSet[0]), out)
+				if phase == "partial-copy" {
+					put(t, filepath.Join(dir, restoreNew, "partial"), []byte("unfinished restore copy"))
+				} else {
+					s, err := w.snapshot(e.Checkpoint)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if _, err := copyTree(w.root, checkpointDir(s.ID)+"/pub", restoreNew); err != nil {
+						t.Fatal(err)
+					}
+					if err := writeJSON(w.root, "staging/restore.json", restoreRecord{1, s.ID, s.Tree.SHA256}); err != nil {
+						t.Fatal(err)
+					}
+				}
+				put(t, filepath.Join(dir, "user-file"), []byte("outside reserved staging"))
+				w.Close()
+				for attempt := 0; attempt < 3; attempt++ {
+					var err error
+					w, err = Open(dir)
+					if err != nil {
+						t.Fatalf("recovery retry %d: %v", attempt, err)
+					}
+					got, err := w.Execution()
+					if err != nil || got.TaskID != e.TaskID || got.Status != "failed" || got.Failure != "interrupted apply" || got.ReviewRequired {
+						t.Fatalf("recovered execution: %+v, %v", got, err)
+					}
+					if treeAt(t, filepath.Join(dir, candidate)).SHA256 != p.InputTreeSHA256 {
+						t.Fatal("rollback did not restore exact baseline")
+					}
+					if _, err := w.TaskDiff(e.TaskID); err != nil {
+						t.Fatal(err)
+					}
+					if _, err := w.Accept(context.Background(), e.TaskID, validation.Options{}); !errors.Is(err, ErrTaskConflict) {
+						t.Fatalf("failed accepted: %v", err)
+					}
+					assertEmpty(t, filepath.Join(dir, "staging"))
+					assertEmpty(t, filepath.Join(dir, "journal"))
+					assertBytes(t, filepath.Join(dir, "user-file"), []byte("outside reserved staging"))
+					if attempt == 2 {
+						if _, err := w.Reject(e.TaskID); err != nil {
+							t.Fatal(err)
+						}
+					}
+					w.Close()
+				}
+			})
+		}
+	}
+}
 
 func TestRestoreInterruptionRecovery(t *testing.T) {
 	for _, step := range []string{"before-journal", "journal", "old-moved", "new-published", "backup-removed", "done"} {
