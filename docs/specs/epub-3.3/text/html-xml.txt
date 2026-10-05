@@ -1,0 +1,279 @@
+HTML Standard
+  
+  
+  
+  
+  
+  
+   
+   HTMLLiving Standard — Last Updated 5 October 2026
+   
+   
+
+   
+  
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+  
+
+  
+
+  ← 13.5 Named character references — Table of Contents — 15 Rendering →14 The XML syntax14.1 Writing documents in the XML syntax14.2 Parsing XML documents14.3 Serializing XML fragments14.4 Parsing XML fragments14 The XML syntax✔MDNHTML/XHTMLSupport in all current engines.Firefox2+Safari3.1+Chrome4+Opera9+Edge79+Edge (Legacy)12+Internet Explorer9+Firefox Android4+Safari iOS2+Chrome Android18+WebView Android2+Samsung Internet1.0+Opera Android10.1+
+
+  This section only describes the rules for XML resources. Rules for
+  text/html resources are discussed in the section above entitled "The HTML
+  syntax".
+
+  Using the XML syntax is not recommended, for
+  reasons which include the fact that there is no specification which defines the rules for how an
+  XML parser must map a string of bytes or characters into a Document object, as well
+  as the fact that the XML syntax is essentially unmaintained — in that, it’s not expected that any
+  further features will ever be added to the XML syntax (even when such features have been added to
+  the HTML syntax).
+
+  
+
+  14.1 Writing documents in the XML syntax
+
+  
+
+  The XML syntax for HTML was formerly referred to as "XHTML", but this
+  specification does not use that term (among other reasons, because no such term is used for the
+  HTML syntaxes of MathML and SVG).
+
+  The syntax for XML is defined in XML and Namespaces in XML. [XML]
+  [XMLNS]
+
+  This specification does not define any syntax-level requirements beyond those defined for XML
+  proper.
+
+  XML documents may contain a DOCTYPE if desired, but this is not required
+  to conform to this specification. This specification does not define a public or system
+  identifier, nor provide a formal DTD.
+
+  According to XML, XML processors are not guaranteed to process
+  the external DTD subset referenced in the DOCTYPE. This means, for example, that using entity references for characters in XML documents
+  is unsafe if they are defined in an external file (except for &lt;,
+  &gt;, &amp;,
+  &quot;, and &apos;).
+
+
+  
+
+  14.2 Parsing XML documents
+
+  This section describes the relationship between XML and the DOM, with a particular emphasis on
+  how this interacts with HTML.
+
+  An XML parser, for the purposes of this specification, is a construct that
+  follows the rules given in XML to map a string of bytes or characters into a
+  Document object.
+
+  At the time of writing, no such rules actually exist.
+
+  An XML parser is either associated with a Document object when it is
+  created, or creates one implicitly.
+
+  This Document must then be populated with DOM nodes that represent the tree
+  structure of the input passed to the parser, as defined by XML, Namespaces
+  in XML, and DOM. These nodes must be created using the following
+  algorithms:
+
+  For elements, create an element for a
+   token, given the element's prefix, to ensure the proper element interfaces are created and that custom
+   elements are set up correctly.For Text nodes, create a text node.For CDATASection nodes, create a CDATA section node.For Comment nodes, create a comment node.For ProcessingInstruction nodes, create a processing instruction
+   node.For DocumentType nodes, create a doctype.
+
+  For the operations that the XML parser performs on the Document's
+  tree, the user agent must act as if elements and attributes were individually appended and set
+  respectively so as to trigger rules in this specification regarding what happens when an element
+  is inserted into a document or has its attributes set, and DOM's requirements
+  regarding mutation observers mean that mutation observers are fired.
+  [XML] [XMLNS] [DOM] [UIEVENTS]
+
+  Between the time an element's start tag is parsed and the time either the element's end tag is
+  parsed or the parser detects a well-formedness error, the user agent must act as if the element
+  was in a stack of open elements.
+
+  This is used by various elements to only start certain processes once they are
+  popped off of the stack of open elements.
+
+  This specification provides the following additional information that user agents should use
+  when retrieving an external entity: the public identifiers given in the following list all
+  correspond to the URL given by this link. (This
+  URL is a DTD containing the entity
+  declarations for the names listed in the named character references section.) [XML]
+
+  -//W3C//DTD XHTML 1.0 Transitional//EN-//W3C//DTD XHTML 1.1//EN-//W3C//DTD XHTML 1.0 Strict//EN-//W3C//DTD XHTML 1.0 Frameset//EN-//W3C//DTD XHTML Basic 1.0//EN-//W3C//DTD XHTML 1.1 plus MathML 2.0//EN-//W3C//DTD XHTML 1.1 plus MathML 2.0 plus SVG 1.1//EN-//W3C//DTD MathML 2.0//EN-//WAPFORUM//DTD XHTML Mobile 1.0//EN-//WAPFORUM//DTD XHTML Mobile 1.1//EN-//WAPFORUM//DTD XHTML Mobile 1.2//EN
+
+  Furthermore, user agents should attempt to retrieve the above external entity's content when
+  one of the above public identifiers is used, and should not attempt to retrieve any other external
+  entity's content.
+
+  This is not strictly a violation of
+  XML, but it does contradict the spirit of XML's requirements. This is
+  motivated by a desire for user agents to all handle entities in an interoperable fashion without
+  requiring any network access for handling external subsets. [XML]
+
+  XML parsers can be invoked with XML scripting support enabled or XML scripting support disabled. Except where otherwise specified, XML parsers are
+  invoked with XML scripting support enabled.
+
+  
+  When an XML parser with XML scripting support
+  enabled creates a script element, it must have its parser
+  document set and its force async set to false. If
+  the parser was created as part of the XML fragment parsing algorithm, then the
+  element's already started must be set to true. When the element's end tag is
+  subsequently parsed, the user agent must perform a microtask checkpoint, and then
+  prepare the script element. If this
+  causes there to be a pending parsing-blocking script, then the user agent must run
+  the following steps:
+
+
+  Block this instance of the XML parser, such that the event loop
+   will not run tasks that invoke it.Spin the event loop until the parser's Document has no
+   style sheet that is blocking scripts and the pending parsing-blocking
+   script's ready to be parser-executed is true.Unblock this instance of the XML parser, such that tasks that invoke it can again be run.Execute the script element given by the pending parsing-blocking
+   script.Set the pending parsing-blocking script to null.
+  
+
+  Since the document.write() API is not
+  available for XML documents, much of the complexity in the HTML parser
+  is not needed in the XML parser.
+
+  When the XML parser has XML scripting support disabled,
+  none of this happens.
+
+  When an XML parser would append a node to a
+  template element, it must instead append it to the template element's
+  template contents (a DocumentFragment node).
+
+  This is a willful violation of XML; unfortunately,
+  XML is not formally extensible in the manner that is needed for template processing.
+  [XML]
+
+  
+  When an XML parser creates a Node object, its node document
+  must be set to the node document of
+  the node into which the newly created node is to be inserted.
+  
+
+  Certain algorithms in this specification spoon-feed the
+  parser characters one at a time. In such cases, the XML parser must act
+  as it would have if faced with a single string consisting of the concatenation of all those
+  characters.
+
+  
+  When an XML parser reaches the end of its input, it must stop
+  parsing, following the same rules as the HTML parser. An XML
+  parser can also be aborted, which must again be done in
+  the same way as for an HTML parser.
+  
+
+  For the purposes of conformance checkers, if a resource is determined to be in the XML
+  syntax, then it is an XML document.
+
+
+
+
+
+  14.3 Serializing XML fragments
+
+  The XML fragment serialization
+  algorithm for a Document or Element node either returns a fragment
+  of XML that represents that node or throws an exception.
+
+  For Documents, the algorithm must return a string in the form of a document entity, if none of the error cases
+  below apply.
+
+  For Elements, the algorithm must return a string in the form of an internal general parsed entity, if none of the
+  error cases below apply.
+
+  In both cases, the string returned must be XML namespace-well-formed and must be an isomorphic
+  serialization of all of that node's relevant child nodes, in tree order.
+  User agents may adjust prefixes and namespace declarations in the serialization (and indeed might
+  be forced to do so in some cases to obtain namespace-well-formed XML). User agents may use a
+  combination of regular text and character references to represent Text nodes in the
+  DOM.
+
+  
+  A node's relevant child nodes are those that apply given the following rules:
+
+  For template elementsThe relevant child nodes are the child nodes of the template
+   element's template contents, if any.For all other nodesThe relevant child nodes are the child nodes of node itself, if any.
+  
+
+  For Elements, if any of the elements in the serialization are in no namespace, the
+  default namespace in scope for those elements must be explicitly declared as the empty string. (This doesn't apply in the Document case.) [XML]
+  [XMLNS]
+
+  For the purposes of this section, an internal general parsed entity is considered XML
+  namespace-well-formed if a document consisting of an element with no namespace declarations whose
+  contents are the internal general parsed entity would itself be XML namespace-well-formed.
+
+  If any of the following error cases are found in the DOM subtree being serialized, then the
+  algorithm must throw an "InvalidStateError" DOMException
+  instead of returning a string:
+
+  A Document node with no child element nodes.A DocumentType node that has an external subset public identifier that contains
+   characters that are not matched by the XML PubidChar production. [XML]A DocumentType node that has an external subset system identifier that contains
+   both a U+0022 QUOTATION MARK (") and a U+0027 APOSTROPHE (') or that contains characters that are
+   not matched by the XML Char production. [XML]A node with a  local name containing a U+003A COLON (:).A node with a  local name that does not match the XML Name production. [XML]An Attr node with no namespace whose local name is the lowercase string "xmlns". [XMLNS]An Element node with two or more attributes with the same local name and
+   namespace.An Attr node, Text node, Comment node, or
+   ProcessingInstruction node whose data contains characters that are not matched by
+   the XML Char production. [XML]A Comment node whose data contains two adjacent U+002D HYPHEN-MINUS characters
+   (-) or ends with such a character.A ProcessingInstruction node whose target name is an ASCII
+   case-insensitive match for the string "xml".A ProcessingInstruction node whose target name contains a U+003A COLON (:).A ProcessingInstruction node whose data contains the string "?>".
+
+  These are the only ways to make a DOM unserialisable. The DOM enforces all the
+  other XML constraints; for example, trying to append two elements to a Document node
+  will throw a "HierarchyRequestError" DOMException.
+
+
+
+  14.4 Parsing XML fragments
+
+  
+  The XML fragment parsing algorithm given an Element or
+  DocumentFragment node target and a string input, runs the
+  following steps. They return a DocumentFragment.
+
+  Let context be target if
+   target is an Element; otherwise target's host.Assert: context is
+   non-null.Create a new XML parser.
+    Feed the parser just created the string corresponding to the start tag of context, declaring all the namespace prefixes that are
+    in scope on that element in the DOM, as well as declaring the default namespace (if any) that is
+    in scope on that element in the DOM.
+
+    A namespace prefix is in scope if the DOM lookupNamespaceURI() method
+    on the element would return a non-null value for that prefix.
+
+    The default namespace is the namespace for which the DOM isDefaultNamespace() method on the element would return true.
+
+    No DOCTYPE is passed to the parser, and therefore no
+    external subset is referenced, and therefore no entities will be recognized.
+   Feed the parser just created the string input.Feed the parser just created the string corresponding to the end tag of context.If there is an XML well-formedness or XML namespace well-formedness error, then throw a
+   "SyntaxError" DOMException.If the document element of the resulting Document has any
+   sibling nodes, then throw a "SyntaxError"
+   DOMException.Let newChildren be the resulting Document node's document
+   element's children, in tree order.Let fragment be the result of creating
+   a document fragment given context's node
+   document.For each node of newChildren, in tree order: append node to fragment.Return fragment.
+  
+
+  
+
+
+
+  
+
+  ← 13.5 Named character references — Table of Contents — 15 Rendering →

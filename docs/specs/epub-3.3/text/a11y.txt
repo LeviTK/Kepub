@@ -1,0 +1,2432 @@
+
+
+
+
+
+
+
+		
+		
+EPUB Accessibility 1.1
+		
+
+		
+		
+		
+		
+		
+		
+
+	
+
+
+
+
+
+
+
+
+
+	
+    
+  
+    EPUB Accessibility 1.1 Conformance and Discoverability Requirements for EPUB publications
+    W3C Recommendation 17 October 2024
+    
+      More details about this document
+      
+        This version:
+                https://www.w3.org/TR/2024/REC-epub-a11y-11-20241017/
+              
+        Latest published version:
+                https://www.w3.org/TR/epub-a11y-11/
+              
+        Latest editor's draft:https://w3c.github.io/epub-specs/epub33/a11y/
+        History:
+                    https://www.w3.org/standards/history/epub-a11y-11/
+                  
+                    Commit history
+                  
+        
+        Implementation report:
+                https://w3c.github.io/epub-specs/epub33/reports/
+              
+        
+        
+        
+        Editors:
+    Matt Garrish (DAISY Consortium)
+  
+    George Kerscher (DAISY Consortium)
+  
+    Charles LaPierre (Benetech)
+  
+    Gregorio Pellegrino (Fondazione LIA)
+  
+    Avneesh Singh (DAISY Consortium)
+  
+        
+        
+        Feedback:
+        GitHub w3c/epub-specs
+        (pull requests,
+        new issue,
+        open issues)
+      public-pm-wg@w3.org with subject line [epub-a11y-11] … message topic … (archives)
+        Errata:https://w3c.github.io/epub-specs/epub33/errata.html
+        This document is also available in this non-normative format:
+    EPUB 3
+  
+      
+    
+    
+          See also
+          
+            translations.
+        
+    
+    
+	Copyright © 1999-2024
+	International Digital Publishing Forum
+	and
+	World Wide Web Consortium. 
+	W3C® 
+	liability, 
+	trademark and 
+	permissive document license rules apply.
+
+    
+  
+		
+		Abstract
+			This specification specifies content conformance requirements for verifying the accessibility of EPUB®
+				Publications. It also specifies accessibility metadata requirements for the discoverability of EPUB
+				publications.
+		
+		Status of This DocumentThis section describes the status of this
+      document at the time of its publication. A list of current W3C
+      publications and the latest revision of this technical report can be found
+      in the W3C technical reports index at
+      https://www.w3.org/TR/.
+    This document was published by the Publishing Maintenance Working Group as
+    a Recommendation using the
+        Recommendation track. 
+  
+      W3C recommends the wide deployment of this specification as a standard for
+      the Web.
+    
+      A W3C Recommendation is a specification that, after extensive
+      consensus-building, is endorsed by
+      W3C and its Members, and
+      has commitments from Working Group members to
+      royalty-free licensing
+      for implementations.
+      Future updates to this Recommendation may incorporate
+            new features.
+    
+    
+        This document was produced by a group
+        operating under the
+        W3C Patent
+          Policy.
+      
+    
+                W3C maintains a
+                public list of any patent disclosures
+          made in connection with the deliverables of
+          the group; that page also includes
+          instructions for disclosing a patent. An individual who has actual
+          knowledge of a patent which the individual believes contains
+          Essential Claim(s)
+          must disclose the information in accordance with
+          section 6 of the W3C Patent Policy.
+        
+  
+                      This document is governed by the
+                      03 November 2023 W3C Process Document.
+                    Table of ContentsAbstractStatus of This Document1. Introduction1.1 Overview1.2 Success techniques1.2.1 Internationalization1.3 Application to older versions1.4 Terminology1.5 Conformance2. Discoverability2.1 Introduction2.2 Package metadata2.3 Linked metadata records3. Accessible publications3.1 Introduction3.2 Relationship to WCAG3.3 WCAG conformance3.3.1 WCAG conformance requirements3.3.2 Evaluating WCAG conformance3.3.2.1 Page and publication3.3.2.2 Applying the conformance criteria3.4 EPUB requirements3.4.1 Page navigation3.4.1.1 Overview3.4.1.2 Applicability3.4.1.3 Objectives3.4.1.3.1 Pagination source3.4.1.3.2 Page list3.4.1.3.3 Page breaks3.4.2 Synchronized text-audio playback3.4.2.1 Overview3.4.2.2 Applicability3.4.2.3 Objectives3.4.2.3.1 Completeness3.4.2.3.2 Reading order3.4.2.3.3 Skippability3.4.2.3.4 Escapability3.4.2.3.5 Navigation document3.5 Conformance reporting3.5.1 Introduction3.5.2 Publication conformance3.5.2.1 Other conformance claims3.5.3 Evaluator information3.5.3.1 Evaluator name3.5.3.2 Evaluation date3.5.3.3 Evaluator credentials3.5.3.4 Evaluator report3.5.4 Re-evaluating conformance4. Optimized publications5. Distribution6. Privacy and securityA. EPUB accessibility vocabularyA.1 OverviewA.1.1 About this vocabularyA.1.2 ReferencingA.1.3 Certifier propertiesA.1.3.1 certifiedByA.1.3.2 certifierCredentialA.1.3.3 certifierReportB. IndexB.1 Terms defined by this specificationB.2 Terms defined by referenceC. Change logD. AcknowledgementsE. ReferencesE.1 Normative referencesE.2 Informative references
+		1. Introduction
+			
+
+			1.1 OverviewThis section is non-normative.
+				
+
+				This specification, EPUB Accessibility, addresses two key needs in the EPUB ecosystem:
+
+				
+					discoverability of the accessible qualities of EPUB publications; and
+					evaluation and certification of accessible EPUB publications.
+				
+
+				The provision of accessibility metadata facilitates informed decisions about the usability of an EPUB
+					publication. Consumers can review the qualities of the content and decide whether an EPUB
+					publication is appropriate for their needs, regardless of whether it meets the bar of accessible
+					certification. At a minimum, all EPUB publications that conform to this specification meet the
+					accessibility metadata requirements described in 2. Discoverability.
+
+				Although EPUB creators have always been
+					able to create EPUB publications with a high degree of accessibility, this specification sets formal
+					requirements for certifying content accessible. These requirements provide EPUB creators a clear set
+					of guidelines to evaluate their content against and allows certification of quality. An accessible
+					EPUB publication is one that meets the accessibility requirements described in 3. Accessible publications.
+
+				The specification also discusses the practice of optimizing EPUB publications for specific reading
+					modalities. In these cases, the content cannot meet the broad accessibility requirements of this
+					specification, but by following its discoverability and reporting requirements EPUB creators can
+					improve the ability of users to determine if the content still meets their needs. Refer to 4. Optimized publications for more information.
+
+				The specification also addresses the impact of distribution on the accessibility and discoverability
+					of content in 5. Distribution.
+
+				This specification does not target a single version of EPUB. It is applicable to EPUB publications
+					that conform to any version or profile, including future versions of the standard.
+
+				Ideally, these guidelines help evaluate any digital publication built on Open Web Platform
+					technologies, although ensuring such application is outside the scope of this specification.
+
+				Note
+					For additional background on the decisions that went into this specification, refer to EPUB Accessibility Frequently Asked
+							Questions.
+				
+			
+
+			1.2 Success techniquesThis section is non-normative.
+				
+
+				This specification takes an abstract approach to the accessibility requirements for EPUB publications, similar to how
+					WCAG [wcag2] separates its accessibility guidelines from the techniques to achieve them. This
+					approach allows the guidelines to remain stable even as the format evolves.
+
+				To facilitate this approach, the companion EPUB Accessibility
+						Techniques [epub-a11y-tech-11] document outlines conformance techniques. These techniques
+					explain how to meet the requirements of this specification for different versions of EPUB.
+
+				1.2.1 Internationalization
+					
+
+					This specification is also designed to address the accessibility needs of users independent of
+						what languages they read. The same is true for the principles and success criteria defined in
+						[wcag2]. The goal is to ensure that users can fully consume the information of a publication
+						regardless of their preferred reading modality.
+
+					At the same time, the language and writing conventions of the authored text will influence the
+						techniques necessary to meet the accessibility requirements. EPUB requires support for Unicode text
+						[epub-3], for example, which ensures the correct character data can be used (i.e., EPUB creators do not have to use
+						images of text). Although this is an important feature, it is often not enough on its own to
+						ensure that the text is fully accessible in any given language (e.g., additional information
+						about directionality, emphasis, pronunciation, etc. may also be needed).
+
+					As a consequence, there may be language- or culture-specific practices for meeting accessibility
+						requirements. Whether these practices are defined within this specification and its techniques
+						or elsewhere (e.g., in WCAG techniques or language-specific best practice recommendations) will
+						depend on whether the issues are specific to EPUB or broadly affect all web content.
+				
+			
+
+			1.3 Application to older versionsThis section is non-normative.
+				
+
+				This specification is applicable to any EPUB publication, even if the content conforms to an older version of EPUB that does not
+					refer to this specification (e.g., EPUB 2 [opf-201]).
+
+				Creators of such EPUB publications should create content in conformance with the accessibility and
+					discoverability requirements of this specification. EPUB creators should also upgrade to the
+					latest version of EPUB to get access to the most advanced accessibility features and techniques.
+
+				Note that not all metadata expressions defined in this specification are supported in older version
+					of EPUB. EPUB 2, in particular, does not support the refines attribute
+					[epub-3]. If EPUB creators cannot avoid expressions that require this attribute, they will have to
+					accept a certain amount of ambiguity in their statements (i.e., relationships between expression may
+					only be apparent by their placement in the package document metadata).
+			
+
+			1.4 Terminology
+				
+
+				This specification uses terminology defined in
+						EPUB 3 [epub-3].
+
+				It also defines the following term:
+
+				
+					assistive
+						technology
+					
+						This specification uses the definition of
+								assistive technology from [wcag2].
+						In the case of EPUB, an assistive technology is not always a separate application from a reading system. Reading
+							systems often integrate features of standalone assistive technologies, such as
+							text-to-speech playback.
+					
+				
+
+				Note
+					Only the first instance of a term in a section links to its definition.
+				
+			
+
+			1.5 ConformanceAs well as sections marked as non-normative, all authoring guidelines, diagrams, examples, and notes in this specification are non-normative. Everything else in this specification is normative.
+        The key words MAY, MUST, MUST NOT, OPTIONAL, SHOULD, and SHOULD NOT in this document
+        are to be interpreted as described in
+        BCP 14
+        [RFC2119] [RFC8174]
+        when, and only when, they appear in all capitals, as shown here.
+      
+		
+		2. Discoverability
+			
+
+			2.1 IntroductionThis section is non-normative.
+				
+
+				Unlike web pages, EPUB creators distribute
+						EPUB publications through many
+					channels for personal consumption — a model that has made EPUB a successful format for ebooks and
+					other types of digital publications. A consequence of this model, however, is that specific details
+					about the accessibility of a publication must travel with it.
+
+				An online bookstore aggregating content from publishers and authors, for example, does not know the
+					production quality that went into each submission unless the publisher informs them through
+					metadata.
+
+				Ensuring that any interested party can discover the accessible qualities of an EPUB publication is
+					therefore a primary concern. An EPUB publication can have more than one set of sufficient access modes depending on the alternatives provided to
+					enable reading in another mode. For example, if alternative text and descriptions are provided for
+					all the images in a publication, it would have both its default textual and visual sufficient access
+					mode and a purely textual sufficient access mode.
+
+				Similarly, content that does not meet the accessibility requirements of this specification does not
+					necessarily fail to meet the needs of individual users.
+
+				Only through the provision of rich metadata can a user decide if the content is suitable for
+					them.
+			
+
+			2.2 Package metadata
+				
+
+				All EPUB publications MUST include
+					[schema-org] accessibility metadata in the package document that exposes their
+					accessible properties, regardless of whether the publications also meet the accessibility or optimization
+					requirements.
+
+				EPUB publications MUST include the following accessibility metadata:
+
+				
+					
+						accessMode — a
+							human sensory perceptual system or cognitive faculty necessary to process or perceive the
+							content (e.g., textual, visual, auditory, tactile).
+					
+
+					
+						accessibilityFeature — features and adaptations that contribute to the overall
+							accessibility of the content (e.g., alternative text, extended descriptions, captions).
+					
+
+					
+						accessibilityHazard — any potential hazards that the content presents (e.g.,
+							flashing, motion simulation, sound).
+					
+				
+
+				EPUB publications SHOULD include the following [schema-org] accessibility metadata:
+
+				
+					
+						accessibilitySummary — a human-readable summary of the accessibility that
+							complements, but does not duplicate, the other discoverability metadata. The summary also
+							describes any known deficiencies (e.g., lack of extended descriptions, specific
+							hazards).
+					
+
+					
+						accessModeSufficient — a set of one or more access modes sufficient to consume the
+							content without significant loss of information. An EPUB publication can have more than one
+							set of sufficient access modes for its consumption depending on the types of content it
+							includes (i.e., unlike access modes, this property
+							takes into account any alternatives for content that is not broadly accessible, such as the
+							inclusion of transcripts for audio content).
+					
+				
+
+				EPUB creators MAY include additional
+					[schema-org] accessibility metadata not specified in this section.
+
+				Note
+					This specification assumes that conformance and discoverability metadata will be processed and
+						presented in a human-readable manner, removing the need for a summary unless there is additional
+						information to express. Such processing is not available in all market segments, however,
+						particularly in library systems. Publishers should consider this limitation when deciding
+						whether to include a summary and what to state in it.
+				
+
+				Note
+					For the complete list of approved terms to use with these properties, refer to the Schema.org Accessibility Properties
+							for Discoverability Vocabulary [a11y-discov-vocab].
+				
+
+				Note
+					See Discovery Metadata Techniques
+						[epub-a11y-tech-11] for more information on these properties and how to include them in
+						different versions of EPUB. See also Include
+							accessibility metadata in distribution records [epub-a11y-tech-11] for more
+						information on including accessibility metadata in other formats.
+				
+			
+
+			2.3 Linked metadata records
+				
+
+				Accessibility metadata can also be included in linked records [epub-3] (i.e., metadata records referenced from link
+					elements), but the inclusion of such metadata solely in a linked record does not satisfy the
+					discoverability requirements of this specification.
+			
+		
+		3. Accessible publications
+			
+
+			3.1 IntroductionThis section is non-normative.
+				
+
+				EPUB builds on the Open Web Platform, with HTML, CSS, JavaScript, and SVG the core technologies used
+					for content authoring. Leveraging these technologies allows EPUB creators to author EPUB publications with a high degree
+					of accessibility through the application of established web accessibility techniques, such as using
+					native elements and controls whenever possible and enhancing custom interactive content with
+					[wai-aria] roles, states, and properties. Plus, whenever possible, the EPUB community adds
+					publishing accessibility needs to these standards — for example, through the creation of the
+					[dpub-aria-1.0] role module. It is not necessary for anyone familiar with web accessibility to
+					learn a new accessibility framework to make EPUB publications accessible.
+
+				The primary source for producing accessible web content is the W3C's Web Content Accessibility
+					Guidelines (WCAG) [wcag2], which establish benchmarks for accessible content. WCAG defines four
+					high-level content principles — that content be perceivable, operable, understandable, and robust.
+					These principles are also central to creating accessible EPUB publications, so it is no surprise
+					that this specification builds on the extensive work done in WCAG.
+
+				This section defines how to apply the conformance criteria defined in
+						WCAG to EPUB publications. It also adds additional requirements
+						unique to EPUB publications, and defines conformance reporting
+						requirements.
+
+				EPUB publications authored to comply with the requirements in this section will have a high degree of
+					accessibility for users with a wide variety of reading needs and preferences.
+			
+
+			3.2 Relationship to WCAGThis section is non-normative.
+				
+
+				WCAG [wcag2] and its associated techniques
+					provide extensive coverage of issues and solutions for web content accessibility, covering
+					everything from multimedia to interactive content to structured markup and more. They represent the
+					foundation that this specification builds upon.
+
+				This specification does not repeat the requirements or techniques introduced in those documents, as
+					it risks breaking compatibility between the two standards (e.g., putting guidance out of sync, or in
+					conflict). At the same time, although this specification does not call out those requirements, it
+					does not diminish their importance in creating EPUB publications that are
+					accessible.
+
+				This specification instead defines how to apply WCAG to an EPUB publication — which is a collection of web documents as opposed to a single page — and
+					adds an additional set of requirements. These requirements are no more
+					or less important than those covered in WCAG; they are simply necessary to follow for EPUB
+					publications. (Each requirement explains its relationship to WCAG in its respective section.)
+
+				The same is true of the techniques in the EPUB Accessibility Techniques document
+					[epub-a11y-tech-11]. It provides coverage of techniques that are unique to EPUB publications, or
+					that need clarification in the context of an EPUB publication. It does not mean that the rest of the
+					WCAG techniques are not applicable.
+
+				As a result, although EPUB creators can
+					read this section without deep knowledge of WCAG conformance, to implement the accessibility
+					requirements of this specification requires an understanding of WCAG.
+
+				Because this specification adds requirements that are not a part of WCAG, an EPUB publication can
+					conform to WCAG without conforming to this specification.
+			
+
+			3.3 WCAG conformance
+				
+
+				3.3.1 WCAG conformance requirements
+					
+
+					To conform to this specification, an EPUB publication:
+
+					
+						
+							MUST, at the minimum, meet the requirements of WCAG 2.0 [wcag20],
+								but it is strongly recommended that it meet the requirements of the latest recommended version of WCAG 2.
+						
+
+						
+							MUST, for whichever version of WCAG 2 selected, meet the requirements
+								of Level A, but it is strongly recommended that it meet
+								the requirements of Level AA.
+							Note
+								Although conforming at level AAA is not required by
+									this specification, EPUB
+										creators are encouraged to follow the practices detailed in AAA success
+									criteria when producing accessible EPUB publications.
+							
+						
+					
+
+					The reporting flexibility offered by these requirements is to ensure that this specification can
+						be adapted for use in regions that mandate accessibility but without negating or superseding the
+						requirements in effect in those regions.
+
+					This specification sets the baseline requirement to WCAG 2.0 Level A, for example, primarily to
+						provide EPUB creators backwards compatibility for older content and flexibility to encourage
+						adoption of accessible production where no formal requirements exist. Most accessibility
+						practitioners do not recognize this level as providing a high degree of accessibility,
+						however.
+
+					Ideally, EPUB creators should try to conform to the latest version of WCAG 2 at Level AA, but
+						local and national laws, or procurer or distributor requirements, will define the formal
+						thresholds they must meet.
+
+					Note
+						Examples of legislative requirements for accessibility include the Directive
+								2019/882 in the European Union and Section 508 of the Rehabilitation Act of 1973 in the United States. EPUB
+							publications will need to meet more than just the basic Level A success criteria to be
+							compliant with these laws.
+					
+
+					Keeping pace with WCAG has the benefit of continuously enhancing access for users. As web
+						technologies change and improve, and awareness of conditions that impede access evolve, the
+						standard adds new requirements. Meeting these additional requirements helps ensure EPUB
+						publications employ the most up-to-date techniques. Meeting the requirements of older versions,
+						while still helpful, can result in a less optimal reading experience.
+
+					Similarly, legal frameworks and policies often cite Level AA conformance as the benchmark for
+						accessibility. The reason is that it provides the greatest range of improvements that EPUB
+						creators can realistically implement. When EPUB creators meet only Level A conformance, they
+						compromise their content for various user groups, resulting in a less optimal reading
+						experience.
+
+					Note
+						The W3C Accessibility Guidelines Working Group is
+							currently developing WCAG 3. As this version potentially represents a significant departure
+							from WCAG 2, a future version of this specification will address conformance requirements
+							related to it. EPUB creators are encouraged to adopt WCAG 3 once it is stable and widely
+							recognized, but conformance to the new version is not a requirement of this standard.
+					
+				
+
+				3.3.2 Evaluating WCAG conformance
+					
+
+					3.3.2.1 Page and publication
+						
+
+						The WCAG principles [wcag2] focus on the
+							evaluation of individual web pages, but an EPUB publication more
+							closely resembles what WCAG refers to as a set of
+								web pages: "[a] collection of web pages that share a common purpose" [wcag2].
+
+						Consequently, when evaluating the accessibility of an EPUB publication, EPUB creators cannot review
+							individual pages — or EPUB content documents, as they are known in EPUB 3 — in isolation.
+							Rather, EPUB creators MUST evaluate their accessibility as part of the larger work.
+
+						For example, it is not sufficient for EPUB creators to order the content within individual EPUB content documents
+							if they list the documents in the wrong order in the spine. Likewise, including a title
+							for every EPUB content document is complementary to providing a title for the publication:
+							the overall accessibility decreases if either is missing.
+
+						EPUB creators MUST evaluate the WCAG guidelines for content to be perceivable, operable,
+							understandable, and robust against the full EPUB publication, not only against each EPUB
+							content document within it.
+
+						The EPUB Accessibility Techniques [epub-a11y-tech-11] provide more information about
+							applying these guidelines to EPUB publications.
+					
+
+					3.3.2.2 Applying the conformance criteria
+						
+
+						When evaluating an EPUB
+								publication, the WCAG conformance criteria
+							[wcag2] are applied as follows:
+
+						
+							When determining compliance with a conformance level, the whole EPUB publication MUST
+								meet the conformance requirements of the level claimed.
+
+							EPUB creators MUST NOT use
+								EPUB's fallback mechanisms to provide a conforming alternate version
+								[wcag2], as there is no reliable way for users to access such fallbacks. If an EPUB
+								creator uses fallbacks, both the primary content and its fallback(s) MUST meet the
+								requirements for the conformance level claimed. EPUB-specific fallback mechanisms
+								include manifest
+									fallbacks [epub-3], bindings [epub-3] and content switching via the epub:switch
+									element [epub-3].
+
+							The "Full Pages" requirement [WCAG2] -- that parts of a
+								page cannot be excluded when making a conformance claim -- applies to every EPUB content
+									document in the EPUB publication (i.e., they must all conform in full to the
+								conformance level claimed).
+						
+					
+				
+			
+
+			3.4 EPUB requirements
+				
+
+				3.4.1 Page navigation
+					
+
+					3.4.1.1 OverviewThis section is non-normative.
+						
+
+						Statically paginated content is still ubiquitous, as print continues to be the most consumed
+							medium for books both among the general reading public and in educational settings. Print is
+							not the only source of static pagination, either: static page boundaries are also present in
+							fixed-layout digital publications.
+
+						As a result, non-visual readers face disadvantages relative to their peers in environments
+							that use statically paginated content as they cannot easily locate the same locations in a
+							publication (e.g., if a teacher instructs students to all turn to a specific page).
+
+						The inclusion of page boundary locations helps bridge this disparity by ensuring the choice
+							of reflowable media does not disadvantage those users.
+
+						Providing page navigation also helps in reflowable publications that do not have a statically
+							paginated equivalent. The default pagination of these publications by reading systems is not
+							static since it changes depending on the viewport size and user's font settings. As a result, coordinating locations among
+							users of the same EPUB
+								publication can be complicated without static references.
+
+						The inclusion of page navigation represents one method of achieving the Multiple Ways success criterion [wcag2], as it
+							provides another meaningful way for users to access the content (e.g., in addition to the
+							table of contents, linear reading order and any other navigation aids).
+
+						Given the importance of page navigation in mixed print/digital environments, the requirement
+							to include this feature has higher precedence than it would solely as one of many ways to
+							meet the Multiple Ways success criterion.
+
+						Note
+							Refer to Page
+									navigation [epub-a11y-tech-11] for more information on the inclusion of page
+								navigation in EPUB publications.
+						
+					
+
+					3.4.1.2 Applicability
+						
+
+						An EPUB publication SHOULD
+							include page navigation whenever any of the following cases is true:
+
+						
+							the EPUB creator identifies
+								the EPUB publication as the dynamically paginated equivalent of a statically paginated
+								publication (e.g., included in a print/digital bundle);
+
+							the EPUB creator offers the EPUB publication as an alternative to a statically paginated
+								publication in an environment where they can reasonably predict the use of both versions
+								(e.g., educational settings); or
+
+							the EPUB creator generates the EPUB publication and a statically paginated publication
+								from a workflow that allows the retention of page break locations across formats.
+						
+
+						EPUB creators MAY include page navigation in reflowable EPUB publications without statically
+							paginated equivalents.
+
+						When EPUB creators include page navigation, the objectives defined in this section apply to
+							the EPUB publication.
+					
+
+					3.4.1.3 Objectives
+						
+
+						3.4.1.3.1 Pagination source
+							
+
+							
+								Objective
+								
+									Identify the source of static page break locations.
+								
+
+								Understanding this Objective
+								
+									Users need to know the source of the pagination in an EPUB publication
+										to determine whether it will be useful for their needs. Print publications, for
+										example, produced in both hard and soft cover editions will have different
+										pagination. Different editions of the same book often also have different
+										pagination.
+									Including a recognizable identifier for the statically paginated source, such as
+										its ISBN or ISSN, ensures that users can determine which version the pagination
+										corresponds to.
+									If EPUB creators
+										insert pagination as a navigation aid for digital-only publications, they must
+										not specify a source (i.e., do not identify the current publication as the
+										source of its own pagination).
+								
+
+								Meeting this Objective
+
+								
+									When an EPUB publication includes page break
+											markers and/or a page list that correspond
+										to a statically-paginated version of the publication, EPUB creators MUST
+										identify that source in the package document
+										metadata.
+									Note
+										Refer to Identifying the
+												pagination source [epub-a11y-tech-11] for more information on
+											meeting this objective.
+									
+								
+							
+						
+
+						3.4.1.3.2 Page list
+							
+
+							
+								Objective
+								
+									Provide navigation to static page break locations.
+								
+
+								Understanding this Objective
+								
+									The page list is the primary means of navigating to page break locations as it
+										provides a list of links to each of the static page break locations in the EPUB
+										publication.
+									Reading systems
+										typically use this list to generate a "go to page" interface in which users can
+										plug in the page number that they wish to move to, but sometimes offer users the
+										ability to access the full list and select the page number to go to.
+									Without a page list, page navigation becomes extremely difficult as it would rely
+										on navigating the individual page break markers
+										(if they are even present).
+								
+
+								Meeting this Objective
+								
+									An EPUB publication MUST include a page list.
+									EPUB creators SHOULD
+										include links to all pages of content reproduced from the source (i.e., they do
+										not have to provide links for blank pages or content not reproduced in the
+										digital edition).
+									EPUB creators MUST include links to all page break
+											markers in the content.
+									EPUB creators should include links for all pages in the source whether they are
+										reproduced or not, but this is not a requirement.
+									Note
+										Refer to Provide a page list
+											[epub-a11y-tech-11] for more information on meeting this objective.
+									
+								
+							
+						
+
+						3.4.1.3.3 Page breaks
+							
+
+							
+								Objective
+								
+									Provide static page break locations.
+								
+
+								Understanding this Objective
+								
+									Inserting page break markers into an EPUB publication
+										provides users with context about where they are in the text. Assistive
+											technologies can use this information to announce the current page
+										number the user is on, for example, if the user wants to cite something on the
+										page.
+									The inclusion of page break markers can also allow users to move quickly forwards
+										and backwards by page without having to access the page list each time.
+									The inclusion of these markers also simplifies the creation of a page list, as they provide easily referenced
+										destinations for the links.
+								
+
+								Meeting this Objective
+								
+									Inclusion of page break markers in an EPUB publication is OPTIONAL.
+									If an EPUB creator
+										includes page break markers:
+									
+										they SHOULD include page break markers for all pages reproduced from the
+											source (i.e., blank pages and content not reproduced in the digital edition
+											do not require markers).
+										they should include page break markers for all pages in the source (whether
+											reproduced or not), but this is not a requirement.
+									
+									In addition, if page numbers are read aloud in a synchronized text-audio playback
+										of the content (e.g., EPUB 3 media overlays [epub-3]), EPUB creators MUST
+										identify the page numbers in the markup that controls the playback.
+									Note
+										Refer to Provide page break
+												markers [epub-a11y-tech-11] for more information on meeting this
+											objective.
+									
+								
+							
+						
+					
+				
+
+				3.4.2 Synchronized text-audio playback
+					
+
+					3.4.2.1 OverviewThis section is non-normative.
+						
+
+						The provision of synchronized text-audio playback helps address various user needs. It not
+							only enables a seamless visual and auditory reading experience from beginning to end of an
+								EPUB publication, but is
+							useful to users who only require audio playback (e.g., who cannot see the text or are
+							prevented from reading visually due to motion-sickness) or who only benefit from reading
+							with text highlighting (e.g., readers with dyslexia).
+
+						Unlike purely linear listening experiences, EPUB with synchronized text-audio playback
+							preserves the user's ability to navigate around the publication, such as via the table of
+							contents, and also introduces audio-centric reading features like phrase navigation, and
+							ways to control which parts of the content are read aloud.
+
+						In order to offer users greater control over content presentation, EPUB creators need to add
+							structure and semantics so that the reading system has the
+							necessary context to enable this type of user experience. With greater context, a reading
+							system can provide the ability to skip past secondary content that interferes with the
+							primary narrative and escape users from deeply nested structures like tables.
+
+						Adding structure and semantics to synchronized text-audio playback broadly falls under the
+							objective of the Info and Relationships success
+								criterion [wcag2]. Without structured and semantically meaningful playback
+							sequences, the effect is to deprive users of rich navigation of the content.
+					
+
+					3.4.2.2 Applicability
+						
+
+						EPUB publications with
+							synchronized text-audio playback MUST conform to all requirements in [epub-3]. It is not
+							necessary to meet any additional requirements beyond those defined in [epub-3] to be
+							conformant with this specification.
+
+						To maximize the effectiveness of synchronized text-audio playback for people with different
+							reading needs, however, EPUB
+								creators are strongly encouraged to meet the OPTIONAL
+								objectives defined in the next section.
+
+						Note
+							EPUB creators do not have to include synchronized text-audio playback in their EPUB
+								publications, only ensure it conforms to these requirements when present.
+						
+					
+
+					3.4.2.3 Objectives
+						
+
+						3.4.2.3.1 Completeness
+							
+
+							
+								Objective
+								
+									Ensure that all text content is available in audio.
+								
+
+								Understanding this Objective
+								
+									Although it is possible for users who require a publication in audio form to use
+										text-to-speech playback, the experience is considerably poorer than when
+										pre-recorded narration is provided. Text-to-speech engines have limited built-in
+										vocabularies, causing them to mangle and mispronounce most uncommon words they
+										encounter. As a result users have to have words repeated and spelled out to make
+										sense of the content, slowing down their reading and reducing comprehension.
+									For this reason, it is important to provide narration for the full text of a
+										publication in addition to the full text. Users can then decide which reading
+										modality they prefer — text, audio, or a mix of the two.
+								
+
+								Meeting this Objective
+								
+									EPUB creators MUST
+										provide synchronized audio playback for all visible textual content as well as
+										all textual alternatives for visual media.
+									Note
+										Refer to Ensuring complete
+												text coverage [epub-a11y-tech-11] for more information on meeting
+											this objective.
+									
+								
+							
+						
+
+						3.4.2.3.2 Reading order
+							
+
+							
+								Objective
+								
+									Ensure synchronized text-audio playback matches logical reading order.
+								
+
+								Understanding this Objective
+								
+									Every EPUB
+											publication has a default reading order that allows users to progress
+										through the content. The default reading order consists of two parts: the order
+										of references in the spine provides a high-level progression through the EPUB content
+											documents that make up the publication, while the markup within each
+										EPUB content document provides the default progression through the content
+										elements (i.e., as represented in the document object model [dom]).
+									For many languages, the default reading order also matches the logical reading
+										order — the way that users will naturally follow the narrative. It ensures
+										that readers can follow the primary narrative and that they encounter secondary
+										content where the author intended it to be read. The default reading order also
+										establishes some less obvious relations, like the progress within a table from
+										cell to cell and row to row.
+									If the sequence of the synchronized text-audio playback does not match this
+										progression, it can cause confusion for readers, whether they are only listening
+										to the audio or trying to also follow visually.
+									Ordering the playback to match the default reading order is the safest way to
+										ensure that users can follow the text. In some cases, however, strict adherence
+										to this practice can result in a suboptimal reading experience (e.g., playback
+										of a table by column instead of row might make more natural sense in some
+										cases). These publications have a logical reading order that cannot match the
+										default order of the elements of the host format.
+									The goal of this objective is not to forbid alternate presentations, but to
+										ensure that deviations are only made to better represent the logical reading
+										order of the content.
+								
+
+								Meeting this Objective
+								
+									EPUB creators SHOULD
+										order the synchronized text-audio playback instructions such that they reflect
+										both:
+									
+										the order of the referenced EPUB content documents in the spine; and
+										the order of each element within its respective EPUB content document.
+									
+									If EPUB creators use a different ordering, that ordering MUST still result in a
+										logical playback of the content.
+									Note
+										Refer to Specifying the
+												reading order [epub-a11y-tech-11] for more information on meeting
+											this objective.
+									
+								
+							
+						
+
+						3.4.2.3.3 Skippability
+							
+
+							
+								Objective
+								
+									Enable users to automatically skip over content.
+								
+
+								Understanding this Objective
+								
+									Being able to read the primary narrative of a work without interruption is
+										central to reading comprehension. EPUB creators
+										typically structure EPUB publications to visually represent secondary information such as
+										page break markers and footnotes outside the main narrative flow (e.g., by using
+										different background colors or placement so readers can filter this information
+										visually out while reading).
+									Readers who prefer auditory playback, however, cannot skip this information with
+										the same ease in a linear audio-based reading experience. And, without
+										structural semantics, synchronized text-audio playback cannot offer skipping
+										content either.
+									When EPUB creators add structural semantics, however, reading
+											systems can create reading experiences that allow users to decide which
+										secondary content to skip by default during playback.
+								
+
+								Meeting this Objective
+								
+									EPUB creators SHOULD identify all skippable structures.
+									Note
+										Refer to Identifying
+												skippable structures [epub-a11y-tech-11] for more information on
+											meeting this objective.
+									
+								
+							
+						
+
+						3.4.2.3.4 Escapability
+							
+
+							
+								Objective
+								
+									Enable users to automatically escape from structured content.
+								
+
+								Understanding this Objective
+								
+									When reading visually, users can quickly move through, and escape from, highly
+										structured content such as sidebars, lists, and figures. Visual readers can skim
+										lists and quickly return to the primary narrative once they locate the desired
+										information, for example. The same is true for reading figures and sidebars, as
+										they are visually offset from the primary narrative so easily jumped into and
+										out of.
+									The same ease of escaping from content is only possible if EPUB creators encode
+										the structural semantics into the synchronized text/audio format. Users may not
+										be able to escape from lists, sidebars, figures, and other highly structured
+										content, unless EPUB creators encode the structural semantics of those
+										elements.
+									When EPUB creators provide this information, reading
+											systems can simplify playback for auditory readers to enable a
+										comparable reading experience.
+								
+
+								Meeting this Objective
+								
+									EPUB creators SHOULD identify all escapable structures.
+									Note
+										Refer to Identifying
+												escapable structures [epub-a11y-tech-11] for more information on
+											meeting this objective.
+									
+								
+							
+						
+
+						3.4.2.3.5 Navigation document
+							
+
+							
+								Objective
+								
+									Ensure auditory playback is possible for the navigation aids in the EPUB
+											navigation document when presented by reading
+											systems.
+								
+
+								Understanding this Objective
+								
+									Reading systems typically provide their own interfaces to the navigation aids in
+										the EPUB navigation document. For example, they open the table of contents as a
+										specialized interface on top of the content the user is reading.
+									To access these interfaces, users typically must rely on text-to-speech playback,
+										when available, to hear the entries.
+									Providing synchronized text-audio playback for the EPUB navigation document
+										provides reading systems the ability to use auditory labels for the links,
+										improving the experience for auditory readers.
+								
+
+								Meeting this Objective
+								
+									EPUB creators SHOULD
+										provide synchronized text-audio playback for the EPUB navigation
+											document [epub-3].
+									Note
+										Refer to Synchronizing the
+												navigation document [epub-a11y-tech-11] for more information on
+											meeting this objective.
+									
+								
+							
+						
+					
+				
+			
+
+			3.5 Conformance reporting
+				
+
+				3.5.1 IntroductionThis section is non-normative.
+					
+
+					Evaluators report the accessibility conformance of an EPUB publication through the
+						expression of metadata properties in the package document.
+
+					This metadata establishes both:
+
+					
+						the level of conformance achieved; and
+						information about who performed the evaluation.
+					
+
+					The metadata uses a combination of properties from DCMI Metadata Terms [dcterms] and the EPUB Accessibility Vocabulary, as explained in more detail in the
+						following sections.
+
+					Although any individual or party can perform a conformance evaluation — provided they have
+						the knowledge and tools to assess EPUB publications against the WCAG and EPUB requirements of this specification —
+						users need to be able to trust that evaluations are performed in a comprehensive manner and that
+						conformance claims are not influenced by self-interest in the outcome.
+
+					To address this confidence issue, some regions designate a local authority responsible for all
+						evaluations, in which case there is no flexibility in who can perform evaluations. Where such
+						authorities do not exist, evaluators are encouraged to obtain and reference any applicable credentials to strengthen public confidence in their
+						evaluations.
+
+					Note
+						As each metadata format is unique in what it can express, this specification does not mandate
+							how to express conformance metadata outside of the EPUB package document.
+
+						Ensuring consistency between internal and external accessibility metadata expressions is the
+							responsibility of authors, publishers, and distributors. Refer to 5. Distribution for for a discussion of the effects of distribution on
+							accessibility.
+					
+				
+
+				3.5.2 Publication conformance
+					
+
+					To indicate conformance to the accessibility requirements of this specification, an EPUB publication [epub-3] MUST
+						specify in its metadata section a conformsTo property [dcterms] whose value,
+						after whitespace normalization [xml], exactly matches
+						(i.e., both in case and spacing) the following pattern:
+
+					EPUB Accessibility A11Y-VER - WCAG WCAG-VER Level WCAG-LVL
+
+					where:
+
+					
+						A11Y-VER
+						
+							Specifies the version number of the EPUB Accessibility specification the publication
+								conforms to. The value MUST be 1.1 or higher.
+						
+						WCAG-VER
+						
+							Specifies the version number of WCAG the publication conforms to. The value MUST be
+									2.0 or higher.
+						
+						WCAG-LVL
+						
+							Specifies the WCAG conformance level the publication conforms to (e.g., A or
+									AA).
+						
+					
+
+					
+    Example 1: A basic conformance statement
+  
+						In this example, the EPUB creator
+							is stating that their publication conforms to the EPUB Accessibility 1.1 specification at
+							WCAG 2.2 Level AA.
+
+						<package …>
+   <metadata …>
+      …
+      <meta 
+          property="dcterms:conformsTo"
+          id="conf">
+         EPUB Accessibility 1.1 - WCAG 2.2 Level AA
+      </meta>
+      …
+   </metadata>
+   …
+</package>
+					
+
+					The following conformance strings are valid as of publication of this specification:
+
+					
+						EPUB Accessibility 1.1 - WCAG 2.0 Level A
+						EPUB Accessibility 1.1 - WCAG 2.0 Level AA
+						EPUB Accessibility 1.1 - WCAG 2.0 Level AAA
+						EPUB Accessibility 1.1 - WCAG 2.1 Level A
+						EPUB Accessibility 1.1 - WCAG 2.1 Level AA
+						EPUB Accessibility 1.1 - WCAG 2.1 Level AAA
+						EPUB Accessibility 1.1 - WCAG 2.2 Level A
+						EPUB Accessibility 1.1 - WCAG 2.2 Level AA
+						EPUB Accessibility 1.1 - WCAG 2.2 Level AAA
+					
+
+					Note
+						The list of valid conformance strings will increase as W3C releases new versions of WCAG.
+
+						In addition, WCAG 3.0 is set to introduce new
+							level names (currently Bronze, Silver and Gold). Those names will likely replace A, AA, and
+							AAA in the string pattern, but conformance will be addressed after that specification
+							becomes a W3C
+							Recommendation.
+					
+
+					3.5.2.1 Other conformance claimsThis section is non-normative.
+						
+
+						The requirement to include a dcterms:conformsTo identifier does not prevent EPUB
+							publications from conforming to other standards, including other accessibility standards and
+							guidelines (e.g., a specification that covers specific natural language issues). An EPUB
+							publication can have multiple dcterms:conformsTo statements.
+
+						For example, if an EPUB publication only meets WCAG conformance requirements (i.e., does not
+							fully conform to this specification), EPUB creators can add a
+								dcterms:conformsTo property with a conformance URL defined in the Required Components of a
+								Conformance Claim [wcag2].
+
+						Note
+							As [wcag2] does not define how to specify the conformance level in the URL, EPUB
+								creators will have to find an alternative means of relating this information when
+								necessary (e.g., through the accessibility summary).
+						
+
+						Conversely, EPUB creators might need to indicate that an EPUB publication does not meet any
+							accessibility standards (e.g., in order to claim an exemption). In these cases, they can use
+							a dcterms:conformsTo property with value "none".
+
+						Note
+							For more information about claiming exemptions, refer to The EPUB Accessibility
+										exemption property [epub-a11y-exemption].
+						
+					
+				
+
+				3.5.3 Evaluator information
+					
+
+					3.5.3.1 Evaluator name
+						
+
+						The package document metadata
+							MUST include an a11y:certifiedBy property that specifies the name of the party that
+							evaluated the EPUB
+								publication.
+
+						Note
+							If an organization evaluates an EPUB publication, users will typically want to know the
+								name of that organization. This specification discourages including the name of the
+								individual(s) who carried out the assessment instead of the name of the organization, as
+								this can diminish the trust users have in the claim.
+						
+
+						
+    Example 2: An EPUB publication evaluated by the publisher
+  
+							In this example, the publisher is stating they self-evaluated the EPUB publication (the
+								values of the dc:publisher and a11y:certifiedBy property are
+								the same).
+
+							<metadata …>
+  …
+  <dc:publisher>
+     Acme Publishing Inc.
+  </dc:publisher>
+  …
+  <meta
+      property="dcterms:conformsTo"
+      id="conf">
+     EPUB Accessibility 1.1 - WCAG 2.2 Level AA
+  </meta>
+  
+  <meta
+      property="a11y:certifiedBy"
+      refines="#conf">
+     Acme Publishing Inc.
+  </meta>
+  …
+</metadata>
+						
+
+						
+    Example 3: An EPUB publication evaluated by a third-party
+  
+							In this example, a third party has evaluated the EPUB 3 publication (the values of the
+									dc:publisher and a11y:certifiedBy property differ).
+
+							<metadata …>
+  …
+  <dc:publisher>
+     Acme Publishing Inc.
+  </dc:publisher>
+  …
+  <meta
+      property="dcterms:conformsTo"
+      id="conf">
+     EPUB Accessibility 1.1 - WCAG 2.2 Level AA
+  </meta>
+  <meta
+      property="a11y:certifiedBy"
+      refines="#conf">
+     Foo's Accessibility Testing
+  </meta>
+  …
+</metadata>
+						
+
+						
+    Example 4: An EPUB publication evaluated by the author
+  
+							In this example, the author is stating they self-evaluated the EPUB publication (the
+								values of the dc:creator and a11y:certifiedBy property are the
+								same).
+
+							<metadata …>
+  …
+  <dc:creator>
+     Jane Doe
+  </dc:creator>
+  …
+  <meta
+      property="dcterms:conformsTo"
+      id="conf">
+     EPUB Accessibility 1.1 - WCAG 2.2 Level AA
+  </meta>
+  
+  <meta
+      property="a11y:certifiedBy"
+      refines="#conf">
+     Jane Doe
+  </meta>
+  …
+</metadata>
+						
+
+						
+    Example 5: A self-evaluated EPUB 2 Publication
+  
+							This example is the same as the publisher example, but expressed in
+								an EPUB 2 package document.
+
+							<metadata …>
+  …
+  <dc:publisher>
+     Acme Publishing Inc.
+  </dc:publisher>
+  …
+  <meta
+      name="dcterms:conformsTo"
+      content="EPUB Accessibility 1.1 - WCAG 2.2 Level AA"/>
+  
+  <meta
+      name="a11y:certifiedBy"
+      content="Acme Publishing Inc."/>
+  …
+</metadata>
+						
+					
+
+					3.5.3.2 Evaluation date
+						
+
+						If the date the evaluation was performed on is known, include that information in a dcterms:date property [dcterms] associated with [epub-3] the evaluator's name.
+
+						
+    Example 6: Expressing the evaluation date
+  
+							<metadata …>
+   …
+   <meta
+       property="a11y:certifiedBy"
+       id="certifier">
+      EPUB Accessibility Evaluator
+   </meta>
+   
+   <meta
+       property="dcterms:date"
+       refines="#certifier">
+      2021-09-07
+   </meta>
+   …
+</metadata>
+						
+					
+
+					3.5.3.3 Evaluator credentials
+						
+
+						If the evaluator has credentials or badges that establish their authority to evaluate
+							content, include that information in an a11y:certifierCredential properties
+							associated with [epub-3] the evaluator's name.
+
+						
+    Example 7: Expressing a basic credential
+  
+							In this example, the refines attribute associates the credential with the
+								certifier.
+							<metadata …>
+   …
+   <meta
+       property="dcterms:conformsTo"
+       id="conf">
+     EPUB Accessibility 1.1 - WCAG 2.2 Level AA
+   </meta>
+   
+   <meta
+       property="a11y:certifiedBy"
+       refines="#conf"
+       id="certifier">
+      EPUB Accessibility Evaluator
+   </meta>
+   
+   <meta
+       property="a11y:certifierCredential"
+       refines="#certifier">
+      A+ Accessibility Rating
+   </meta>
+</metadata>
+						
+					
+
+					3.5.3.4 Evaluator report
+						
+
+						If the evaluator provides a publicly-readable report of its assessment, provide a link to the
+							assessment in an a11y:certifierReport property
+							associated with [epub-3] the evaluator's name.
+
+						
+    Example 8: An external accessibility report
+  
+							The following example shows a link to an accessibility report hosted on a web site.
+							<metadata …>
+   <meta
+       property="dcterms:conformsTo"
+       id="conf">
+     EPUB Accessibility 1.1 - WCAG 2.2 Level AA
+   </meta>
+
+   <meta
+       property="a11y:certifiedBy"
+       refines="#conf"
+       id="certifier">
+      EPUB Accessibility Evaluator
+   </meta>
+   
+   <link
+       rel="a11y:certifierReport"
+       refines="#certifier"
+       href="http://www.example.com/a11y/report/9780000000001"/>
+</metadata>
+						
+
+						
+    Example 9: A local accessibility report
+  
+							The following example shows a link to an accessibility report included in the EPUB container.
+							<metadata …>
+   <meta
+       property="dcterms:conformsTo"
+       id="conf">
+     EPUB Accessibility 1.1 - WCAG 2.2 Level AA
+   </meta>
+   
+   <meta
+       property="a11y:certifiedBy"
+       refines="#conf"
+       id="certifier">
+      EPUB Accessibility Evaluator
+   </meta>
+
+   <link
+       rel="a11y:certifierReport"
+       refines="#certifier"
+       href="reports/a11y.xhtml"/>
+</metadata>
+						
+					
+				
+
+				3.5.4 Re-evaluating conformanceThis section is non-normative.
+					
+
+					Note
+						The following guidance is provided only to help EPUB creators determine when a
+							new evaluation is necessary. It is not a conformance requirement of this specification.
+					
+
+					How long a conformance evaluation of an EPUB publication is good for is
+						a complex question. Unlike web sites, which are continuously evolving, EPUB creators may not
+						update EPUB publications after their initial publication. As a result, an unmodified EPUB
+						publication will always conform to its last evaluation.
+
+					It is common in publishing, however, to release updated versions of an EPUB publication to fix
+						errors and typos in the work, as well as to periodically release new editions. As not all
+						changes to an EPUB publication substantively change its accessibility, this complicates the
+						question of when EPUB creators should perform a new evaluation, as well as whether a full or
+						partial re-evaluation will suffice.
+
+					As a rule, EPUB creators must re-evaluate their content whenever they make substantive changes to
+						the structure and functionality of an EPUB publication, such as:
+
+					
+						modifications to the nature or order of markup in EPUB content
+							documents;
+						additions or modifications to images that convey information;
+						modifications to formatting that affects the readability (e.g., contrast); and
+						additions or modifications to interactive controls, forms, etc.
+					
+
+					If the EPUB publication includes substantively the same markup and content as the previous
+						release, the EPUB creator may only need to evaluate the new modifications to re-confirm
+						conformance.
+
+					If an updated version of this specification or [wcag2] has been published since the last
+						release of the EPUB publication, however, this specification also recommends performing a new
+						evaluation to ensure conformance to the latest standards. EPUB creators may not have to perform
+						a full re-evaluation even in this case (i.e., they may only need to check new or modified
+						success criteria unless the standards undergo major changes to methodology or conformance).
+
+					Conversely, EPUB creators do not need to perform a re-evaluation when making non-substantive
+						changes, such as:
+
+					
+						fixes for typographic errors in the text (i.e., no markup is changed);
+						additions or modifications to decorative images;
+						modifications to the formatting that do not affect the understanding of the content or
+							change the text display; and
+						modifications to package
+								document metadata.
+					
+
+					Individuals qualified to assess the accessibility of EPUB publications should make the
+						determination of whether changes are substantive or not. An editor, for example, may not realize
+						the impact of seemingly minor formatting changes.
+
+					Even in the case of non-substantive changes, this specification recommends an updated evaluation
+						(full or partial) if the accessibility standards have changed.
+
+					EPUB creators should consider even more progressive approaches than those described here. Waiting
+						for content changes before reviewing and updating the accessibility of EPUB publications can
+						leave them lacking recent improvements. For example, a publisher might prioritize periodic
+						reviews of their top-selling EPUB publications to ensure they remain maximally usable to the
+						widest possible audience.
+				
+			
+		
+		4. Optimized publicationsThis section is non-normative.
+			
+
+			Although WCAG [wcag2] provides a general set of guidelines for making content broadly accessible,
+				conformant content is not always optimal for specific user groups. Conversely, content optimized for a
+				specific need or reading modality is often not conformant to WCAG exactly because it targets a specific
+				audience.
+
+			For example, an EPUB publication with
+				synchronized text and audio can contain a full audio recording of the content but limit the text content
+				to only the major headings. In this case, the EPUB publication is consumable by users who needs to hear
+				the content (i.e., they can listen to the full publication and can navigate between headings), but it is
+				not usable by anyone who cannot hear the audio.
+
+			In other words, when an EPUB creator optimizes
+				an EPUB publication for a specific reading modality, the failure to achieve a WCAG conformance level
+				does not make it any less accessible to the intended audience.
+
+			Defining requirements for optimized publications is outside the scope of this specification, as is
+				formally recognizing other standards and guidelines that address these specific needs. The general model
+				of this specification can be used as a basis for identifying how an EPUB creator has optimized their
+				content, however.
+
+			In particular, if an EPUB publication meets the requirements of an optimization standard, the following
+				best practices are recommended:
+
+			
+				The EPUB publication should meet the discovery metadata requirements of
+					this specification so its accessible properties are machine-readable.
+				The EPUB publication should identify the standard or guidelines it follows in a
+						conformsTo property in accordance with [dcterms] so this information can be made
+					available to users.
+				If the standard does not define conformance values for the conformsTo property, EPUB
+					creators should use a URL [url] to where the standard is publicly available so users can look up
+					the specific details of the standard.
+				If the identifier is not sufficient for a user to understand conformance (e.g., the guidelines are
+					not publicly available), EPUB creators should provide additional information about they have
+					optimized the content in the accessibility
+						summary.
+			
+
+			When creating guidelines for optimized EPUB publications, it is recommended that these practices be
+				integrated as a formal requirement for conformance.
+
+			Note
+				Refer to the Guide to Optimized
+						Publication Standards for a non-normative list of standards.
+			
+
+			
+    Example 10: Expressing conformance to an optimization standard
+  
+				In this example, the conformance statement indicates the EPUB 3 publication conforms to the DAISY
+					Navigable Audio-only EPUB 3 Guidelines [daisyaudio].
+				<metadata …>
+   …
+   <link
+       rel="dcterms:conformsTo"
+       href="https://daisy.org/info-help/guidance-training/standards/navigable-audio-only-epub3-guidelines/"/>
+   …
+</metadata>
+			
+
+			
+    Example 11: Describing conformance in a summary
+  
+				In this example, the accessibility summary for an EPUB publication explains that it is optimized for
+					braille rendering.
+				<metadata …>
+   …
+   <meta property="schema:accessibilitySummary">
+       This publication is optimized for braille readers. It will not be 
+       usable by persons who cannot read braille. The publication is designed
+       for braille reading devices capable of displaying 6-character cells and
+       40-character line lengths. The text is not contracted, and follows 
+       Unified English Braille formatting conventions. All characters are
+       encoded using the Unicode braille character set.
+   </meta>
+   …
+</metadata>
+			
+
+			
+    Example 12: Summary for a publication optimized for audio rendering
+  
+				<metadata …>
+   …
+   <meta property="schema:accessibilitySummary">
+       This publication is an audio book. It will not be usable by persons who 
+       cannot hear the audio. The publication is recorded by a professional
+       narrator. There is navigation to the beginning of each chapter. The text
+       of the publication is not included. Images are not included, but the
+       photo captions are narrated at the end of the chapter where they occur.
+   </meta>
+   …
+</metadata>
+			
+		
+		5. DistributionThis section is non-normative.
+			
+
+			Note
+				Although EPUB creators do not have to
+					follow the recommendations in this section to conform to this specification, some jurisdictions
+					require EPUB creators to follow similar practices. Directive
+						2019/882, for example, includes similar requirements for digital publications distributed in
+					the European Union.
+			
+
+			The creation of accessible EPUB
+					publications does not guarantee that the publication will be obtainable or consumable by users
+				in an accessible fashion. Depending on how EPUB creators distribute their EPUB publications, other
+				factors will influence their overall accessibility. For example, an accessible interface for locating
+				and obtaining content is an essential part of the distribution process, as is the ability to search and
+				review accessibility metadata.
+
+			While much of the distribution process is outside the control of EPUB creators, so outside the scope of
+				this specification, there are factors an EPUB creator can control. For example, while an EPUB creator
+				typically does not control the accessibility of the digital rights management (DRM) scheme applied to
+				their EPUB publications, they do control what usage rights to apply to their EPUB publications. So even
+				though a DRM scheme may allow an Author to block access to the text of the publication, the EPUB creator
+				needs to take care not to apply such a restriction as it could block the ability for assistive
+					technologies to read the text aloud.
+
+			To minimize the effects of distribution on accessibility, this specification advises EPUB creators adhere
+				to the following distribution practices:
+
+			
+				they must not impose restrictions that impair access by assistive technologies; and
+				they must include accessibility metadata in the record format required for distribution of an EPUB
+					publication (e.g., [onix] or [marc21]) when the format supports such metadata.
+			
+
+			Note
+				A distributor may implement a digital rights management scheme that inherently impairs accessibility
+					through no fault of the EPUB creator. Following the guidance in this section does not restrict EPUB
+					creators from using such distributors. The intent is only that the EPUB creator not impair
+					accessibility by activating a feature that would normally not be active.
+			
+		
+		6. Privacy and security
+			
+
+			The authoring of accessible content does not introduce any new privacy or security considerations for
+				users. Meeting accessibility requirements is about optimally using the available technologies, and no
+				new features are introduced by this specification.
+
+			The inclusion of accessibility metadata by EPUB
+					creators similarly does not introduce security or privacy issues for the EPUB creator, as
+				describing an EPUB publication only
+				provides a general idea of its suitability for different user groups.
+
+			The use of accessibility metadata in reading systems, bookstores and any other interface that can build a profile of the user, on
+				the other hand, has the potential to violate the user's privacy. While it might seem helpful to store
+				and anticipate the type of content a user is most likely to consume, for example, or how best to
+				initiate its playback, developers should not engage in such profiling unless explicit permission is
+				obtained from the user and a means of easily removing the profile is available.
+
+			Even in the case where a user assents to the application maintaining information about their
+				accessibility needs, developers SHOULD ensure that this information is kept private (e.g., not share the
+				information with third party advertisers or even with the original publisher).
+
+			Developers SHOULD NOT store or mine information about the types of searches a user performs when
+				searching for content based on its accessibility characteristics. This information can be used to
+				indirectly profile the abilities of users.
+		
+		A. EPUB accessibility vocabulary
+			
+
+			A.1 Overview
+				
+
+				A.1.1 About this vocabulary
+					
+
+					This vocabulary defines properties for describing the accessibility of EPUB publications in the package document metadata.
+				
+
+				A.1.2 Referencing
+					
+
+					The base URL for referencing this vocabulary is
+							http://idpf.org/epub/vocab/package/a11y/#.
+
+					This specification reserves the prefix "a11y:" for use with properties in this
+						vocabulary. EPUB creators do not have
+						to declare the prefix in the package
+							document.
+				
+				A.1.3 Certifier properties
+					
+
+					A.1.3.1 certifiedBy
+						
+
+						
+							Definition of the certifiedBy property
+							
+								Name:
+								
+									certifiedBy
+								
+							
+							
+								Description:
+								Identifies a party responsible for the testing and certification of the
+									accessibility of an EPUB
+										publication.
+							
+							
+								Allowed value(s):
+								
+									xsd:string
+								
+							
+							
+								Cardinality:
+								One or more
+							
+							
+								Example:
+								
+									<meta
+    property="a11y:certifiedBy">
+   Accessibility Testers Group
+</meta>
+								
+							
+						
+					
+
+					A.1.3.2 certifierCredential
+						
+
+						
+							Definition of the certifierCredential property
+							
+								Name:
+								
+									certifierCredential
+								
+							
+							
+								Description:
+								Identifies a credential or badge that establishes the authority of the party
+									identified in the associated certifiedBy
+										property to certify content accessible.
+							
+							
+								Allowed value(s):
+								
+									xsd:string
+								
+							
+							
+								Cardinality:
+								Zero or more
+
+							
+							
+								Extends:
+								
+									a11y:certifiedBy
+								
+							
+							
+								Example:
+								
+									<meta
+    property="a11y:certifiedBy"
+    id="certifier">
+   Accessibility Testers Group
+</meta>
+<meta
+    property="a11y:certifierCredential"
+    refines="#certifier">
+   DAISY OK
+</meta>
+								
+							
+						
+					
+
+					A.1.3.3 certifierReport
+						
+
+						
+							Definition of the certifierReport property
+							
+								Name:
+								
+									certifierReport
+								
+							
+							
+								Description:
+								Provides a link to an accessibility report created by the party identified in the
+									associated certifiedBy property.
+							
+							
+								Allowed value(s):
+								
+									xsd:anyURI
+								
+							
+							
+								Cardinality:
+								Zero or more
+							
+							
+								Extends:
+								
+									
+										certifiedBy
+									
+								
+							
+							
+								Example:
+								
+									<meta
+    property="a11y:certifiedBy"
+    id="certifier">
+   Accessibility Testers Group
+</meta>
+<link
+    rel="a11y:certifierReport"
+    refines="#certifier"
+    href="https://example.com/a11y-report/"/>
+								
+							
+						
+					
+				
+			
+		
+		B. IndexB.1 Terms defined by this specification
+    
+    
+    
+      assistive technology 
+    §1.4
+  
+  B.2 Terms defined by reference
+    
+    
+    
+        [EPUB-A11Y-TECH-11] defines the following:
+        
+          
+    Discovery Metadata Techniques
+  
+    Ensuring complete text coverage
+  
+    EPUB Accessibility Techniques
+  
+    Identifying escapable structures
+  
+    Identifying skippable structures
+  
+    Identifying the pagination source
+  
+    Include accessibility metadata in distribution records
+  
+    Provide a page list
+  
+    Provide page break markers
+  
+    Specifying the reading order
+  
+    Synchronizing the navigation document
+  
+        
+      
+        [WCAG2] defines the following:
+        
+          
+    conformance criteria
+  
+    conforming alternate version
+  
+    definition of assistive technology
+  
+    Full Pages
+  
+    Info and Relationships success criterion
+  
+    latest recommended version of WCAG 2
+  
+    Level A
+  
+    Level AA
+  
+    level AAA
+  
+    Multiple Ways success criterion
+  
+    principles
+  
+    set of web pages
+  
+        
+      
+        [XML] defines the following:
+        
+          
+    whitespace normalization
+  
+        
+      
+  
+  
+		C. Change logThis section is non-normative.
+			
+
+			Note that this change log only identifies substantive changes since EPUB Accessibility 1.0 — those that may affect the conformance of EPUB publications.
+
+			For a list of all issues addressed, refer to the working group's issue tracker.
+
+			
+				Substantive changes since the Recommendation of 2023-05-25
+				No substantive changes were made.
+			
+
+			
+				Substantive changes since the Candidate Recommendation of 2022-05-12
+				
+					12-Aug-2022: Changed accessibilitySummary from a required to a recommended property
+						and updated its definition to focus less on repeating information available in the other
+						metadata. See issue 2399.
+					12-Aug-2022: Changed the conformance identifier for publications to be more human-readable while
+						still machine-processable so that the information is not needlessly duplicated in the summary.
+						See issue 2398.
+					07-June-2022: Updated privacy and security recommendations to use normative language.
+					17-May-2022: Added an index of terms. See issue 2260.
+				
+			
+
+			
+				Substantive changes since EPUB Accessibility
+					1.0
+				
+					12-Apr-2022: Restored recommendation to include links to all reproduced pages in the page list
+						and added a requirement to link to all page break markers to address concerns with the previous
+						change. Clarified that meeting the page navigation requirements is required, but adding page
+						navigation is only recommended in some circumstances. See pull request 2246.
+					12-Apr-2022: Generalized discussion of synchronized text-audio playback objectives and moved
+						specific details of using media overlays to the techniques document. See issue 2221.
+					08-Apr-2022: Changed the recommendation to include links to all reproduced pages in the page
+						list to a requirement. See issue
+							2220.
+					23-Mar-2022: Clarified linking for WCAG conformance versions and levels. See issue 2099.
+					21-Mar-2022: Note that not all metadata expressions can be achieved in EPUB 2 due to the absence
+						of the refines attribute. See issue 2042.
+					28-Sep-2021: The section on optimized publication has been made non-normative and rewritten to
+						highlight best practices for identifying conformance to such standards. See pull request 1833.
+					23-Sep-2021: Added section explaining effects of internationalization on techniques used. See issue 1790.
+					07-Sep-2021: Added refines attribute to certifier metadata examples to show the
+						expected linkage. See issue
+						1789.
+					07-Sep-2021: Added explanation that the dcterms:date property can be used to
+						indicate when an evaluation was performed. See issue 1590.
+					09-June-2021: Clarified that a pagination source must not be specified when page break markers
+						and/or a page list are included in a digital-only publication. See issue 1599.
+					29-Apr-2021: Change conformance identifiers to use hyphens and dashes so they are not confused
+						for plain language strings. See issue
+							1455.
+					26-Mar-2021: Added non-normative section detailing when to re-evaluate EPUB publications. See issue 1470.
+					12-Mar-2021: Changed the distribution section to non-normative but added a note that the
+						requirements must be followed where required by law (e.g., in the EU). See issue 1487.
+					08-Mar-2021: Add objective for the sequence of par and seq elements in
+						media overlay documents to reflect a logical reading order. See issue 1556.
+					05-Mar-2021: Added recommendation that page markers be included for all pages of content
+						reproduced from source and best practice to include markers for all pages in the source. See issue 1502.
+					05-Mar-2021: Added recommendation that page list include links to all pages of content
+						reproduced from source and best practice to include links to all pages in the source. See issue 1503.
+					05-Mar-2021: Restructured the EPUB Requirements section to split out the individual objectives
+						that were grouped together under the Page Navigation and Media Overlays headings. See issue 1458.
+					25-Feb-2021: Replaced the IDPF URLs used to report conformance to the 1.0 specification with
+						more flexible text strings. See issue
+							1455.
+					19-Feb-2021: References to WCAG 2.0 have been updated to undated references to WCAG 2 (except
+						where WCAG 2.0 is explicitly mentioned for conformance).
+					01-Feb-2021: Changed the recommendation that media overlays conform to the requirements of the
+						EPUB specification to a requirement. See issue 1486.
+					17-Nov-2020: Added the refines attribute to the certifierCredential
+						and certifierReport properties and examples. See issue 1410.
+					16-Nov-2020: References to the optional accessibility control and API metadata have been removed
+						from the discoverability section. These metadata properties are more applicable to reading
+						systems. See issue 1327.
+					26-Sept-2020: The revisions made to the Accessibility 1.0 specification as part of publishing it
+						as an ISO standard have been incorporated into the initial draft text.
+				
+			
+		
+		D. AcknowledgementsThis section is non-normative.
+    
+
+	The journey to make publications accessible for all can sometimes feels like a long and winding road. It
+		takes a special kind of person with strong dedication to the goal and an abundance of perseverance to
+		keep going even when it seems like there are still miles to go and many hills to climb. Ben Schroeter
+		was one such person, working tirelessly to help EPUB reach its potential as a universally accessible
+		format. We miss him greatly and dedicate this document to his memory.
+
+    The following members of the EPUB 3 Working Group contributed to the development of this specification:
+
+    
+                Shadi Abou-Zahra (Amazon)
+        Will AWAD (Newgen Knowledgeworks)
+        Noel Ray Barron (Apple Inc.)
+        Sofia Bautista (Legible Media Inc.)
+        Leah Brochu (National Network for Equitable Library Service)
+        Matthew C. Chan (House of Anansi Press)
+        Yu-Wei Chang (Taiwan Digital Publishing Forum)
+        Juan Corona (Legible Media Inc.)
+        Dave Cramer (W3C Invited Expert, chair)
+        Romain Deltour (DAISY Consortium)
+        Marisa DeMeglio (DAISY Consortium)
+        Brady Duga (Google LLC)
+        Reinaldo Ferraz (NIC.br - Brazilian Network Information Center)
+        Symon Flaming (Rakuten Group, Inc.)
+        John Foliot (W3C Invited Expert)
+        Teenya Franklin (Pearson plc)
+        Hadrien Gardeur (EDRLab)
+        Matt Garrish (DAISY Consortium)
+        Jen Goulden (Crawford Technologies)
+        David Hall (Apple Inc.)
+        Ivan Herman (W3C, staff contact)
+        Tetsu Hoshino (Kodansha, Publishers, Ltd.)
+        jasen huang (ByteDance)
+        Norikazu Ishizu (Kadokawa Corporation)
+        Norihito IYENAGA (Kodansha, Publishers, Ltd.)
+        Rick Johnson (VitalSource Technologies)
+        Ken Jones (Circular Software)
+        Antonio Kamiya (Dentsu Group Inc.)
+        Deborah Kaplan (W3C Invited Expert)
+        Bill Kasdorf (Book Industry Study Group)
+        Hiroshi Kawada (MEDIA DO Co., Ltd.)
+        George Kerscher (DAISY Consortium)
+        Kazuhito Kidachi (Mitsue-Links Co., Ltd.)
+        Masakazu Kitahara (Voyager Japan, Inc.)
+        Toshiaki Koike (Voyager Japan, Inc.)
+        Ryo Kuroda (ACCESS CO., LTD.)
+        Charles LaPierre (Benetech)
+        Dan Lazin (Google LLC)
+        Philippe Le Hegaret (W3C)
+        Laurent Le Meur (EDRLab)
+        YuYu Lin (Taiwan Digital Publishing Forum)
+        Farrah Little (National Network for Equitable Library Service)
+        Victor Lopes (Apple Inc.)
+        Karan  Malhotra (Newgen Knowledgeworks)
+        Makoto Murata (DAISY Consortium)
+        Cristina Mussinelli (Fondazione LIA)
+        Yoichiro Nagao (Kodansha, Publishers, Ltd.)
+        Theresa O'Connor (Apple Inc.)
+        Yoshinori Ohmura (SHUEISHA Inc.)
+        Rachel Osolen (National Network for Equitable Library Service)
+        Gregorio Pellegrino (Fondazione LIA)
+        Vijaya Gowri Perumal (Newgen Knowledgeworks)
+        Wendy Reid (Rakuten Group, Inc., chair)
+        John Roque (Apple Inc.)
+        Leonard Rosenthol (Adobe)
+        Shinobu Sato (Kadokawa Corporation)
+        Ben Schroeter (Pearson plc)
+        Daihei Shiohama (MEDIA DO Co., Ltd.)
+        Tzviya Siegman (Wiley)
+        Avneesh Singh (DAISY Consortium)
+        MOTOI SUZUKI (SHUEISHA Inc.)
+        Yutaka Suzuki (Kadokawa Corporation)
+        Kyrce Swenson (Pearson plc)
+        Shinya Takami (Kadokawa Corporation, chair)
+        Mateus Teixeira (W. W. Norton & Company)
+        Yukio Tomikura (Kodansha, Publishers, Ltd.)
+        Aimee Ubbink (Crawford Technologies)
+        xinyuan wang (ByteDance)
+        Daniel Weck (DAISY Consortium)
+        Fuqiao Xue (W3C)
+        Evan Yamanishi (W. W. Norton & Company)
+        Osamu Yoshiba (Kodansha, Publishers, Ltd.)
+        Junichi Yoshii (Kodansha, Publishers, Ltd.)
+        Naomi Yoshizawa (W3C)
+        Laurence Zaysser (EDRLab)
+    
+    
+
+
+	
+
+E. ReferencesE.1 Normative references
+    
+    [dcterms]
+      DCMI Metadata Terms. DCMI Usage Board.  DCMI. 20 January 2020. DCMI Recommendation. URL: https://www.dublincore.org/specifications/dublin-core/dcmi-terms/
+    [dom]
+      DOM Standard. Anne van Kesteren.  WHATWG. Living Standard. URL: https://dom.spec.whatwg.org/
+    [epub-3]
+      EPUB 3.  W3C. URL: https://www.w3.org/TR/epub/
+    [RFC2119]
+      Key words for use in RFCs to Indicate Requirement Levels. S. Bradner.  IETF. March 1997. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc2119
+    [RFC8174]
+      Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words. B. Leiba.  IETF. May 2017. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc8174
+    [schema-org]
+      Schema.org. W3C Schema.org Community Group.  W3C. 6.0. URL: https://schema.org/
+    [wcag2]
+      Web Content Accessibility Guidelines (WCAG) 2.  W3C. URL: https://www.w3.org/TR/WCAG2/
+    [wcag20]
+      Web Content Accessibility Guidelines (WCAG) 2.0. Ben Caldwell; Michael Cooper; Loretta Guarino Reid; Gregg Vanderheiden et al.  W3C. 11 December 2008. W3C Recommendation. URL: https://www.w3.org/TR/WCAG20/
+    [xml]
+      Extensible Markup Language (XML) 1.0 (Fifth Edition). Tim Bray; Jean Paoli; Michael Sperberg-McQueen; Eve Maler; François Yergeau et al.  W3C. 26 November 2008. W3C Recommendation. URL: https://www.w3.org/TR/xml/
+    
+  E.2 Informative references
+    
+    [a11y-discov-vocab]
+      Schema.org Accessibility Properties for Discoverability Vocabulary. URL: https://www.w3.org/2021/a11y-discov-vocab/latest/
+    [daisyaudio]
+      Navigable audio-only EPUB 3 Guidelines. URL: https://daisy.org/info-help/guidance-training/standards/navigable-audio-only-epub3-guidelines/
+    [dpub-aria-1.0]
+      Digital Publishing WAI-ARIA Module 1.0. Matt Garrish; Tzviya Siegman; Markus Gylling; Shane McCarron.  W3C. 14 December 2017. W3C Recommendation. URL: https://www.w3.org/TR/dpub-aria-1.0/
+    [epub-a11y-exemption]
+      The EPUB Accessibility exemption property. Matt Garrish; Gregorio Pellegrino.  W3C. 6 September 2024. W3C Working Group Note. URL: https://www.w3.org/TR/epub-a11y-exemption/
+    [epub-a11y-tech-11]
+      EPUB Accessibility Techniques 1.1. Matt Garrish; George Kerscher; Charles LaPierre; Gregorio Pellegrino; Avneesh Singh.  W3C. 4 July 2024. W3C Working Group Note. URL: https://www.w3.org/TR/epub-a11y-tech-11/
+    [marc21]
+      MARC 21 XML. URL: https://www.loc.gov/standards/marcxml/
+    [onix]
+      ONIX for Books 3.0. URL: https://www.editeur.org/8/ONIX/
+    [opf-201]
+      Open Packaging Format 2.0.1.  IDPF. 04 September 2010. URL: https://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm
+    [url]
+      URL Standard. Anne van Kesteren.  WHATWG. Living Standard. URL: https://url.spec.whatwg.org/
+    [wai-aria]
+      Accessible Rich Internet Applications (WAI-ARIA) 1.0. James Craig; Michael Cooper et al.  W3C. 20 March 2014. W3C Recommendation. URL: https://www.w3.org/TR/wai-aria/
+    
+  
+    ↑
+  
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.4.1.3.3 Page breaks 
+    
+      § 5. Distribution 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 2.2 Package metadata 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.4.2.3.1 Completeness 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 1.2 Success techniques 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.4.2.3.4 Escapability 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.4.2.3.3 Skippability 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.4.1.3.1 Pagination source 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 2.2 Package metadata 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.4.1.3.2 Page list 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.4.1.3.3 Page breaks 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.4.2.3.2 Reading order 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.4.2.3.5 Navigation document 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.3.2.2 Applying the conformance criteria 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.3.2.2 Applying the conformance criteria 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 1.4 Terminology 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.3.2.2 Applying the conformance criteria 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.4.2.1 Overview 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.3.1 WCAG conformance requirements 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.3.1 WCAG conformance requirements 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.3.1 WCAG conformance requirements 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.3.1 WCAG conformance requirements 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.4.1.1 Overview 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.3.2.1 Page and publication 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.3.2.1 Page and publication 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3.5.2 Publication conformance 
+    
+  
+    

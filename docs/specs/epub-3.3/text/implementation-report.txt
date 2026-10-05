@@ -1,0 +1,90 @@
+
+
+
+    
+    EPUB 3.3 Implementation reports
+    
+    
+    
+
+
+
+    
+        
+            This document gives an overview of the various implementation reports corresponding to the testing strategies, and CR exit criteria, of EPUB 3.3 as described in a separate document.
+    
+    
+    
+
+    
+      Reports per documents and criteria
+
+      
+        EPUB 3.3 (Core) [[epub-33]]
+        
+          
+            
+              
+                Category 1: each required feature define by [[epub-33]], that has a direct effect on the reading system behavior, and whose behavioral details are mostly specified by [[epub-rs-33]], must have at least two, mutually independent implementations.
+              
+              See the EPUB 3.3 Test Results document.
+            
+            
+              
+                Categories 2 and 3: each required constraint on EPUB-specific files, as well as restrictions on [=publication resources=], must be enforceable when checking validity through EPUBCheck 5.
+               
+              See the EPUB 3.3 Structural Test Results document.
+            
+            
+              
+                Category 4: each metadata item defined and required in the [=package document=] defined by [[epub-33]] has sufficient usage by the target communities, i.e., at least two organizations regularly include the metadata in the package document (for publishers) or use them in bookshelves, content rendering, etc. (for reading system developers).
+              
+              
+                See the EPUB 3.3 Metadata Usage Report document.
+              
+            
+          
+        
+      
+
+      EPUB 3.3 Reading Systems [[epub-rs-33]]
+      
+        
+           
+            
+              Each required feature, whose behavior is specified by [[epub-rs-33]], must have at least two, mutually independent implementations.
+            
+            
+              See the EPUB 3.3 Test Results document.
+            
+          
+        
+      
+
+      EPUB Accessibility 1.1 [[epub-a11y-11]]
+      
+        
+          
+            
+              Category 1: at least 5 publishers produce at least 1 EPUB publication each that
+              conforms to EPUB Accessibility 1.1 - WCAG 2.0 Level AA.  
+            
+            
+              See the EPUB Accessibility 1.1 Usage Report document.
+            
+          
+          
+            
+              Category 2: each metadata item defined and required in [[epub-a11y-11]] has sufficient usage by the
+              target communities, i.e., at least two organizations regularly include them in the [=package document=] metadata for their EPUB publications (as appropriate for each title).
+            
+            
+              See the EPUB Accessibility 1.1 Metadata Usage Report document.
+            
+          
+        
+      
+    
+
+
+

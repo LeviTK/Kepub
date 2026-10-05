@@ -1,0 +1,470 @@
+
+
+
+
+
+
+		
+		
+
+		
+EPUB Accessibility - EU Accessibility Act Mapping
+		
+
+		
+		
+		
+		
+
+	
+
+
+
+
+
+
+
+
+	
+    
+  
+    EPUB Accessibility - EU Accessibility Act Mapping 
+    W3C Group Note 28 August 2025
+    
+      More details about this document
+      
+        This version:
+                https://www.w3.org/TR/2025/NOTE-epub-a11y-eaa-mapping-20250828/
+              
+        Latest published version:
+                https://www.w3.org/TR/epub-a11y-eaa-mapping/
+              
+        Latest editor's draft:https://w3c.github.io/epub-specs/wg-notes/epub-a11y-eaa-mapping/
+        History:
+                    https://www.w3.org/standards/history/epub-a11y-eaa-mapping/
+                  
+                    Commit history
+                  
+        
+        
+        
+        
+        
+        Editors:
+    Cristina Mussinelli (Fondazione LIA)
+  
+    Gregorio Pellegrino (Fondazione LIA)
+  
+        
+                Former editor:
+              
+    Luc Audrain (Invited Expert)
+  
+        
+        Feedback:
+        GitHub w3c/epub-specs
+        (pull requests,
+        new issue,
+        open issues)
+      public-pm-wg@w3.org with subject line [epub-a11y-eaa-mapping] … message topic … (archives)
+        
+        
+      
+    
+    
+    
+    
+    Copyright
+    ©
+    2021-2025
+    
+    World Wide Web Consortium.
+    W3C®
+    liability,
+    trademark and
+    permissive document license rules apply.
+  
+    
+  
+		Abstract
+
+			The European Accessibility Act (EAA) is an EU directive that establishes accessibility requirements for different types of products and services. It aims to strengthen the rights of people with disabilities by providing access to products and services, including e-books, dedicated e-reading devices and software, digital rights management software, and e-commerce.
+
+			The EAA was enacted on 27 June 2019 to be forced from 28 June 2025.
+
+			This note aims to demonstrate that EPUB® standard meets all the technical requirements related to e-books, as defined by the EAA.
+
+			The methodology used is mapping the requirements of the EAA related to e-books to the EPUB Accessibility 1.1 specification.
+		
+		Status of This DocumentThis section describes the status of this
+      document at the time of its publication. A list of current W3C
+      publications and the latest revision of this technical report can be found
+      in the
+      W3C standards and drafts index.
+    This document was published by the Publishing Maintenance Working Group as
+    a Group Note using the
+        Note track. 
+  This Group Note is endorsed by
+        the Publishing Maintenance Working Group, but is not endorsed by
+        W3C itself nor its
+        Members. 
+    
+        The
+        W3C Patent
+          Policy
+        does not carry any licensing requirements or commitments on this
+        document.
+      
+    
+  
+                      This document is governed by the
+                      18 August 2025 W3C Process Document.
+                    Table of ContentsAbstractStatus of This Document1. How EPUB addresses all EAA requirements1.1 Relationship of EPUB Accessibility to WCAG2. Mappings2.1 Annex I – Accessibility requirements for products and services2.1.1 Section III – General accessibility requirements related to all services covered by this Directive in accordance with Article 2 (2)2.1.1.1 (a)2.1.1.2 (b)2.1.1.2.1 (i)2.1.1.2.2 (ii)2.1.1.2.3 (iii)2.1.1.2.4 (iv)2.1.1.2.5 (v)2.1.1.2.6 (vi)2.1.1.2.7 (vii)2.1.1.3 (c)2.1.1.4 (d)2.1.2 Section IV: Additional accessibility requirements related to specific services2.1.2.1 (f) E-books2.1.2.1.1 (i)2.1.2.1.2 (ii)2.1.2.1.3 (iii)2.1.2.1.4 (iv)2.1.2.1.5 (v)2.1.2.1.6 (vi)A. ReferencesA.1 Informative references
+		1. How EPUB addresses all EAA requirements
+			
+
+			EPUB is the standard format for the creation and distribution of digital publications, including e-books.
+
+			The EPUB standard is based on the Open Web Platform: HTML, CSS, XML, MathML, and SVG are the core technologies used for content creation. This means that EPUB publications can be created with a high degree of accessibility simply through proper application of established techniques for digital accessibility.
+
+			The EPUB Accessibility standard [epub-a11y-11] addresses the following key areas for making EPUB publications fully accessible:
+
+			
+				conformance to Web Content Accessibility Guidelines (WCAG);
+				discoverability of accessibility features of publications;
+				specific EPUB requirements for accessibility;
+				evaluation and conformance reporting of accessible EPUB publications.
+			
+			
+
+			EPUB Accessibility 1.1 defines requirements for accessibility metadata. In this way consumers can examine the accessibility characteristics of the content and make well-informed decisions on whether an EPUB publication is suitable for each need before buying, borrowing, or downloading it. This metadata, attached to the digital file and distributed along the supply chain, ensures that persons with disabilities can be informed about the publication accessibility features. In order to make sure that information gets to the end user, it is critical that all players in the value chain do their part in managing metadata and displaying it to the end user (aggregators, e-commerce, reading solutions).
+
+			EPUB Accessibility 1.1 also defines the official accessibility criteria that EPUBs must adhere to, to claim conformance to the standard.	These criteria offer EPUB creators a precise set of instructions to assess their content in terms of quality assurance.
+
+			EPUB Accessibility 1.1 does not target a single version of EPUB (most commercially available publications are in EPUB 3 or EPUB 2 format). It is designed to be applicable to all EPUB publications conforming to any version or profile, including future versions of the standard.
+			
+			EPUB itself (the core format) allows the creation of both Reflowable and Fixed Layout publications.
+			
+			In a Reflowable publication, the content adapts to the user's viewport. This includes the user's chosen graphical characteristics, such as font size, line spacing, text color, etc. In a Fixed Layout publication, each element has a fixed position because the publication is usually an exact replica of the paper version. In these publications the user does not have the ability to change the graphical characteristics, such as font size, line spacing, text color, etc.
+	
+			EPUB Fixed Layout are mainly used for publications in which the meaning is layout-driven such as comics, illustrated children’s books, and art books.
+
+			Although it is technically possible to produce Fixed Layout publications with a good level of accessibility, it should be kept in mind that some accessibility requirements cannot be met. This is because of the limitation of the format, including the ability to change the graphical formatting of the text according to the user's needs.
+		
+			1.1 Relationship of EPUB Accessibility to WCAG
+				
+				
+				EPUB Accessibility 1.1 defines the requirements necessary to make an EPUB publication fully accessible, including the requirements defined by the Web Content Accessibility Guidelines (WCAG). It further adds requirements solely related to the specific characteristics of e-books and other digital publications.
+
+				Web Content Accessibility Guidelines (WCAG) defines requirements for making many different types of digital content accessible. It addresses a wide range of situations and technologies, including multimedia content, interactive content, and basic web page structure.
+				
+				EPUB Accessibility 1.1 defines how to apply WCAG specifically to EPUB publications, and defines additional requirements such as accessibility metadata, page navigation, audio-text synchronization and Digital Rights Management guidance.
+			
+				The additional requirements defined by EPUB Accessibility are critical to fully comply with the requirements of the European Accessibility Act.
+			
+		
+		2. Mappings
+			
+			
+			This section of the document maps the requirements defined of the European Accessibility Act to the EPUB Accessibility technical standard.
+			
+			The mapping includes the following sections from Annex I Accessibility requirements for products and services of the EAA:
+
+			
+				Section III Accessibility requirements for products and services related to all services covered by the EAA, including e-books
+				Section IV Additional accessibility requirements related to specific services, sub-section (f) E-books, which defines specific requirements for e-books
+			
+
+			2.1 Annex I – Accessibility requirements for products and services
+				
+
+				2.1.1 Section III – General accessibility requirements related to all services covered by this Directive in accordance with Article 2 (2)
+					
+
+					
+						General accessibility requirements related to all services covered by this Directive in
+							accordance with Article 2(2)
+						The provision of services in order to maximise their foreseeable use by persons with
+							disabilities, shall be achieved by:
+					
+
+					2.1.1.1 (a)
+						
+
+						
+							Ensuring the accessibility of the products used in the provision of the service, in
+								accordance with Section I of this Annex and, where applicable, Section II thereof
+						
+						Out of scope: requirement for reading systems and other products used to provide the service.
+					
+
+					2.1.1.2 (b)
+						
+
+						
+							Providing information about the functioning of the service, and where products are used
+								in the provision of the service, its link to these products as well as information about
+								their accessibility characteristics and interoperability with assistive devices and
+								facilities
+						
+
+						Satisfied by EPUB Accessibility 1.1, section Discoverability.
+
+						2.1.1.2.1 (i)
+							
+
+							
+								Making the information available via more than one sensory channel
+							
+
+							This requirement is satisfied by:
+							
+								WCAG Success Criterion 1.1.1 Non-text Content (level A).
+								WCAG Success Criterion 1.3.1 Info and Relationships (level A).
+								WCAG Success Criterion 1.3.3 Sensory Characteristics (level A).
+								WCAG Success Criterion 1.4.1 Use of Color (level A).
+							
+							In case the ebook contains multimedia content (audio or video), this requirement is satisfied by:
+							
+								WCAG Success Criterion 1.2.1 Audio-only and Video-only (Prerecorded) (level A).
+								WCAG Success Criterion 1.2.2 Captions (Prerecorded) (level A).
+								WCAG Success Criterion 1.2.3 Audio Description or Media Alternative (Prerecorded) (level A).
+							
+						
+
+						2.1.1.2.2 (ii)
+							
+
+							
+								Presenting the information in an understandable way
+							
+
+							This requirement is satisfied by WCAG Principle 3. Understandable (level AA).
+						
+
+						2.1.1.2.3 (iii)
+							
+
+							
+								Presenting the information to users in ways they can perceive
+							
+
+							This requirement is satisfied by WCAG Principle 1. Perceivable (level A).
+						
+
+						2.1.1.2.4 (iv)
+							
+
+							
+								Allowing alternative renditions of the content and its interoperability with a
+									variety of assistive technologies, in such a way that it is perceivable,
+									understandable, operable and robust
+							
+
+							Note
+								In the context of the European Accessibility Act the term rendition does not
+									refer to the EPUB 3 multiple renditions specification, it means the ability
+									to access content in different ways.
+							
+
+							This requirement is satisfied by WCAG 2.
+						
+
+						2.1.1.2.5 (v)
+							
+
+							
+								Presenting in fonts of adequate size and suitable shape, taking into account
+									foreseeable conditions of use and using sufficient contrast, as well as adjustable
+									spacing between letters, lines and paragraphs
+							
+
+							This requirement is satisfied by:
+							
+								WCAG Success Criterion 1.4.3 Contrast (Minimum) (level AA).
+								WCAG Success Criterion 1.4.4 Resize Text (level AA).
+								WCAG Success Criterion 1.4.10 Reflow (level AA).
+								WCAG Success Criterion 1.4.12 Text Spacing (level AA).
+							
+							Note
+								There are technical limitation for certain types of Fixed Layout publications, such as comics, illustrated children’s books, and art books. For example, the flexibility and choice in the presentation of the content may not be available for these types of e-books.
+							
+						
+
+						2.1.1.2.6 (vi)
+							
+
+							
+								Supplementing any non-textual content with an alternative presentation of that
+									content
+							
+
+							This requirement is satisfied by WCAG Success Criterion 1.1.1 Non-text Content (level A).
+							In case the ebook contains multimedia content (audio or video), this requirement is satisfied by:
+							
+								WCAG Success Criterion 1.2.1 Audio-only and Video-only (Prerecorded) (level A).
+								WCAG Success Criterion 1.2.2 Captions (Prerecorded) (level A).
+								WCAG Success Criterion 1.2.3 Audio Description or Media Alternative (Prerecorded) (level A).
+							
+						
+
+						2.1.1.2.7 (vii)
+							
+
+							
+								Providing electronic information needed in the provision of the service in a
+									consistent and adequate way by making it perceivable, operable, understandable and
+									robust
+							
+
+							Provision of information is covered by EPUB Accessibility, section Discoverability. Presentation of this information is out of scope of e-books, it is a requirement for reading systems, e-commerce websites, and platforms. 
+						
+					
+
+					2.1.1.3 (c)
+						
+
+						
+							Making websites, including the related online applications, and mobile device-based
+								services, including mobile applications, accessible in a consistent and adequate way by
+								making them perceivable, operable, understandable and robust
+						
+
+						This requirement is satisfied by WCAG 2.
+					
+
+					2.1.1.4 (d)
+						
+
+						
+							Where available, support services (help desks, call centres, technical support, relay
+								services and training services) providing information on the accessibility of the
+								service and its compatibility with assistive technologies, in accessible modes of
+								communication
+						
+
+						Out of scope: requirement for support services, such as call centres.
+					
+				
+
+				2.1.2 Section IV: Additional accessibility requirements related to specific services
+					
+
+					2.1.2.1 (f) E-books
+						
+
+						2.1.2.1.1 (i)
+							
+
+							
+								Ensuring that, when an e-book contains audio in addition to text, it then provides
+									synchronised text and audio
+							
+							The audio synched to text feature is called media
+									overlays in the EPUB world and it provides an effective synchronization between
+								text and audio.
+						
+
+						2.1.2.1.2 (ii)
+							
+
+							
+								Ensuring that e-book digital files do not prevent assistive technology from operating
+									properly
+							
+
+							The EPUB Accessibility specification uses the definition of assistive technology as defined in
+									WCAG2.
+
+							This requirement is satisfied by:
+
+							
+								WCAG conformance requirement Only
+										Accessibility-Supported Ways of Using Technologies;
+								WCAG conformance requirement 
+										Non-Interference;
+								WCAG Success Criterion 4.1.2 Name, Role, Value (level A).
+								WCAG Success Criterion 2.1
+										Keyboard Accessible (level A).
+							
+						
+
+						2.1.2.1.3 (iii)
+							
+
+							
+								Ensuring access to the content, the navigation of the file content and layout
+									including dynamic layout, the provision of the structure, flexibility and choice in
+									the presentation of the content
+							
+
+							This requirement is satisfied by:
+
+							
+								EPUB specifications section TOC nav;
+								EPUB Accessibility Page Navigation requirement;
+								WCAG Guideline 1.3 Adaptable (level A);
+								WCAG Success Criterion 1.4.10 Reflow (level AA).
+							
+							
+							Note
+								There are technical limitation for certain types of Fixed Layout publications, such as comics, illustrated children’s books, and art books. For example, the flexibility and choice in the presentation of the content may not be available for these types of e-books.
+							
+						
+
+						2.1.2.1.4 (iv)
+							
+
+							
+								Allowing alternative renditions of the content and its interoperability with a
+									variety of assistive technologies, in such a way that it is perceivable,
+									understandable, operable and robust
+							
+
+							Note
+								In the context of the European Accessibility Act the term rendition does not
+									refer to the EPUB 3 multiple renditions specification, it means the ability
+									to access content in different ways.
+							
+
+							This requirement is satisfied by WCAG 2.
+						
+
+						2.1.2.1.5 (v)
+							
+
+							
+								Making them discoverable by providing information through metadata about their
+									accessibility features
+							
+
+							This requirement is satisfied by EPUB Accessibility 1.1, section Discoverability.
+						
+
+						2.1.2.1.6 (vi)
+							
+
+							
+								Ensuring that digital rights management measures do not block accessibility
+									features
+							
+
+							This requirement is satisfied by EPUB Accessibility 1.1, section Distribution (non
+								normative).
+						
+					
+				
+			
+		
+	
+
+A. ReferencesA.1 Informative references
+    
+    [epub-33]
+      EPUB 3.3. Ivan Herman; Matt Garrish; Dave Cramer.  W3C. 27 March 2025. W3C Recommendation. URL: https://www.w3.org/TR/epub-33/
+    [epub-a11y-11]
+      EPUB Accessibility 1.1. George Kerscher; Matt Garrish; Charles LaPierre; Avneesh Singh; Gregorio Pellegrino.  W3C. 17 October 2024. W3C Recommendation. URL: https://www.w3.org/TR/epub-a11y-11/
+    
+  
+    ↑
+  

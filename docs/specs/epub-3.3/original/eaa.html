@@ -1,0 +1,935 @@
+<!DOCTYPE html><html lang="en-US"><head>
+<meta charset="utf-8">
+<meta name="generator" content="ReSpec 35.5.1">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<style>
+.issue-label{text-transform:initial}
+.warning>p:first-child{margin-top:0}
+.warning{padding:.5em;border-left-width:.5em;border-left-style:solid}
+span.warning{padding:.1em .5em .15em}
+.issue.closed span.issue-number{text-decoration:line-through}
+.issue.closed span.issue-number::after{content:" (Closed)";font-size:smaller}
+.warning{border-color:#f11;border-color:var(--warning-border,#f11);border-width:.2em;border-style:solid;background:#fbe9e9;background:var(--warning-bg,#fbe9e9);color:#000;color:var(--text,#000)}
+.warning-title:before{content:"⚠";font-size:1.3em;float:left;padding-right:.3em;margin-top:-.3em}
+li.task-list-item{list-style:none}
+input.task-list-item-checkbox{margin:0 .35em .25em -1.6em;vertical-align:middle}
+.issue a.respec-gh-label{padding:5px;margin:0 2px 0 2px;font-size:10px;text-transform:none;text-decoration:none;font-weight:700;border-radius:4px;position:relative;bottom:2px;border:none;display:inline-block}
+</style>
+<style>
+dfn{cursor:pointer}
+.dfn-panel{position:absolute;z-index:35;min-width:300px;max-width:500px;padding:.5em .75em;margin-top:.6em;font-family:"Helvetica Neue",sans-serif;font-size:small;background:#fff;background:var(--indextable-hover-bg,#fff);color:#000;color:var(--text,#000);box-shadow:0 1em 3em -.4em rgba(0,0,0,.3),0 0 1px 1px rgba(0,0,0,.05);box-shadow:0 1em 3em -.4em var(--tocsidebar-shadow,rgba(0,0,0,.3)),0 0 1px 1px var(--tocsidebar-shadow,rgba(0,0,0,.05));border-radius:2px}
+.dfn-panel:not(.docked)>.caret{position:absolute;top:-9px}
+.dfn-panel:not(.docked)>.caret::after,.dfn-panel:not(.docked)>.caret::before{content:"";position:absolute;border:10px solid transparent;border-top:0;border-bottom:10px solid #fff;border-bottom-color:var(--indextable-hover-bg,#fff);top:0}
+.dfn-panel:not(.docked)>.caret::before{border-bottom:9px solid #a2a9b1;border-bottom-color:var(--indextable-hover-bg,#a2a9b1)}
+.dfn-panel *{margin:0}
+.dfn-panel b{display:block;color:#000;color:var(--text,#000);margin-top:.25em}
+.dfn-panel ul a[href]{color:#333;color:var(--text,#333)}
+.dfn-panel>div{display:flex}
+.dfn-panel a.self-link{font-weight:700;margin-right:auto}
+.dfn-panel .marker{padding:.1em;margin-left:.5em;border-radius:.2em;text-align:center;white-space:nowrap;font-size:90%;color:#040b1c}
+.dfn-panel .marker.dfn-exported{background:#d1edfd;box-shadow:0 0 0 .125em #1ca5f940}
+.dfn-panel .marker.idl-block{background:#8ccbf2;box-shadow:0 0 0 .125em #0670b161}
+.dfn-panel a:not(:hover){text-decoration:none!important;border-bottom:none!important}
+.dfn-panel a[href]:hover{border-bottom-width:1px}
+.dfn-panel ul{padding:0}
+.dfn-panel li{margin-left:1em}
+.dfn-panel.docked{position:fixed;left:.5em;top:unset;bottom:2em;margin:0 auto;max-width:calc(100vw - .75em * 2 - .5em - .2em * 2);max-height:30vh;overflow:auto}
+</style>
+		
+		
+<meta name="color-scheme" content="light dark">
+		
+<title>EPUB Accessibility - EU Accessibility Act Mapping</title>
+		
+<style id="respec-mainstyle">
+@keyframes pop{
+0%{transform:scale(1,1)}
+25%{transform:scale(1.25,1.25);opacity:.75}
+100%{transform:scale(1,1)}
+}
+a.internalDFN{color:inherit;border-bottom:1px solid #99c;text-decoration:none}
+a.externalDFN{color:inherit;border-bottom:1px dotted #ccc;text-decoration:none}
+a.bibref{text-decoration:none}
+.respec-offending-element:target{animation:pop .25s ease-in-out 0s 1}
+.respec-offending-element,a[href].respec-offending-element{text-decoration:red wavy underline}
+@supports not (text-decoration:red wavy underline){
+.respec-offending-element:not(pre){display:inline-block}
+.respec-offending-element{background:url(data:image/gif;base64,R0lGODdhBAADAPEAANv///8AAP///wAAACwAAAAABAADAEACBZQjmIAFADs=) bottom repeat-x}
+}
+#references :target{background:#eaf3ff;animation:pop .4s ease-in-out 0s 1}
+cite .bibref{font-style:italic}
+a[href].orcid{padding-left:4px;padding-right:4px}
+a[href].orcid>svg{margin-bottom:-2px}
+ol.tof,ul.tof{list-style:none outside none}
+.caption{margin-top:.5em;font-style:italic}
+#issue-summary>ul{column-count:2}
+#issue-summary li{list-style:none;display:inline-block}
+details.respec-tests-details{margin-left:1em;display:inline-block;vertical-align:top}
+details.respec-tests-details>*{padding-right:2em}
+details.respec-tests-details[open]{z-index:999999;position:absolute;border:thin solid #cad3e2;border-radius:.3em;background-color:#fff;padding-bottom:.5em}
+details.respec-tests-details[open]>summary{border-bottom:thin solid #cad3e2;padding-left:1em;margin-bottom:1em;line-height:2em}
+details.respec-tests-details>ul{width:100%;margin-top:-.3em}
+details.respec-tests-details>li{padding-left:1em}
+.self-link:hover{opacity:1;text-decoration:none;background-color:transparent}
+aside.example .marker>a.self-link{color:inherit}
+.header-wrapper{display:flex;align-items:baseline}
+:is(h2,h3,h4,h5,h6):not(#toc>h2,#abstract>h2,#sotd>h2,.head>h2){position:relative;left:-.5em}
+:is(h2,h3,h4,h5,h6):not(#toch2)+a.self-link{color:inherit;order:-1;position:relative;left:-1.1em;font-size:1rem;opacity:.5}
+:is(h2,h3,h4,h5,h6)+a.self-link::before{content:"§";text-decoration:none;color:var(--heading-text)}
+:is(h2,h3)+a.self-link{top:-.2em}
+:is(h4,h5,h6)+a.self-link::before{color:#000}
+@media (max-width:767px){
+dd{margin-left:0}
+}
+@media print{
+.removeOnSave{display:none}
+}
+</style>
+		
+		
+		
+		
+<style>
+
+			td {
+				vertical-align: top;
+			}
+</style>
+	
+<meta name="revision" content="faf95ac9aada4c376fb41c7b022d477f206fb5c0">
+<meta name="description" content="The European Accessibility Act (EAA) is an EU directive that establishes accessibility requirements for different types of products and services. It aims to strengthen the rights of people with disabilities by providing access to products and services, including e-books, dedicated e-reading devices and software, digital rights management software, and e-commerce.">
+<link rel="canonical" href="https://www.w3.org/TR/epub-a11y-eaa-mapping/">
+<style>
+var:hover{text-decoration:underline;cursor:pointer}
+var.respec-hl{color:var(--color,#000);background-color:var(--bg-color);box-shadow:0 0 0 2px var(--bg-color)}
+@media (prefers-color-scheme:dark){
+var.respec-hl{filter:saturate(.9) brightness(.9)}
+}
+var.respec-hl-c1{--bg-color:#f4d200}
+var.respec-hl-c2{--bg-color:#ff87a2}
+var.respec-hl-c3{--bg-color:#96e885}
+var.respec-hl-c4{--bg-color:#3eeed2}
+var.respec-hl-c5{--bg-color:#eacfb6}
+var.respec-hl-c6{--bg-color:#82ddff}
+var.respec-hl-c7{--bg-color:#ffbcf2}
+@media print{
+var.respec-hl{background:0 0;color:#000;box-shadow:unset}
+}
+</style>
+<style>
+var{position:relative;cursor:pointer}
+var[data-type]::after,var[data-type]::before{position:absolute;left:50%;top:-6px;opacity:0;transition:opacity .4s;pointer-events:none}
+var[data-type]::before{content:"";transform:translateX(-50%);border-width:4px 6px 0 6px;border-style:solid;border-color:transparent;border-top-color:#222}
+var[data-type]::after{content:attr(data-type);transform:translateX(-50%) translateY(-100%);background:#222;text-align:center;font-family:"Dank Mono","Fira Code",monospace;font-style:normal;padding:6px;border-radius:3px;color:#daca88;text-indent:0;font-weight:400}
+var[data-type]:hover::after,var[data-type]:hover::before{opacity:1}
+</style>
+<script id="initialUserConfig" type="application/json">{
+  "group": "pm",
+  "wgPublicList": "public-pm-wg",
+  "specStatus": "NOTE",
+  "noRecTrack": true,
+  "shortName": "epub-a11y-eaa-mapping",
+  "edDraftURI": "https://w3c.github.io/epub-specs/wg-notes/epub-a11y-eaa-mapping/",
+  "copyrightStart": "2021",
+  "editors": [
+    {
+      "name": "Cristina Mussinelli",
+      "company": "Fondazione LIA",
+      "companyURL": "https://www.fondazionelia.org",
+      "w3cid": 66100
+    },
+    {
+      "name": "Gregorio Pellegrino",
+      "company": "Fondazione LIA",
+      "companyURL": "https://www.fondazionelia.org",
+      "w3cid": 97111
+    }
+  ],
+  "formerEditors": [
+    {
+      "name": "Luc Audrain",
+      "company": "Invited Expert",
+      "w3cid": 65303
+    }
+  ],
+  "includePermalinks": true,
+  "permalinkEdge": true,
+  "permalinkHide": false,
+  "github": {
+    "repoURL": "https://github.com/w3c/epub-specs",
+    "branch": "main"
+  },
+  "postProcess": [
+    null
+  ],
+  "gitRevision": "faf95ac9aada4c376fb41c7b022d477f206fb5c0",
+  "publishDate": "2025-08-28",
+  "previousMaturity": "NOTE",
+  "previousPublishDate": "2025-08-19",
+  "publishISODate": "2025-08-28T00:00:00.000Z",
+  "generatedSubtitle": "W3C Group Note 28 August 2025"
+}</script>
+<link rel="stylesheet" href="https://www.w3.org/StyleSheets/TR/2021/W3C-NOTE">
+<link rel="stylesheet" media="(prefers-color-scheme: dark)" href="https://www.w3.org/StyleSheets/TR/2021/dark.css"></head>
+	<body class="h-entry informative"><div class="head">
+    <p class="logos"><a class="logo" href="https://www.w3.org/"><img crossorigin="" alt="W3C" height="48" src="https://www.w3.org/StyleSheets/TR/2021/logos/W3C" width="72">
+  </a></p>
+    <h1 id="title" class="title">EPUB Accessibility - EU Accessibility Act Mapping</h1> 
+    <p id="w3c-state"><a href="https://www.w3.org/standards/types#NOTE">W3C Group Note</a> <time class="dt-published" datetime="2025-08-28">28 August 2025</time></p>
+    <details open="">
+      <summary>More details about this document</summary>
+      <dl>
+        <dt>This version:</dt><dd>
+                <a class="u-url" href="https://www.w3.org/TR/2025/NOTE-epub-a11y-eaa-mapping-20250828/">https://www.w3.org/TR/2025/NOTE-epub-a11y-eaa-mapping-20250828/</a>
+              </dd>
+        <dt>Latest published version:</dt><dd>
+                <a href="https://www.w3.org/TR/epub-a11y-eaa-mapping/">https://www.w3.org/TR/epub-a11y-eaa-mapping/</a>
+              </dd>
+        <dt>Latest editor's draft:</dt><dd><a href="https://w3c.github.io/epub-specs/wg-notes/epub-a11y-eaa-mapping/">https://w3c.github.io/epub-specs/wg-notes/epub-a11y-eaa-mapping/</a></dd>
+        <dt>History:</dt><dd>
+                    <a href="https://www.w3.org/standards/history/epub-a11y-eaa-mapping/">https://www.w3.org/standards/history/epub-a11y-eaa-mapping/</a>
+                  </dd><dd>
+                    <a href="https://github.com/w3c/epub-specs/commits/main">Commit history</a>
+                  </dd>
+        
+        
+        
+        
+        
+        <dt>Editors:</dt><dd class="editor p-author h-card vcard" data-editor-id="66100">
+    <span class="p-name fn">Cristina Mussinelli</span> (<a class="p-org org h-org" href="https://www.fondazionelia.org">Fondazione LIA</a>)
+  </dd><dd class="editor p-author h-card vcard" data-editor-id="97111">
+    <span class="p-name fn">Gregorio Pellegrino</span> (<a class="p-org org h-org" href="https://www.fondazionelia.org">Fondazione LIA</a>)
+  </dd>
+        <dt>
+                Former editor:
+              </dt><dd class="editor p-author h-card vcard" data-editor-id="65303">
+    <span class="p-name fn">Luc Audrain</span> (<span class="p-org org h-org">Invited Expert</span>)
+  </dd>
+        
+        <dt>Feedback:</dt><dd>
+        <a href="https://github.com/w3c/epub-specs/">GitHub w3c/epub-specs</a>
+        (<a href="https://github.com/w3c/epub-specs/pulls/">pull requests</a>,
+        <a href="https://github.com/w3c/epub-specs/issues/new/choose">new issue</a>,
+        <a href="https://github.com/w3c/epub-specs/issues/">open issues</a>)
+      </dd><dd><a href="mailto:public-pm-wg@w3.org?subject=%5Bepub-a11y-eaa-mapping%5D%20YOUR%20TOPIC%20HERE">public-pm-wg@w3.org</a> with subject line <kbd>[epub-a11y-eaa-mapping] <em>… message topic …</em></kbd> (<a rel="discussion" href="https://lists.w3.org/Archives/Public/public-pm-wg">archives</a>)</dd>
+        
+        
+      </dl>
+    </details>
+    
+    
+    <p class="copyright">
+    <a href="https://www.w3.org/policies/#copyright">Copyright</a>
+    ©
+    2021-2025
+    
+    <a href="https://www.w3.org/">World Wide Web Consortium</a>.
+    <abbr title="World Wide Web Consortium">W3C</abbr><sup>®</sup>
+    <a href="https://www.w3.org/policies/#Legal_Disclaimer">liability</a>,
+    <a href="https://www.w3.org/policies/#W3C_Trademarks">trademark</a> and
+    <a rel="license" href="https://www.w3.org/copyright/software-license-2023/" title="W3C Software and Document Notice and License">permissive document license</a> rules apply.
+  </p>
+    <hr title="Separator for header">
+  </div>
+		<section id="abstract" class="introductory"><h2>Abstract</h2>
+
+			<p>The <a href="https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32019L0882">European Accessibility Act (EAA)</a> is an EU directive that establishes accessibility requirements for different types of products and services. It aims to strengthen the rights of people with disabilities by providing access to products and services, including e-books, dedicated e-reading devices and software, digital rights management software, and e-commerce.</p>
+
+			<p>The EAA was enacted on 27 June 2019 to be forced from 28 June 2025.</p>
+
+			<p>This note aims to demonstrate that EPUB® standard meets all the technical requirements related to e-books, as defined by the EAA.</p>
+
+			<p>The methodology used is mapping the requirements of the EAA related to e-books to the <a href="https://www.w3.org/TR/epub-a11y-11/">EPUB Accessibility 1.1</a> specification.</p>
+		</section>
+		<section id="sotd" class="introductory"><h2>Status of This Document</h2><p><em>This section describes the status of this
+      document at the time of its publication. A list of current <abbr title="World Wide Web Consortium">W3C</abbr>
+      publications and the latest revision of this technical report can be found
+      in the
+      <a href="https://www.w3.org/TR/"><abbr title="World Wide Web Consortium">W3C</abbr> standards and drafts index</a>.</em></p><p>
+    This document was published by the <a href="https://www.w3.org/groups/wg/pm">Publishing Maintenance Working Group</a> as
+    a Group Note using the
+        <a href="https://www.w3.org/policies/process/20250818/#recs-and-notes">Note track</a>. 
+  </p><p>This Group Note is endorsed by
+        the <a href="https://www.w3.org/groups/wg/pm">Publishing Maintenance Working Group</a>, but is not endorsed by
+        <abbr title="World Wide Web Consortium">W3C</abbr> itself nor its
+        Members. </p><p data-deliverer="144835">
+    
+        The
+        <a href="https://www.w3.org/policies/patent-policy/"><abbr title="World Wide Web Consortium">W3C</abbr> Patent
+          Policy</a>
+        does not carry any licensing requirements or commitments on this
+        document.
+      
+    
+  </p><p>
+                      This document is governed by the
+                      <a id="w3c_process_revision" href="https://www.w3.org/policies/process/20250818/">18 August 2025 <abbr title="World Wide Web Consortium">W3C</abbr> Process Document</a>.
+                    </p></section><nav id="toc"><h2 class="introductory" id="table-of-contents">Table of Contents</h2><ol class="toc"><li class="tocline"><a class="tocxref" href="#abstract">Abstract</a></li><li class="tocline"><a class="tocxref" href="#sotd">Status of This Document</a></li><li class="tocline"><a class="tocxref" href="#introduction"><bdi class="secno">1. </bdi>How EPUB addresses all EAA requirements</a><ol class="toc"><li class="tocline"><a class="tocxref" href="#relationship-to-wcag"><bdi class="secno">1.1 </bdi>Relationship of EPUB Accessibility to WCAG</a></li></ol></li><li class="tocline"><a class="tocxref" href="#mappings"><bdi class="secno">2. </bdi>Mappings</a><ol class="toc"><li class="tocline"><a class="tocxref" href="#annex-I"><bdi class="secno">2.1 </bdi>Annex I – Accessibility requirements for products and services</a><ol class="toc"><li class="tocline"><a class="tocxref" href="#annex-I-section-III"><bdi class="secno">2.1.1 </bdi>Section III – General accessibility requirements related to all services covered by this Directive in accordance with Article 2 (2)</a><ol class="toc"><li class="tocline"><a class="tocxref" href="#annex-I-section-III-a"><bdi class="secno">2.1.1.1 </bdi>(a)</a></li><li class="tocline"><a class="tocxref" href="#annex-I-section-III-b"><bdi class="secno">2.1.1.2 </bdi>(b)</a><ol class="toc"><li class="tocline"><a class="tocxref" href="#annex-I-section-III-b-i"><bdi class="secno">2.1.1.2.1 </bdi>(i)</a></li><li class="tocline"><a class="tocxref" href="#annex-I-section-III-b-ii"><bdi class="secno">2.1.1.2.2 </bdi>(ii)</a></li><li class="tocline"><a class="tocxref" href="#annex-I-section-III-b-iii"><bdi class="secno">2.1.1.2.3 </bdi>(iii)</a></li><li class="tocline"><a class="tocxref" href="#annex-I-section-III-b-iv"><bdi class="secno">2.1.1.2.4 </bdi>(iv)</a></li><li class="tocline"><a class="tocxref" href="#annex-I-section-III-b-v"><bdi class="secno">2.1.1.2.5 </bdi>(v)</a></li><li class="tocline"><a class="tocxref" href="#annex-I-section-III-b-vi"><bdi class="secno">2.1.1.2.6 </bdi>(vi)</a></li><li class="tocline"><a class="tocxref" href="#annex-I-section-III-b-vii"><bdi class="secno">2.1.1.2.7 </bdi>(vii)</a></li></ol></li><li class="tocline"><a class="tocxref" href="#annex-I-section-III-c"><bdi class="secno">2.1.1.3 </bdi>(c)</a></li><li class="tocline"><a class="tocxref" href="#annex-I-section-III-d"><bdi class="secno">2.1.1.4 </bdi>(d)</a></li></ol></li><li class="tocline"><a class="tocxref" href="#annex-I-section-IV"><bdi class="secno">2.1.2 </bdi>Section IV: Additional accessibility requirements related to specific services</a><ol class="toc"><li class="tocline"><a class="tocxref" href="#annex-I-section-IV-f"><bdi class="secno">2.1.2.1 </bdi>(f) E-books</a><ol class="toc"><li class="tocline"><a class="tocxref" href="#annex-I-section-IV-f-i"><bdi class="secno">2.1.2.1.1 </bdi>(i)</a></li><li class="tocline"><a class="tocxref" href="#annex-I-section-IV-f-ii"><bdi class="secno">2.1.2.1.2 </bdi>(ii)</a></li><li class="tocline"><a class="tocxref" href="#annex-I-section-IV-f-iii"><bdi class="secno">2.1.2.1.3 </bdi>(iii)</a></li><li class="tocline"><a class="tocxref" href="#annex-I-section-IV-f-iv"><bdi class="secno">2.1.2.1.4 </bdi>(iv)</a></li><li class="tocline"><a class="tocxref" href="#annex-I-section-IV-f-v"><bdi class="secno">2.1.2.1.5 </bdi>(v)</a></li><li class="tocline"><a class="tocxref" href="#annex-I-section-IV-f-vi"><bdi class="secno">2.1.2.1.6 </bdi>(vi)</a></li></ol></li></ol></li></ol></li></ol></li><li class="tocline"><a class="tocxref" href="#references"><bdi class="secno">A. </bdi>References</a><ol class="toc"><li class="tocline"><a class="tocxref" href="#informative-references"><bdi class="secno">A.1 </bdi>Informative references</a></li></ol></li></ol></nav>
+		<section id="introduction"><div class="header-wrapper"><h2 id="x1-how-epub-addresses-all-eaa-requirements"><bdi class="secno">1. </bdi>How EPUB addresses all EAA requirements</h2><a class="self-link" href="#introduction" aria-label="Permalink for Section 1."></a></div>
+			
+
+			<p>EPUB is the standard format for the creation and distribution of digital publications, including e-books.</p>
+
+			<p>The EPUB standard is based on the <a href="https://www.w3.org/wiki/Open_Web_Platform">Open Web Platform</a>: HTML, CSS, XML, MathML, and SVG are the core technologies used for content creation. This means that EPUB publications can be created with a high degree of accessibility simply through proper application of established techniques for digital accessibility.</p>
+
+			<p>The <a href="https://www.w3.org/TR/epub-a11y-11/">EPUB Accessibility</a> standard [<cite><a class="bibref" data-link-type="biblio" href="#bib-epub-a11y-11" title="EPUB Accessibility 1.1">epub-a11y-11</a></cite>] addresses the following key areas for making EPUB publications fully accessible:</p>
+
+			<ul>
+				<li>conformance to Web Content Accessibility Guidelines (WCAG);</li>
+				<li>discoverability of accessibility features of publications;</li>
+				<li>specific EPUB requirements for accessibility;</li>
+				<li>evaluation and conformance reporting of accessible EPUB publications.</li>
+			</ul>
+			
+
+			<p>EPUB Accessibility 1.1 defines requirements for accessibility metadata. In this way consumers can examine the accessibility characteristics of the content and make well-informed decisions on whether an EPUB publication is suitable for each need before buying, borrowing, or downloading it. This metadata, attached to the digital file and distributed along the supply chain, ensures that persons with disabilities can be informed about the publication accessibility features. In order to make sure that information gets to the end user, it is critical that all players in the value chain do their part in managing metadata and displaying it to the end user (aggregators, e-commerce, reading solutions).</p>
+
+			<p>EPUB Accessibility 1.1 also defines the official accessibility criteria that EPUBs must adhere to, to claim conformance to the standard.	These criteria offer EPUB creators a precise set of instructions to assess their content in terms of quality assurance.</p>
+
+			<p>EPUB Accessibility 1.1 does not target a single version of EPUB (most commercially available publications are in EPUB 3 or EPUB 2 format). It is designed to be applicable to all EPUB publications conforming to any version or profile, including future versions of the standard.</p>
+			
+			<p>EPUB itself (the core format) allows the creation of both Reflowable and Fixed Layout publications.</p>
+			
+			<p>In a Reflowable publication, the content adapts to the user's viewport. This includes the user's chosen graphical characteristics, such as font size, line spacing, text color, etc. In a Fixed Layout publication, each element has a fixed position because the publication is usually an exact replica of the paper version. In these publications the user does not have the ability to change the graphical characteristics, such as font size, line spacing, text color, etc.</p>
+	
+			<p>EPUB Fixed Layout are mainly used for publications in which the meaning is layout-driven such as comics, illustrated children’s books, and art books.</p>
+
+			<p>Although it is technically possible to produce Fixed Layout publications with a good level of accessibility, it should be kept in mind that some accessibility requirements cannot be met. This is because of the limitation of the format, including the ability to change the graphical formatting of the text according to the user's needs.</p>
+		
+			<section id="relationship-to-wcag"><div class="header-wrapper"><h3 id="x1-1-relationship-of-epub-accessibility-to-wcag"><bdi class="secno">1.1 </bdi>Relationship of EPUB Accessibility to WCAG</h3><a class="self-link" href="#relationship-to-wcag" aria-label="Permalink for Section 1.1"></a></div>
+				
+				
+				<p>EPUB Accessibility 1.1 defines the requirements necessary to make an EPUB publication fully accessible, including the requirements defined by the Web Content Accessibility Guidelines (WCAG). It further adds requirements solely related to the specific characteristics of e-books and other digital publications.</p>
+
+				<p>Web Content Accessibility Guidelines (WCAG) defines requirements for making many different types of digital content accessible. It addresses a wide range of situations and technologies, including multimedia content, interactive content, and basic web page structure.</p>
+				
+				<p>EPUB Accessibility 1.1 defines how to apply WCAG specifically to EPUB publications, and defines additional requirements such as accessibility metadata, page navigation, audio-text synchronization and Digital Rights Management guidance.</p>
+			
+				<p>The additional requirements defined by EPUB Accessibility are critical to fully comply with the requirements of the European Accessibility Act.</p>
+			</section>
+		</section>
+		<section id="mappings"><div class="header-wrapper"><h2 id="x2-mappings"><bdi class="secno">2. </bdi>Mappings</h2><a class="self-link" href="#mappings" aria-label="Permalink for Section 2."></a></div>
+			
+			
+			<p>This section of the document maps the requirements defined of the European Accessibility Act to the EPUB Accessibility technical standard.</p>
+			
+			<p>The mapping includes the following sections from Annex I <q>Accessibility requirements for products and services</q> of the EAA:</p>
+
+			<ul>
+				<li>Section III <q>Accessibility requirements for products and services</q> related to all services covered by the EAA, including e-books</li>
+				<li>Section IV <q>Additional accessibility requirements related to specific services</q>, sub-section (f) <q>E-books</q>, which defines specific requirements for e-books</li>
+			</ul>
+
+			<section id="annex-I"><div class="header-wrapper"><h3 id="x2-1-annex-i-accessibility-requirements-for-products-and-services"><bdi class="secno">2.1 </bdi>Annex I – Accessibility requirements for products and services</h3><a class="self-link" href="#annex-I" aria-label="Permalink for Section 2.1"></a></div>
+				
+
+				<section id="annex-I-section-III"><div class="header-wrapper"><h4 id="x2-1-1-section-iii-general-accessibility-requirements-related-to-all-services-covered-by-this-directive-in-accordance-with-article-2-2"><bdi class="secno">2.1.1 </bdi>Section III – General accessibility requirements related to all services covered by this Directive in accordance with Article 2 (2)</h4><a class="self-link" href="#annex-I-section-III" aria-label="Permalink for Section 2.1.1"></a></div>
+					
+
+					<blockquote>
+						<p>General accessibility requirements related to all services covered by this Directive in
+							accordance with Article 2(2)</p>
+						<p>The provision of services in order to maximise their foreseeable use by persons with
+							disabilities, shall be achieved by:</p>
+					</blockquote>
+
+					<section id="annex-I-section-III-a"><div class="header-wrapper"><h5 id="x2-1-1-1-a"><bdi class="secno">2.1.1.1 </bdi>(a)</h5><a class="self-link" href="#annex-I-section-III-a" aria-label="Permalink for Section 2.1.1.1"></a></div>
+						
+
+						<blockquote>
+							<p>Ensuring the accessibility of the products used in the provision of the service, in
+								accordance with Section I of this Annex and, where applicable, Section II thereof</p>
+						</blockquote>
+						<p>Out of scope: requirement for reading systems and other products used to provide the service.</p>
+					</section>
+
+					<section id="annex-I-section-III-b"><div class="header-wrapper"><h5 id="x2-1-1-2-b"><bdi class="secno">2.1.1.2 </bdi>(b)</h5><a class="self-link" href="#annex-I-section-III-b" aria-label="Permalink for Section 2.1.1.2"></a></div>
+						
+
+						<blockquote>
+							<p>Providing information about the functioning of the service, and where products are used
+								in the provision of the service, its link to these products as well as information about
+								their accessibility characteristics and interoperability with assistive devices and
+								facilities</p>
+						</blockquote>
+
+						<p>Satisfied by EPUB Accessibility 1.1, <a href="https://www.w3.org/TR/epub-a11y-11/#sec-discovery">section Discoverability</a>.</p>
+
+						<section id="annex-I-section-III-b-i"><div class="header-wrapper"><h6 id="x2-1-1-2-1-i"><bdi class="secno">2.1.1.2.1 </bdi>(i)</h6><a class="self-link" href="#annex-I-section-III-b-i" aria-label="Permalink for Section 2.1.1.2.1"></a></div>
+							
+
+							<blockquote>
+								<p>Making the information available via more than one sensory channel</p>
+							</blockquote>
+
+							<p>This requirement is satisfied by:</p>
+							<ul>
+								<li>WCAG Success Criterion <a href="https://www.w3.org/TR/WCAG2/#non-text-content">1.1.1 Non-text Content</a> (level A).</li>
+								<li>WCAG Success Criterion <a href="https://www.w3.org/TR/WCAG2/#info-and-relationships">1.3.1 Info and Relationships</a> (level A).</li>
+								<li>WCAG Success Criterion <a href="https://www.w3.org/TR/WCAG2/#sensory-characteristics">1.3.3 Sensory Characteristics</a> (level A).</li>
+								<li>WCAG Success Criterion <a href="https://www.w3.org/TR/WCAG2/#use-of-color">1.4.1 Use of Color</a> (level A).</li>
+							</ul>
+							<p>In case the ebook contains multimedia content (audio or video), this requirement is satisfied by:</p>
+							<ul>
+								<li>WCAG Success Criterion <a href="https://www.w3.org/TR/WCAG2/#audio-only-and-video-only-prerecorded">1.2.1 Audio-only and Video-only (Prerecorded)</a> (level A).</li>
+								<li>WCAG Success Criterion <a href="https://www.w3.org/TR/WCAG2/#captions-prerecorded">1.2.2 Captions (Prerecorded)</a> (level A).</li>
+								<li>WCAG Success Criterion <a href="https://www.w3.org/TR/WCAG2/#audio-description-or-media-alternative-prerecorded">1.2.3 Audio Description or Media Alternative (Prerecorded)</a> (level A).</li>
+							</ul>
+						</section>
+
+						<section id="annex-I-section-III-b-ii"><div class="header-wrapper"><h6 id="x2-1-1-2-2-ii"><bdi class="secno">2.1.1.2.2 </bdi>(ii)</h6><a class="self-link" href="#annex-I-section-III-b-ii" aria-label="Permalink for Section 2.1.1.2.2"></a></div>
+							
+
+							<blockquote>
+								<p>Presenting the information in an understandable way</p>
+							</blockquote>
+
+							<p>This requirement is satisfied by WCAG Principle <a href="https://www.w3.org/TR/WCAG2/#understandable">3. Understandable</a> (level AA).</p>
+						</section>
+
+						<section id="annex-I-section-III-b-iii"><div class="header-wrapper"><h6 id="x2-1-1-2-3-iii"><bdi class="secno">2.1.1.2.3 </bdi>(iii)</h6><a class="self-link" href="#annex-I-section-III-b-iii" aria-label="Permalink for Section 2.1.1.2.3"></a></div>
+							
+
+							<blockquote>
+								<p>Presenting the information to users in ways they can perceive</p>
+							</blockquote>
+
+							<p>This requirement is satisfied by WCAG Principle <a href="https://www.w3.org/TR/WCAG2/#perceivable">1. Perceivable</a> (level A).</p>
+						</section>
+
+						<section id="annex-I-section-III-b-iv"><div class="header-wrapper"><h6 id="x2-1-1-2-4-iv"><bdi class="secno">2.1.1.2.4 </bdi>(iv)</h6><a class="self-link" href="#annex-I-section-III-b-iv" aria-label="Permalink for Section 2.1.1.2.4"></a></div>
+							
+
+							<blockquote>
+								<p>Allowing alternative renditions of the content and its interoperability with a
+									variety of assistive technologies, in such a way that it is perceivable,
+									understandable, operable and robust</p>
+							</blockquote>
+
+							<div class="note" role="note" id="issue-container-generatedID"><div role="heading" class="note-title marker" id="h-note" aria-level="7"><span>Note</span></div><div class="">
+								<p>In the context of the European Accessibility Act the term <em>rendition</em> does not
+									refer to the <i>EPUB 3 multiple renditions</i> specification, it means the ability
+									to access content in different ways.</p>
+							</div></div>
+
+							<p>This requirement is satisfied by <a href="https://www.w3.org/TR/WCAG2/">WCAG 2</a>.</p>
+						</section>
+
+						<section id="annex-I-section-III-b-v"><div class="header-wrapper"><h6 id="x2-1-1-2-5-v"><bdi class="secno">2.1.1.2.5 </bdi>(v)</h6><a class="self-link" href="#annex-I-section-III-b-v" aria-label="Permalink for Section 2.1.1.2.5"></a></div>
+							
+
+							<blockquote>
+								<p>Presenting in fonts of adequate size and suitable shape, taking into account
+									foreseeable conditions of use and using sufficient contrast, as well as adjustable
+									spacing between letters, lines and paragraphs</p>
+							</blockquote>
+
+							<p>This requirement is satisfied by:</p>
+							<ul>
+								<li>WCAG Success Criterion <a href="https://www.w3.org/TR/WCAG2/#contrast-minimum">1.4.3 Contrast (Minimum)</a> (level AA).</li>
+								<li>WCAG Success Criterion <a href="https://www.w3.org/TR/WCAG2/#resize-text">1.4.4 Resize Text</a> (level AA).</li>
+								<li>WCAG Success Criterion <a href="https://www.w3.org/TR/WCAG2/#reflow">1.4.10 Reflow</a> (level AA).</li>
+								<li>WCAG Success Criterion <a href="https://www.w3.org/TR/WCAG2/#text-spacing">1.4.12 Text Spacing</a> (level AA).</li>
+							</ul>
+							<div class="note" role="note" id="issue-container-generatedID-0"><div role="heading" class="note-title marker" id="h-note-0" aria-level="7"><span>Note</span></div><div class="">
+								<p>There are technical limitation for certain types of Fixed Layout publications, such as comics, illustrated children’s books, and art books. For example, the flexibility and choice in the presentation of the content may not be available for these types of e-books.</p>
+							</div></div>
+						</section>
+
+						<section id="annex-I-section-III-b-vi"><div class="header-wrapper"><h6 id="x2-1-1-2-6-vi"><bdi class="secno">2.1.1.2.6 </bdi>(vi)</h6><a class="self-link" href="#annex-I-section-III-b-vi" aria-label="Permalink for Section 2.1.1.2.6"></a></div>
+							
+
+							<blockquote>
+								<p>Supplementing any non-textual content with an alternative presentation of that
+									content</p>
+							</blockquote>
+
+							<p>This requirement is satisfied by WCAG Success Criterion <a href="https://www.w3.org/TR/WCAG2/#non-text-content">1.1.1 Non-text Content</a> (level A).</p>
+							<p>In case the ebook contains multimedia content (audio or video), this requirement is satisfied by:</p>
+							<ul>
+								<li>WCAG Success Criterion <a href="https://www.w3.org/TR/WCAG2/#audio-only-and-video-only-prerecorded">1.2.1 Audio-only and Video-only (Prerecorded)</a> (level A).</li>
+								<li>WCAG Success Criterion <a href="https://www.w3.org/TR/WCAG2/#captions-prerecorded">1.2.2 Captions (Prerecorded)</a> (level A).</li>
+								<li>WCAG Success Criterion <a href="https://www.w3.org/TR/WCAG2/#audio-description-or-media-alternative-prerecorded">1.2.3 Audio Description or Media Alternative (Prerecorded)</a> (level A).</li>
+							</ul>
+						</section>
+
+						<section id="annex-I-section-III-b-vii"><div class="header-wrapper"><h6 id="x2-1-1-2-7-vii"><bdi class="secno">2.1.1.2.7 </bdi>(vii)</h6><a class="self-link" href="#annex-I-section-III-b-vii" aria-label="Permalink for Section 2.1.1.2.7"></a></div>
+							
+
+							<blockquote>
+								<p>Providing electronic information needed in the provision of the service in a
+									consistent and adequate way by making it perceivable, operable, understandable and
+									robust</p>
+							</blockquote>
+
+							<p>Provision of information is covered by EPUB Accessibility, <a href="https://www.w3.org/TR/epub-a11y-11/#sec-discovery">section Discoverability</a>. Presentation of this information is out of scope of e-books, it is a requirement for reading systems, e-commerce websites, and platforms. </p>
+						</section>
+					</section>
+
+					<section id="annex-I-section-III-c"><div class="header-wrapper"><h5 id="x2-1-1-3-c"><bdi class="secno">2.1.1.3 </bdi>(c)</h5><a class="self-link" href="#annex-I-section-III-c" aria-label="Permalink for Section 2.1.1.3"></a></div>
+						
+
+						<blockquote>
+							<p>Making websites, including the related online applications, and mobile device-based
+								services, including mobile applications, accessible in a consistent and adequate way by
+								making them perceivable, operable, understandable and robust</p>
+						</blockquote>
+
+						<p>This requirement is satisfied by <a href="https://www.w3.org/TR/WCAG2/">WCAG 2</a>.</p>
+					</section>
+
+					<section id="annex-I-section-III-d"><div class="header-wrapper"><h5 id="x2-1-1-4-d"><bdi class="secno">2.1.1.4 </bdi>(d)</h5><a class="self-link" href="#annex-I-section-III-d" aria-label="Permalink for Section 2.1.1.4"></a></div>
+						
+
+						<blockquote>
+							<p>Where available, support services (help desks, call centres, technical support, relay
+								services and training services) providing information on the accessibility of the
+								service and its compatibility with assistive technologies, in accessible modes of
+								communication</p>
+						</blockquote>
+
+						<p>Out of scope: requirement for support services, such as call centres.</p>
+					</section>
+				</section>
+
+				<section id="annex-I-section-IV"><div class="header-wrapper"><h4 id="x2-1-2-section-iv-additional-accessibility-requirements-related-to-specific-services"><bdi class="secno">2.1.2 </bdi>Section IV: Additional accessibility requirements related to specific services</h4><a class="self-link" href="#annex-I-section-IV" aria-label="Permalink for Section 2.1.2"></a></div>
+					
+
+					<section id="annex-I-section-IV-f"><div class="header-wrapper"><h5 id="x2-1-2-1-f-e-books"><bdi class="secno">2.1.2.1 </bdi>(f) E-books</h5><a class="self-link" href="#annex-I-section-IV-f" aria-label="Permalink for Section 2.1.2.1"></a></div>
+						
+
+						<section id="annex-I-section-IV-f-i"><div class="header-wrapper"><h6 id="x2-1-2-1-1-i"><bdi class="secno">2.1.2.1.1 </bdi>(i)</h6><a class="self-link" href="#annex-I-section-IV-f-i" aria-label="Permalink for Section 2.1.2.1.1"></a></div>
+							
+
+							<blockquote>
+								<p>Ensuring that, when an e-book contains audio in addition to text, it then provides
+									synchronised text and audio</p>
+							</blockquote>
+							<p>The audio synched to text feature is called <a href="https://www.w3.org/TR/epub-33/#sec-media-overlays">media
+									overlays</a> in the EPUB world and it provides an effective synchronization between
+								text and audio.</p>
+						</section>
+
+						<section id="annex-I-section-IV-f-ii"><div class="header-wrapper"><h6 id="x2-1-2-1-2-ii"><bdi class="secno">2.1.2.1.2 </bdi>(ii)</h6><a class="self-link" href="#annex-I-section-IV-f-ii" aria-label="Permalink for Section 2.1.2.1.2"></a></div>
+							
+
+							<blockquote>
+								<p>Ensuring that e-book digital files do not prevent assistive technology from operating
+									properly</p>
+							</blockquote>
+
+							<p>The EPUB Accessibility specification uses the definition of assistive technology as defined in
+									<a href="https://www.w3.org/TR/WCAG2/">WCAG2</a>.</p>
+
+							<p>This requirement is satisfied by:</p>
+
+							<ul>
+								<li>WCAG conformance requirement <a href="https://www.w3.org/TR/WCAG2/#cc4">Only
+										Accessibility-Supported Ways of Using Technologies</a>;</li>
+								<li>WCAG conformance requirement <a href="https://www.w3.org/TR/WCAG2/#cc5">
+										Non-Interference</a>;</li>
+								<li>WCAG Success Criterion <a href="https://www.w3.org/TR/WCAG2/#name-role-value">4.1.2 Name, Role, Value</a> (level A).</li>
+								<li>WCAG Success Criterion <a href="https://www.w3.org/TR/WCAG2/#keyboard-accessible">2.1
+										Keyboard Accessible</a> (level A).</li>
+							</ul>
+						</section>
+
+						<section id="annex-I-section-IV-f-iii"><div class="header-wrapper"><h6 id="x2-1-2-1-3-iii"><bdi class="secno">2.1.2.1.3 </bdi>(iii)</h6><a class="self-link" href="#annex-I-section-IV-f-iii" aria-label="Permalink for Section 2.1.2.1.3"></a></div>
+							
+
+							<blockquote>
+								<p>Ensuring access to the content, the navigation of the file content and layout
+									including dynamic layout, the provision of the structure, flexibility and choice in
+									the presentation of the content</p>
+							</blockquote>
+
+							<p>This requirement is satisfied by:</p>
+
+							<ul>
+								<li>EPUB specifications section <a href="https://www.w3.org/TR/epub-33/#sec-nav-toc">TOC nav</a>;</li>
+								<li>EPUB Accessibility <a href="https://www.w3.org/TR/epub-a11y-11/#sec-page-nav">Page Navigation</a> requirement;</li>
+								<li>WCAG Guideline <a href="https://www.w3.org/TR/WCAG2/#adaptable">1.3 Adaptable</a> (level A);</li>
+								<li>WCAG Success Criterion <a href="https://www.w3.org/TR/WCAG2/#reflow">1.4.10 Reflow</a> (level AA).</li>
+							</ul>
+							
+							<div class="note" role="note" id="issue-container-generatedID-1"><div role="heading" class="note-title marker" id="h-note-1" aria-level="7"><span>Note</span></div><div class="">
+								<p>There are technical limitation for certain types of Fixed Layout publications, such as comics, illustrated children’s books, and art books. For example, the flexibility and choice in the presentation of the content may not be available for these types of e-books.</p>
+							</div></div>
+						</section>
+
+						<section id="annex-I-section-IV-f-iv"><div class="header-wrapper"><h6 id="x2-1-2-1-4-iv"><bdi class="secno">2.1.2.1.4 </bdi>(iv)</h6><a class="self-link" href="#annex-I-section-IV-f-iv" aria-label="Permalink for Section 2.1.2.1.4"></a></div>
+							
+
+							<blockquote>
+								<p>Allowing alternative renditions of the content and its interoperability with a
+									variety of assistive technologies, in such a way that it is perceivable,
+									understandable, operable and robust</p>
+							</blockquote>
+
+							<div class="note" role="note" id="issue-container-generatedID-2"><div role="heading" class="note-title marker" id="h-note-2" aria-level="7"><span>Note</span></div><div class="">
+								<p>In the context of the European Accessibility Act the term <em>rendition</em> does not
+									refer to the <i>EPUB 3 multiple renditions</i> specification, it means the ability
+									to access content in different ways.</p>
+							</div></div>
+
+							<p>This requirement is satisfied by <a href="https://www.w3.org/TR/WCAG2/">WCAG 2</a>.</p>
+						</section>
+
+						<section id="annex-I-section-IV-f-v"><div class="header-wrapper"><h6 id="x2-1-2-1-5-v"><bdi class="secno">2.1.2.1.5 </bdi>(v)</h6><a class="self-link" href="#annex-I-section-IV-f-v" aria-label="Permalink for Section 2.1.2.1.5"></a></div>
+							
+
+							<blockquote>
+								<p>Making them discoverable by providing information through metadata about their
+									accessibility features</p>
+							</blockquote>
+
+							<p>This requirement is satisfied by EPUB Accessibility 1.1, <a href="https://www.w3.org/TR/epub-a11y-11/#sec-discovery">section Discoverability</a>.</p>
+						</section>
+
+						<section id="annex-I-section-IV-f-vi"><div class="header-wrapper"><h6 id="x2-1-2-1-6-vi"><bdi class="secno">2.1.2.1.6 </bdi>(vi)</h6><a class="self-link" href="#annex-I-section-IV-f-vi" aria-label="Permalink for Section 2.1.2.1.6"></a></div>
+							
+
+							<blockquote>
+								<p>Ensuring that digital rights management measures do not block accessibility
+									features</p>
+							</blockquote>
+
+							<p>This requirement is satisfied by EPUB Accessibility 1.1, <a href="https://www.w3.org/TR/epub-a11y-11/#sec-distribution">section Distribution</a> (non
+								normative).</p>
+						</section>
+					</section>
+				</section>
+			</section>
+		</section>
+	
+
+<section id="references" class="appendix"><div class="header-wrapper"><h2 id="a-references"><bdi class="secno">A. </bdi>References</h2><a class="self-link" href="#references" aria-label="Permalink for Appendix A."></a></div><section id="informative-references"><div class="header-wrapper"><h3 id="a-1-informative-references"><bdi class="secno">A.1 </bdi>Informative references</h3><a class="self-link" href="#informative-references" aria-label="Permalink for Appendix A.1"></a></div>
+    
+    <dl class="bibliography"><dt id="bib-epub-33">[epub-33]</dt><dd>
+      <a href="https://www.w3.org/TR/epub-33/"><cite>EPUB 3.3</cite></a>. Ivan Herman; Matt Garrish; Dave Cramer.  W3C. 27 March 2025. W3C Recommendation. URL: <a href="https://www.w3.org/TR/epub-33/">https://www.w3.org/TR/epub-33/</a>
+    </dd><dt id="bib-epub-a11y-11">[epub-a11y-11]</dt><dd>
+      <a href="https://www.w3.org/TR/epub-a11y-11/"><cite>EPUB Accessibility 1.1</cite></a>. George Kerscher; Matt Garrish; Charles LaPierre; Avneesh Singh; Gregorio Pellegrino.  W3C. 17 October 2024. W3C Recommendation. URL: <a href="https://www.w3.org/TR/epub-a11y-11/">https://www.w3.org/TR/epub-a11y-11/</a>
+    </dd></dl>
+  </section></section><p role="navigation" id="back-to-top">
+    <a href="#title"><abbr title="Back to Top">↑</abbr></a>
+  </p><script id="respec-highlight-vars">(() => {
+// @ts-check
+
+if (document.respec) {
+  document.respec.ready.then(setupVarHighlighter);
+} else {
+  setupVarHighlighter();
+}
+
+function setupVarHighlighter() {
+  document
+    .querySelectorAll("var")
+    .forEach(varElem => varElem.addEventListener("click", highlightListener));
+}
+
+function highlightListener(ev) {
+  ev.stopPropagation();
+  const { target: varElem } = ev;
+  const hightligtedElems = highlightVars(varElem);
+  const resetListener = () => {
+    const hlColor = getHighlightColor(varElem);
+    hightligtedElems.forEach(el => removeHighlight(el, hlColor));
+    [...HL_COLORS.keys()].forEach(key => HL_COLORS.set(key, true));
+  };
+  if (hightligtedElems.length) {
+    document.body.addEventListener("click", resetListener, { once: true });
+  }
+}
+
+// availability of highlight colors. colors from var.css
+const HL_COLORS = new Map([
+  ["respec-hl-c1", true],
+  ["respec-hl-c2", true],
+  ["respec-hl-c3", true],
+  ["respec-hl-c4", true],
+  ["respec-hl-c5", true],
+  ["respec-hl-c6", true],
+  ["respec-hl-c7", true],
+]);
+
+function getHighlightColor(target) {
+  // return current colors if applicable
+  const { value } = target.classList;
+  const re = /respec-hl-\w+/;
+  const activeClass = re.test(value) && value.match(re);
+  if (activeClass) return activeClass[0];
+
+  // first color preference
+  if (HL_COLORS.get("respec-hl-c1") === true) return "respec-hl-c1";
+
+  // otherwise get some other available color
+  return [...HL_COLORS.keys()].find(c => HL_COLORS.get(c)) || "respec-hl-c1";
+}
+
+function highlightVars(varElem) {
+  const textContent = norm(varElem.textContent);
+  const parent = varElem.closest(".algorithm, section");
+  const highlightColor = getHighlightColor(varElem);
+
+  const varsToHighlight = [...parent.querySelectorAll("var")].filter(
+    el =>
+      norm(el.textContent) === textContent &&
+      el.closest(".algorithm, section") === parent
+  );
+
+  // update availability of highlight color
+  const colorStatus = varsToHighlight[0].classList.contains("respec-hl");
+  HL_COLORS.set(highlightColor, colorStatus);
+
+  // highlight vars
+  if (colorStatus) {
+    varsToHighlight.forEach(el => removeHighlight(el, highlightColor));
+    return [];
+  } else {
+    varsToHighlight.forEach(el => addHighlight(el, highlightColor));
+  }
+  return varsToHighlight;
+}
+
+function removeHighlight(el, highlightColor) {
+  el.classList.remove("respec-hl", highlightColor);
+  // clean up empty class attributes so they don't come in export
+  if (!el.classList.length) el.removeAttribute("class");
+}
+
+function addHighlight(elem, highlightColor) {
+  elem.classList.add("respec-hl", highlightColor);
+}
+
+/**
+ * Same as `norm` from src/core/utils, but our build process doesn't allow
+ * imports in runtime scripts, so duplicated here.
+ * @param {string} str
+ */
+function norm(str) {
+  return str.trim().replace(/\s+/g, " ");
+}
+})()</script><script id="respec-dfn-panel">(() => {
+// @ts-check
+if (document.respec) {
+  document.respec.ready.then(setupPanel);
+} else {
+  setupPanel();
+}
+
+function setupPanel() {
+  const listener = panelListener();
+  document.body.addEventListener("keydown", listener);
+  document.body.addEventListener("click", listener);
+}
+
+function panelListener() {
+  /** @type {HTMLElement} */
+  let panel = null;
+  return event => {
+    const { target, type } = event;
+
+    if (!(target instanceof HTMLElement)) return;
+
+    // For keys, we only care about Enter key to activate the panel
+    // otherwise it's activated via a click.
+    if (type === "keydown" && event.key !== "Enter") return;
+
+    const action = deriveAction(event);
+
+    switch (action) {
+      case "show": {
+        hidePanel(panel);
+        /** @type {HTMLElement} */
+        const dfn = target.closest("dfn, .index-term");
+        panel = document.getElementById(`dfn-panel-for-${dfn.id}`);
+        const coords = deriveCoordinates(event);
+        displayPanel(dfn, panel, coords);
+        break;
+      }
+      case "dock": {
+        panel.style.left = null;
+        panel.style.top = null;
+        panel.classList.add("docked");
+        break;
+      }
+      case "hide": {
+        hidePanel(panel);
+        panel = null;
+        break;
+      }
+    }
+  };
+}
+
+/**
+ * @param {MouseEvent|KeyboardEvent} event
+ */
+function deriveCoordinates(event) {
+  const target = /** @type HTMLElement */ (event.target);
+
+  // We prevent synthetic AT clicks from putting
+  // the dialog in a weird place. The AT events sometimes
+  // lack coordinates, so they have clientX/Y = 0
+  const rect = target.getBoundingClientRect();
+  if (
+    event instanceof MouseEvent &&
+    event.clientX >= rect.left &&
+    event.clientY >= rect.top
+  ) {
+    // The event probably happened inside the bounding rect...
+    return { x: event.clientX, y: event.clientY };
+  }
+
+  // Offset to the middle of the element
+  const x = rect.x + rect.width / 2;
+  // Placed at the bottom of the element
+  const y = rect.y + rect.height;
+  return { x, y };
+}
+
+/**
+ * @param {Event} event
+ */
+function deriveAction(event) {
+  const target = /** @type {HTMLElement} */ (event.target);
+  const hitALink = !!target.closest("a");
+  if (target.closest("dfn:not([data-cite]), .index-term")) {
+    return hitALink ? "none" : "show";
+  }
+  if (target.closest(".dfn-panel")) {
+    if (hitALink) {
+      return target.classList.contains("self-link") ? "hide" : "dock";
+    }
+    const panel = target.closest(".dfn-panel");
+    return panel.classList.contains("docked") ? "hide" : "none";
+  }
+  if (document.querySelector(".dfn-panel:not([hidden])")) {
+    return "hide";
+  }
+  return "none";
+}
+
+/**
+ * @param {HTMLElement} dfn
+ * @param {HTMLElement} panel
+ * @param {{ x: number, y: number }} clickPosition
+ */
+function displayPanel(dfn, panel, { x, y }) {
+  panel.hidden = false;
+  // distance (px) between edge of panel and the pointing triangle (caret)
+  const MARGIN = 20;
+
+  const dfnRects = dfn.getClientRects();
+  // Find the `top` offset when the `dfn` can be spread across multiple lines
+  let closestTop = 0;
+  let minDiff = Infinity;
+  for (const rect of dfnRects) {
+    const { top, bottom } = rect;
+    const diffFromClickY = Math.abs((top + bottom) / 2 - y);
+    if (diffFromClickY < minDiff) {
+      minDiff = diffFromClickY;
+      closestTop = top;
+    }
+  }
+
+  const top = window.scrollY + closestTop + dfnRects[0].height;
+  const left = x - MARGIN;
+  panel.style.left = `${left}px`;
+  panel.style.top = `${top}px`;
+
+  // Find if the panel is flowing out of the window
+  const panelRect = panel.getBoundingClientRect();
+  const SCREEN_WIDTH = Math.min(window.innerWidth, window.screen.width);
+  if (panelRect.right > SCREEN_WIDTH) {
+    const newLeft = Math.max(MARGIN, x + MARGIN - panelRect.width);
+    const newCaretOffset = left - newLeft;
+    panel.style.left = `${newLeft}px`;
+    /** @type {HTMLElement} */
+    const caret = panel.querySelector(".caret");
+    caret.style.left = `${newCaretOffset}px`;
+  }
+
+  // As it's a dialog, we trap focus.
+  // TODO: when <dialog> becomes a implemented, we should really
+  // use that.
+  trapFocus(panel, dfn);
+}
+
+/**
+ * @param {HTMLElement} panel
+ * @param {HTMLElement} dfn
+ * @returns
+ */
+function trapFocus(panel, dfn) {
+  /** @type NodeListOf<HTMLAnchorElement> elements */
+  const anchors = panel.querySelectorAll("a[href]");
+  // No need to trap focus
+  if (!anchors.length) return;
+
+  // Move focus to first anchor element
+  const first = anchors.item(0);
+  first.focus();
+
+  const trapListener = createTrapListener(anchors, panel, dfn);
+  panel.addEventListener("keydown", trapListener);
+
+  // Hiding the panel releases the trap
+  const mo = new MutationObserver(records => {
+    const [record] = records;
+    const target = /** @type HTMLElement */ (record.target);
+    if (target.hidden) {
+      panel.removeEventListener("keydown", trapListener);
+      mo.disconnect();
+    }
+  });
+  mo.observe(panel, { attributes: true, attributeFilter: ["hidden"] });
+}
+
+/**
+ *
+ * @param {NodeListOf<HTMLAnchorElement>} anchors
+ * @param {HTMLElement} panel
+ * @param {HTMLElement} dfn
+ * @returns
+ */
+function createTrapListener(anchors, panel, dfn) {
+  const lastIndex = anchors.length - 1;
+  let currentIndex = 0;
+  return event => {
+    switch (event.key) {
+      // Hitting "Tab" traps us in a nice loop around elements.
+      case "Tab": {
+        event.preventDefault();
+        currentIndex += event.shiftKey ? -1 : +1;
+        if (currentIndex < 0) {
+          currentIndex = lastIndex;
+        } else if (currentIndex > lastIndex) {
+          currentIndex = 0;
+        }
+        anchors.item(currentIndex).focus();
+        break;
+      }
+
+      // Hitting "Enter" on an anchor releases the trap.
+      case "Enter":
+        hidePanel(panel);
+        break;
+
+      // Hitting "Escape" returns focus to dfn.
+      case "Escape":
+        hidePanel(panel);
+        dfn.focus();
+        return;
+    }
+  };
+}
+
+/** @param {HTMLElement} panel */
+function hidePanel(panel) {
+  if (!panel) return;
+  panel.hidden = true;
+  panel.classList.remove("docked");
+}
+})()</script><script src="https://www.w3.org/scripts/TR/2021/fixup.js"></script></body></html>

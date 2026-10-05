@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "sourceManifestSHA256": "a966fabbed3fb927f054ecf4aefa60574102ed10e7b01da806a8f844fa3cbd17",
+  "matrixSHA256": "024d3dd21fbab724f5660fff53a0b14fe5767cc8522e38f43bf9fea211676b4d",
+  "files": [
+    {
+      "path": "inventory.json",
+      "sha256": "2c4e92adede53105e73aa9e4a264607dfa3a12bc05f05d392457ae9b7896a9cf"
+    },
+    {
+      "path": "external-dependencies.json",
+      "sha256": "6a2f061df2e22df6d9b14caba93534a4d38c7dec62547a3c80b6a6f4aa966090"
+    },
+    {
+      "path": "INDEX.md",
+      "sha256": "dfcdf81c494d623b5efdf1a134b3942efde50691694731e2b74d2b50d0bb2612"
+    },
+    {
+      "path": "MATRIX.md",
+      "sha256": "19c2c715a363c7ab7defc7ae2f1f8b9e9f22c5ac5eeceaa9236b6a25225f5933"
+    },
+    {
+      "path": "text/a11y.txt",
+      "sha256": "f2ad009683c35ed2312d657136216ebe01c95a66aa885f5d178e62c681ef45bd"
+    },
+    {
+      "path": "text/aria.txt",
+      "sha256": "f150b4733d577f277654db7369951fabcd648e8a03a1e0f6ae6da592298ecc36"
+    },
+    {
+      "path": "text/css.txt",
+      "sha256": "e6558a9875402941d94f8248ffb93da4015466fd4cfffd3dce30ba601962a754"
+    },
+    {
+      "path": "text/eaa.txt",
+      "sha256": "3090b7e15259812f4a136b5c6a285640389f16ae7914825e4930ff5e8aace697"
+    },
+    {
+      "path": "text/epub.txt",
+      "sha256": "3d1f7630af3b8fa2284bf30dcce0bc5114daa1ff9e1ea722e916297c15e973be"
+    },
+    {
+      "path": "text/errata.txt",
+      "sha256": "b73bdd90b6b13b49a63454991c01700894d3088641019560f2aea4ac2d218ac8"
+    },
+    {
+      "path": "text/html-xml.txt",
+      "sha256": "397154d4d3c2dcf7583e987dc00af96e84f975fe9c037d8ace110dec0bc83599"
+    },
+    {
+      "path": "text/implementation-report.txt",
+      "sha256": "efd1f456094ea252db997a016888dca9563a54725403d00afc91ebb9575253c7"
+    },
+    {
+      "path": "text/multi-rend.txt",
+      "sha256": "195cff5a1634f3c0362883008f066945db61b63f8a130cf13a5fa1f27ead6265"
+    },
+    {
+      "path": "text/namespaces.txt",
+      "sha256": "f4cc149ff7386c25dd3044cc446e4ba88f95e68fa80cf0f804e5ae96b089b93c"
+    },
+    {
+      "path": "text/overview.txt",
+      "sha256": "d92fb68e9168b1afc0a7ffbfe5768e53144c600821e7e1d6fb48e5a8c099c566"
+    },
+    {
+      "path": "text/rs.txt",
+      "sha256": "71b95e94b92f6862715223904d8cbe0691920ee5e485b3d5c0e7009c2e465b6b"
+    },
+    {
+      "path": "text/ssv.txt",
+      "sha256": "b26223f20577f90c8e4f7cde0e669716e50cd7ce79ff86262e9ab64874851f20"
+    },
+    {
+      "path": "text/techniques.txt",
+      "sha256": "841f916718f14ecebaf51d48dcd746dc77b7d0a5612ccb610ed46d886f7456a6"
+    },
+    {
+      "path": "text/test-index.txt",
+      "sha256": "1e106ace133dfc9802f203d12dc12b1a83b096048cedbada7a3301da1320af83"
+    },
+    {
+      "path": "text/test-results.txt",
+      "sha256": "0461f7553def29ebae98671e8a7cc7f88edbf7a445bf2f9fdc44e11aabfb3113"
+    },
+    {
+      "path": "text/tts.txt",
+      "sha256": "27129a0468304d07ca30a969bdc4290984f68f9733d0ff168221c27469666f33"
+    },
+    {
+      "path": "text/xml.txt",
+      "sha256": "2f3f79e11ff4ed0f7fb5a798bdb71916599488e286d38abb1b7e4c5b54a6d0ba"
+    }
+  ]
+}

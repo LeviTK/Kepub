@@ -1,0 +1,1652 @@
+
+
+
+
+
+
+		
+		
+EPUB 3 Overview
+		
+
+		
+		
+		
+		
+		
+		
+		
+	
+
+
+
+
+
+
+
+
+
+	
+    
+  
+    EPUB 3 Overview 
+    W3C Group Note 13 March 2025
+    
+      More details about this document
+      
+        This version:
+                https://www.w3.org/TR/2025/NOTE-epub-overview-33-20250313/
+              
+        Latest published version:
+                https://www.w3.org/TR/epub-overview-33/
+              
+        Latest editor's draft:https://w3c.github.io/epub-specs/epub33/overview/
+        History:
+                    https://www.w3.org/standards/history/epub-overview-33/
+                  
+                    Commit history
+                  
+        
+        
+        
+        
+        
+        Editors:
+    Matt Garrish (DAISY Consortium)
+  
+    Ivan Herman
+    
+    
+    
+   (W3C)
+  
+        
+        
+        Feedback:
+        GitHub w3c/epub-specs
+        (pull requests,
+        new issue,
+        open issues)
+      public-pm-wg@w3.org with subject line [epub-overview-33] … message topic … (archives)
+        Errata:https://w3c.github.io/epub-specs/epub33/errata.html
+        
+      
+    
+    
+    
+    
+	Copyright © 1999-2025
+	International Digital Publishing Forum
+	and
+	World Wide Web Consortium. 
+	W3C® 
+	liability, 
+	trademark and 
+	permissive document license rules apply.
+
+    
+  
+		
+		Abstract
+			EPUB® 3 defines a distribution and interchange format for digital publications and documents. The EPUB
+				format provides a means of representing, packaging, and encoding structured and semantically enhanced
+				web content — including HTML, CSS, SVG, and other resources — for distribution in a single-file
+				container.
+
+			This overview provides a general starting point for anyone curious to understand the features available
+				in EPUB 3 publications. It is not intended as a technical introduction to the format or to building
+				reading systems.
+		
+		Status of This DocumentThis section describes the status of this
+      document at the time of its publication. A list of current W3C
+      publications and the latest revision of this technical report can be found
+      in the W3C technical reports index at
+      https://www.w3.org/TR/.
+    This document was published by the Publishing Maintenance Working Group as
+    a Group Note using the
+        Note track. 
+  This Group Note is endorsed by
+        the Publishing Maintenance Working Group, but is not endorsed by
+        W3C itself nor its
+        Members. 
+    This is a draft document and may be updated, replaced or obsoleted by other
+    documents at any time. It is inappropriate to cite this document as other
+    than work in progress.
+    
+  
+    
+        The
+        W3C Patent
+          Policy
+        does not carry any licensing requirements or commitments on this
+        document.
+      
+    
+  
+                      This document is governed by the
+                      03 November 2023 W3C Process Document.
+                    Table of ContentsAbstractStatus of This Document1. Introduction1.1 Reading this document1.2 Reading the specifications1.3 Version numbering2. The EPUB container3. The package document4. Navigation4.1 Reading order4.2 Navigation document5. Content documents5.1 Rendering and CSS5.2 Multimedia5.3 Fonts5.4 Scripting5.5 Semantic enrichment5.6 Structural semantics6. Layouts6.1 Reflowable layouts6.2 Fixed layouts7. Media overlays8. Global language support9. Accessibility10. New and experimental featuresA. EPUB 3 documentsA.1 SpecificationsA.2 NotesB. EPUB revision historyB.1 OEB, OCF and EPUB 2: 1999—2010B.2 EPUB 3.0: 2010B.3 EPUB 3.0.1: 2014B.4 EPUB 3.1: 2017B.5 EPUB 3.2: 2018B.6 EPUB 3.3: 2022C. IndexC.1 Terms defined by referenceD. AcknowledgementsE. ReferencesE.1 Informative references
+		1. Introduction
+			
+
+			1.1 Reading this document
+				
+
+				The EPUB 3 format offers publishers the ability to create advanced reading experiences by leveraging
+					the features and functionality of the Open Web Platform. The ability to use HTML, SVG, CSS, and
+					JavaScript enables not only rich and interactive reading experiences but allows content to be
+					produced for languages regardless of their default horizontal or vertical writing directions. The
+					choice of these technologies also allows EPUB publications to be accessibly produced for a wide
+					range of user needs.
+
+				This overview explores, at a high level, the authoring features of EPUB 3 that provide this
+					functionality. This document is not intended as a tutorial on creating EPUB publications and does
+					not delve into the technical details of the format or how reading systems operate. Rather, it is
+					intended for a more general audience seeking to understand the benefits of creating their digital
+					publications using the EPUB 3 format without having to read through technical specifications.
+
+				Before jumping straight into the features, however, it is helpful to have a basic conceptual
+					understanding of how an EPUB publication is constructed. An EPUB file is effectively just a ZIP file
+					with some identifying metadata that allows reading systems to recognize and render the publication
+					inside (the ZIP file is formally called the EPUB container in the specifications).
+
+				One of the key files in this rendering process is called the package document. It provides the
+					metadata about the publication, lists all of the resources, and specifies the order in which to
+					present the EPUB content documents (i.e., the XHTML and SVG documents that, when rendered,
+					provide the content).
+
+				The other key file is the EPUB navigation document. This document includes the table of contents
+					for the publication as well as any other navigation aids the publisher has defined (e.g., a page
+					list or list of landmarks).
+
+				The following figure visually represents the structure of an EPUB
+					publication:
+
+				
+
+				
+					Image description
+					'EPUB (OCF) container' as the outer most component which encapsulates the 'EPUB publication'
+						containing two documents 'Package Document' and 'EPUB navigation document' along with a
+						inner component labelled 'publication resources' which contains multiple 'EPUB content
+						documents' (XHTML, SVG), and multiple 'Other resources' (CSS, png, mp3, mov, etc.). 
+				
+
+				The body of this document explores these resources in greater detail with the goal of providing
+					greater insight into the array of features they enable in EPUB 3 publications.
+			
+
+			1.2 Reading the specifications
+				
+
+				For those interested in going beyond the general introduction presented in this document, the EPUB
+					3.3 specification [epub-33] contains all the essential authoring information.
+
+				Prior to EPUB 3.3, reading the EPUB 3 specifications could be challenging. The format was split
+					across multiple documents, and each document interspersed authoring and reading system
+					requirements. With the release of EPUB 3.3, however, there is now only one the document to read.
+
+				In addition, accessibility requirements for EPUB publications are described in the EPUB
+					Accessibility specification [epub-a11y-11]. One of the great advantages of a digital format like
+					EPUB 3 is that it breaks down the accessibility barriers of static print content. When constructed
+					with accessibility in mind, publications are usable by users with diverse needs.
+
+				While reading the Reading Systems specification [epub-rs-33] can help understand how content gets
+					rendered, the technical details of this process are not necessary for authoring content.
+
+				Note
+					For a list of all the recommendation-track EPUB 3 specifications and non-normative notes, refer
+						to A. EPUB 3 documents.
+				
+			
+
+			1.3 Version numbering
+				
+
+				An initial point of confusion for people new to EPUB is the difference between "EPUB 3" the format
+					and the EPUB 3 specification numbering. The current version of EPUB 3 is defined in the EPUB 3.3
+					specification [epub-33]. The minor number attached to the specification (".3") differentiates one
+					release of the specification from the next, but each new release does not represent a new
+					format.
+
+				The W3C working group that maintains EPUB 3 strives not to invalidate content produced to earlier
+					versions of the specification, so an EPUB 3 publication produced to the EPUB 3.0 specification, for
+					example, should also be valid to the EPUB 3.3 requirements.
+
+				That is also why this overview is for "EPUB 3", as it typically does not change significantly from
+					one specification release to the next.
+
+				Note
+					For a general overview of the changes made in each revision, refer to B. EPUB revision history.
+				
+			
+		
+		2. The EPUB container
+			
+
+			An EPUB publication is transported and interchanged as a single file (a "portable document") that
+				contains the package document(s), the EPUB content documents, and all other
+				required resources for processing the publication. The single-file container format for EPUB is based on
+				the widely adopted ZIP format, and an XML document that identifies the location of the package document
+				for the publication in the ZIP archive is located at a pre-defined location within the archive.
+
+			This approach provides a clear contract between any creator of an EPUB publication and any system which
+				consumes such EPUB publications, as well as a reliable representation that is independent of network
+				transport or file system specifics.
+
+			It also ensures that EPUB publications are creatable and editable using widely available ZIP tools.
+				Publishers have the flexibility to use either commercially available editing applications or build their
+				own content transformation pipelines.
+
+			For more information about an EPUB publication's representation as a container file, refer to Open Container Format (OCF) [epub-33].
+
+		
+		3. The package document
+			
+
+			Every EPUB publication is represented by a package document. The package document specifies all
+				the resources required to render that representation of the content. The package document also defines a
+				reading order for linear consumption, and associates metadata and navigation information.
+
+			The package document defines a layer on top of the traditional structuring of a typical web site to
+				facilitate the authoring of digital publications. A web site, for example, embeds references to its
+				resources within its content, which, while a simple and flexible means of identifying resources, makes
+				it difficult to enumerate all the resources required to render it. In addition, there is no standard way
+				for a web site to define that a sequence of pages make up a larger publication, which is precisely what
+				EPUB's spine element [epub-33] does (i.e., it provides an external declarative means to explicitly
+				specify navigation through a collection of documents).
+
+			The package document also provides a standard way to represent metadata globally
+				applicable to the content. Each package document includes a metadata section [epub-33] for general information about the EPUB publication, allowing
+				titles, authors, identifiers, and other information to be easily accessed and presented to users. It
+				also provides the means to attach complete bibliographic records using the link element
+				[epub-33].
+
+			The package document also allows a unique identifier to be established for the EPUB publication using
+				the unique-identifier
+					attribute [epub-33]. This identifier provides a way for publishers to differentiate one
+				publication from another, and even one edition from another.
+
+			For more information about the package document, refer to Package
+					document [epub-33].
+		
+		4. Navigation
+			
+
+			4.1 Reading order
+				
+
+				A key concept of EPUB is that an EPUB publication consists of multiple resources that can be
+					completely navigated and consumed by a person or program in some specific order.
+
+				Many types of publication have an obvious reading order, or logical progression through their
+					content. A novel is an example of a highly sequential document — it typically has a beginning,
+					middle, and end — but not all publications are so ordered: a cookbook or a collection of
+					photographic images is more like a database. All documents do, however, have at least one logical
+					ordering of all their top-level content items, whether by date, topic, location, or some other
+					criteria (e.g., a cookbook is typically arranged by recipe type).
+
+				Each EPUB publication defines at least one such logical ordering of all its top-level content in the
+					spine. Each also defines a declarative table of contents in the EPUB navigation document [epub-33]. EPUB publications make these
+					data structures available in a machine-readable way external to the content, simplifying
+					their discovery and use.
+
+				EPUB publications are not limited to the linear ordering of their contents, nor do they preclude
+					linking in arbitrary ways — just like the web, EPUB publications are built on hypertext — but the
+					basic consumption and navigation can be reliably accomplished in a way that is not true for a set of
+					HTML pages.
+			
+
+			4.2 Navigation document
+				
+
+				Each EPUB publication contains a special XHTML content document called the EPUB navigation document. This document uses the [html] nav element to define human- and machine-readable
+					navigation information. All reading systems make use of the EPUB navigation document to present
+					a table of contents to their users.
+
+				The EPUB navigation document provides baseline accessibility and navigation support and offers
+					features to enhance navigation for all users. Prime among these are support for internationalization
+					(for example, as an XHTML document itself, the EPUB navigation document natively supports ruby annotations) and support for embedded grammars (MathML and SVG can be
+					included within navigation links).
+
+				Although EPUB reading systems are not required to support these advanced text formatting features
+					when they process the data to create their own table of contents, the dual role of the EPUB
+					navigation document means the features can still be useful for their intended audience. Publishers
+					can include the EPUB navigation document in the spine [epub-33] (i.e., as a page
+					of content in the publication) so that users have direct access to the full HTML.
+
+				Including the EPUB navigation document in the body of an EPUB publication also allows publishers
+					tailor the display differently for users and reading systems. In highly structured documents, for
+					example, it might not be desirable to display the complete table of contents to users in the body of
+					the publication. In this case, the display level can be modified using the hidden attribute [epub-33]. This
+					attribute is ignored by reading systems when they render the table of contents outside the spine (e.g., in their own specialized views), which avoids minimizing the information that
+					is available and improves the overall accessibility.
+
+				Publishers can also supply additional nav elements if their EPUB publications contain
+					non-structural points of interest, such as to page breaks, landmarks, figures, tables, etc., to
+					further enhance access to the content.
+
+				For more information about the structure and semantics of EPUB navigation documents, refer to EPUB navigation document [epub-33].
+			
+		
+		5. Content documents
+			
+
+			Each EPUB publication contains one or more EPUB content documents, as defined in EPUB content documents [epub-33]. These are XHTML or SVG
+				documents that describe the readable content and reference associated media resources (e.g., images,
+				audio, and video clips).
+
+			XHTML content documents are defined by a profile of [html].
+
+			5.1 Rendering and CSS
+				
+
+				A key concept of EPUB is that content presentation adapts to the user, rather than the user having to
+					adapt to a particular presentation of content. HTML was originally designed to support dynamic
+					rendering of structured content, but over time HTML as supported in web browsers has become focused
+					on the needs of web applications, and many popular web sites now have layouts with less
+					flexibility.
+
+				EPUB publications, however, are designed to maximize accessibility for the visually impaired, and
+					reading systems typically perform text line layout and pagination on the fly, adapting to the
+					size of the display area, the user's preferred font size, and other environmental factors. This
+					behavior is not guaranteed in EPUB; images, vector graphics, video, and other non-reflowable content
+					might be included, and some reading systems might not paginate on the fly, or at all. Nevertheless,
+					supporting dynamic adaptive layout and accessibility has been a primary design consideration
+					throughout the evolution of the EPUB standard.
+
+				EPUB content documents can reference CSS style sheets, allowing publishers to define the desired
+					rendering properties. EPUB 3 follows support for CSS as defined in the [csssnapshot].
+
+				EPUB 3 also supports CSS styles that enable both horizontal and vertical layout and both
+					left-to-right and right-to-left writing.
+			
+
+			5.2 Multimedia
+				
+
+				EPUB 3 supports the embedding of audio and video in XHTML content documents via the [html]
+						audio and video elements, inheriting all the functionality
+					and features these elements provide (e.g., built-in start, stop, and volume controls). For more
+					information on the audio and video formats EPUB 3 supports, refer to the section on core media types [epub-33].
+			
+
+			5.3 Fonts
+				
+
+				EPUB 3 supports two closely related font formats — OpenType [opentype] and WOFF [woff]
+					[woff2] — to accommodate both traditional publishing workflows and emerging web-based workflows.
+					Word processing programs used to create EPUB publications are likely to have access only to a
+					collection of installed OpenType fonts, for example, whereas web-archival EPUB generators will
+					likely only have access to WOFF resources (which cannot be converted to OpenType without
+					undesirable, and potentially unlicensed, stripping of WOFF metadata).
+
+				EPUB 3 also supports both obfuscated and regular font resources for both OpenType and WOFF font
+					formats. Support for obfuscated font resources is required to accommodate font licensing
+					restrictions for many commercially available fonts. Refer to Font Obfuscation [epub-33] for more
+					information.
+			
+
+			5.4 Scripting
+				
+
+				EPUB strives to treat content declaratively — as data that can be manipulated, not as
+					programs to be executed — but does support scripting as defined in [html] and [svg]. This allows
+					publishers to build and add dynamic content such as quizzes, interactive games, and so forth.
+
+				Scripting in an EPUB publication can create security considerations that are different from scripting
+					within a web browser, however. For example, typical same-origin policies are not applicable to
+					content that has been downloaded to a user's local system. For these reasons, scripting is best
+					limited to cases where it is essential to the user experience, since it greatly increases the
+					likelihood that content will not be portable across all reading systems and creates barriers to
+					accessibility and content reusability.
+
+				It is also important to note that EPUB 3 does not require scripting support in reading systems, and
+					scripting might be disabled for security reasons. Publishers need to consider how their publications
+					will remain readable by users before scripting content essential to its understanding.
+
+				Refer to Scripting [epub-33] for more information
+					on scripting capabilities.
+			
+
+			5.5 Semantic enrichment
+				
+
+				XHTML content documents also include the means of annotating document markup with rich metadata,
+					making them more semantically meaningful and useful both for processing and accessibility purposes.
+					Publishers can use both RDFa [rdfa-in-html] and Microdata [microdata] attributes for this
+					purpose, and also embed JSON-LD metadata records [json-ld] in the [html] script element.
+			
+
+			5.6 Structural semantics
+				
+
+				EPUB 3 also includes the epub:type attribute [epub-33] for adding additional information to
+					any element in an EPUB content document to express its purpose and meaning within the work.
+
+				Although these semantics are primarily for use in publishers' internal workflows, they do provide
+					enhanced reading system behaviors in some cases (specifically, for pop-up footnotes).
+
+				Refer to Expressing structural
+					semantics [epub-33] for more information.
+			
+		
+		6. Layouts
+			
+
+			6.1 Reflowable layouts
+				
+
+				At its core, EPUB is designed for dynamic layout: content is typically intended to be formatted on
+					the fly rather than being typeset in a paginated manner in advance. This core capability is useful
+					for optimizing rendering onto different-sized device screens or window sizes, and it facilitates and
+					simplifies content accessibility.
+
+				EPUB 3 also offers metadata allowing publishers to specify their preferred rendering of reflowable
+					content. Supporting reading systems could offer users a scrolled view of a reflowable document, for
+					example, instead of paginating it.
+
+				For more information, refer to Reflowable layouts
+					[epub-33].
+			
+
+			6.2 Fixed layouts
+				
+
+				Although EPUB's history is steeped in enabling reflowable content, not all publications lend
+					themselves easily to reflowing. Page-precise layouts are required to meaningfully represent
+					children's books, comics and manga, magazines, and many other content forms.
+
+				EPUB 3 includes metadata that allows the creation of fixed-layout XHTML content documents [epub-33], in addition to existing capabilities for
+					fixed layouts in SVG. This metadata enables the control of the page dimensions [epub-33], creating a
+					canvas on which elements can be absolutely positioned.
+
+				The metadata does not just flag whether content is to be fixed or reflowed, but also allows
+					publishers to specify the desired orientation of
+					pages [epub-33], when to create synthetic
+					spreads [epub-33], and how to position
+					pages [epub-33] within those spreads, providing a broad range of control over the presentation
+					of EPUB publications.
+
+				For more information, refer to Fixed
+					layouts [epub-33].
+			
+		
+		7. Media overlays
+			
+
+			Another key multimedia feature of EPUB 3 is the ability to define media overlays.
+				When pre-recorded narration is available for an EPUB publication, media overlays provide the ability
+				to synchronize the playback of that audio with the text of an EPUB content document. Users can watch
+				as the text of the publication is highlighted while it is read back to them, or just listen to the
+				audio.
+
+			Media overlays have benefits beyond the obvious accessibility one of allowing users who cannot see the
+				content to listen to it. They are used, for example, to synchronize text and audio as a tool for
+				learning to read.
+
+			For more information about creating media overlays, refer to Media overlays [epub-33].
+		
+		8. Global language support
+			
+
+			EPUB 3 leverages the features in XHTML, SVG, CSS, or MathML for global language support, and it also
+				relies on [unicode] for encoding the content. This means that EPUB content documents have the
+				possibility to use different character sets and express bidirectional text, ruby annotations, or
+				typography for many different languages and cultures.
+
+			The following list describes some of the key additions for global language support that are specific to
+				EPUB 3:
+
+			
+				Alternate language metadata
+				
+					EPUB 3 supports alternate representations of all text metadata items in the package metadata
+						section to improve global distribution of EPUB publications. The alternate-script property [epub-33]
+						can be combined with the xml:lang attribute to include and identify alternate
+						script renderings of language-specific metadata.
+					Using this property, a Japanese EPUB publication could, for example, include an alternate
+						Roman-script representation of the author's name and/or one or more representations of the title
+						in a Romance language.
+				
+
+				Base text direction
+				
+					Text metadata items may also rely on attributes specifying
+							base direction [epub-33] that allow for a finer control of bidirectional texts (e.g.,
+						titles that combine Latin and Arabic or Hebrew characters). 
+				
+
+				Page progression direction
+				
+					The page-progression-direction attribute in the package document allows the
+						content flow direction to be globally specified for all EPUB content documents to facilitate
+						rendering (see the page-progression-direction [epub-33]).
+				
+
+				Fonts
+				
+					EPUB 3 does not require that reading systems come with a set of built-in system fonts. As occurs
+						in web contexts, users in a particular locale might have installed fonts that omit characters
+						required for other locales and reading systems might utilize intrinsic fonts or font engines
+						that do not utilize operating system installed fonts. As a result, the text content of an EPUB
+						publication might not natively render as intended on all reading systems.
+					EPUB 3's support for embedding fonts facilitates the rendering of text content by ensuring
+						content is rendered as intended.
+					Support for embedded fonts also ensures that publishers can embed characters and glyphs unique to
+						an EPUB publication for proper display.
+				
+
+				Container
+				
+					The OCF container format supports UTF-8, allowing for internationalized file and directory naming
+						of content resources.
+				
+			
+		
+		9. Accessibility
+			
+
+			A major goal of EPUB is to facilitate content accessibility, and a variety of features in EPUB 3 support
+				this requirement. More specifically, the EPUB Accessibility specification [epub-a11y-11] provides a
+				framework for evaluating the accessibility of EPUB publications. It leverages the extensive work
+				done to define web content accessibility in the Web Content Accessibility Guidelines [wcag21], an
+				internationally recognized standard for content accessibility.
+
+			The specification defines requirements to produce EPUB publications that can be accessed by a wide
+				range of users. It is accompanied by a techniques document [epub-a11y-tech-11] that outlines best
+				practices for meeting these requirements.
+
+			It is important to note that while accessibility is important in its own right, accessible content is
+				also more valuable content: an accessible EPUB publication will be adaptable to more devices and be
+				easier to reuse, in whole or in part, via human and automated workflows.
+
+			Some specific content features of EPUB 3 that enable the creation of highly accessible content
+				include:
+
+			
+				HTML semantic markup
+				
+					Compared to EPUB 2, the version of HTML supported in EPUB 3 incorporates a number of new elements
+						that make markup more semantically meaningful. These include, for example, the [html]
+						section, nav, and aside elements. These additions allow content to be better grouped
+						and defined, both to represent the structure of documents and to facilitate their logical
+						navigation.
+				
+
+				HTML multimedia elements
+				
+					The [html] audio and video elements come with built-in controls that
+						work with assistive technologies. These new elements allow users to control playback, no longer
+						requiring plugins with poor accessibility support.
+				
+
+				Reflowable layouts
+				
+					The default for EPUB publications is to reflow to fit the available screen space. This allows
+						users to change the display to their liking (e.g., increasing font size, line spacing, and word
+						spacing) without causing a publication to become unreadable — the resized content
+						re-adapts itself to the available space.
+				
+
+				ARIA support
+				
+					EPUB includes support for expressing ARIA roles, states, and properties both in XHTML and SVG
+						content documents. These attributes allow publishers to improve the accessibility of scripted
+						controls and components.
+				
+			
+		
+		10. New and experimental features
+			
+
+			EPUB 3 is continuously evolving with the web to adapt new features and technologies. The specification
+				references a number of web standards that automatically becomes valid to use as soon as they change.
+				HTML, for example, is now called a "living standard" because new features are added once there are at
+				least two implementations. EPUB 3 also references versions of SVG [svg], JavaScript [ecmascript],
+				and Unicode [unicode] that adapt to new releases, and the CSS reference is tied to the latest snapshot
+				[csssnapshot].
+
+			What this means for EPUB 3 is that as new features are added to these standards, they are also
+				immediately valid to use in EPUB publications. (That does not mean it is always wise to use such
+				features right away, as reading systems often take longer to implement support, and vendors may not
+				always allow the new features past their validation routines.)
+
+			The EPUB Working Group may also introduce new and experimental features from time-to-time outside of the
+				core specifications. This is typically done because the features do not have sufficient real-world
+				support in reading systems yet, or because the Working Group is looking for implementation feedback
+				before trying to standardize the technology.
+
+			There are currently two such experimental features: multiple-rendition publications
+				[epub-multi-rend-11] and text-to-speech enhancements [epub-tts-10]. Publishers may use these
+				features in their publications but should do so with the awareness that there may be limited
+				support.
+		
+		A. EPUB 3 documents
+			
+
+			A.1 Specifications
+				
+
+				EPUB 3 is currently defined by the following specifications:
+
+				
+					EPUB 3.3 [epub-33]: defines the authoring format and requirements for EPUB publications,
+						comprising features such as the package and navigation Documents, EPUB content
+							documents, fixed layouts, media
+							overlays, and the container format. 
+					EPUB Reading Systems 3.3 [epub-rs-33]: defines the conformance requirements for EPUB 3 reading
+						systems — the user agents that render EPUB 3 Publications. 
+					EPUB Accessibility 1.1 [epub-a11y-11]: specifies content conformance requirements for
+						verifying the accessibility of EPUB 3 Publications. 
+				
+
+				Note The recommendation-track documents include detailed change logs on the substantive
+					changes since the previous official releases. See the change log for EPUB 3.3, EPUB reading
+						systems 3.3, and EPUB Accessibility 1.1,
+					respectively. 
+			
+
+			A.2 Notes
+				
+
+				Although the following documents are informative, they provide guidance related to implementing the
+					EPUB 3 specifications as well as define experimental features.
+
+				
+					EPUB Accessibility - EU Accessibility Act Mapping [epub-a11y-eaa-mapping]: aims to demonstrate
+						that the technical requirements of the European
+							Accessibility Act related to ebooks are met by the EPUB standard.
+					EPUB Accessibility Techniques 1.1 [epub-a11y-tech-11]: provides guidance on how to meet the
+						EPUB Accessibility 1.1 [epub-a11y-11] discovery and accessibility requirements for EPUB
+						publications. 
+					EPUB Multiple-Rendition Publications 1.1 [epub-multi-rend-11]: defines the creation and
+						rendering of EPUB publications consisting of more than one Rendition. 
+					EPUB 3 Structural Semantics Vocabulary 1.1 [epub-ssv-11]: defines a set of properties relating
+						to the description of structural semantics of written works.
+					EPUB 3 Text-to-Speech Enhancements 1.0 [epub-tts-10]: describes authoring features and reading
+						system support for improving the voicing of EPUB 3 publications. 
+					EPUB Type to ARIA Role Authoring Guide 1.1 [epub-aria-authoring-11]: provides guidance for
+						publishers looking to move from the use of the EPUB 3 epub:type attribute to ARIA roles for
+						accessibility.
+				
+			
+		
+		B. EPUB revision history
+			
+
+			B.1 OEB, OCF and EPUB 2: 1999—2010
+				
+
+				EPUB has its roots in the interchange format known as the Open EBook Publication Structure (OEBPS).
+					OEBPS 1.0 was approved in 1999 by the Open eBook Forum, an organization that later became the
+					International Digital Publishing Forum (IDPF). Subsequent revisions 1.1 and 1.2 were approved by the
+					IDPF in 2001 and 2002, respectively.
+
+				It was realized that a need existed for a format standard that could be used for delivery as well as
+					interchange, and work began in late 2005 on a single-file container format for OEPBS, which was
+					approved by the IDPF as the OEBPS Container Format (OCF) in 2006. Work on a 2.0 revision of OEBPS
+					began in parallel which was renamed EPUB 2.0 in October 2007 and approved in September 2010. This
+					revision consisted of a triumvirate of specifications: Open Package Format (OPF), Open Publication
+					Structure (OPS), and OCF. EPUB 2.0.1, which was a maintenance update to the 2.0 specification set,
+					primarily intended to clarify and correct errata in the specifications. See [opf-201] [ops-201]
+					[ocf-201]. 
+
+			
+			B.2 EPUB 3.0: 2010
+				
+
+				Work on a major revision of the EPUB specifications began in 2010, with the goal of aligning EPUB
+					more closely with HTML, and in the process bringing new, native multimedia features, sophisticated
+					CSS layout rendering and font embedding, MathML support, scripted interactivity, vertical writing
+					and other enhanced global language support, and improved accessibility. A new specification for EPUB
+					Media Overlays was also introduced, allowing for text and audio synchronization in EPUB
+					publications. To better align the specification names with the standard, the Open Package Format
+					specification was renamed EPUB publications, and the Open Publication Format specification was
+					renamed EPUB Content Documents. The EPUB 3.0 specifications were approved in October 2011.
+					See [epubpublications-30] [epubcontentdocs-30] [ocf-30] [epubmediaoverlays-30]
+					[epubchanges-30].
+			
+
+			B.3 EPUB 3.0.1: 2014
+				
+
+				The EPUB 3.0.1 revision was undertaken in 2013-14. Although introducing mostly minor fixes and
+					updates, it did see the integration of Fixed Layout Documents, which give publishers greater control
+					over presentation when a reflowable EPUB is not suitable for the content.
+					See [epubpublications-301] [epubcontentdocs-301] [ocf-301] [epubmediaoverlays-301]
+					[epubchanges-301].
+			
+
+			B.4 EPUB 3.1: 2017
+				
+
+				EPUB 3.1 was the first minor revision of EPUB 3. The goal of this revision was to better align EPUB 3
+					with current web standards. References to important standards were made undated, meaning that
+					whenever they are updated they are legal to use in EPUB 3 content (e.g., the latest version of HTML
+					is always valid to use; a revision of EPUB is not needed). The use of CSS was also clarified, and
+					the use of EPUB-specific properties reduced.
+
+				Many EPUB-specific features were also removed from the standard, in particular content switching,
+					triggers, and bindings. This change necessitated a new package document version number.
+					See [epub-31] [epubpackages-31] [epubcontentdocs-31] [ocf-31] [epubmediaoverlays-31]
+					[epubchanges-31]
+			
+
+			B.5 EPUB 3.2: 2018
+				
+
+				The work on EPUB 3.2 was undertaken shortly after EPUB 3.1 to restore compatibility of content to
+					EPUB 3. The change of version number introduced in EPUB 3.1 meant that publishers, vendors and
+					reading system developers would have to produce, distribute, and consume two versions of EPUB
+					content, but the costs of this change outweighed the benefits of the new version. EPUB 3.2 instead
+					keeps all the best parts of EPUB 3.1 but deprecates elements instead of removing them so that a new
+					version number is not necessary in the package document. See [epub-32] [epubpackages-32]
+					[epubcontentdocs-32] [ocf-32] [epubmediaoverlays-32] [epubchanges-32]
+			
+
+			B.6 EPUB 3.3: 2022
+				
+
+				The work on EPUB 3.3 [epub-33] was undertaken in 2020-21, and is the first version of the EPUB 3
+					series published as a W3C Recommendation. EPUB 3.3 does not include any significant technical change
+					to, and is strongly backward compatible with, EPUB 3.2. This means that any valid EPUB 3.2
+					Publication is also a valid EPUB 3.3 Publication. 
+
+				The documents themselves have been restructured. The primary motivation for this restructuring, as
+					well as an extensive editorial revision, was to make the documents more readable. Also, as part of
+					the thorough testing regime developed by the W3C EPUB 3 Working Group, this
+					restructuring led to the separation of Recommendations and Working Group Notes (see also the detailed list of documents ). Features specified in the
+					Recommendations are thoroughly tested, are widely implemented in reading systems, and they can be
+					considered as interoperable. On the other hand, features specified in Working Group Notes, although
+					they may have some authoring uptakes, still lack support in reading systems; as a result, these
+					technologies should not yet be considered stable and interoperable.
+
+				The separate section in [epub-33] provides a more detailed
+					overview of the changes.
+			
+		
+		C. IndexC.1 Terms defined by reference
+    
+    
+    
+        [EPUB-33] defines the following:
+        
+          
+    alternate-script property
+  
+    attributes specifying base direction
+  
+    core media types
+  
+    create synthetic spreads
+  
+    EPUB 3.3
+  
+    EPUB container
+  
+    EPUB content documents
+  
+    EPUB content documents
+  
+    EPUB navigation document
+  
+    EPUB navigation document
+  
+    EPUB publications
+  
+    EPUB spine
+  
+    epub:type attribute
+  
+    Expressing structural semantics
+  
+    fixed-layout XHTML content documents
+  
+    Font Obfuscation
+  
+    hidden attribute
+  
+    how to position pages
+  
+    link element
+  
+    Media overlays
+  
+    metadata section
+  
+    Open Container Format (OCF)
+  
+    orientation of pages
+  
+    package document
+  
+    Package document
+  
+    page dimensions
+  
+    page-progression-direction
+  
+    reading system
+  
+    Reflowable layouts
+  
+    Scripting
+  
+    spine element
+  
+    unique identifier
+  
+    unique-identifier attribute
+  
+    XHTML content document
+  
+        
+      
+        [EPUB-A11Y-11] defines the following:
+        
+          
+    EPUB Accessibility 1.1
+  
+        
+      
+        [EPUB-RS-33] defines the following:
+        
+          
+    EPUB reading systems 3.3
+  
+        
+      
+        [HTML] defines the following:
+        
+          
+    aside element
+  
+    audio element
+  
+    nav element
+  
+    ruby element
+  
+    script element
+  
+    section element
+  
+    video element
+  
+        
+      
+  
+  
+		D. AcknowledgementsThis section is non-normative.
+    
+
+    Specifications, like art, are human creations. No human has done more for EPUB than Garth Conboy, who has
+		been there every step of the way, from the very first OEB 1.0 in 1999 to today's EPUB 3.3. None of this
+		would have happened without Garth's vision, knowledge, and preternatural good nature. We dedicate EPUB 3.3 to his memory. 
+        We are forever in your debt, Garth.
+
+    The following members of the EPUB 3 Working Group contributed to the development of this specification:
+
+    
+                Shadi Abou-Zahra (Amazon)
+        Will AWAD (Newgen Knowledgeworks)
+        Noel Ray Barron (Apple Inc.)
+        Sofia Bautista (Legible Media Inc.)
+        Leah Brochu (National Network for Equitable Library Service)
+        Matthew C. Chan (House of Anansi Press)
+        Yu-Wei Chang (Taiwan Digital Publishing Forum)
+        Juan Corona (Legible Media Inc.)
+        Dave Cramer (W3C Invited Expert, chair)
+        Romain Deltour (DAISY Consortium)
+        Marisa DeMeglio (DAISY Consortium)
+        Brady Duga (Google LLC)
+        Reinaldo Ferraz (NIC.br - Brazilian Network Information Center)
+        Symon Flaming (Rakuten Group, Inc.)
+        John Foliot (W3C Invited Expert)
+        Teenya Franklin (Pearson plc)
+        Hadrien Gardeur (EDRLab)
+        Matt Garrish (DAISY Consortium)
+        Jen Goulden (Crawford Technologies)
+        David Hall (Apple Inc.)
+        Ivan Herman (W3C, staff contact)
+        Tetsu Hoshino (Kodansha, Publishers, Ltd.)
+        jasen huang (ByteDance)
+        Norikazu Ishizu (Kadokawa Corporation)
+        Norihito IYENAGA (Kodansha, Publishers, Ltd.)
+        Rick Johnson (VitalSource Technologies)
+        Ken Jones (Circular Software)
+        Antonio Kamiya (Dentsu Group Inc.)
+        Deborah Kaplan (W3C Invited Expert)
+        Bill Kasdorf (Book Industry Study Group)
+        Hiroshi Kawada (MEDIA DO Co., Ltd.)
+        George Kerscher (DAISY Consortium)
+        Kazuhito Kidachi (Mitsue-Links Co., Ltd.)
+        Masakazu Kitahara (Voyager Japan, Inc.)
+        Toshiaki Koike (Voyager Japan, Inc.)
+        Ryo Kuroda (ACCESS CO., LTD.)
+        Charles LaPierre (Benetech)
+        Dan Lazin (Google LLC)
+        Philippe Le Hegaret (W3C)
+        Laurent Le Meur (EDRLab)
+        YuYu Lin (Taiwan Digital Publishing Forum)
+        Farrah Little (National Network for Equitable Library Service)
+        Victor Lopes (Apple Inc.)
+        Karan  Malhotra (Newgen Knowledgeworks)
+        Makoto Murata (DAISY Consortium)
+        Cristina Mussinelli (Fondazione LIA)
+        Yoichiro Nagao (Kodansha, Publishers, Ltd.)
+        Theresa O'Connor (Apple Inc.)
+        Yoshinori Ohmura (SHUEISHA Inc.)
+        Rachel Osolen (National Network for Equitable Library Service)
+        Gregorio Pellegrino (Fondazione LIA)
+        Vijaya Gowri Perumal (Newgen Knowledgeworks)
+        Wendy Reid (Rakuten Group, Inc., chair)
+        John Roque (Apple Inc.)
+        Leonard Rosenthol (Adobe)
+        Shinobu Sato (Kadokawa Corporation)
+        Ben Schroeter (Pearson plc)
+        Daihei Shiohama (MEDIA DO Co., Ltd.)
+        Tzviya Siegman (Wiley)
+        Avneesh Singh (DAISY Consortium)
+        MOTOI SUZUKI (SHUEISHA Inc.)
+        Yutaka Suzuki (Kadokawa Corporation)
+        Kyrce Swenson (Pearson plc)
+        Shinya Takami (Kadokawa Corporation, chair)
+        Mateus Teixeira (W. W. Norton & Company)
+        Yukio Tomikura (Kodansha, Publishers, Ltd.)
+        Aimee Ubbink (Crawford Technologies)
+        xinyuan wang (ByteDance)
+        Daniel Weck (DAISY Consortium)
+        Fuqiao Xue (W3C)
+        Evan Yamanishi (W. W. Norton & Company)
+        Osamu Yoshiba (Kodansha, Publishers, Ltd.)
+        Junichi Yoshii (Kodansha, Publishers, Ltd.)
+        Naomi Yoshizawa (W3C)
+        Laurence Zaysser (EDRLab)
+    
+    
+
+
+	
+
+E. ReferencesE.1 Informative references
+    
+    [csssnapshot]
+      CSS Snapshot. URL: https://www.w3.org/TR/CSS/
+    [ecmascript]
+      ECMAScript Language Specification.  Ecma International. URL: https://tc39.es/ecma262/multipage/
+    [epub-31]
+      EPUB 3.1. Markus Gylling; Tzviya Siegman; Matt Garrish.  IDPF. 05 January 2017. URL: http://idpf.org/epub/31/spec/epub-spec-20170105.html
+    [epub-32]
+      EPUB 3.2. Matt Garrish; Dave Cramer.  EPUB 3 Community Group. 08 May 2019. URL: https://www.w3.org/publishing/epub32/epub-spec.html
+    [epub-33]
+      EPUB 3.3. Ivan Herman; Matt Garrish; Dave Cramer.  W3C. 7 January 2025. W3C Recommendation. URL: https://www.w3.org/TR/epub-33/
+    [epub-a11y-11]
+      EPUB Accessibility 1.1. George Kerscher; Matt Garrish; Charles LaPierre; Avneesh Singh; Gregorio Pellegrino.  W3C. 17 October 2024. W3C Recommendation. URL: https://www.w3.org/TR/epub-a11y-11/
+    [epub-a11y-eaa-mapping]
+      EPUB Accessibility - EU Accessibility Act Mapping. Cristina Mussinelli; Gregorio Pellegrino.  W3C. 30 April 2024. W3C Working Group Note. URL: https://www.w3.org/TR/epub-a11y-eaa-mapping/
+    [epub-a11y-tech-11]
+      EPUB Accessibility Techniques 1.1. Matt Garrish; George Kerscher; Charles LaPierre; Gregorio Pellegrino; Avneesh Singh.  W3C. 3 December 2024. W3C Working Group Note. URL: https://www.w3.org/TR/epub-a11y-tech-11/
+    [epub-aria-authoring-11]
+      EPUB Type to ARIA Role Authoring Guide 1.1. Matt Garrish.  W3C. 14 March 2023. W3C Working Group Note. URL: https://www.w3.org/TR/epub-aria-authoring-11/
+    [epub-multi-rend-11]
+      EPUB 3 Multiple-Rendition Publications 1.1. Matt Garrish.  W3C. 21 December 2023. W3C Working Group Note. URL: https://www.w3.org/TR/epub-multi-rend-11/
+    [epub-rs-33]
+      EPUB Reading Systems 3.3. Ivan Herman; Matt Garrish; Dave Cramer.  W3C. 17 October 2024. W3C Recommendation. URL: https://www.w3.org/TR/epub-rs-33/
+    [epub-ssv-11]
+      EPUB 3 Structural Semantics Vocabulary 1.1. Ivan Herman; Matt Garrish.  W3C. 21 December 2023. W3C Working Group Note. URL: https://www.w3.org/TR/epub-ssv-11/
+    [epub-tts-10]
+      EPUB 3 Text-to-Speech Enhancements 1.0. Matt Garrish.  W3C. 21 December 2023. W3C Working Group Note. URL: https://www.w3.org/TR/epub-tts-10/
+    [epubchanges-30]
+      EPUB 3 Changes from 2.0.1. William McCoy; Markus Gylling.  IDPF. 11 October 2011. URL: http://idpf.org/epub/30/spec/epub30-changes-20111011.html
+    [epubchanges-301]
+      EPUB 3.0.1 Changes from 3.0. Markus Gylling; Matt Garrish.  IDPF. 26 June 2014. URL: http://idpf.org/epub/301/spec/epub-changes-20140626.html
+    [epubchanges-31]
+      EPUB 3.1 Changes from 3.0.1. Markus Gylling; Matt Garrish.  IDPF. 05 January 2017. URL: http://idpf.org/epub/31/spec/epub-changes-20170105.html
+    [epubchanges-32]
+      EPUB 3.2 Changes. Matt Garrish; Dave Cramer.  EPUB 3 Community Group. 08 May 2019. URL: https://www.w3.org/publishing/epub32/epub-changes.html
+    [epubcontentdocs-30]
+      EPUB Content Documents 3.0. Markus Gylling; William McCoy; Elika J. Etimad; Matt Garrish.  IDPF. 11 October 2011. URL: http://idpf.org/epub/30/spec/epub30-contentdocs-20111011.html
+    [epubcontentdocs-301]
+      EPUB Content Documents 3.0.1. Markus Gylling; William McCoy; Elika J. Etimad; Matt Garrish.  IDPF. 26 June 2014. URL: http://idpf.org/epub/301/spec/epub-contentdocs-20140626.html
+    [epubcontentdocs-31]
+      EPUB Content Documents 3.1. Markus Gylling; William McCoy; Dave Cramer; Elika J. Etimad; Matt Garrish.  IDPF. 05 January 2017. URL: http://idpf.org/epub/31/spec/epub-contentdocs-20170105.html
+    [epubcontentdocs-32]
+      EPUB Content Documents 3.2. Dave Cramer; Matt Garrish.  EPUB 3 Community Group. 08 May 2019. URL: https://www.w3.org/publishing/epub32/epub-contentdocs.html
+    [epubmediaoverlays-30]
+      EPUB Media Overlays 3.0. Marisa DeMeglio; Daniel Weck.  IDPF. 11 October 2011. URL: http://idpf.org/epub/30/spec/epub30-mediaoverlays-20111011.html
+    [epubmediaoverlays-301]
+      EPUB Media Overlays 3.0.1. Marisa DeMeglio; Daniel Weck.  IDPF. 26 June 2014. URL: http://idpf.org/epub/301/spec/epub-mediaoverlays-20140626.html
+    [epubmediaoverlays-31]
+      EPUB Media Overlays 3.1. Marisa DeMeglio; Daniel Weck.  IDPF. 05 January 2017. URL: http://idpf.org/epub/31/spec/epub-mediaoverlays-20170105.html
+    [epubmediaoverlays-32]
+      EPUB Media Overlays 3.2. Marisa DeMeglio; Daniel Weck.  EPUB 3 Community Group. 08 May 2019. URL: https://www.w3.org/publishing/epub32/epub-mediaoverlays.html
+    [epubpackages-31]
+      EPUB Packages 3.1. Markus Gylling; William McCoy; Matt Garrish.  IDPF. 05 January 2017. URL: http://idpf.org/epub/31/spec/epub-packages-20170105.html
+    [epubpackages-32]
+      EPUB Packages 3.2. Matt Garrish; Dave Cramer.  EPUB 3 Community Group. 08 May 2019. URL: https://www.w3.org/publishing/epub32/epub-packages.html
+    [epubpublications-30]
+      EPUB Publications 3.0. Markus Gylling; William McCoy; Matt Garrish.  IDPF. 11 October 2011. URL: http://idpf.org/epub/30/spec/epub30-publications-20111011.html
+    [epubpublications-301]
+      EPUB Publications 3.0.1. Markus Gylling; William McCoy; Matt Garrish.  IDPF. 26 June 2014. URL: http://idpf.org/epub/301/spec/epub-publications-20140626.html
+    [html]
+      HTML Standard. Anne van Kesteren; Domenic Denicola; Dominic Farolino; Ian Hickson; Philip Jägenstedt; Simon Pieters.  WHATWG. Living Standard. URL: https://html.spec.whatwg.org/multipage/
+    [json-ld]
+      JSON-LD 1.0. Manu Sporny; Gregg Kellogg; Markus Lanthaler.  W3C. 3 November 2020. W3C Recommendation. URL: https://www.w3.org/TR/json-ld/
+    [microdata]
+      HTML Microdata. Chaals Nevile; Dan Brickley; Ian Hickson.  W3C. 28 January 2021. W3C Working Group Note. URL: https://www.w3.org/TR/microdata/
+    [ocf-201]
+      EPUB Open Container Format (OCF) 2.0.1.  IDPF. 04 September 2010. URL: http://idpf.org/epub/20/spec/OCF_2.0.1_draft.doc
+    [ocf-30]
+      EPUB Open Container Format (OCF) 3.0. James Pritchett; Markus Gylling.  IDPF. 11 October 2011. URL: http://idpf.org/epub/30/spec/epub30-ocf-20111011.html
+    [ocf-301]
+      EPUB Open Container Format (OCF) 3.0.1. James Pritchett; Markus Gylling.  IDPF. 26 June 2014. URL: http://idpf.org/epub/301/spec/epub-ocf-20140626.html
+    [ocf-31]
+      Open Container Format (OCF) 3.1. James Pritchett; Markus Gylling.  IDPF. 05 January 2017. URL: http://idpf.org/epub/31/spec/epub-ocf-20170105.html
+    [ocf-32]
+      Open Container Format (OCF) 3.2. Garth Conboy.  EPUB 3 Community Group. 08 May 2019. URL: https://www.w3.org/publishing/epub32/epub-ocf.html
+    [opentype]
+      OpenType specification.  Microsoft. URL: http://www.microsoft.com/typography/otspec/default.htm
+    [opf-201]
+      Open Packaging Format 2.0.1.  IDPF. 04 September 2010. URL: http://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm
+    [ops-201]
+      Open Publication Structure 2.0.1.  IDPF. 04 September 2010. URL: http://idpf.org/epub/20/spec/OPS_2.0.1_draft.htm
+    [rdfa-in-html]
+      HTML+RDFa 1.1 - Second Edition. Manu Sporny.  W3C. 17 March 2015. W3C Recommendation. URL: https://www.w3.org/TR/html-rdfa/
+    [svg]
+      SVG.  W3C. URL: https://www.w3.org/TR/SVG/
+    [unicode]
+      The Unicode Standard.  Unicode Consortium. URL: https://www.unicode.org/versions/latest/
+    [wcag21]
+      Web Content Accessibility Guidelines (WCAG) 2.1. Michael Cooper; Andrew Kirkpatrick; Joshue O'Connor; Alastair Campbell.  W3C. 12 December 2024. W3C Recommendation. URL: https://www.w3.org/TR/WCAG21/
+    [woff]
+      WOFF File Format 1.0. Jonathan Kew; Tal Leming; Erik van Blokland.  W3C. 13 December 2012. W3C Recommendation. URL: https://www.w3.org/TR/WOFF/
+    [woff2]
+      WOFF File Format 2.0. Vladimir Levantovsky.  W3C. 8 August 2024. W3C Recommendation. URL: https://www.w3.org/TR/WOFF2/
+    
+  
+    ↑
+  
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 8. Global language support 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 8. Global language support 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 5.2 Multimedia 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 6.2 Fixed layouts 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § A.1 Specifications 
+    
+      § B.6 EPUB 3.3: 2022 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 1.1 Reading this document 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 1.1 Reading this document 
+    
+      § 2. The EPUB container 
+    
+      § 5. Content documents 
+    
+      § 5.6 Structural semantics 
+    
+      § 7. Media overlays 
+    
+      § 8. Global language support 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 5. Content documents 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 1.1 Reading this document 
+    
+      § 4.2 Navigation document 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 4.2 Navigation document 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 1.1 Reading this document 
+    
+      § 1.2 Reading the specifications 
+    
+      § 2. The EPUB container 
+    
+      § 3. The package document 
+    
+      § 4.1 Reading order 
+    
+      § 4.2 Navigation document 
+    
+      § 5. Content documents 
+    
+      § 5.1 Rendering and CSS 
+    
+      § 5.3 Fonts 
+    
+      § 7. Media overlays 
+    
+      § 8. Global language support 
+    
+      § 9. Accessibility (2) 
+    
+      § 10. New and experimental features 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 4.1 Reading order 
+    
+      § 4.2 Navigation document (2) 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 5.6 Structural semantics 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 5.6 Structural semantics 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 6.2 Fixed layouts (2) 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 5.3 Fonts 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 4.2 Navigation document 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 6.2 Fixed layouts 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3. The package document 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 7. Media overlays 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3. The package document 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 2. The EPUB container 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 6.2 Fixed layouts 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 1.1 Reading this document 
+    
+      § 2. The EPUB container 
+    
+      § 3. The package document 
+    
+      § 8. Global language support 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3. The package document 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 6.2 Fixed layouts 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 8. Global language support 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 1.2 Reading the specifications 
+    
+      § 4.2 Navigation document 
+    
+      § 5.1 Rendering and CSS 
+    
+      § 5.6 Structural semantics 
+    
+      § 10. New and experimental features 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 6.1 Reflowable layouts 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 5.4 Scripting 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3. The package document 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3. The package document 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 3. The package document 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 4.2 Navigation document 
+    
+      § 5. Content documents 
+    
+      § 5.2 Multimedia 
+    
+      § 5.5 Semantic enrichment 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § A.1 Specifications 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § A.1 Specifications 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 9. Accessibility 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 5.2 Multimedia 
+    
+      § 9. Accessibility 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 4.2 Navigation document (2) 
+    
+      § 9. Accessibility 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 4.2 Navigation document 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 5.5 Semantic enrichment 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 9. Accessibility 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 5.2 Multimedia 
+    
+      § 9. Accessibility 
+    
+  
+    

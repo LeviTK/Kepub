@@ -1,0 +1,225 @@
+
+
+
+
+
+		
+		
+EPUB 3.3 Tests
+		
+
+		
+
+		
+		
+
+	
+
+
+
+
+	
+    
+    EPUB 3.3 Tests 
+     22 March 2023
+    
+      More details about this document
+      
+        
+        Latest published version:
+                https://w3c.github.io/epub-tests/
+              
+        Latest editor's draft:https://w3c.github.io/epub-tests/results/drafts/
+        History:
+                    Commit history
+                  
+        
+        
+        
+        
+        
+        Editors:
+    Ivan Herman
+  
+  
+  
+ (W3C)
+  
+    Dan Lazin (Google LLC)
+  
+        
+        
+        Feedback:
+        GitHub w3c/epub-tests
+        (pull requests,
+        new issue,
+        open issues)
+      public-epub3@w3.org with subject line [epub-tests] … message topic … (archives)
+        
+        
+      
+    
+    
+    
+    
+    Copyright
+    ©
+    2021-2023
+    
+    World Wide Web Consortium.
+    W3C®
+    liability,
+    trademark and
+    permissive document license rules apply.
+  
+    
+  
+		Abstract
+			Description of the EPUB 3.3 tests.
+			
+		
+		Status of This Document
+      This document is merely a W3C-internal
+       document. It has no official standing
+      of any kind and does not represent consensus of the W3C Membership.
+    Table of ContentsAbstractStatus of This Document1. Introduction2. Description of the Tests2.1 Publication Resources2.2 Core Media Types2.3 Package Documents2.4 Manifest Fallbacks2.5 Internationalization2.6 Content Documents2.7 Navigation Documents2.8 Fixed Layout2.9 Open Container Format2.10 Scripting2.11 Media Overlays2.12 Structural SemanticsA. Acknowledgements
+
+		1. Introduction
+			
+
+			
+				w3c/epub-tests is the repository for the the tests to
+				validate the implementability of W3C's EPUB 3.3 specifications, specifically the core 
+				EPUB 3.3 (the specification for the EPUB format itself) and the
+				EPUB Reading Systems 3.3 (the specification for applications
+				that read and render EPUB files).
+			
+
+			
+				The development of the tests is a community effort (see the list of
+				contributors). Everyone is welcome to contribute tests; please read the separate
+				contribution guidelines if you are interested.
+			
+
+			This document provides a short overview for each test, grouped into separate tables by test categories. For each test, the
+			columns in the tables are as follows:
+			
+				The identification of each test, linked to the unzipped test contents in the GitHub repository.
+				Short description.
+        Conformance flag (i.e., must, should, or may).
+				The date of the last modification.
+				Reference(s) to the corresponding normative statements or sections in the EPUB 3.3 specification(s).
+				Reference to the (consolidated) implementation status of the test in the separate implementation report.
+			
+			
+				By default, the table rows are ordered (alphabetically) by the test identifier values. By clicking on the headers 
+				(except for the two columns with the references) the tables can be dynamically reordered either in decreasing or increasing alphabetical order. This can be used, for example,
+				to search for the tests that have been modified recently.
+			
+
+			
+				Strictly speaking, the should and may tests are not necessary for the official CR testing of
+				the specifications. These tests are currently visible in the tables; to change their visibility, click the 
+				switch visibility button below.
+			
+		
+
+		2. Description of the TestsCurrently showing all the tests; click here to show only the MUST tests2.1 Publication Resources
+            Id
+            Description
+            Req
+            Date
+            Specs
+            Ref
+        pub-data-urls_browsing-contextThe XHTML content contains an img element where the src attribute is given as a data URL. The reading system must display the image rather than opening it in a new top-level browsing context.must’21.01.01 (1) (2)☞pub-data-urls_top-level-contentThe reading system must display an img (where src is a data URL) positioned at the bottom of the first page of a fixed layout ebook rather than opening the data URL as thought it were its own top-level content document.must’21.12.03 (1) (2)☞pub-file-urlsThe XHTML content document contains iframes referring to resources on the user's local file system through a file URL. The reading system should refrain from loading these resources.must’23.03.03 (1)☞pub-xml-external-idThe XHTML content document contains a reference to an external entity. The reading system must not resolve it. Reading systems may raise an error on the ingenstion workflow.must’22.11.04 (1)☞pub-xml-namesAn XHTML element has an invalid name with two successive colons. The reading system must produce an error.must’21.01.04 (1)☞pub-xml-non-validating_commentThis is a test of XML processing. The nav doc should not appear in the spine because the itemref is commented out.must’22.11.06 (1)☞pub-xml-non-validating_unclosedAn XHTML element does not have a closing tag. The reading system must produce an error.must’21.01.05 (1)☞pub-external-linksThe XHTML content document contains a link to an external website. The reading system should open it in a new browser instance after the reader's consent.should’22.06.21 (1)☞pub-external-links_consentThe XHTML content document contains a 'mailto:' link. The reading system should ask for the reader's consent before opening an email application.should’22.06.21 (1)☞sec-untrusted-consent_networkThe XHTML content document contains references to remote resources, which should only be fetched if the reader consents.should’23.03.07 (1)☞sec-untrusted-consent_scriptingThe XHTML content document contains multiple scripts, which should only be executed if the reader consents.should’23.03.07 (1)☞2.2 Core Media Types
+            Id
+            Description
+            Req
+            Date
+            Specs
+            Ref
+        pub-cmt-gifA GIF image is displayed as part of the XHTML content.must’21.04.01 (1) (2)☞pub-cmt-jpegA JPEG image is displayed as part of the XHTML content.must’21.04.01 (1) (2)☞pub-cmt-mp3An MP3 audio file is displayed as part of the XHTML content.must’21.04.07 (1) (2)☞pub-cmt-mp4An MP4 audio file is displayed as part of the XHTML content.must’21.04.07 (1) (2)☞pub-cmt-opusAn OPUS audio file is displayed as part of the XHTML content.must’23.01.10 (1) (2)☞pub-cmt-pngA PNG image is displayed as part of the XHTML content.must’21.04.01 (1) (2)☞pub-cmt-svgAn SVG image is displayed as part of the XHTML content (as a reference, not embedded).must’22.09.22 (1) (2)☞pub-cmt-webpA WEBP image is displayed as part of the XHTML content.must’21.04.01 (1) (2)☞2.3 Package Documents
+            Id
+            Description
+            Req
+            Date
+            Specs
+            Ref
+        pkg-collections-unknownThe package document contains a collection with an unknown role. The reading system must open the EPUB successfully.must’21.01.26 (1)☞pkg-creator-orderSeveral creators are listed in the package document. The reading system must not display them out of order (but it may display only the first).must’21.01.11 (1)☞pkg-manifest-unknownThe package document contains a manifest item with unknown properties. The reading system must open the EPUB successfully.must’21.01.18 (1)☞pkg-meta-unknownThe package document contains a meta tag with an unknown property. The reading system must open the EPUB successfully.must’21.01.11 (1)☞pkg-meta-whitespaceThe package document's title and creator contain leading and trailing spaces along with excess internal whitespace. The reading system must render only a single space in all cases.must’21.01.11 (1)☞pkg-spine-duplicate-item-hyperlinkThe spine contains several references to the same content document. The reading system must move to the position of the first duplicate in the reading order when following a hyperlink.must’21.11.18 (1)☞pkg-spine-duplicate-item-renderingThe spine contains several references to the same content document. The reading system must not skip the duplicates when rendering the reading order.must’21.11.18 (1)☞pkg-spine-duplicate-item-uiThe spine contains several references to the same content document. The reading system must allow the duplicates to be independently bookmarked or otherwise recognized in the UI.must’21.11.18 (1)☞pkg-spine-nonlinear-activationAn itemref in the spine is marked as non-linear. Although it (possibly) cannot be accessed through the table of contents, it can be reached from a link in the XHTML content.must’21.01.21 (1)☞pkg-spine-orderBasic test of whether a reading system can display spine items in the correct order. The test fails if the reading system presents content in the order in which the file names sort, or if it presents files in manifest order rather than spine order.must’21.10.14 (1)☞pkg-spine-order-svgBasic test of whether a reading system can display SVG spine items in the correct order.must’21.11.22 (1)☞pkg-spine-unknownThe package document contains a spine item with unknown properties. The reading system must open the EPUB successfully.must’21.01.26 (1)☞pkg-title-orderSeveral titles are listed in the package document. The reading system must use the first title (and whether to use other titles is not defined).must’21.01.11 (1)☞pkg-unique-idThe package document's dc:identifier is identical across two publications. The reading system should display both publications independently.must’21.01.18 (1)☞pkg-unique-idThe package document's dc:identifier is identical across two publications. The reading system should display both publications independently.must’21.01.18 (1)☞pkg-version-backward“Reading Systems MUST attempt to process an EPUB Publication whose Package Document version attribute is less than "3.0"”. This is an EPUB with package version attribute set to "0", to see if a reading system will open it.must’21.10.15 (1)☞pkg-linked-recordsReading System must process and display the title and creator metadata from the package document. An ONIX 3.0 format linked metadata record exists, but contains neither title nor creator metadata.should’23.01.16 (1) (2)☞pkg-manifest-unlisted-resourceThe XHTML content references an image that does not appear in the manifest. The image should not be shown.should’21.11.08 (1)☞2.4 Manifest Fallbacks
+            Id
+            Description
+            Req
+            Date
+            Specs
+            Ref
+        pub-foreign_bad-fallbackThis is a test of manifest fallbacks where both the spine item and the fallback are likely to be unsupported. The spine item is a DMG, with a fallback to a PSD file. Reading systems may raise an error on the ingenstion workflow.must’22.12.07 (1)☞pub-foreign_imageAn HTML content file contains a PSD image, with a manifest fallback to a PNG image. This tests fallbacks for resources that are not in the spine.must’22.12.07 (1)☞pub-foreign_json-spineThis EPUB uses a JSON content file in the spine, with a manifest fallback to an HTML document. If the reading system does not support JSON, it should display the HTML.must’22.12.07 (1)☞pub-foreign_xml-spineThis EPUB uses an ordinary XML content file with mimetype application/xml in the spine, with a manifest fallback to an HTML document. If the reading system does not support XML, it should display the HTML.must’22.12.07 (1)☞pub-foreign_xml-suffix-spineThis EPUB uses an custom XML content file with mimetype application/dtc+xml in the spine, with a manifest fallback to an HTML document. If the reading system does not support XML, it should display the HTML.must’22.12.07 (1)☞2.5 Internationalization
+            Id
+            Description
+            Req
+            Date
+            Specs
+            Ref
+        pkg-dir-auto_root-rtlThe 'dc:title' element contains text whose proper rendering requires bidi control. The element's 'dir' attribute is set to 'auto' and the 'dir' attribute is set to 'rtl' on the package element; the title should display incorrectly.must’21.09.22 (1) (2) (3)☞pkg-dir-auto_root-unsetThe 'dc:title' element contains text whose proper rendering requires bidi control. The element's 'dir' attribute is set to 'auto'; the title should display incorrectly.must’21.09.22 (1) (2) (3)☞pkg-dir_but_not_contentThe package document's language is set to 'he' and direction 'rtl' but the content document is not annotated for language and direction. The content document should not become automatically 'he' and 'rtl'.must’22.01.21 (1)☞pkg-dir_creator-rtlThe 'dc:creator' element's 'dir' attribute is set to 'rtl'; the creator's name should display right-to-left.must’21.02.03 (1) (2) (3)☞pkg-dir_rtl-root-ltrThe 'dc:title' element contains text whose proper rendering requires bidi control. The element's 'dir' attribute is set to 'rtl' and the 'dir' attribute is set to 'ltr' on the 'package' element; the title should display correctly.must’21.09.22 (1) (2) (3)☞pkg-dir_rtl-root-unsetThe 'dc:title' element contains text whose proper rendering requires bidi control. The element's 'dir' attribute is set to 'rtl'; the title should display correctly.must’21.09.22 (1) (2) (3)☞pkg-dir_unset-root-rtlThe 'dc:title' element contains text whose proper rendering requires bidi control. The root's 'dir' attribute is set to 'rtl'; the title should display correctly.must’21.09.22 (1) (2) (3)☞pkg-dir_unset-root-unsetThe 'dc:title' element contains text whose proper rendering requires bidi control. The element's 'dir' attribute is not set; the title should display incorrectly.must’21.09.22 (1) (2) (3)☞pkg-lang_but_not_contentThe package document's language is set to 'fr' but the content document is not annotated for language. The content document should not become automatically 'fr' but should be the default 'en'.must’22.09.14 (1)☞pkg-spine-progression-defaultIn a publication set as using an RTL language, the spine does not set 'page-progression-direction', so it is implicitly 'default'. The pages must appear from right to left.must’21.01.21 (1)☞pkg-spine-progression-pre-paginatedIn a pre-paginated publication whose XHTML content sets 'dir="rtl"', the spine sets 'page-progression-direction="ltr"'. The pages must appear from left to right.must’21.01.25 (1)☞pkg-spine-progression_ltrThe spine sets 'page-progression-direction="ltr"'. The pages must appear from left to right.must’21.01.21 (1)☞pkg-spine-progression_rtlThe spine sets 'page-progression-direction="rtl"'. The pages must appear from right to left.must’21.01.21 (1)☞2.6 Content Documents
+            Id
+            Description
+            Req
+            Date
+            Specs
+            Ref
+        cnt-css-fontsTrueType, OpenType, WOFF, and WOFF2 font resources are referenced from @font-face rules.must’22.05.13 (1)☞cnt-mathml-supportA Presentation MathML equation is displayed as part of the XHTML content.must’21.05.26 (1) (2)☞cnt-svg-cssCSS styling is applied to an SVG content document.must’22.09.14 (1)☞cnt-svg-css-inclusionCSS changes the color of an SVG image that is embedded in the XHTML content by inclusion.must’22.09.14 (1) (2)☞cnt-svg-css-referenceCSS does not change the color of an SVG image that is embedded in the XHTML content by reference.must’21.05.25 (1) (2)☞cnt-svg-embeddedAn SVG image is embedded in the XHTML content (as inline SVG).must’22.08.02 (1)☞cnt-svg-supportAn SVG image is displayed as a content document (not as part of an XHTML file).must’22.09.22 (1) (2)☞cnt-xhtml-supportAn XHTML file is displayed as a content document.must’22.08.02 (1)☞css-epub-hyphensTests for the prefixed CSS property -epub-hyphensshould’23.01.10 (1) (2)☞css-epub-line-breakTests for the prefixed CSS property -epub-line-breakshould’23.01.10 (1) (2)☞css-epub-text-align-lastTests for the prefixed CSS property -epub-text-align-lastshould’23.01.10 (1) (2)☞css-epub-text-combine-horizontalTests for the prefixed CSS property -epub-text-combine-horizontalshould’23.01.10 (1) (2)☞css-epub-text-emphasisTests for the prefixed CSS properties -epub-text-emphasis-color, -position, and -styleshould’23.01.11 (1) (2) (3) (4)☞css-epub-text-orientationTests for the prefixed CSS property -epub-text-orientationshould’23.01.10 (1) (2)☞css-epub-text-transformTests for the prefixed CSS value -epub-fullwidthshould’23.01.10 (1) (2)☞css-epub-text-underline-positionTests for the prefixed CSS properties -epub-text-underline-positionshould’23.01.10 (1) (2)☞css-epub-word-breakTests for the prefixed CSS property -epub-word-breakshould’23.01.10 (1) (2)☞css-epub-writing-modeTests for the prefixed CSS property -epub-writing-modeshould’23.01.10 (1) (2)☞2.7 Navigation Documents
+            Id
+            Description
+            Req
+            Date
+            Specs
+            Ref
+        nav-accessThe navigation document contains a single link and can be accessed through reading system controls.must’21.11.18 (1)☞nav-activationActivating a link in the navigation document relocates the reading position to the target of the link.must’21.01.26 (1)☞nav-spine_in-spineThe navigation document is referenced in the spine and can be accessed through reading system controls.must’21.01.26 (1)☞nav-spine_in-spine-no-list-styleThe reading system's rendering of the navigation must not show numbering, disregarding the list-style-type declared in the navigation document.must’22.01.25 (1)☞nav-spine_not-in-spineThe navigation document is not referenced in the spine, but can still be accessed through reading system controls.must’21.01.26 (1)☞nav-non-text_imgThe navigation document contains a normal link, and a link with an image content with alt text.should’23.01.11 (1)☞nav-non-text_img_titleThe navigation document contains a normal link, and a link with an image content with title and alt text.should’23.01.11 (1)☞2.8 Fixed Layout
+            Id
+            Description
+            Req
+            Date
+            Specs
+            Ref
+        fxl-layout-duplicationWhen rendition:layout is duplicated, EPUBCheck must return an error.must’21.11.24 (1)☞fxl-page-spread-breakFor a fixed-layout book, page-spread properties must take precedence over CSS page-break-beforemust’22.09.12 (1)☞fxl-spine-overrides_behave-as-globalPre-paginated document, with a spine item overriding the global setting to use reflowable layout.must’22.08.02 (1)☞fxl-spine-overrides_behave-as-global-bisReflowable document, with a spine item overriding the global setting to use pre-paginated layout.must’22.08.02 (1)☞fxl-spine-overrides_duplicatePre-paginated document, with a spine item overriding the global setting to use reflowable layout, but repeating the override property value back to pre-paginated. The second setting must be ignored.must’22.08.02 (1)☞lay-fxl-layout-defaultThe default value for pagination must be 'reflowable'.must’22.09.21 (1)☞lay-fxl-layout-pre-paginatedWhen rendition:layout is pre-paginated, reading systems must display one page per spine item.must’22.09.21 (1)☞lay-fxl-layout-pre-paginated-spreadsWhen the layout is pre-paginated, pages are displayed with no gaps when in synthetic spreads.must’22.09.21 (1)☞lay-fxl-orientation-defaultrendition:orientation is not specified. Therefore, it has the value "auto" and reading systems should display the EPUB in the orientation of the device.must’22.09.21 (1) (2)☞lay-fxl-spread-defaultThe default value for rendition:spread should be "auto" if not specified. When rendition:spread is "auto", the reading system can choose to display spine items in a synthetic spread.must’22.09.21 (1)☞lay-fxl-spread-noneWhen rendition:spead is "none", spine items must not appear in synthetic spreads.must’22.09.21 (1) (2)☞lay-fxl-svg-icb_multiThe same SVG content outside the initial containing block (ICB) is clipped but the effect is different because the two pages have a different viewport setting.must’22.09.22 (1) (2)☞lay-fxl-xhtml-icbXHTML content outside the initial containing block (ICB) is clipped.must’22.10.12 (1) (2)☞lay-fxl-xhtml-icb_device_sizesThe viewport can be set to device-width, resp. device-height, to fill the full display area.must’22.10.04 (1)☞lay-fxl-xhtml-icb_multiThe same XHTML content outside the initial containing block (ICB) is clipped but the effect is different because the two pages have a different viewport setting.must’22.10.04 (1) (2)☞lay-fxl-xhtml-icb_multi_declarationsOnly the first of multiple viewport meta tags is retained, the second is ignored.must’22.10.04 (1)☞lay-fxl-xhtml-icb_repeated-in-metaReading system should use the first declaration of a 'width' or 'height' (i.e., ignore repeated declarations).must’22.10.12 (1)☞lay-fxl-xhtml-icb_unitsUnits of lengths in an ICB declaration are ignored, values are in pixels.must’22.10.04 (1)☞lay-page-layout-both-spreadIf a reflowable spine item has a page-spread-* value, it must be honored.must’22.09.21 (1) (2) (3)☞lay-reflow-align-x-centerFor reflowable content, reading systems that support align-x-center must center each page.must’22.12.07 (1)☞lay-rendition-flow-pre-pagThe reading system must ignore rendition:flow properties when processing pre-paginated spine items.must’22.09.21 (1)☞lay-viewport-meta-propReading systems must ignore rendering instructions in the meta viewport delaration other than the dimenstions.must’22.12.07 (1)☞fxl-page-spread-centerWhen rendition:page-spread-center is applied to a spine item, the document should be displayed in the center of the screen and not in a synthetic spread.should’21.11.24 (1)☞lay-fxl-orientation-landscaperendition:orientation is landscape, Reading Systems should either display the content in landscape or inform the user it should be.should’22.09.21 (1)☞lay-fxl-page-spread-combinedWhen rendition:page-spread-right and -left are applied to adjacent spine items, they should be displayed in a synthetic spread.should’22.09.21 (1)☞lay-fxl-page-spread-leftWhen rendition:page-spread-left is applied to a spine item, it should be displayed on the left side of the synthetic spread.should’22.09.21 (1)☞lay-fxl-page-spread-rightWhen rendition:page-spread-right is applied to a spine item, it should be displayed on the right side of the synthetic spread.should’22.09.21 (1)☞lay-fxl-spread-bothWhen rendition:spread is "both", the content should appear in a synthetic spread regardless of reading system orientation.should’22.09.21 (1)☞lay-fxl-spread-landscapeIf rendition:spread is "landscape", synthetic spreads should be rendered only when the reading system is in landscape orientation.should’22.09.21 (1)☞lay-fxl-xhtml-icb_invalid_metaReading systems SHOULD attempt to extract 'width' and 'height' values even if the tag's syntax is invalid.should’22.10.12 (1)☞lay-page-layout-bothIf a reflowable spine item follows a pre-paginated one, it should appear on the next page.should’22.09.21 (1) (2)☞lay-pkg-flow-paginatedTests on handling overflow content with the "rendition:flow" property set to "paginated". The content should be dynamically paginated (i.e., not scrolled) by the reading system.should’22.12.07 (1) (2)☞lay-pkg-flow-scrolled-continuousTests on handling overflow content with the "rendition:flow" property set to "scrolled-continuous". The content should be presented as one continuous scrolling document (i.e., not paginated).should’22.12.07 (1) (2)☞lay-pkg-flow-scrolled-docTests on handling overflow content with the "rendition:flow" property set to "scrolled-doc". Each of the chapters in this publication should be vertically scrollable, and swiping horizontally should moves from one to the next.should’22.12.07 (1) (2)☞lay-fxl-spread-autoWhen rendition:spread is "auto", the reading system can choose to display spine items in a synthetic spread.may’22.09.21 (1)☞2.9 Open Container Format
+            Id
+            Description
+            Req
+            Date
+            Specs
+            Ref
+        ocf-metainf-incAn extra configuration file, not in the reserved files' list, is added to the META-INF folder; this file must be ignored.must’22.05.28 (1)☞ocf-metainf-manifestAn ancillary manifest file, containing an extra spine item, is present in the META-INF directory; this extra item must be ignored by the reading system.must’22.05.28 (1)☞ocf-package_arbitraryThe EPUB contains three valid package files and three corresponding sets of content documents, but only one of the packages, in an unusual subdirectory, is referenced by the container.xml file. The reading system must use this package.must’21.01.21 (1)☞ocf-package_multipleThe EPUB contains three valid package files and three corresponding sets of content documents, all referenced by the container.xml file. The reading system must use the first package.must’21.01.21 (1)☞ocf-url_link-leaking-relativeUse a relative link with several double-dot path segments from the content to a photograph. The folder hierarchy containing the photograph starts at the root level; the relative image reference exceeds depth of hierarchy.must’22.03.06 (1) (2)☞ocf-url_link-path-absoluteUse a path-absolute link, i.e., beginning with a leading slash, from the content to a photograph. The folder hierarchy containing the photograph starts at the root level.must’22.03.06 (1) (2)☞ocf-url_link-relativeA simple relative link from the content to a photograph. The folder hierarchy containing the photograph starts at the root level.must’22.03.06 (1) (2) (3)☞ocf-url_manifestThe manifest refers to an XHTML file in an arbitrary subfolder. The reading system must be able to find the content.must’21.01.18 (1) (2)☞ocf-url_originThe origin value is displayed. The origin must be unique for each user-specific instance of the publication.must’21.03.05 (1) (2)☞ocf-url_parse-leaking-relativeParse, in Javascript, a relative link with several double-dot path segments from the content to a photograph. The folder hierarchy containing the photograph starts at the root level; the number of segments exceeds the depth of the folder hierarchy.must’21.03.05 (1) (2)☞ocf-url_parse-path-absoluteParse, in Javascript, a path-absolute URL, i.e., beginning with a leading slash, from the content to an image. The folder hierarchy containing the image starts at the root level.must’21.03.05 (1) (2)☞ocf-url_relativeThe manifest refers to an XHTML file in an arbitrary subfolder that is relative to the package's own arbitrary folder. The reading system must be able to find the content.must’21.11.12 (1) (2) (3) (4)☞ocf-zip-compMUST treat any OCF ZIP container that uses compression techniques other than Deflate as in error.must’22.07.30 (1)☞ocf-zip-multMUST treat any OCF ZIP container that splits the content into segments as in error.must’22.07.25 (1)☞ocf-font_obfuscationAn obfuscated (TrueType) font should be displayed after de-obfuscation.should’22.09.06 (1) (2)☞ocf-font_obfuscation-bisAn obfuscated (TrueType) font should not be displayed after de-obfuscation, because the obfuscation used a different publication id.should’22.09.06 (1) (2)☞2.10 Scripting
+            Id
+            Description
+            Req
+            Date
+            Specs
+            Ref
+        scr-not-support_ccscript-modify-hostChecks whether the reading system allows a container-constrained script (in an iframe) to modify the "host" content's DOM.must’22.08.03 (1)☞scr-not-support_ccscript-modify-sizeChecks whether the reading system allows a container-constrained script (in an iframe) to modify the enclosing iframe's dimensions.must’22.08.03 (1)☞scr-readingsystem-featuresChecks whether the reading system implements the required epubReadingSystem feature string queries.must’22.07.22 (1) (2)☞scr-readingsystem-supportChecks whether the reading system implements the epubReadingSystem object.must’22.07.22 (1) (2)☞scr-readingsystem-support_iframeChecks whether the reading system implements the epubReadingSystem object in container-constrained document (e.g., an iframe).must’21.12.10 (1) (2)☞scr-readingsystem-support_iframe_svgChecks whether the reading system implements the epubReadingSystem object in container-constrained SVG document (e.g., an iframe).must’22.09.22 (1)☞scr-readingsystem-support_svgChecks whether the reading system implements the epubReadingSystem object in a spine-level SVG document.must’22.09.22 (1) (2) (3)☞scr-support-fallbackChecks whether the reading system follows a fallback for scripting content in case scripting is not supported.must’22.08.04 (1)☞scr-support_originThe origin values of scripted content files are displayed. They must be shared by all spine-level scripts in the publication.must’21.03.08 (1)☞scr-support_origin_uniqueThe reading system must assign a unique origin to each EPUB publication. This EPUB publication will display its origin, which will be compared to the origin of the EPUB publication of the "scr-support_origin" test.must’23.03.07 (1)☞scr-support_scrolled-docTests on handling overflow content with the "rendition:flow" property set to "scrolled-doc". Each of the chapters in this publication should be vertically scrollable, and swiping horizontally should moves from one to the next. This feature is required if the reading system supports scripting.must’22.06.02 (1)☞scr-storage-deleteThe XHTML content document contains a script that adds data to local storage. If this data is persistent (i.e., the data is still available when closing and reopening the EPUB file), users should be able to delete it.should’23.03.03 (1)☞scr-supportChecks whether the reading system implements scripting in a spine-level document (i.e., whether a simple inline script is executed at all).should’21.12.10 (1)☞scr-support_iframeChecks whether the reading system implements container-constrained scripts (i.e., whether a simple inline script is executed at all in an iframe).should’21.12.10 (1)☞scr-support_scrolled-continuousTests handling overflow content with the "rendition:flow" property set to "scrolled-continuous". The publication is presented as one continuous scroll from spine item to spine item. This feature is optional if the reading system supports scripting.should’22.06.02 (1)☞scr-support_svgChecks whether the reading system implements scripting in a spine-level SVG document (i.e., whether a simple inline script is executed at all).should’21.12.10 (1)☞2.11 Media Overlays
+            Id
+            Description
+            Req
+            Date
+            Specs
+            Ref
+        mol-audioTests whether the Reading System obeys the clipBegin and clipEnd attributes.must’22.05.24 (1)☞mol-audio-exceeding-clipendTests whether the Reading System ignores the clipEnd attribute in the smil file's par element if it exceeds the length of the audio file.must’22.08.09 (1)☞mol-audio-no-clipbeginTests whether the Reading System starts at the beginning of the audio track in the absence of a clipBegin attribute in the smil file.must’22.08.09 (1)☞mol-audio-no-clipendTests whether the Reading System plays until the end of the audio track in the absence of a clipEnd attribute in the smil file.must’23.01.18 (1)☞mol-ignoreTests whether Reading System not supporting media overlays ignores the relevant items and attributes.must’22.08.09 (1)☞mol-navigationWhen navigating to another page, the media overlay playback position updates accordingly.must’23.01.16 (1)☞mol-support_xhtmlTests whether the Reading System supports playback for XHTML content documents.must’22.08.09 (1) (2)☞mol-support_xhtml-fxlTests whether the Reading System supports playback for XHTML content documents in fixed layout.must’23.01.11 (1) (2)☞mol-support_xhtml-loadTests whether the playback starts at the right places in the MO definition, including entries in the middle of the file.must’22.08.11 (1)☞mol-support_xhtml-load-fxlTests whether the playback starts at the right places in the MO definition, including entries in the middle of the file in fixed layout.must’23.01.11 (1)☞mol-timing-synchronizationTests whether the Reading System implements media overlays.must’22.02.10 (1)☞mol-timing-synchronization_fxlTests whether the Reading System implements media overlays in fixed layout publications.must’22.12.07 (1) (2)☞mol-timing-synchronization_multiple_audioTests whether the Reading System implements media overlays with a SMIL file referring to two audio files.must’22.08.09 (1)☞mol-timing-synchronization_multiple_audio-fxlTests whether the Reading System implements media overlays with a SMIL file referring to two audio files in fixed layout.must’23.01.11 (1)☞mol-timing-synchronization_svgBasic media overlay test in SVG content with CSS styling.must’22.09.22 (1) (2)☞mol-timing-synchronization_svg-fxlBasic media overlay test in SVG content in fixed layout with CSS styling.must’23.01.11 (1) (2)☞mol-cssTests whether the Reading System implements the associated CSS styling for media overlays.should’22.08.09 (1) (2)☞mol-support_xhtml-load-nextTests whether the Reading System supports playback of XHTML content documents with content switching automatically as playback goes on. The switch also involves a switch of MO files.should’22.08.10 (1)☞mol-support_xhtml-load-next-fxlTests whether the Reading System supports playback of XHTML content documents in fixed layout with content switching automatically as playback goes on. The switch also involves a switch of MO files.should’23.01.11 (1)☞mol-tts_multiTests whether the reading system implements Text-to-Speech as a fallback when no audio content is provided. Several fragments are defined in the SMIL file.should’22.08.09 (1)☞mol-tts_singleTests whether the reading rystem implements text-to-speech as a fallback when no audio content is provided. Only one fragment is defined in the SMIL file.should’22.08.09 (1)☞2.12 Structural Semantics
+            Id
+            Description
+            Req
+            Date
+            Specs
+            Ref
+        pss-support_ignore-titleThe footnote popup is not displayed for the second page, because the setting is on the title element.must’22.07.29 (1)☞pss-supportA separate footnote popup (or equivalent) is displayed if the RS supports structural semantics.may’22.07.29 (1) (2)☞
+		A. Acknowledgements
+			
+
+			The following experts contributed to the test suite:
+
+			Dan LazinDave CramerGertjan FrankenIvan HermanMarisa DeMeglioMatt GarrishMatthew ChanWendy ReidZheng Xu	
+		
+
+		
+	
+
+
+    ↑
+  

@@ -1,0 +1,213 @@
+
+
+
+
+
+		
+		
+EPUB 3.3 Test Results
+		
+
+		
+
+		
+		
+
+	
+
+
+
+
+	
+	
+    
+    EPUB 3.3 Test Results 
+     22 March 2023
+    
+      More details about this document
+      
+        
+        Latest published version:
+                https://w3c.github.io/epub-tests/results
+              
+        Latest editor's draft:https://w3c.github.io/epub-tests/drafts/results
+        History:
+                    Commit history
+                  
+        
+        
+        
+        
+        
+        Editors:
+    Ivan Herman
+  
+  
+  
+ (W3C)
+  
+    Dan Lazin (Google LLC)
+  
+        
+        
+        Feedback:
+        GitHub w3c/epub-tests
+        (pull requests,
+        new issue,
+        open issues)
+      public-epub3@w3.org with subject line [epub-tests-results] … message topic … (archives)
+        
+        
+      
+    
+    
+    
+    
+    Copyright
+    ©
+    2021-2023
+    
+    World Wide Web Consortium.
+    W3C®
+    liability,
+    trademark and
+    permissive document license rules apply.
+  
+    
+  
+		Abstract
+			This documents shows the results of EPUB 3.3 Testing.
+				It corresponds to the EPUB 3.3 specification's 
+				category 1 exit criteria, 
+				as well as the complete exit criteria
+				for the EPUB 3.3 Reading Systems specification.
+			
+		
+		Status of This Document
+      This document is merely a W3C-internal
+       document. It has no official standing
+      of any kind and does not represent consensus of the W3C Membership.
+    Table of ContentsAbstractStatus of This Document1. Introduction2. List of Implementations3. Consolidated Implementation Results3.1 Publication Resources3.2 Core Media Types3.3 Package Documents3.4 Manifest Fallbacks3.5 Internationalization3.6 Content Documents3.7 Navigation Documents3.8 Fixed Layout3.9 Open Container Format3.10 Scripting3.11 Media Overlays3.12 Structural Semantics4. Detailed Implementation Results4.1 Publication Resources4.2 Core Media Types4.3 Package Documents4.4 Manifest Fallbacks4.5 Internationalization4.6 Content Documents4.7 Navigation Documents4.8 Fixed Layout4.9 Open Container Format4.10 Scripting4.11 Media Overlays4.12 Structural Semantics
+
+		1. Introduction
+			
+			
+				This document contains the test results for all tests. There is a separate document which provides a short description for each test; these descriptions are derived from the tests in the tables below.
+			
+
+			
+				In the EPUB community, implementors may develop one or more EPUB Reading System rendering engines which are then used in multiple applications across different platforms (ex. iOS, Android, or Web). To accurately reflect this in our tests, we have "variants", which allow the implementors to report results based on both the core engine and the platforms they support using that engine. From a W3C Process point of view, these variants should not be considered independent implementations. We are reporting the results of the different variants for the benefit of implementors and the EPUB community, who may find it beneficial to know how implementations support EPUB features across platforms.
+			
+
+			
+				The report tables in sections 3 and 4 reflect this implementation process.3. Consolidated Implementation Results shows a view of the reports where reports with identical core engines are consolidated into a single implementation. The test results for a specific test is set to pass if any of the variants has a pass value. The separate 4. Detailed Implementation Results shows the full implementation results for each implementation.
+			
+
+			
+				2. List of Implementations lists all the implementations and their variants. The variant will appear after the implementation name, and may include a version number for the software tested and what browser or platform it was tested on.
+			
+
+			
+				The report tables also include a separate column (with the heading "Req") providing the conformance level for the feature being tested (i.e., must, should, or may).
+			
+
+			
+				The should and may tests are not necessary for the official CR testing of
+				the specifications. Implementors and the EPUB community may find these results useful, which is why they were gathered.
+				These tests are currently visible in the tables; to change their visibility, click the 
+				switch visibility button below.
+			
+
+			
+				The development of the tests is a community effort (see the list of contributors). Everyone is welcome to
+				contribute tests; please read the separate contribution guidelines if you are interested in doing so.
+			
+
+		
+
+		2. List of ImplementationsACCESS/BPS PUBLUS Reader, Android OSApple Books, iOSApple Books, macOS (Books 4.4)Colibrio Reader, Web PlatformGoogle Play Books, AndroidGoogle Play Books, iOSGoogle Play Books, Web (Chrome)Kobo Books, eReader v4.33Kobo Books, iOS v10.2Kobo Books, Web Reader (Chrome)Thorium Reader 2.2.0, Windows, MacOS, LinuxTolino, Web Reader (Chrome)VOYAGER BinB, Web PlatformVitalSource Bookshelf, AndroidVitalSource Bookshelf, iOSVitalSource Bookshelf, Mac DesktopVitalSource Bookshelf, Web (Chrome)VitalSource Bookshelf, Windows Desktop
+
+		
+			Currently showing all test results; click here to show the results for MUST tests only
+		
+
+		3. Consolidated Implementation Results3.1 Publication Resources
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderApple BooksColibrio ReaderGoogle Play BooksKobo BooksThorium Reader 2.2.0TolinoVOYAGER BinBVitalSource Bookshelfpub-data-urls_browsing-contextmustpasspasspasstodopasspasspasspasspasspub-data-urls_top-level-contentmustpasspasspasstodopasspasspasstodopasspub-file-urlsmusttodopasspasspasstodopasspasstodopasspub-xml-external-idmustpassfailpasstodopasspasspasstodotodopub-xml-namesmustpasspasspasstodopasspassn/atodotodopub-xml-non-validating_commentmustpassfailtodopasspasspasspasstodotodopub-xml-non-validating_unclosedmustpasspasspasstodopasspassn/atodotodopub-external-linksshouldpasspasspasstodopasspassn/afailfailpub-external-links_consentshouldpasspasspasstodofailn/an/afailfailsec-untrusted-consent_networkshouldtodopasspasstodofailfailfailtodofailsec-untrusted-consent_scriptingshouldtodopassfailtodofailfailfailtodofail3.2 Core Media Types
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderApple BooksColibrio ReaderGoogle Play BooksKobo BooksThorium Reader 2.2.0TolinoVOYAGER BinBVitalSource Bookshelfpub-cmt-gifmustpasspasspasspasspasspasspassn/apasspub-cmt-jpegmustpasspasspasspasspasspasspassn/apasspub-cmt-mp3mustfailpasspasstodopasspasspassn/apasspub-cmt-mp4mustfailpasspasstodopasspasspassn/apasspub-cmt-opusmustfailfailpasstodopasspassfailn/apasspub-cmt-pngmustpasspasspasspasspasspasspassn/apasspub-cmt-svgmustpasspasspasstodopasspasspassn/apasspub-cmt-webpmustpasspasspasstodopasspasspassn/apass3.3 Package Documents
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderApple BooksColibrio ReaderGoogle Play BooksKobo BooksThorium Reader 2.2.0TolinoVOYAGER BinBVitalSource Bookshelfpkg-collections-unknownmustpasspasspasspasspasspassn/an/apasspkg-creator-ordermustpasspasspasspasspasspassn/afailtodopkg-manifest-unknownmustpasspasspasstodopasspassn/atodopasspkg-meta-unknownmustpasspasspasspasspasspassn/atodopasspkg-meta-whitespacemustfailpasspasstodopasspassn/atodon/apkg-spine-duplicate-item-hyperlinkmustfailfailpasstodopasspassfailn/apasspkg-spine-duplicate-item-renderingmustpassfailpasstodopassfailfailn/apasspkg-spine-duplicate-item-uimustpassfailpasstodopassfailfailn/afailpkg-spine-nonlinear-activationmustfailpasspasspasspasspasspasstodopasspkg-spine-ordermustpasspasspasstodopasspasspasspasspasspkg-spine-order-svgmustpasspasspasstodopasspassn/atodofailpkg-spine-unknownmustpasspasspasstodopasspassn/an/apasspkg-title-ordermustpasspasspasspasspasspassn/afailtodopkg-unique-idmusttodopasspasstodopasspassn/apasstodopkg-unique-idmusttodopasspasstodopasspassn/apasstodopkg-version-backwardmustfailpasspasstodopasspassn/an/atodopkg-linked-recordsshouldfailpassn/atodopasspasspasstodon/apkg-manifest-unlisted-resourceshouldpasspassfailtodofailpassfailtodofail3.4 Manifest Fallbacks
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderApple BooksColibrio ReaderGoogle Play BooksKobo BooksThorium Reader 2.2.0TolinoVOYAGER BinBVitalSource Bookshelfpub-foreign_bad-fallbackmustpassfailpasspasspassn/an/an/atodopub-foreign_imagemustfailfailpasspasspassfailfailfailfailpub-foreign_json-spinemustpassfailpasspasspassn/an/atodotodopub-foreign_xml-spinemustpassfailpasspasspassn/an/atodotodopub-foreign_xml-suffix-spinemustpassfailpasspasspassfailn/atodotodo3.5 Internationalization
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderApple BooksColibrio ReaderGoogle Play BooksKobo BooksThorium Reader 2.2.0TolinoVOYAGER BinBVitalSource Bookshelfpkg-dir-auto_root-rtlmustfailfailpasstodopasspasspassn/afailpkg-dir-auto_root-unsetmustpassfailpasstodopassfailpassn/afailpkg-dir_but_not_contentmustpasspasspasstodopasspasspasstodopasspkg-dir_creator-rtlmustfailfailpasstodofailfailn/atodofailpkg-dir_rtl-root-ltrmustfailfailpasstodofailpasspasstodofailpkg-dir_rtl-root-unsetmustfailfailpasstodofailpasspasstodofailpkg-dir_unset-root-rtlmustfailfailpasstodofailfailn/atodofailpkg-dir_unset-root-unsetmustpasspasspasstodopasspasspasstodofailpkg-lang_but_not_contentmustpasspassfailpasspasspassfailtodopasspkg-spine-progression-defaultmustfailpasspasstodopasspasspasstodofailpkg-spine-progression-pre-paginatedmustpasspasspasstodopasspasspasstodofailpkg-spine-progression_ltrmustpasspasspasstodopasspasspasspasspasspkg-spine-progression_rtlmustpasspasspasstodopasspasspasspassfail3.6 Content Documents
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderApple BooksColibrio ReaderGoogle Play BooksKobo BooksThorium Reader 2.2.0TolinoVOYAGER BinBVitalSource Bookshelfcnt-css-fontsmustpasspasspasspasspasspassfailfailpasscnt-mathml-supportmustfailpasspasspasspasspassfailfailpasscnt-svg-cssmustpasspassfailfailpasspassn/afailfailcnt-svg-css-inclusionmustpasspassfailfailpasspasspassfailpasscnt-svg-css-referencemustpasspasspasstodopasspasspassn/apasscnt-svg-embeddedmustpasspasspasspasspasspasspassfailpasscnt-svg-supportmustpasspasspasspasspasspassn/afailpasscnt-xhtml-supportmustpasspasspasspasspasspassfailpasspasscss-epub-hyphensshouldpasspassfailfailpassfailpassfailpasscss-epub-line-breakshouldfailpassfailtodopasspassfailfailfailcss-epub-text-align-lastshouldfailpassfailfailfailfailfailfailfailcss-epub-text-combine-horizontalshouldfailpassfailtodofailfailfailpassfailcss-epub-text-emphasisshouldfailfailpassfailpasspassfailfailfailcss-epub-text-orientationshouldpasspasspasspasspasspasspasspasspasscss-epub-text-transformshouldfailpassfailfailfailpassfailfailtodocss-epub-text-underline-positionshouldfailfailpasstodopasspasspassfailfailcss-epub-word-breakshouldpasspasspasspasspasspassfailpassfailcss-epub-writing-modeshouldpasspasspasstodopasspasspasspasspass3.7 Navigation Documents
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderApple BooksColibrio ReaderGoogle Play BooksKobo BooksThorium Reader 2.2.0TolinoVOYAGER BinBVitalSource Bookshelfnav-accessmustpasspasspasstodopasspassn/atodopassnav-activationmustpasspasspasspasspasspasspassn/apassnav-spine_in-spinemustpasspasspasspasspasspasspasspasspassnav-spine_in-spine-no-list-stylemustpasspasspasstodopasspasspasspasspassnav-spine_not-in-spinemustpasspasspasspasspasspasspasspasspassnav-non-text_imgshouldtodotodotodofailfailfailn/atodotodonav-non-text_img_titleshouldtodotodotodofailfailfailn/atodotodo3.8 Fixed Layout
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderApple BooksColibrio ReaderGoogle Play BooksKobo BooksThorium Reader 2.2.0TolinoVOYAGER BinBVitalSource Bookshelffxl-layout-duplicationmustpassfailn/atodopassn/atodon/atodofxl-page-spread-breakmustpasstodopasstodopassfailfailn/apassfxl-spine-overrides_behave-as-globalmustpassfailpasstodofailpasspasstodopassfxl-spine-overrides_behave-as-global-bismustpasspasspasstodopasspassfailfailpassfxl-spine-overrides_duplicatemustpassfailpasstodofailfailpassn/apasslay-fxl-layout-defaultmustpasspasspasstodopasspasspasspasspasslay-fxl-layout-pre-paginatedmustpasspasspasstodopasspasspasstodopasslay-fxl-layout-pre-paginated-spreadsmustpasspasspasstodopasspasspasstodopasslay-fxl-orientation-defaultmustpasspasspasstodopasspasspasstodopasslay-fxl-spread-defaultmustpasspasspasstodopasspasspasstodopasslay-fxl-spread-nonemustpasspasspasstodopasspasspasstodopasslay-fxl-svg-icb_multimustpassfailpasstodopasspasspasstodofaillay-fxl-xhtml-icbmustpasspasspasstodopasspasspasstodopasslay-fxl-xhtml-icb_device_sizesmustfailtodotodotodopassfailfailtodopasslay-fxl-xhtml-icb_multimustpassfailpasstodopasspasspasstodopasslay-fxl-xhtml-icb_multi_declarationsmustfailpasspasstodopasspasspasstodopasslay-fxl-xhtml-icb_repeated-in-metamustfailtodotodotodopasspassfailtodopasslay-fxl-xhtml-icb_unitsmustpasspasspasstodopasspasspasstodopasslay-page-layout-both-spreadmustpassfailpasstodofailfailfailtodopasslay-reflow-align-x-centermustfailtodotodotodofailpassfailpasstodolay-rendition-flow-pre-pagmustfailtodopasstodofailpasspassn/apasslay-viewport-meta-propmustpasstodopasstodopassfailfailtodopassfxl-page-spread-centershouldpassfailfailtodopassfailtodotodopasslay-fxl-orientation-landscapeshouldfailpasspasstodopasspasspasstodopasslay-fxl-page-spread-combinedshouldpasspasspasstodopasspasspasstodopasslay-fxl-page-spread-leftshouldpassfailpasstodopasspasspasstodopasslay-fxl-page-spread-rightshouldpassfailpasstodopasspasspasstodopasslay-fxl-spread-bothshouldfailpasspasstodopasspasspasstodopasslay-fxl-spread-landscapeshouldpassfailpasstodopasspasspasstodofaillay-fxl-xhtml-icb_invalid_metashouldpasstodotodotodopasspassfailtodopasslay-page-layout-bothshouldpasspasspasstodofailfailfailtodopasslay-pkg-flow-paginatedshouldpasspasspasspasspasspasspasspasspasslay-pkg-flow-scrolled-continuousshouldfailfailfailtodofailpasspasstodopasslay-pkg-flow-scrolled-docshouldfailfailpasstodofailpassfailtodopasslay-fxl-spread-automaypasspasspasstodopasspasspasstodopass3.9 Open Container Format
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderApple BooksColibrio ReaderGoogle Play BooksKobo BooksThorium Reader 2.2.0TolinoVOYAGER BinBVitalSource Bookshelfocf-metainf-incmustpasspasspasspasspasspasspasspasspassocf-metainf-manifestmustpasspasspasspasspasspasspasspasspassocf-package_arbitrarymustpasspasspasspasspasspasspasspasspassocf-package_multiplemustpasspasspasspasspasspasspassfailpassocf-url_link-leaking-relativemustfailfailpasstodopassfailpassn/apassocf-url_link-path-absolutemustfailfailpasspasspassfailfailn/apassocf-url_link-relativemustpassfailpasspasspasspasspassfailpassocf-url_manifestmustpasspasspasspasspasspassn/apasspassocf-url_originmustfailpasspasstodopasspassn/afailpassocf-url_parse-leaking-relativemustpasspasspasstodopasspassfailfailpassocf-url_parse-path-absolutemustpasspasspasstodopasspassfailfailpassocf-url_relativemustpasspasspasspasspasspasspasspasspassocf-zip-compmustpasspasspasstodofailpassn/apassfailocf-zip-multmustpasspassfailtodofailfailfailn/afailocf-font_obfuscationshouldfailpasspasstodopasspassfailpassfailocf-font_obfuscation-bisshouldtodopasspasstodopasspasspasstodotodo3.10 ScriptingThe general feature is OPTIONAL; a "must" tests means that it is required to pass it to claim conformance in implementing the feature.
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderApple BooksColibrio ReaderGoogle Play BooksKobo BooksThorium Reader 2.2.0TolinoVOYAGER BinBVitalSource Bookshelfscr-not-support_ccscript-modify-hostmustfailfailpasstodofailfailfailfailfailscr-not-support_ccscript-modify-sizemustfailfailpasstodofailfailfailfailfailscr-readingsystem-featuresmustfailpasspasstodofailpassfailfailpassscr-readingsystem-supportmustfailpasspasstodofailpasspassfailpassscr-readingsystem-support_iframemustfailpasspasstodofailpasspassfailpassscr-readingsystem-support_iframe_svgmustfailpasspasstodofailfailpassfailfailscr-readingsystem-support_svgmustfailpasspasstodofailpassn/atodotodoscr-support-fallbackmustpasstodofailtodopassn/apassfailn/ascr-support_originmustpasspasspasstodopasspasspasstodopassscr-support_origin_uniquemusttodopasstodotodofailpassn/atodotodoscr-support_scrolled-docmustfailfailpasstodofailpasspassfailpassscr-storage-deleteshouldtodofailtodotodopassfailfailtodotodoscr-supportshouldpasspasspasstodopasspasspassfailpassscr-support_iframeshouldpasspasspasstodopasspassfailfailpassscr-support_scrolled-continuousshouldfailfailfailtodofailpasspassfailfailscr-support_svgshouldfailpasspasstodofailpasspasstodotodo3.11 Media OverlaysThe general feature is OPTIONAL; a "must" tests means that it is required to pass it to claim conformance in implementing the feature.
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderApple BooksColibrio ReaderGoogle Play BooksKobo BooksThorium Reader 2.2.0TolinoVOYAGER BinBVitalSource Bookshelfmol-audiomustfailpasspasstodofailpasspasstodon/amol-audio-exceeding-clipendmustfailpasspasspassfailfailpasstodon/amol-audio-no-clipbeginmustfailpasspasspassfailpasspasstodon/amol-audio-no-clipendmustfailtodopasstodofailpasspasstodon/amol-ignoremustpassn/an/atodopassn/apasstodopassmol-navigationmustfailpasspasstodofailpassfailtodon/amol-support_xhtmlmustfailfailpasstodofailpasspasstodon/amol-support_xhtml-fxlmusttodopasspasstodotodopasspasstodotodomol-support_xhtml-loadmustfailfailpasstodofailpasspasstodon/amol-support_xhtml-load-fxlmusttodopasspasstodotodopasspasstodotodomol-timing-synchronizationmustfailtodopasstodofailpasspasstodon/amol-timing-synchronization_fxlmustfailpasspasstodofailpasspasstodon/amol-timing-synchronization_multiple_audiomustfailfailpasstodofailpasspasstodon/amol-timing-synchronization_multiple_audio-fxlmusttodopasspasstodotodopassfailtodotodomol-timing-synchronization_svgmustfailfailpasstodofailpassn/atodon/amol-timing-synchronization_svg-fxlmusttodopasspasstodotodopassn/atodotodomol-cssshouldfailfailpasstodofailfailpasstodon/amol-support_xhtml-load-nextshouldfailfailpasstodofailpasspasstodon/amol-support_xhtml-load-next-fxlshouldtodopasstodotodotodopassfailtodotodomol-tts_multishouldfailfailfailtodofailfailpasstodopassmol-tts_singleshouldfailfailfailtodofailfailpasstodopass3.12 Structural SemanticsThe general feature is OPTIONAL; a "must" tests means that it is required to pass it to claim conformance in implementing the feature.
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderApple BooksColibrio ReaderGoogle Play BooksKobo BooksThorium Reader 2.2.0TolinoVOYAGER BinBVitalSource Bookshelfpss-support_ignore-titlemustpassfailpassfailfailfailfailn/atodopss-supportmayfailpasspasstodofailpassn/afailfail
+		4. Detailed Implementation Results4.1 Publication Resources
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderAndroid OSApple BooksiOSApple BooksmacOS (Books 4.4)Colibrio ReaderWeb PlatformGoogle Play BooksAndroidGoogle Play BooksiOSGoogle Play BooksWeb (Chrome)Kobo BookseReader v4.33Kobo BooksiOS v10.2Kobo BooksWeb Reader (Chrome)Thorium Reader 2.2.0Windows, MacOS, LinuxTolinoWeb Reader (Chrome)VOYAGER BinBWeb PlatformVitalSource BookshelfAndroidVitalSource BookshelfiOSVitalSource BookshelfMac DesktopVitalSource BookshelfWeb (Chrome)VitalSource BookshelfWindows Desktoppub-data-urls_browsing-contextmustpasspasspasspasstodotodotodopasspasspasspasspasspasspasspasspasspasspasspub-data-urls_top-level-contentmustpasspasspasspasstodotodotodopasspasspasspasspasstodopasspasspasspasspasspub-file-urlsmusttodotodopasspasstodotodopasstodotodotodopasspasstodotodotodopasstodopasspub-xml-external-idmustpassfailfailpasstodotodotodopassfailpasspasspasstodotodotodotodotodotodopub-xml-namesmustpasspasspasspasstodotodotodopasspasspasspassn/atodotodotodotodotodotodopub-xml-non-validating_commentmustpassfailfailtodopasstodotodopassfailfailpasspasstodotodotodotodotodotodopub-xml-non-validating_unclosedmustpasspasspasspasstodotodotodofailpasspasspassn/atodotodotodotodotodotodopub-external-linksshouldpasspasspasspasstodotodotodopassfailfailpassn/afailfailfailfailfailfailpub-external-links_consentshouldpasspasspasspasstodotodotodotodofailfailn/an/afailfailfailfailfailfailsec-untrusted-consent_networkshouldtodopasspasspasstodotodotodofailfailtodofailfailtodotodotodofailtodotodosec-untrusted-consent_scriptingshouldtodopassfailfailtodotodotodofailfailtodofailfailtodotodotodofailtodotodo4.2 Core Media Types
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderAndroid OSApple BooksiOSApple BooksmacOS (Books 4.4)Colibrio ReaderWeb PlatformGoogle Play BooksAndroidGoogle Play BooksiOSGoogle Play BooksWeb (Chrome)Kobo BookseReader v4.33Kobo BooksiOS v10.2Kobo BooksWeb Reader (Chrome)Thorium Reader 2.2.0Windows, MacOS, LinuxTolinoWeb Reader (Chrome)VOYAGER BinBWeb PlatformVitalSource BookshelfAndroidVitalSource BookshelfiOSVitalSource BookshelfMac DesktopVitalSource BookshelfWeb (Chrome)VitalSource BookshelfWindows Desktoppub-cmt-gifmustpasspasspasspasspasstodotodopasspasspasspasspassn/apasspasspasspasspasspub-cmt-jpegmustpasspasspasspasspasstodotodopasspasspasspasspassn/apasspasspasspasspasspub-cmt-mp3mustfailpasspasspasstodotodotodofailpasspasspasspassn/apasspasspasspasspasspub-cmt-mp4mustfailpasspasspasstodotodotodofailfailpasspasspassn/apasspasspasspasspasspub-cmt-opusmustfailfailfailpasstodotodotodofailfailpasspassfailn/apassfailfailpasspasspub-cmt-pngmustpasspasspasspasspasstodotodopasspasspasspasspassn/apasspasspasspasspasspub-cmt-svgmustpasspasspasspasstodotodotodofailpasspasspasspassn/apasspasspasspasspasspub-cmt-webpmustpasspasspasspasstodotodotodofailfailpasspasspassn/apasspassfailpasspass4.3 Package Documents
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderAndroid OSApple BooksiOSApple BooksmacOS (Books 4.4)Colibrio ReaderWeb PlatformGoogle Play BooksAndroidGoogle Play BooksiOSGoogle Play BooksWeb (Chrome)Kobo BookseReader v4.33Kobo BooksiOS v10.2Kobo BooksWeb Reader (Chrome)Thorium Reader 2.2.0Windows, MacOS, LinuxTolinoWeb Reader (Chrome)VOYAGER BinBWeb PlatformVitalSource BookshelfAndroidVitalSource BookshelfiOSVitalSource BookshelfMac DesktopVitalSource BookshelfWeb (Chrome)VitalSource BookshelfWindows Desktoppkg-collections-unknownmustpasspasspasspasspasstodotodotodopasspasspassn/an/apasspasspasspasspasspkg-creator-ordermustpasspasspasspasspasstodotodopassfailn/apassn/afailtodotodotodotodotodopkg-manifest-unknownmustpasspasspasspasstodotodotodopasspasspasspassn/atodopasspasspasspasspasspkg-meta-unknownmustpasspasspasspasspasstodotodopasspasspasspassn/atodopasspasspasspasspasspkg-meta-whitespacemustfailpasspasspasstodotodotodopassfailn/apassn/atodon/an/an/an/an/apkg-spine-duplicate-item-hyperlinkmustfailfailfailpasstodotodotodofailpasspasspassfailn/apasspasspasspassfailpkg-spine-duplicate-item-renderingmustpassfailfailpasstodotodotodofailpasspassfailfailn/apasspassfailfailfailpkg-spine-duplicate-item-uimustpassfailfailpasstodotodotodofailpasspassfailfailn/afailfailfailfailfailpkg-spine-nonlinear-activationmustfailpasspasspasspasstodotodopasspasspasspasspasstodopasspasspasspasspasspkg-spine-ordermustpasspasspasspasstodotodotodotodopasspasspasspasspasspasspasspasspasspasspkg-spine-order-svgmustpasspasspasspasstodotodotodopasspassfailpassn/atodofailfailfailfailfailpkg-spine-unknownmustpasspasspasspasstodotodotodopasspasspasspassn/an/apasspasspasspasspasspkg-title-ordermustpasspasspasspasspasstodotodopassfailn/apassn/afailtodotodotodotodotodopkg-unique-idmusttodopasspasspasstodotodotodopasspassn/apassn/apasstodotodotodotodotodopkg-unique-idmusttodopasspasspasstodotodotodopasspassn/apassn/apasstodotodotodotodotodopkg-version-backwardmustfailpasspasspasstodotodotodopasspasspasspassn/an/atodotodotodotodotodopkg-linked-recordsshouldfailpasstodon/atodotodotodotodopassn/apasspasstodon/an/an/an/an/apkg-manifest-unlisted-resourceshouldpasspasspassfailtodotodotodofailfailfailpassfailtodofailfailfailfailfail4.4 Manifest Fallbacks
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderAndroid OSApple BooksiOSApple BooksmacOS (Books 4.4)Colibrio ReaderWeb PlatformGoogle Play BooksAndroidGoogle Play BooksiOSGoogle Play BooksWeb (Chrome)Kobo BookseReader v4.33Kobo BooksiOS v10.2Kobo BooksWeb Reader (Chrome)Thorium Reader 2.2.0Windows, MacOS, LinuxTolinoWeb Reader (Chrome)VOYAGER BinBWeb PlatformVitalSource BookshelfAndroidVitalSource BookshelfiOSVitalSource BookshelfMac DesktopVitalSource BookshelfWeb (Chrome)VitalSource BookshelfWindows Desktoppub-foreign_bad-fallbackmustpassfailfailpasspasstodotodopassfailfailn/an/an/atodotodotodotodotodopub-foreign_imagemustfailfailfailpasspasstodotodopassfailfailfailfailfailfailfailfailfailfailpub-foreign_json-spinemustpassfailfailpasspasstodotodofailfailpassn/an/atodotodotodotodotodotodopub-foreign_xml-spinemustpassfailfailpasspasstodotodofailfailpassn/an/atodotodotodotodotodotodopub-foreign_xml-suffix-spinemustpassfailfailpasspasstodotodofailfailpassfailn/atodotodotodotodotodotodo4.5 Internationalization
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderAndroid OSApple BooksiOSApple BooksmacOS (Books 4.4)Colibrio ReaderWeb PlatformGoogle Play BooksAndroidGoogle Play BooksiOSGoogle Play BooksWeb (Chrome)Kobo BookseReader v4.33Kobo BooksiOS v10.2Kobo BooksWeb Reader (Chrome)Thorium Reader 2.2.0Windows, MacOS, LinuxTolinoWeb Reader (Chrome)VOYAGER BinBWeb PlatformVitalSource BookshelfAndroidVitalSource BookshelfiOSVitalSource BookshelfMac DesktopVitalSource BookshelfWeb (Chrome)VitalSource BookshelfWindows Desktoppkg-dir-auto_root-rtlmustfailfailfailpasstodotodotodotodopassn/apasspassn/afailfailfailfailfailpkg-dir-auto_root-unsetmustpassfailfailpasstodotodotodotodopassn/afailpassn/afailfailfailfailfailpkg-dir_but_not_contentmustpasspasspasspasstodotodotodotodopasspasspasspasstodopasspasspasspasspasspkg-dir_creator-rtlmustfailfailfailpasstodotodotodofailfailn/afailn/atodofailfailfailfailfailpkg-dir_rtl-root-ltrmustfailfailfailpasstodotodotodotodofailn/apasspasstodofailfailfailfailfailpkg-dir_rtl-root-unsetmustfailfailfailpasstodotodotodotodofailn/apasspasstodofailfailfailfailfailpkg-dir_unset-root-rtlmustfailfailfailpasstodotodotodotodofailn/afailn/atodofailfailfailfailfailpkg-dir_unset-root-unsetmustpasspassfailpasstodotodotodotodopassn/apasspasstodofailfailfailfailfailpkg-lang_but_not_contentmustpasspassfailfailpasstodotodotodopasspasspassfailtodopasspasspasspasspasspkg-spine-progression-defaultmustfailpasspasspasstodotodotodotodopasspasspasspasstodofailfailfailfailfailpkg-spine-progression-pre-paginatedmustpasstodopasspasstodotodotodotodopasspasspasspasstodofailfailfailfailfailpkg-spine-progression_ltrmustpasspasspasspasstodotodotodotodopasspasspasspasspasspasspasspasspasspasspkg-spine-progression_rtlmustpasspasspasspasstodotodotodotodopasspasspasspasspassfailfailfailfailfail4.6 Content Documents
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderAndroid OSApple BooksiOSApple BooksmacOS (Books 4.4)Colibrio ReaderWeb PlatformGoogle Play BooksAndroidGoogle Play BooksiOSGoogle Play BooksWeb (Chrome)Kobo BookseReader v4.33Kobo BooksiOS v10.2Kobo BooksWeb Reader (Chrome)Thorium Reader 2.2.0Windows, MacOS, LinuxTolinoWeb Reader (Chrome)VOYAGER BinBWeb PlatformVitalSource BookshelfAndroidVitalSource BookshelfiOSVitalSource BookshelfMac DesktopVitalSource BookshelfWeb (Chrome)VitalSource BookshelfWindows Desktopcnt-css-fontsmustpasspasspasspasspasstodotodofailfailpasspassfailfailpasspasspasspasspasscnt-mathml-supportmustfailpasspasspasspasstodopasspasspasspasspassfailfailpasspasspasspasspasscnt-svg-cssmustpasspasspassfailfailtodofailpassfailfailpassn/afailfailfailfailfailfailcnt-svg-css-inclusionmustpasspasspassfailfailtodofailfailpasspasspasspassfailpasspasspasspasspasscnt-svg-css-referencemustpasspasspasspasstodotodotodofailpasspasspasspassn/apasspasspasspasspasscnt-svg-embeddedmustpasspasspasspasspasstodopasspasspasspasspasspassfailpasspasspasspasspasscnt-svg-supportmustpasspasspasspasspasstodopasspassfailfailpassn/afailfailfailfailfailpasscnt-xhtml-supportmustpasspasspasspasspasstodotodopasspasspasspassfailpasspasspasspasspasspasscss-epub-hyphensshouldpasspasspassfailfailtodofailfailpassfailfailpassfailfailpasspassfailfailcss-epub-line-breakshouldfailpasstodofailtodotodotodofailpassfailpassfailfailfailfailfailfailfailcss-epub-text-align-lastshouldfailpassfailfailfailfailfailfailfailfailfailfailfailfailfailfailfailfailcss-epub-text-combine-horizontalshouldfailpassfailfailtodotodotodofailfailfailfailfailpassfailfailfailfailfailcss-epub-text-emphasisshouldfailfailfailpassfailtodotodofailpassfailpassfailfailfailfailfailfailfailcss-epub-text-orientationshouldpasspasspasspasspasstodotodofailpasspasspasspasspasspasspasspasspassfailcss-epub-text-transformshouldfailpassfailfailfailtodotodofailfailfailpassfailfailtodotodotodotodotodocss-epub-text-underline-positionshouldfailfailfailpasstodotodotodofailfailpasspasspassfailfailfailfailfailfailcss-epub-word-breakshouldpassfailpasspasspasstodotodopasspassfailpassfailpassfailfailfailfailfailcss-epub-writing-modeshouldpasspassfailpasstodotodotodopasspasspasspasspasspasspasspasspasspasspass4.7 Navigation Documents
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderAndroid OSApple BooksiOSApple BooksmacOS (Books 4.4)Colibrio ReaderWeb PlatformGoogle Play BooksAndroidGoogle Play BooksiOSGoogle Play BooksWeb (Chrome)Kobo BookseReader v4.33Kobo BooksiOS v10.2Kobo BooksWeb Reader (Chrome)Thorium Reader 2.2.0Windows, MacOS, LinuxTolinoWeb Reader (Chrome)VOYAGER BinBWeb PlatformVitalSource BookshelfAndroidVitalSource BookshelfiOSVitalSource BookshelfMac DesktopVitalSource BookshelfWeb (Chrome)VitalSource BookshelfWindows Desktopnav-accessmustpasspasspasspasstodotodotodopasspasspasspassn/atodopasspasspasspasspassnav-activationmustpasspasspasspasspasstodotodopasspasspasspasspassn/apasspasspasspasspassnav-spine_in-spinemustpasspasspasspasspasstodotodopasspasspasspasspasspasspasspasspasspasspassnav-spine_in-spine-no-list-stylemustpasspasspasspasstodotodotodopasspasspasspasspasspasspasspasspasspasspassnav-spine_not-in-spinemustpasspasspasspasspasstodotodopasspasspasspasspasspasspasspasspasspasspassnav-non-text_imgshouldtodotodotodotodofailtodotodotodofailn/afailn/atodotodotodotodotodotodonav-non-text_img_titleshouldtodotodotodotodofailtodotodotodofailn/afailn/atodotodotodotodotodotodo4.8 Fixed Layout
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderAndroid OSApple BooksiOSApple BooksmacOS (Books 4.4)Colibrio ReaderWeb PlatformGoogle Play BooksAndroidGoogle Play BooksiOSGoogle Play BooksWeb (Chrome)Kobo BookseReader v4.33Kobo BooksiOS v10.2Kobo BooksWeb Reader (Chrome)Thorium Reader 2.2.0Windows, MacOS, LinuxTolinoWeb Reader (Chrome)VOYAGER BinBWeb PlatformVitalSource BookshelfAndroidVitalSource BookshelfiOSVitalSource BookshelfMac DesktopVitalSource BookshelfWeb (Chrome)VitalSource BookshelfWindows Desktopfxl-layout-duplicationmustpassfailtodon/atodotodotodotodopassn/an/atodon/atodotodotodotodotodofxl-page-spread-breakmustpasstodotodopasstodotodotodotodofailpassfailfailn/apasspasspasspasspassfxl-spine-overrides_behave-as-globalmustpassfailtodopasstodotodotodofailfailfailpasspasstodopasspasspasspasspassfxl-spine-overrides_behave-as-global-bismustpasspasstodopasstodotodotodopassfailfailpassfailfailpasspasspasspasspassfxl-spine-overrides_duplicatemustpassfailtodopasstodotodotodofailfailfailfailpassn/afailfailfailpassfaillay-fxl-layout-defaultmustpasspasstodopasstodotodotodopasspasspasspasspasspasspasspasspasspasspasslay-fxl-layout-pre-paginatedmustpasspasstodopasstodotodotodopasspasspasspasspasstodopasspasspasspasspasslay-fxl-layout-pre-paginated-spreadsmustpasspasstodopasstodotodotodopasspasspasspasspasstodopasspasspasspasspasslay-fxl-orientation-defaultmustpasspasstodopasstodotodotodopasspasspasspasspasstodopasspasspasspasspasslay-fxl-spread-defaultmustpasspasstodopasstodotodotodopasspasspasspasspasstodopasspasspassn/afaillay-fxl-spread-nonemustpasspasstodopasstodotodotodopasspasspasspasspasstodopasspasspasspasspasslay-fxl-svg-icb_multimustpassfailtodopasstodotodotodofailpasspasspasspasstodotodotodofailtodotodolay-fxl-xhtml-icbmustpasspasstodopasstodotodotodofailpasspasspasspasstodopasspasspassfailpasslay-fxl-xhtml-icb_device_sizesmustfailtodotodotodotodotodotodotodopasspassfailfailtodopasspassfailfailpasslay-fxl-xhtml-icb_multimustpassfailtodopasstodotodotodofailfailpasspasspasstodopasspasspassfailpasslay-fxl-xhtml-icb_multi_declarationsmustfailpasstodopasstodotodotodofailpasspasspasspasstodopasspasspasspasspasslay-fxl-xhtml-icb_repeated-in-metamustfailtodotodotodotodotodotodotodofailpasspassfailtodopasspasspassfailpasslay-fxl-xhtml-icb_unitsmustpasspasstodopasstodotodotodopasspasspasspasspasstodopasspasspasspasspasslay-page-layout-both-spreadmustpassfailfailpasstodotodotodofailfailfailfailfailtodopassfailfailn/apasslay-reflow-align-x-centermustfailtodotodotodotodotodotodotodofailfailpassfailpasstodotodotodotodotodolay-rendition-flow-pre-pagmustfailtodotodopasstodotodotodotodofailfailpasspassn/apasspasspasspasspasslay-viewport-meta-propmustpasstodotodopasstodotodotodotodofailpassfailfailtodopasspasspasspasspassfxl-page-spread-centershouldpassfailtodofailtodotodotodopassfailpassfailtodotodopasspasspasspasspasslay-fxl-orientation-landscapeshouldfailpasstodopasstodotodotodofailfailpasspasspasstodopasspasspasspasspasslay-fxl-page-spread-combinedshouldpasspasstodopasstodotodotodopasspasspasspasspasstodofailpasspassn/afaillay-fxl-page-spread-leftshouldpassfailtodopasstodotodotodopassfailpasspasspasstodopasspasspassn/apasslay-fxl-page-spread-rightshouldpassfailtodopasstodotodotodofailpasspasspasspasstodofailpasspassn/afaillay-fxl-spread-bothshouldfailpasstodopasstodotodotodofailpasspasspasspasstodofailpassfailn/afaillay-fxl-spread-landscapeshouldpassfailtodopasstodotodotodofailfailpasspasspasstodofailfailfailn/afaillay-fxl-xhtml-icb_invalid_metashouldpasstodotodotodotodotodotodotodofailpasspassfailtodopasspasspassfailpasslay-page-layout-bothshouldpasspassfailpasstodotodotodofailfailfailfailfailtodofailpassfailfailfaillay-pkg-flow-paginatedshouldpasspasspasspasspasstodotodopasspasspasspasspasspasspasspasspasspasspasslay-pkg-flow-scrolled-continuousshouldfailfailfailfailtodotodotodofailfailfailpasspasstodopassfailfailfailfaillay-pkg-flow-scrolled-docshouldfailfailfailpasstodotodotodofailfailfailpassfailtodopasspasspassn/apasslay-fxl-spread-automaypasspasstodopasstodotodotodopasspasspasspasspasstodofailpasspassn/afail4.9 Open Container Format
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderAndroid OSApple BooksiOSApple BooksmacOS (Books 4.4)Colibrio ReaderWeb PlatformGoogle Play BooksAndroidGoogle Play BooksiOSGoogle Play BooksWeb (Chrome)Kobo BookseReader v4.33Kobo BooksiOS v10.2Kobo BooksWeb Reader (Chrome)Thorium Reader 2.2.0Windows, MacOS, LinuxTolinoWeb Reader (Chrome)VOYAGER BinBWeb PlatformVitalSource BookshelfAndroidVitalSource BookshelfiOSVitalSource BookshelfMac DesktopVitalSource BookshelfWeb (Chrome)VitalSource BookshelfWindows Desktopocf-metainf-incmustpasspasspasspasspasstodotodopasspasspasspasspasspasspasspasspasspasspassocf-metainf-manifestmustpasspasspasspasspasstodotodopasspasspasspasspasspasspasspasspasspasspassocf-package_arbitrarymustpasspasspasspasspasstodotodopasspassfailpasspasspasspasspasspasspasspassocf-package_multiplemustpasspasspasspasspasstodotodopasspassfailpasspassfailpasspasspasspasspassocf-url_link-leaking-relativemustfailfailfailpasstodotodotodopasspassfailfailpassn/afailpasspassfailfailocf-url_link-path-absolutemustfailfailfailpasspasstodotodopasspassfailfailfailn/afailpasspassfailfailocf-url_link-relativemustpassfailfailpasspasstodotodopasspasspasspasspassfailpasspasspasspasspassocf-url_manifestmustpasspasspasspasspasstodotodopasspasspasspassn/apasspasspasspasspasspassocf-url_originmustfailpassfailpasstodotodotodotodopassfailpassn/afailpasspasspasspasspassocf-url_parse-leaking-relativemustpasspasspasspasstodotodotodotodopasspasspassfailfailpasspasspasspasspassocf-url_parse-path-absolutemustpasspasspasspasstodotodotodotodopasspasspassfailfailpasspasspasspasspassocf-url_relativemustpasspasspasspasspasstodotodopasspasspasspasspasspasspasspasspasspasspassocf-zip-compmustpasspasspasspasstodotodotodofailfailfailpassn/apassfailfailfailfailfailocf-zip-multmustpasspasspassfailtodotodotodofailfailfailfailfailn/afailfailfailfailfailocf-font_obfuscationshouldfailpasspasspasstodotodotodopasspassfailpassfailpassfailfailfailfailfailocf-font_obfuscation-bisshouldtodopassfailpasstodotodotodopasspasspasspasspasstodotodotodotodotodotodo4.10 Scripting
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderAndroid OSApple BooksiOSApple BooksmacOS (Books 4.4)Colibrio ReaderWeb PlatformGoogle Play BooksAndroidGoogle Play BooksiOSGoogle Play BooksWeb (Chrome)Kobo BookseReader v4.33Kobo BooksiOS v10.2Kobo BooksWeb Reader (Chrome)Thorium Reader 2.2.0Windows, MacOS, LinuxTolinoWeb Reader (Chrome)VOYAGER BinBWeb PlatformVitalSource BookshelfAndroidVitalSource BookshelfiOSVitalSource BookshelfMac DesktopVitalSource BookshelfWeb (Chrome)VitalSource BookshelfWindows Desktopscr-not-support_ccscript-modify-hostmustfailfailfailpasstodotodotodofailfailfailfailfailfailfailfailfailfailfailscr-not-support_ccscript-modify-sizemustfailfailfailpasstodotodotodotodofailfailfailfailfailfailfailfailfailfailscr-readingsystem-featuresmustfailpasspasspasstodotodotodotodofailfailpassfailfailpasspasspassfailpassscr-readingsystem-supportmustfailpasspasspasstodotodotodotodofailfailpasspassfailpasspasspassfailpassscr-readingsystem-support_iframemustfailpasspasspasstodotodotodotodofailfailpasspassfailpasspasspassfailpassscr-readingsystem-support_iframe_svgmustfailpasspasspasstodotodotodofailfailfailfailpassfailfailfailfailfailfailscr-readingsystem-support_svgmustfailpasspasspasstodotodotodofailfailfailpassn/atodotodotodotodotodotodoscr-support-fallbackmustpasstodotodofailtodotodotodopassn/an/an/apassfailn/an/an/an/an/ascr-support_originmustpasspasspasspasstodotodotodotodopasspasspasspasstodopasspasspasspasspassscr-support_origin_uniquemusttodopasspasstodotodotodotodotodofailtodopassn/atodotodotodotodotodotodoscr-support_scrolled-docmustfailtodofailpasstodotodotodofailfailfailpasspassfailpasspasspasspasspassscr-storage-deleteshouldtodofailfailtodotodotodotodotodopasstodofailfailtodotodotodotodotodotodoscr-supportshouldpasspasspasspasstodotodotodopasspasspasspasspassfailpasspasspasspasspassscr-support_iframeshouldpasspasspasspasstodotodotodopasspasspasspassfailfailpasspasspasspasspassscr-support_scrolled-continuousshouldfailtodofailfailtodotodotodofailfailfailpasspassfailfailfailfailfailfailscr-support_svgshouldfailpasspasspasstodotodotodofailfailfailpasspasstodotodotodotodotodotodo4.11 Media Overlays
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderAndroid OSApple BooksiOSApple BooksmacOS (Books 4.4)Colibrio ReaderWeb PlatformGoogle Play BooksAndroidGoogle Play BooksiOSGoogle Play BooksWeb (Chrome)Kobo BookseReader v4.33Kobo BooksiOS v10.2Kobo BooksWeb Reader (Chrome)Thorium Reader 2.2.0Windows, MacOS, LinuxTolinoWeb Reader (Chrome)VOYAGER BinBWeb PlatformVitalSource BookshelfAndroidVitalSource BookshelfiOSVitalSource BookshelfMac DesktopVitalSource BookshelfWeb (Chrome)VitalSource BookshelfWindows Desktopmol-audiomustfailpasspasspasstodotodotodotodofailfailpasspasstodon/an/an/an/an/amol-audio-exceeding-clipendmustfailpasspasspasstodotodopasstodofailfailfailpasstodon/an/an/an/an/amol-audio-no-clipbeginmustfailpasspasspasstodotodopasstodofailfailpasspasstodon/an/an/an/an/amol-audio-no-clipendmustfailtodotodopasstodotodotodotodofailfailpasspasstodon/an/an/an/an/amol-ignoremustpassn/an/an/atodotodotodotodopasspassn/apasstodopasspasspasspasspassmol-navigationmustfailpasspasspasstodotodotodotodofailfailpassfailtodon/an/an/an/an/amol-support_xhtmlmustfailfailfailpasstodotodotodotodofailfailpasspasstodon/an/an/an/an/amol-support_xhtml-fxlmusttodopasspasspasstodotodotodotodotodotodopasspasstodotodotodotodotodotodomol-support_xhtml-loadmustfailfailfailpasstodotodotodotodofailfailpasspasstodon/an/an/an/an/amol-support_xhtml-load-fxlmusttodopasspasspasstodotodotodotodotodotodopasspasstodotodotodotodotodotodomol-timing-synchronizationmustfailtodotodopasstodotodotodotodofailfailpasspasstodon/an/an/an/an/amol-timing-synchronization_fxlmustfailpasspasspasstodotodotodotodofailfailpasspasstodon/an/an/an/an/amol-timing-synchronization_multiple_audiomustfailfailfailpasstodotodotodotodofailfailpasspasstodon/an/an/an/an/amol-timing-synchronization_multiple_audio-fxlmusttodopasspasspasstodotodotodotodotodotodopassfailtodotodotodotodotodotodomol-timing-synchronization_svgmustfailfailfailpasstodotodotodotodofailfailpassn/atodon/an/an/an/an/amol-timing-synchronization_svg-fxlmusttodopasspasspasstodotodotodotodotodotodopassn/atodotodotodotodotodotodomol-cssshouldfailfailfailpasstodotodotodotodofailfailfailpasstodon/an/an/an/an/amol-support_xhtml-load-nextshouldfailfailfailpasstodotodotodotodofailfailpasspasstodon/an/an/an/an/amol-support_xhtml-load-next-fxlshouldtodopasspasstodotodotodotodotodotodotodopassfailtodotodotodotodotodotodomol-tts_multishouldfailfailfailfailtodotodotodotodofailfailfailpasstodopasspasspasspasspassmol-tts_singleshouldfailfailfailfailtodotodotodotodofailfailfailpasstodopasspasspasspasspass4.12 Structural Semantics
+                
+                
+            IdReqACCESS/BPS PUBLUS ReaderAndroid OSApple BooksiOSApple BooksmacOS (Books 4.4)Colibrio ReaderWeb PlatformGoogle Play BooksAndroidGoogle Play BooksiOSGoogle Play BooksWeb (Chrome)Kobo BookseReader v4.33Kobo BooksiOS v10.2Kobo BooksWeb Reader (Chrome)Thorium Reader 2.2.0Windows, MacOS, LinuxTolinoWeb Reader (Chrome)VOYAGER BinBWeb PlatformVitalSource BookshelfAndroidVitalSource BookshelfiOSVitalSource BookshelfMac DesktopVitalSource BookshelfWeb (Chrome)VitalSource BookshelfWindows Desktoppss-support_ignore-titlemustpassfailfailpassfailtodotodofailfailfailfailfailn/atodotodotodotodotodopss-supportmayfailpasspasspasstodotodotodofailfailfailpassn/afailfailfailfailfailfail
+
+	
+
+
+    ↑
+  

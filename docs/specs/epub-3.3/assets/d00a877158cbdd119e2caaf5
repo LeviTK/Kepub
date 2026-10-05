@@ -1,0 +1,49 @@
+[
+  {
+    "url": "https://api.github.com/repos/w3c/epub-specs/issues/comments/1630403987",
+    "html_url": "https://github.com/w3c/epub-specs/issues/2556#issuecomment-1630403987",
+    "issue_url": "https://api.github.com/repos/w3c/epub-specs/issues/2556",
+    "id": 1630403987,
+    "node_id": "IC_kwDOAfSEcs5hLf2T",
+    "user": {
+      "login": "iherman",
+      "id": 520723,
+      "node_id": "MDQ6VXNlcjUyMDcyMw==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/520723?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/iherman",
+      "html_url": "https://github.com/iherman",
+      "followers_url": "https://api.github.com/users/iherman/followers",
+      "following_url": "https://api.github.com/users/iherman/following{/other_user}",
+      "gists_url": "https://api.github.com/users/iherman/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/iherman/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/iherman/subscriptions",
+      "organizations_url": "https://api.github.com/users/iherman/orgs",
+      "repos_url": "https://api.github.com/users/iherman/repos",
+      "events_url": "https://api.github.com/users/iherman/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/iherman/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "created_at": "2023-07-11T08:42:52Z",
+    "updated_at": "2023-07-11T08:42:52Z",
+    "body": "This, imho, a valid erratum, and could be marked as such. Definitely a [class 3](https://www.w3.org/2023/Process-20230612/#class-3)...\r\n\r\n@TzviyaSiegman @shiestyle @dauwhe @wareid ",
+    "author_association": "MEMBER",
+    "pin": null,
+    "reactions": {
+      "url": "https://api.github.com/repos/w3c/epub-specs/issues/comments/1630403987/reactions",
+      "total_count": 2,
+      "+1": 2,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "performed_via_github_app": null,
+    "minimized": null
+  }
+]

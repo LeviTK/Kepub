@@ -1,0 +1,229 @@
+
+
+  
+  
+    
+    Open Errata for the EPUB 3 Working Group
+    
+    
+    
+  
+  
+    
+       
+      
+      Open Errata for the EPUB 3 Working Group
+      
+        Latest errata update:
+        
+        Number of recorded errata:
+        
+        Link to all errata:
+        
+      
+
+      
+        How to Submit an Erratum?
+        Errata are introduced and stored in the issue list of the group‘s GitHub repository. The workflow to add a new erratum is as follows:
+        
+           An issue is raised for a possible erratum. The label of the issue SHOULD be set to “ErratumRaised”. It SHOULD also include the label corresponding to the document on which the erratum is raised, e.g., “Spec-EPUB3” or “Spec-ReadingSystems” (please, consult the list of available labels; look for labels of the form “Spec-”). It is o.k. for an erratum to have several labels. In some, exceptional, cases, i.e., when the erratum is very general, it is also acceptable not to have a reference to a document.
+           Issues labeled as “Editorial” are displayed separately, to make it easier to differentiate editorial errata from substantial ones.
+          The community discusses the issue. If it is accepted as a genuine erratum, the label “Errata” is added to the entry and the “ErratumRaised” label should be removed. Additionally, a new comment on the issue MAY be added, beginning with the word "Summary:" (if such a summary is useful based on the discussion).
+          All issues, labeled by “Errata”, are displayed in this report, whether they are opened or closed. Their status is added to the report on the individual errata.
+          If the community rejects the issue as an erratum, the issue should be closed.
+          ALL substantive errata are generally expected to have corresponding tests (such as a pull request in the EPUB 3 Test Repository) either in the form of new tests or modifications to existing tests, or must include the rationale for why test updates are not required for the erratum.
+      
+
+        This report contains a reference to all open issues with the label Errata, displayed in the sections below. Each section collects the issues for a specific document, with a separate section for the issues not assigned to any.
+
+        If you have problems following this process, but you want nevertheless to report an error, you can also contact the staff contact of the Working Group, Ivan Herman.
+      
+    
+
+    
+
+    
+      
+      
+        Open Errata on the “EPUB 3 Overview” Working Group Note
+        
+            Latest Published Version:
+            https://www.w3.org/TR/epub-overview-33/
+            Editors’ draft:
+            https://w3c.github.io/epub-specs/epub33/overview/
+        
+        
+          Substantial Issues
+        
+        
+          Editorial Issues
+        
+      
+
+      
+        Open Errata on the “EPUB 3.3” Recommendation
+        
+            Latest Published Version:
+            https://www.w3.org/TR/epub-33/
+            Editors’ draft:
+            https://w3c.github.io/epub-specs/epub33/core/
+        
+        
+          Substantial Issues
+        
+        
+          Editorial Issues
+        
+      
+
+      
+        Open Errata on the “EPUB Reading Systems 3.3” Recommendation
+        
+            Latest Published Version:
+            https://www.w3.org/TR/epub-rs-33/
+            Editors’ draft:
+            https://w3c.github.io/epub-specs/epub33/rs/
+        
+        
+          Substantial Issues
+        
+        
+          Editorial Issues
+        
+      
+
+      
+        Open Errata on the “EPUB 3 Multiple-Rendition Publications 1.1” Working Group Note
+        
+            Latest Published Version:
+            https://www.w3.org/TR/epub-multi-rend-11/
+            Editors’ draft:
+            https://w3c.github.io/epub-specs/epub33/multi-rend/
+        
+        
+          Substantial Issues
+        
+        
+          Editorial Issues
+        
+      
+
+      
+        Open Errata on the “EPUB 3 Text-to-Speech Enhancements 1.0” Working Group Note
+        
+            Latest Published Version:
+            https://www.w3.org/TR/epub-tts-10/
+            Editors’ draft:
+            https://w3c.github.io/epub-specs/epub33/tts/
+        
+        
+          Substantial Issues
+        
+        
+          Editorial Issues
+        
+      
+
+      
+        Open Errata on the “EPUB 3 Structural Semantics Vocabulary 1.1” Working Group Note
+        
+            Latest Published Version:
+            https://www.w3.org/TR/epub-ssv-11/
+            Editors’ draft:
+            https://w3c.github.io/epub-specs/epub33/ssv/
+        
+        
+          Substantial Issues
+        
+        
+          Editorial Issues
+        
+      
+
+      
+        Open Errata on the “EPUB Accessibility 1.1” Recommendation
+        
+            Latest Published Version:
+            https://www.w3.org/TR/epub-a11y-11/
+            Editors’ draft:
+            https://w3c.github.io/epub-specs/epub33/a11y/
+        
+        
+          Substantial Issues
+        
+        
+          Editorial Issues
+        
+      
+
+      
+        Open Errata on the “EPUB Accessibility Techniques 1.1” Working Group Note
+        
+            Latest Published Version:
+            https://www.w3.org/TR/epub-a11y-tech-11/
+            Editors’ draft:
+            https://w3c.github.io/epub-specs/epub33/a11y-tech/
+        
+        
+          Substantial Issues
+        
+        
+          Editorial Issues
+        
+      
+
+      
+        Open Errata on the “EPUB Accessibility - EU Accessibility Act Mapping” Working Group Note
+        
+            Latest Published Version:
+            https://www.w3.org/TR/epub-a11y-eaa-mapping/
+            Editors’ draft:
+            https://w3c.github.io/epub-specs/epub33/epub-a11y-eaa-mapping/
+        
+        
+          Substantial Issues
+        
+        
+          Editorial Issues
+        
+      
+
+      
+        Open Errata on the “EPUB Type to ARIA Role Authoring Guide 1.1” Working Group Note
+        
+            Latest Published Version:
+            https://www.w3.org/TR/epub-aria-authoring-11/
+            Editors’ draft:
+            https://w3c.github.io/epub-specs/epub33/epub-aria-authoring/
+        
+        
+          Substantial Issues
+        
+        
+          Editorial Issues
+        
+      
+      
+      
+      
+        Other Errata, Not Assigned to a Specific Document
+        
+          Substantial Issues
+        
+        
+          Editorial Issues
+        
+      
+    
+
+    
+      Ivan Herman, <ivan@w3.org>, (W3C)
+      
+        Copyright © 2023 World Wide Web Consortium.
+        W3C® liability, 
+        trademark, and 
+        permissive document license rules apply.
+      
+    
+  
+

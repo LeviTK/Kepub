@@ -1,0 +1,1296 @@
+
+
+
+
+
+
+
+		
+		
+EPUB Type to ARIA Role Authoring Guide 1.1
+		
+		
+		
+		
+		
+
+	
+
+
+
+
+
+
+
+
+	
+    
+  
+    EPUB Type to ARIA Role Authoring Guide 1.1 
+    W3C Group Note 14 March 2023
+    
+      More details about this document
+      
+        This version:
+                https://www.w3.org/TR/2023/NOTE-epub-aria-authoring-11-20230314/
+              
+        Latest published version:
+                https://www.w3.org/TR/epub-aria-authoring-11/
+              
+        Latest editor's draft:https://w3c.github.io/epub-specs/epub33/epub-aria-authoring/
+        History:
+                    https://www.w3.org/standards/history/epub-aria-authoring-11
+                  
+                    Commit history
+                  
+        
+        
+        
+        
+        
+        Editor:
+    Matt Garrish (DAISY Consortium)
+  
+        
+        
+        Feedback:
+        GitHub w3c/epub-specs
+        (pull requests,
+        new issue,
+        open issues)
+      public-epub-wg@w3.org with subject line [epub-aria-authoring-11] … message topic … (archives)
+        
+        
+      
+    
+    
+    
+    
+    Copyright © 2021-2023
+    International Digital Publishing Forum 
+	and
+    World Wide Web Consortium.
+    W3C®
+    liability,
+    trademark and
+    permissive document license rules apply.   
+    
+    
+  
+		Abstract
+			This document provides guidance for publishers looking to move from the use of the EPUB 3
+					epub:type attribute to ARIA roles for accessibility.
+		
+		Status of This DocumentThis section describes the status of this
+      document at the time of its publication. A list of current W3C
+      publications and the latest revision of this technical report can be found
+      in the W3C technical reports index at
+      https://www.w3.org/TR/.
+    This document was published by the EPUB 3 Working Group as
+    a Group Note using the
+        Note track. 
+  Group Notes are not endorsed by
+        W3C nor its Members. 
+    This is a draft document and may be updated, replaced or obsoleted by other
+    documents at any time. It is inappropriate to cite this document as other
+    than work in progress.
+    
+  
+    
+        The
+        W3C Patent
+          Policy
+        does not carry any licensing requirements or commitments on this
+        document.
+      
+    
+  
+                  This document is governed by the
+                  2 November 2021 W3C Process Document.
+                Table of ContentsAbstractStatus of This Document1. Introduction2. Mapping types to roles3. Guidelines3.1 Do not overload roles3.2 Avoid unnecessary repetition3.3 Supply labels3.4 Do not override the body element3.5 List roles are for lists3.6 Cover role is for imagesA. ReferencesA.1 Informative references
+		1. Introduction
+			
+
+			It is important to understand the differences between the epub:type attribute
+				[epub-3] and the role
+					attribute [wai-aria] to ensure that they are properly applied for their intended purposes and
+				audiences.
+
+			The biggest of these differences is in their primary applications. The epub:type attribute
+				has evolved to aid publisher workflows. It has limited use enabling reading system behaviors outside of
+				some core functionality of EPUB (identifying navigation elements and enhancing media overlay documents).
+				Although it was hoped the attribute would also expose information to assistive technologies, in practice
+				it does not.
+
+			The primary purpose of the role attribute, on the other hand, is to expose information to
+				assistive technologies. It is not to facilitate user agent behaviors.
+
+			The result of these differences is that the application of epub:type semantics is largely
+				harmless, but misapplication of ARIA roles can have negative impacts on the reading experience, from
+				over-announcement of information to broken rendering for assistive technology users.
+
+			This guide addresses key authoring differences to be aware of when migrating to ARIA roles from the
+					epub:type attribute, or when using both attributes together. The goal is to help
+				publishers avoid the pitfalls of applying ARIA roles like they would epub:type semantics
+				and breaking the reading experience for users of assistive technologies.
+
+			NoteThis guide is not intended as a comprehensive overview of ARIA roles. For more information
+				about ARIA and how to apply it to HTML document, refer to [wai-aria] and [html-aria],
+				respectively.
+		
+		2. Mapping types to roles
+			
+
+			ARIA roles are more restricted in where you can use them than EPUB's structural semantics. Although there
+				are elements that accept any role, you need to take care to ensure that roles are only used where they
+				will make sense to users of assistive technologies.
+
+			The following table maps the semantics from the EPUB
+					Structural Semantics Vocabulary [epub-ssv-11] to the corresponding roles in [wai-aria] and
+				the [dpub-aria] module.
+
+			As the use of the epub:type
+					attribute [epub-3] is much more liberal than the role attribute
+				[wai-aria], you cannot interchange types and roles on every HTML element, even when a role mapping
+				exists. The elements you are allowed to use roles on are identified in the last column of the table. In
+				addition, refer to the note at the end of the table for the list of elements
+					that accept any role value.
+
+			
+				
+					
+						[epub-ssv-11]
+						[epub-3] manifest
+						[dpub-aria]
+						[wai-aria]
+						Elements Allowed On*
+					
+				
+				
+					
+						abstract
+						
+						doc-abstract
+						
+						section
+					
+					
+						acknowledgments
+						
+						doc-acknowledgments
+						
+						section
+					
+					
+						afterword
+						
+						doc-afterword
+						
+						section
+					
+					
+						answer
+						
+						No Role
+						
+						
+					
+					
+						answers
+						
+						No Role
+						
+						
+					
+					
+						appendix
+						
+						doc-appendix
+						
+						section
+					
+					
+						assessment
+						
+						No Role
+						
+						
+					
+					
+						assessments
+						
+						No Role
+						
+						
+					
+					
+						backmatter
+						
+						No Role
+						
+						
+					
+					
+						balloon
+						
+						No Role
+						
+						
+					
+					
+						biblioentry
+						
+						doc-biblioentry 
+							Deprecated
+							 See List Roles
+						
+						
+					
+					
+						bibliography
+						
+						doc-bibliography
+						
+						section
+					
+					
+						biblioref
+						
+						doc-biblioref
+						
+						a
+					
+					
+						bodymatter
+						
+						No Role
+						
+						
+					
+					
+						bridgehead
+						
+						No Role
+						
+						
+					
+					
+						case-study
+						
+						No Role
+						
+						
+					
+					
+						chapter
+						
+						doc-chapter
+						
+						section
+					
+					
+						colophon
+						
+						doc-colophon
+						
+						section
+					
+					
+						concluding-sentence
+						
+						No Role
+						
+						
+					
+					
+						conclusion
+						
+						doc-conclusion
+						
+						section
+					
+					
+						contributors
+						
+						No Role
+						
+						
+					
+					
+						copyright-page
+						
+						No Role
+						
+						
+					
+					
+						cover
+						
+						No Role
+						
+						
+					
+					
+						cover
+						cover-image
+						doc-cover
+						
+						img
+					
+					
+						covertitle
+						
+						No Role
+						
+						
+					
+					
+						credit
+						
+						doc-credit
+						
+						section
+					
+					
+						credits
+						
+						doc-credits
+						
+						section
+					
+					
+						dedication
+						
+						doc-dedication
+						
+						section
+					
+					
+						division
+						
+						No Role
+						
+						
+					
+					
+						endnote
+						
+						doc-endnote 
+							Deprecated
+							 See List Roles.
+						
+						
+					
+					
+						endnotes
+						
+						doc-endnotes
+						
+						section
+					
+					
+						epigraph
+						
+						doc-epigraph
+						
+						
+					
+					
+						epilogue
+						
+						doc-epilogue
+						
+						section
+					
+					
+						errata
+						
+						doc-errata
+						
+						section
+					
+					
+						No Equivalent
+						
+						doc-example
+						
+						aside, section
+					
+					
+						feedback
+						
+						No Role
+						
+						
+					
+					
+						figure
+						
+						
+						figure
+						
+					
+					
+						fill-in-the-blank-problem
+						
+						No Role
+						
+						
+					
+					
+						footnote
+						
+						doc-footnote
+						
+						aside, footer, header
+					
+					
+						footnotes
+						
+						No Role
+						
+						
+					
+					
+						foreword
+						
+						doc-foreword
+						
+						section
+					
+					
+						frontmatter
+						
+						No Role
+						
+						
+					
+					
+						fulltitle
+						
+						No Role
+						
+						
+					
+					
+						general-problem
+						
+						No Role
+						
+						
+					
+					
+						glossary
+						
+						doc-glossary
+						
+						section
+					
+					
+						glossterm
+						
+						
+						term
+						
+					
+					
+						glossdef
+						
+						
+						definition
+						
+					
+					
+						glossref
+						
+						doc-glossref
+						
+						a
+					
+					
+						halftitle
+						
+						No Role
+						
+						
+					
+					
+						halftitlepage
+						
+						No Role
+						
+						
+					
+					
+						imprint
+						
+						No Role
+						
+						
+					
+					
+						imprimatur
+						
+						No Role
+						
+						
+					
+					
+						index
+						
+						doc-index
+						
+						nav, section
+					
+					
+						index-headnotes
+						
+						No Role
+						
+						
+					
+					
+						index-legend
+						
+						No Role
+						
+						
+					
+					
+						index-group
+						
+						No Role
+						
+						
+					
+					
+						index-entry-list
+						
+						No Role
+						
+						
+					
+					
+						index-entry
+						
+						No Role
+						
+						
+					
+					
+						index-term
+						
+						No Role
+						
+						
+					
+					
+						index-editor-note
+						
+						No Role
+						
+						
+					
+					
+						index-locator
+						
+						No Role
+						
+						
+					
+					
+						index-locator-list
+						
+						No Role
+						
+						
+					
+					
+						index-locator-range
+						
+						No Role
+						
+						
+					
+					
+						index-xref-preferred
+						
+						No Role
+						
+						
+					
+					
+						index-xref-related
+						
+						No Role
+						
+						
+					
+					
+						index-term-category
+						
+						No Role
+						
+						
+					
+					
+						index-term-categories
+						
+						No Role
+						
+						
+					
+					
+						introduction
+						
+						doc-introduction
+						
+						section
+					
+					
+						keyword
+						
+						No Role
+						
+						
+					
+					
+						keywords
+						
+						No Role
+						
+						
+					
+					
+						label
+						
+						No Role
+						
+						
+					
+					
+						landmarks
+						
+						
+						directory
+						ol, ul
+					
+					
+						learning-objective
+						
+						No Role
+						
+						
+					
+					
+						learning-objectives
+						
+						No Role
+						
+						
+					
+					
+						learning-outcome
+						
+						No Role
+						
+						
+					
+					
+						learning-outcomes
+						
+						No Role
+						
+						
+					
+					
+						learning-resource
+						
+						No Role
+						
+						
+					
+					
+						learning-resources
+						
+						No Role
+						
+						
+					
+					
+						learning-standard
+						
+						No Role
+						
+						
+					
+					
+						learning-standards
+						
+						No Role
+						
+						
+					
+					
+						list
+						
+						
+						list
+						
+					
+					
+						list-item
+						
+						
+						listitem
+						
+					
+					
+						loa
+						
+						No Role
+						
+						
+					
+					
+						loi
+						
+						No Role
+						
+						
+					
+					
+						lot
+						
+						No Role
+						
+						
+					
+					
+						lov
+						
+						No Role
+						
+						
+					
+					
+						match-problem
+						
+						No Role
+						
+						
+					
+					
+						multiple-choice-problem
+						
+						No Role
+						
+						
+					
+					
+						noteref
+						
+						doc-noteref
+						
+						a
+					
+					
+						notice
+						
+						doc-notice
+						
+						section
+					
+					
+						ordinal
+						
+						No Role
+						
+						
+					
+					
+						other-credits
+						
+						No Role
+						
+						
+					
+					
+						panel
+						
+						No Role
+						
+						
+					
+					
+						panel-group
+						
+						No Role
+						
+						
+					
+					
+						pagebreak
+						
+						doc-pagebreak
+						
+						hr
+					
+					
+						page-list
+						
+						doc-pagelist
+						
+						nav, section
+					
+					
+						part
+						
+						doc-part
+						
+						section
+					
+					
+						practice
+						
+						No Role
+						
+						
+					
+					
+						practices
+						
+						No Role
+						
+						
+					
+					
+						preamble
+						
+						No Role
+						
+						
+					
+					
+						preface
+						
+						doc-preface
+						
+						section
+					
+					
+						prologue
+						
+						doc-prologue
+						
+						section
+					
+					
+						pullquote
+						
+						doc-pullquote
+						
+						aside, section
+					
+					
+						question
+						
+						No Role
+						
+						
+					
+					
+						qna
+						
+						doc-qna
+						
+						section
+					
+					
+						backlink
+						
+						doc-backlink
+						
+						a
+					
+					
+						revision-history
+						
+						No Role
+						
+						
+					
+					
+						seriespage
+						
+						No Role
+						
+						
+					
+					
+						sound-area
+						
+						No Role
+						
+						
+					
+					
+						subchapter
+						
+						No Role
+						
+						
+					
+					
+						subtitle
+						
+						doc-subtitle
+						
+						h1-h6
+					
+					
+						table
+						
+						
+						table
+						
+					
+					
+						table-row
+						
+						
+						row
+						
+					
+					
+						table-cell
+						
+						
+						cell
+						
+					
+					
+						text-area
+						
+						No Role
+						
+						
+					
+					
+						tip
+						
+						doc-tip
+						
+						aside
+					
+					
+						title
+						
+						No Role
+						
+						
+					
+					
+						titlepage
+						
+						No Role
+						
+						
+					
+					
+						toc
+						
+						doc-toc
+						
+						nav, section
+					
+					
+						toc-brief
+						
+						No Role
+						
+						
+					
+					
+						topic-sentence
+						
+						No Role
+						
+						
+					
+					
+						true-false-problem
+						
+						No Role
+						
+						
+					
+					
+						volume
+						
+						No Role
+						
+						
+					
+				
+			
+
+			
+				* In addition to the specific elements listed in the table, the following elements accept
+					any role value.
+				
+					a (without an href attribute)
+					abbr
+					address
+					b
+					bdi
+					bdo
+					blockquote
+					canvas
+					cite
+					code
+					data
+					del
+					dfn
+					div
+					em
+					figure (without a figcaption)
+					hgroup
+					i
+					ins
+					kbd
+					mark
+					output
+					p
+					pre
+					q
+					rp
+					rt
+					ruby
+					s
+					samp
+					small
+					span
+					strong
+					sub
+					sup
+					svg
+					table
+					tbody
+					tfoot
+					thead
+					th, td, tr (if table is not exposed as
+						table, grid, or treegrid)
+					time
+					u
+					var
+				
+			
+
+			Note
+				Refer to the ARIA in HTML [html-aria] document for
+					more information about the correct use of ARIA roles, states and properties. It provides the
+					authoritative list of roles that are allowed on an element, and the elements that accept any
+					role.
+			
+		
+		3. Guidelines
+			
+
+			3.1 Do not overload roles
+				
+
+				Only use one digital publishing role per role attribute
+					[wai-aria].
+
+				
+    Example 1: A section with a single DPUB-ARIA role
+  
+					<section role="doc-chapter">
+				
+
+				If you include a second role, it must be a fallback from [wai-aria].
+
+				
+    Example 2: A section with a fallback ARIA role
+  
+					<section role="doc-chapter region">
+				
+
+				NoteThe fallback must not be an Abstract roles [wai-aria]. These roles are never allowed in the role
+					attribute.
+
+				Unlike the epub:type
+						attribute [epub-3], the order of roles is important, and only the first recognized role is
+					applied to an element.
+			
+
+			3.2 Avoid unnecessary repetition
+				
+
+				Do not reapply a semantic just because your content has been chunked into separate files.
+
+				For example, ensure that the doc-part role [dpub-aria] is only applied to the section that contains
+					the heading for the part. Do not reapply the part role for each chapter that belongs to the part, as
+					it will be announced to users of assistive technologies each time it occurs, causing confusion.
+			
+
+			3.3 Supply labels
+				
+
+				If a landmark role (e.g., doc-chapter, doc-part, doc-index [dpub-aria]) does not include a label, assistive technologies
+					will only announce the generic name of the role in the landmarks.
+
+				To include a more descriptive label, use the aria-labelledby
+						attribute [wai-aria] to associate the label with the role.
+
+				
+    Example 3: Using the aria-labelledby attribute to provide a label
+  
+					<section role="doc-index" aria-labelledby="idx01">
+   <h2 id="idx01">Name Index</h2>
+   …
+</section>
+				
+
+				If a label is not available in the text, you can supply one in an aria-label attribute
+					[wai-aria].
+
+				
+    Example 4: Using the aria-label attribute to provide a label
+  
+					<aside role="doc-tip" aria-label="Helpful Hint">
+   …
+</aside>
+				
+
+				If a document contains more than one instance of the same landmark role, each instance needs to be
+					uniquely labelled to allow users to tell them apart.
+
+				
+    Example 5: Differentiating two indexes with unique labels
+  
+					<section role="doc-index" aria-labelledby="idx01">
+   <h2 id="idx01">Name Index</h2>
+   …
+</section>
+
+<section role="doc-index" aria-labelledby="idx02">
+   <h2 id="idx02">Topical Index</h2>
+   …
+</section>
+				
+			
+
+			3.4 Do not override the body element
+				
+
+				The epub:type
+						attribute [epub-3] may be used to inflect sectioning semantics on the [html] body
+						element (e.g., to indicate front matter, or to avoid using sectioning elements), but this
+					practice is both invalid and harmful with ARIA roles.
+
+				The body element has the implied role document [wai-aria], and you cannot define any other role on it
+					[html-aria]. Changing the role of the body element can affect the ability to read the
+					content for users of assistive technologies.
+			
+
+			3.5 List roles are for lists
+				
+
+				Assigning a role to an element overrides its default nature, so use care when applying roles to lists
+					and list items.
+
+				Just as [html] ol and ul list elements must contain list items, elements assigned a list role
+					must only contain elements assigned a list item role.
+
+				
+    Example 6: Specifying list and listitem roles on elements
+  
+					<div role="list">
+   <p role="listitem">…</p>
+   …
+</div>
+				
+
+				Similarly, a list item must always be enclosed inside of a list.
+
+				Note
+					Due to a change in the [wai-aria] roles model, list item roles defined in modules no longer
+						satisfy the requirement that the list role have list item children. As a result, use of the doc-biblioentry and
+							doc-endnote roles
+						[dpub-aria] is now deprecated.
+
+					These roles are now implied on list items within sections that have a doc-bibliography
+						or doc-endnotes role
+						[dpub-aria], respectively.
+
+					<section role="doc-bibliography">
+   <h2>Select Bibliography</h2>
+   
+   <ol>
+      <li><-- Implied bibliography entry --></li>
+      …
+   </ol>
+</section>
+				
+			
+
+			3.6 Cover role is for images
+				
+
+				Although the doc-cover role
+					[dpub-aria] seems like it should be the same as the cover semantic [epub-ssv-11], it
+					is actually related to the cover-image semantic [epub-3] used to identify cover images in the EPUB
+					package document. The role is used to identify an image that represents the cover.
+
+				
+    Example 7: Applying the doc-cover role to an image
+  
+					<img
+    role="doc-cover"
+    src="cover.jpg"
+    alt="…"/>
+				
+
+				Do not use this role to identify a section of content containing the cover. Placing
+					the role on an [html] section element, for example, informs assistive technologies to treat the
+					element like they would an image. In practical terms, this means that none of its content will be
+					available.
+
+				If a section of cover content needs to be identified as a landmark, you can use the aria-label or aria-labelledby
+					attributes [wai-aria] with a section element.
+
+				
+    Example 8: Adding a label to a section to create a landmark
+  
+					<section aria-label="Cover: As I Lay Dying. William Faulkner">
+   …
+</section>
+				
+
+				NoteFor [html] div elements, the general region role [wai-aria] is also needed. For more information about how to
+					use roles in content, refer to ARIA in HTML
+					[html-aria].
+			
+		
+	
+
+A. ReferencesA.1 Informative references
+    
+    [dpub-aria]
+      Digital Publishing WAI-ARIA Module.  W3C. 
+    [epub-3]
+      EPUB 3.  W3C. 
+    [epub-ssv-11]
+      EPUB 3 Structural Semantics Vocabulary 1.1. Ivan Herman; Matt Garrish.  W3C. 13 January 2023. W3C Working Group Note. URL: https://www.w3.org/TR/epub-ssv-11/
+    [html]
+      HTML Standard. Anne van Kesteren; Domenic Denicola; Ian Hickson; Philip Jägenstedt; Simon Pieters.  WHATWG. Living Standard. URL: https://html.spec.whatwg.org/multipage/
+    [html-aria]
+      ARIA in HTML. Steve Faulkner; Scott O'Hara; Patrick Lauke.  W3C. 15 February 2023. W3C Recommendation. URL: https://www.w3.org/TR/html-aria/
+    [wai-aria]
+      Accessible Rich Internet Applications (WAI-ARIA).  W3C. 
+    
+  
+    ↑
+  

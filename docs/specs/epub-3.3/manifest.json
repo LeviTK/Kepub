@@ -1,0 +1,1965 @@
+{
+  "schemaVersion": 1,
+  "baseline": "EPUB3.3-REC2026-01-13",
+  "assets": [
+    {
+      "id": "epub",
+      "category": "normative",
+      "normativeLevel": "REC",
+      "requestUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/",
+      "finalUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/",
+      "version": "https://www.w3.org/TR/2026/REC-epub-33-20260113/",
+      "downloadedAt": "2026-10-05T23:10:42.676888+00:00",
+      "path": "original/epub.html",
+      "bytes": 1514545,
+      "sha256": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://www.w3.org/StyleSheets/TR/2021/W3C-REC",
+        "https://www.w3.org/StyleSheets/TR/2021/logos/W3C",
+        "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_rendering_paginated_multiple_spine.svg",
+        "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_rendering_paginated_single_spine.svg",
+        "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_rendering_scrolled_continuous.svg",
+        "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_rendering_scrolled_doc.svg",
+        "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_spread_both.svg",
+        "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_spread_both_with_reflowable_intro.svg",
+        "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_spread_landscape.svg",
+        "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_spread_none.svg",
+        "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_spread_page_spread_right.svg",
+        "https://www.w3.org/scripts/TR/2021/fixup.js"
+      ]
+    },
+    {
+      "id": "rs",
+      "category": "normative",
+      "normativeLevel": "REC",
+      "requestUrl": "https://www.w3.org/TR/2024/REC-epub-rs-33-20241017/",
+      "finalUrl": "https://www.w3.org/TR/2024/REC-epub-rs-33-20241017/",
+      "version": "https://www.w3.org/TR/2024/REC-epub-rs-33-20241017/",
+      "downloadedAt": "2026-10-05T23:10:42.960920+00:00",
+      "path": "original/rs.html",
+      "bytes": 512841,
+      "sha256": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://www.w3.org/StyleSheets/TR/2021/W3C-REC",
+        "https://www.w3.org/StyleSheets/TR/2021/logos/W3C",
+        "https://www.w3.org/scripts/TR/2021/fixup.js"
+      ]
+    },
+    {
+      "id": "a11y",
+      "category": "normative",
+      "normativeLevel": "REC",
+      "requestUrl": "https://www.w3.org/TR/2024/REC-epub-a11y-11-20241017/",
+      "finalUrl": "https://www.w3.org/TR/2024/REC-epub-a11y-11-20241017/",
+      "version": "https://www.w3.org/TR/2024/REC-epub-a11y-11-20241017/",
+      "downloadedAt": "2026-10-05T23:10:43.090932+00:00",
+      "path": "original/a11y.html",
+      "bytes": 207434,
+      "sha256": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://www.w3.org/StyleSheets/TR/2021/W3C-REC",
+        "https://www.w3.org/StyleSheets/TR/2021/logos/W3C",
+        "https://www.w3.org/scripts/TR/2021/fixup.js"
+      ]
+    },
+    {
+      "id": "css",
+      "category": "supporting-note",
+      "normativeLevel": "NOTE",
+      "requestUrl": "https://www.w3.org/TR/2026/NOTE-css-2026-20260622/",
+      "finalUrl": "https://www.w3.org/TR/2026/NOTE-css-2026-20260622/",
+      "version": "https://www.w3.org/TR/2026/NOTE-css-2026-20260622/",
+      "downloadedAt": "2026-10-05T23:10:43.324758+00:00",
+      "path": "original/css.html",
+      "bytes": 621957,
+      "sha256": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://www.w3.org/StyleSheets/TR/2021/W3C-NOTE",
+        "https://www.w3.org/StyleSheets/TR/2021/dark.css",
+        "https://www.w3.org/StyleSheets/TR/2021/logos/W3C",
+        "https://www.w3.org/scripts/TR/2021/fixup.js"
+      ]
+    },
+    {
+      "id": "overview",
+      "category": "supporting-note",
+      "normativeLevel": "NOTE",
+      "requestUrl": "https://www.w3.org/TR/2025/NOTE-epub-overview-33-20250313/",
+      "finalUrl": "https://www.w3.org/TR/2025/NOTE-epub-overview-33-20250313/",
+      "version": "https://www.w3.org/TR/2025/NOTE-epub-overview-33-20250313/",
+      "downloadedAt": "2026-10-05T23:10:43.506092+00:00",
+      "path": "original/overview.html",
+      "bytes": 170691,
+      "sha256": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://www.w3.org/StyleSheets/TR/2021/W3C-NOTE",
+        "https://www.w3.org/StyleSheets/TR/2021/logos/W3C",
+        "https://www.w3.org/TR/2025/NOTE-epub-overview-33-20250313/images/epub.svg",
+        "https://www.w3.org/scripts/TR/2021/fixup.js"
+      ]
+    },
+    {
+      "id": "techniques",
+      "category": "supporting-note",
+      "normativeLevel": "NOTE",
+      "requestUrl": "https://www.w3.org/TR/2025/NOTE-epub-a11y-tech-11-20250313/",
+      "finalUrl": "https://www.w3.org/TR/2025/NOTE-epub-a11y-tech-11-20250313/",
+      "version": "https://www.w3.org/TR/2025/NOTE-epub-a11y-tech-11-20250313/",
+      "downloadedAt": "2026-10-05T23:10:43.646964+00:00",
+      "path": "original/techniques.html",
+      "bytes": 232049,
+      "sha256": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://www.w3.org/StyleSheets/TR/2021/W3C-NOTE",
+        "https://www.w3.org/StyleSheets/TR/2021/logos/W3C",
+        "https://www.w3.org/scripts/TR/2021/fixup.js"
+      ]
+    },
+    {
+      "id": "ssv",
+      "category": "supporting-note",
+      "normativeLevel": "NOTE",
+      "requestUrl": "https://www.w3.org/TR/2026/NOTE-epub-ssv-11-20260528/",
+      "finalUrl": "https://www.w3.org/TR/2026/NOTE-epub-ssv-11-20260528/",
+      "version": "https://www.w3.org/TR/2026/NOTE-epub-ssv-11-20260528/",
+      "downloadedAt": "2026-10-05T23:10:43.750218+00:00",
+      "path": "original/ssv.html",
+      "bytes": 140584,
+      "sha256": "83f232f88fd113bbfcbe0a0843adb3b67ec0eb02cde08530d935e69129a1330a",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://www.w3.org/StyleSheets/TR/2021/W3C-NOTE",
+        "https://www.w3.org/StyleSheets/TR/2021/dark.css",
+        "https://www.w3.org/StyleSheets/TR/2021/logos/W3C",
+        "https://www.w3.org/scripts/TR/2021/fixup.js"
+      ]
+    },
+    {
+      "id": "aria",
+      "category": "supporting-note",
+      "normativeLevel": "NOTE",
+      "requestUrl": "https://www.w3.org/TR/2023/NOTE-epub-aria-authoring-11-20230314/",
+      "finalUrl": "https://www.w3.org/TR/2023/NOTE-epub-aria-authoring-11-20230314/",
+      "version": "https://www.w3.org/TR/2023/NOTE-epub-aria-authoring-11-20230314/",
+      "downloadedAt": "2026-10-05T23:10:43.842913+00:00",
+      "path": "original/aria.html",
+      "bytes": 83177,
+      "sha256": "17668a20b4feec4ba12fd8dbf642c2c8b0f15075bab8222ac1ea2a3fb8a182cd",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://www.w3.org/StyleSheets/TR/2021/W3C-NOTE",
+        "https://www.w3.org/StyleSheets/TR/2021/logos/W3C",
+        "https://www.w3.org/scripts/TR/2021/fixup.js"
+      ]
+    },
+    {
+      "id": "multi-rend",
+      "category": "supporting-note",
+      "normativeLevel": "NOTE",
+      "requestUrl": "https://www.w3.org/TR/2026/NOTE-epub-multi-rend-11-20260120/",
+      "finalUrl": "https://www.w3.org/TR/2026/NOTE-epub-multi-rend-11-20260120/",
+      "version": "https://www.w3.org/TR/2026/NOTE-epub-multi-rend-11-20260120/",
+      "downloadedAt": "2026-10-05T23:10:43.965030+00:00",
+      "path": "original/multi-rend.html",
+      "bytes": 152602,
+      "sha256": "6925f41af2ca15beea035f97e06a639e4af2bce0aa3d77510d86a9a0ca5a98ae",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/container.rnc",
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/mapping.rnc",
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/ocf-metadata-30.rnc",
+        "https://www.w3.org/StyleSheets/TR/2021/W3C-NOTE",
+        "https://www.w3.org/StyleSheets/TR/2021/dark.css",
+        "https://www.w3.org/StyleSheets/TR/2021/logos/W3C",
+        "https://www.w3.org/scripts/TR/2021/fixup.js"
+      ]
+    },
+    {
+      "id": "tts",
+      "category": "supporting-note",
+      "normativeLevel": "NOTE",
+      "requestUrl": "https://www.w3.org/TR/2025/NOTE-epub-tts-10-20250828/",
+      "finalUrl": "https://www.w3.org/TR/2025/NOTE-epub-tts-10-20250828/",
+      "version": "https://www.w3.org/TR/2025/NOTE-epub-tts-10-20250828/",
+      "downloadedAt": "2026-10-05T23:10:44.054409+00:00",
+      "path": "original/tts.html",
+      "bytes": 84637,
+      "sha256": "f65a6cd53d239f5dafab552259677fe7cea57a04baffa32b2cf6e457e6c31ef0",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://www.w3.org/StyleSheets/TR/2021/W3C-NOTE",
+        "https://www.w3.org/StyleSheets/TR/2021/dark.css",
+        "https://www.w3.org/StyleSheets/TR/2021/logos/W3C",
+        "https://www.w3.org/TR/2008/REC-pronunciation-lexicon-20081014/pls.rng",
+        "https://www.w3.org/scripts/TR/2021/fixup.js"
+      ]
+    },
+    {
+      "id": "eaa",
+      "category": "supporting-note",
+      "normativeLevel": "NOTE",
+      "requestUrl": "https://www.w3.org/TR/2025/NOTE-epub-a11y-eaa-mapping-20250828/",
+      "finalUrl": "https://www.w3.org/TR/2025/NOTE-epub-a11y-eaa-mapping-20250828/",
+      "version": "https://www.w3.org/TR/2025/NOTE-epub-a11y-eaa-mapping-20250828/",
+      "downloadedAt": "2026-10-05T23:10:44.152151+00:00",
+      "path": "original/eaa.html",
+      "bytes": 52900,
+      "sha256": "86170d99afb0bb6c9e9e3570d3bb7a3ccc8985928f4b09740f5e45c943f39cb3",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://www.w3.org/StyleSheets/TR/2021/W3C-NOTE",
+        "https://www.w3.org/StyleSheets/TR/2021/dark.css",
+        "https://www.w3.org/StyleSheets/TR/2021/logos/W3C",
+        "https://www.w3.org/scripts/TR/2021/fixup.js"
+      ]
+    },
+    {
+      "id": "xml",
+      "category": "external-dependency",
+      "normativeLevel": "REC",
+      "requestUrl": "https://www.w3.org/TR/2008/REC-xml-20081126/",
+      "finalUrl": "https://www.w3.org/TR/2008/REC-xml-20081126/",
+      "version": "https://www.w3.org/TR/2008/REC-xml-20081126/",
+      "downloadedAt": "2026-10-05T23:10:44.331965+00:00",
+      "path": "original/xml.html",
+      "bytes": 219926,
+      "sha256": "f58a4b9e1e5b8bac13fb55c4e5c7c8c5e2c176aa45ee68e2f1ab2498511927ec",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://www.w3.org/2002/xmlspec/dtd/2.10/xmlspec.dtd",
+        "https://www.w3.org/Icons/w3c_home",
+        "https://www.w3.org/StyleSheets/TR/W3C-REC.css",
+        "https://www.w3.org/TR/2008/REC-xml-20081126/REC-xml-20081126-review.html",
+        "https://www.w3.org/scripts/TR/fixup.js"
+      ]
+    },
+    {
+      "id": "namespaces",
+      "category": "external-dependency",
+      "normativeLevel": "REC",
+      "requestUrl": "https://www.w3.org/TR/2009/REC-xml-names-20091208/",
+      "finalUrl": "https://www.w3.org/TR/2009/REC-xml-names-20091208/",
+      "version": "https://www.w3.org/TR/2009/REC-xml-names-20091208/",
+      "downloadedAt": "2026-10-05T23:10:44.416733+00:00",
+      "path": "original/namespaces.html",
+      "bytes": 51390,
+      "sha256": "b4a649e5fdab9852d68eca21442481599164949bcdee5549f2ec7e38fb3cd3a8",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://www.w3.org/Icons/w3c_home",
+        "https://www.w3.org/StyleSheets/TR/W3C-REC.css",
+        "https://www.w3.org/TR/2009/REC-xml-names-20091208/xml-names-10-3e-diff.html",
+        "https://www.w3.org/scripts/TR/fixup.js"
+      ]
+    },
+    {
+      "id": "html-xml",
+      "category": "external-dependency",
+      "normativeLevel": "Living Standard snapshot",
+      "requestUrl": "https://html.spec.whatwg.org/multipage/xhtml.html",
+      "finalUrl": "https://html.spec.whatwg.org/multipage/xhtml.html",
+      "version": "https://html.spec.whatwg.org/multipage/xhtml.html",
+      "downloadedAt": "2026-10-05T23:10:45.106489+00:00",
+      "path": "original/html-xml.html",
+      "bytes": 115622,
+      "sha256": "4ee73fb4feaf74348307001afe5877b3b7d8c90c22e141a3ccdab67f287060e6",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://html.spec.whatwg.org/html-dfn.js",
+        "https://html.spec.whatwg.org/link-fixup.js",
+        "https://html.spec.whatwg.org/styles.css",
+        "https://html.spec.whatwg.org/var-click-highlighting.js",
+        "https://resources.whatwg.org/logo.svg",
+        "https://resources.whatwg.org/spec.css",
+        "https://resources.whatwg.org/standard-shared-with-dev.css",
+        "https://resources.whatwg.org/standard.css"
+      ]
+    },
+    {
+      "id": "errata",
+      "category": "errata",
+      "normativeLevel": "live snapshot",
+      "requestUrl": "https://w3c.github.io/epub-specs/epub33/errata.html",
+      "finalUrl": "https://w3c.github.io/epub-specs/epub33/errata.html",
+      "version": "https://w3c.github.io/epub-specs/epub33/errata.html",
+      "downloadedAt": "2026-10-05T23:10:45.167088+00:00",
+      "path": "original/errata.html",
+      "bytes": 11814,
+      "sha256": "0b1938e4aedfbe6b4755e1070eca696f5f52917c52ee0030814b592085eedf59",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://w3c.github.io/display_errata/assets/errata.css",
+        "https://w3c.github.io/display_errata/assets/errata.js",
+        "https://w3c.github.io/display_errata/assets/toc.js",
+        "https://www.w3.org/Icons/w3c_home"
+      ]
+    },
+    {
+      "id": "implementation-report",
+      "category": "test",
+      "normativeLevel": "3.3 report snapshot",
+      "requestUrl": "https://w3c.github.io/epub-specs/epub33/reports/",
+      "finalUrl": "https://w3c.github.io/epub-specs/epub33/reports/",
+      "version": "https://w3c.github.io/epub-specs/epub33/reports/",
+      "downloadedAt": "2026-10-05T23:10:45.220371+00:00",
+      "path": "original/implementation-report.html",
+      "bytes": 5302,
+      "sha256": "cc38a93f6a0705ace328cf08b1bf6e68e26dcdb1021d1bd6e3745c45c0529afc",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://w3c.github.io/epub-specs/epub33/reports/a11y-properties-use.html",
+        "https://w3c.github.io/epub-specs/epub33/reports/a11y-usage.html",
+        "https://w3c.github.io/epub-specs/epub33/reports/epub-properties-use.html",
+        "https://w3c.github.io/epub-specs/epub33/reports/exit_criteria.html",
+        "https://www.w3.org/Tools/respec/respec-w3c"
+      ]
+    },
+    {
+      "id": "test-index",
+      "category": "test",
+      "normativeLevel": "3.3 report snapshot",
+      "requestUrl": "https://w3c.github.io/epub-tests/epub33/",
+      "finalUrl": "https://w3c.github.io/epub-tests/epub33/",
+      "version": "https://w3c.github.io/epub-tests/epub33/",
+      "downloadedAt": "2026-10-05T23:10:45.323626+00:00",
+      "path": "original/test-index.html",
+      "bytes": 128986,
+      "sha256": "315c22c456852dda39c690fd1a7a55ad20026abb8eac1ad32a0af2a4fc9491ce",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://w3c.github.io/epub-tests/epub33/results.html",
+        "https://www.w3.org/StyleSheets/TR/2021/base.css",
+        "https://www.w3.org/scripts/TR/2021/fixup.js"
+      ]
+    },
+    {
+      "id": "test-results",
+      "category": "test",
+      "normativeLevel": "3.3 report snapshot",
+      "requestUrl": "https://w3c.github.io/epub-tests/epub33/results.html",
+      "finalUrl": "https://w3c.github.io/epub-tests/epub33/results.html",
+      "version": "https://w3c.github.io/epub-tests/epub33/results.html",
+      "downloadedAt": "2026-10-05T23:10:45.479535+00:00",
+      "path": "original/test-results.html",
+      "bytes": 231138,
+      "sha256": "0bcabf28689fcd9df50611cd06bfe45e798c42541c241e02a76fdd3160b6a433",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [
+        "test-index"
+      ],
+      "dependencies": [
+        "https://www.w3.org/StyleSheets/TR/2021/base.css",
+        "https://www.w3.org/scripts/TR/2021/fixup.js"
+      ]
+    },
+    {
+      "id": "errata-confirmed",
+      "category": "errata",
+      "normativeLevel": "GitHub issues snapshot",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues?state=all&labels=Errata&per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues?state=all&labels=Errata&per_page=100&page=1",
+      "version": "https://api.github.com/repos/w3c/epub-specs/issues?state=all&labels=Errata&per_page=100&page=1",
+      "downloadedAt": "2026-10-05T23:10:45.874353+00:00",
+      "path": "original/errata-confirmed.json",
+      "bytes": 115388,
+      "sha256": "446b954ce72a12bb7f88cec0d2975bfb93b24e39069d4d2a4aecd4e7dd70a28d",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://api.github.com/repos/w3c/epub-specs/issues/2555/comments?per_page=100&page=1",
+        "https://api.github.com/repos/w3c/epub-specs/issues/2556/comments?per_page=100&page=1",
+        "https://api.github.com/repos/w3c/epub-specs/issues/2557/comments?per_page=100&page=1",
+        "https://api.github.com/repos/w3c/epub-specs/issues/2560/comments?per_page=100&page=1",
+        "https://api.github.com/repos/w3c/epub-specs/issues/2567/comments?per_page=100&page=1",
+        "https://api.github.com/repos/w3c/epub-specs/issues/2578/comments?per_page=100&page=1",
+        "https://api.github.com/repos/w3c/epub-specs/issues/2594/comments?per_page=100&page=1",
+        "https://api.github.com/repos/w3c/epub-specs/issues/2595/comments?per_page=100&page=1",
+        "https://api.github.com/repos/w3c/epub-specs/issues/2606/comments?per_page=100&page=1",
+        "https://api.github.com/repos/w3c/epub-specs/issues/2610/comments?per_page=100&page=1",
+        "https://api.github.com/repos/w3c/epub-specs/issues/2623/comments?per_page=100&page=1",
+        "https://api.github.com/repos/w3c/epub-specs/issues/2629/comments?per_page=100&page=1",
+        "https://api.github.com/repos/w3c/epub-specs/issues/2631/comments?per_page=100&page=1",
+        "https://api.github.com/repos/w3c/epub-specs/issues/2632/comments?per_page=100&page=1",
+        "https://api.github.com/repos/w3c/epub-specs/issues/2658/comments?per_page=100&page=1"
+      ]
+    },
+    {
+      "id": "errata-raised",
+      "category": "errata",
+      "normativeLevel": "GitHub issues snapshot",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues?state=all&labels=ErratumRaised&per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues?state=all&labels=ErratumRaised&per_page=100&page=1",
+      "version": "https://api.github.com/repos/w3c/epub-specs/issues?state=all&labels=ErratumRaised&per_page=100&page=1",
+      "downloadedAt": "2026-10-05T23:10:46.217176+00:00",
+      "path": "original/errata-raised.json",
+      "bytes": 18466,
+      "sha256": "b94be746dc8af349eabd1711594afceb959c893af6949dd81f6cd6b92d313e08",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [],
+      "dependencies": [
+        "https://api.github.com/repos/w3c/epub-specs/issues/2635/comments?per_page=100&page=1",
+        "https://api.github.com/repos/w3c/epub-specs/issues/2637/comments?per_page=100&page=1",
+        "https://api.github.com/repos/w3c/epub-specs/issues/2650/comments?per_page=100&page=1"
+      ]
+    },
+    {
+      "id": "d3e05c46853fc039ee4c1f15",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/StyleSheets/TR/2021/W3C-REC",
+      "finalUrl": "https://www.w3.org/StyleSheets/TR/2021/W3C-REC",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:46.346798+00:00",
+      "path": "assets/d3e05c46853fc039ee4c1f15",
+      "bytes": 107,
+      "sha256": "24e0439f60e3beba02c415f00d8affe685fcf7fc4e23f5907de2a88a655f7460",
+      "contentType": "text/css; charset=utf-8",
+      "requiredBy": [
+        "a11y",
+        "epub",
+        "rs"
+      ],
+      "dependencies": [
+        "https://www.w3.org/StyleSheets/TR/2021/base.css",
+        "https://www.w3.org/StyleSheets/TR/2021/logos/REC.svg"
+      ]
+    },
+    {
+      "id": "e0d3f2e0c46329006e221227",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/StyleSheets/TR/2021/logos/W3C",
+      "finalUrl": "https://www.w3.org/StyleSheets/TR/2021/logos/W3C",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:46.439442+00:00",
+      "path": "assets/e0d3f2e0c46329006e221227",
+      "bytes": 43412,
+      "sha256": "a96241190c29d5014a2ffcb26c0a75060e20dc85b921776f813d3d5a3adcf64e",
+      "contentType": "image/svg+xml; qs=0.85",
+      "requiredBy": [
+        "a11y",
+        "aria",
+        "css",
+        "eaa",
+        "epub",
+        "multi-rend",
+        "overview",
+        "rs",
+        "ssv",
+        "techniques",
+        "tts"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "8debf3a8a66a82fe364d8832",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_rendering_paginated_multiple_spine.svg",
+      "finalUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_rendering_paginated_multiple_spine.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:46.577078+00:00",
+      "path": "assets/8debf3a8a66a82fe364d8832",
+      "bytes": 1148342,
+      "sha256": "b072a39f3159d8b31aa80efe6f049879d006ded284057344efeaba4416b9f863",
+      "contentType": "image/svg+xml; qs=0.85",
+      "requiredBy": [
+        "epub"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "86e01cb93ca5a8cbdf501de5",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_rendering_paginated_single_spine.svg",
+      "finalUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_rendering_paginated_single_spine.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:46.698889+00:00",
+      "path": "assets/86e01cb93ca5a8cbdf501de5",
+      "bytes": 1287084,
+      "sha256": "55455b8be6f712fbefdf8fa401e48114c69ba3b1d3f8f8ed392b3a20f06eb93a",
+      "contentType": "image/svg+xml; qs=0.85",
+      "requiredBy": [
+        "epub"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "bcd31364c13479b68c578342",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_rendering_scrolled_continuous.svg",
+      "finalUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_rendering_scrolled_continuous.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:46.808865+00:00",
+      "path": "assets/bcd31364c13479b68c578342",
+      "bytes": 881028,
+      "sha256": "aa4633ffa7c31c215f53c55a2e4337f586a0e9dc7801cf25e3a21b185a642b5a",
+      "contentType": "image/svg+xml; qs=0.85",
+      "requiredBy": [
+        "epub"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "4c5d4a51d6c54097018f57c4",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_rendering_scrolled_doc.svg",
+      "finalUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_rendering_scrolled_doc.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:46.938895+00:00",
+      "path": "assets/4c5d4a51d6c54097018f57c4",
+      "bytes": 1833044,
+      "sha256": "108420ac66c444b93bc78c15f46fec7b1a2f0876edefc7dbe65ecdfca6cf32c5",
+      "contentType": "image/svg+xml; qs=0.85",
+      "requiredBy": [
+        "epub"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "34318880febc3228bdd9ac62",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_spread_both.svg",
+      "finalUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_spread_both.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:47.014327+00:00",
+      "path": "assets/34318880febc3228bdd9ac62",
+      "bytes": 82352,
+      "sha256": "a2e90089a6784087f5f4cf271a03a357b9a93a5a75141688bed0a4c90de49c3e",
+      "contentType": "image/svg+xml; qs=0.85",
+      "requiredBy": [
+        "epub"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "f8bbcff23658268a24558eec",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_spread_both_with_reflowable_intro.svg",
+      "finalUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_spread_both_with_reflowable_intro.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:47.125415+00:00",
+      "path": "assets/f8bbcff23658268a24558eec",
+      "bytes": 752434,
+      "sha256": "fa719ea957d572d2a574a4acf2b072a9845ebb1d4a76e39fae9bee742267ceb8",
+      "contentType": "image/svg+xml; qs=0.85",
+      "requiredBy": [
+        "epub"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "221fcbbe29620c36df24988b",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_spread_landscape.svg",
+      "finalUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_spread_landscape.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:47.206474+00:00",
+      "path": "assets/221fcbbe29620c36df24988b",
+      "bytes": 95042,
+      "sha256": "f8033fb5edc402661b82d3da7d6931615f968b71448f8d7e236821a3593bf70a",
+      "contentType": "image/svg+xml; qs=0.85",
+      "requiredBy": [
+        "epub"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "00d9a48334d4d2ed6999ac75",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_spread_none.svg",
+      "finalUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_spread_none.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:47.303112+00:00",
+      "path": "assets/00d9a48334d4d2ed6999ac75",
+      "bytes": 98242,
+      "sha256": "1910bccae25257ec4356c3c210596645ffd15ad35423eef660f66d4692381c25",
+      "contentType": "image/svg+xml; qs=0.85",
+      "requiredBy": [
+        "epub"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "f570377441f18e0701bef7cd",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_spread_page_spread_right.svg",
+      "finalUrl": "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_spread_page_spread_right.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:47.386569+00:00",
+      "path": "assets/f570377441f18e0701bef7cd",
+      "bytes": 46998,
+      "sha256": "14beddd780e1b05717447f6e096e88aacb740f4bf1993459493ec01b8080fc43",
+      "contentType": "image/svg+xml; qs=0.85",
+      "requiredBy": [
+        "epub"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "7b7343c2787c01db2e7ff6b5",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/scripts/TR/2021/fixup.js",
+      "finalUrl": "https://www.w3.org/scripts/TR/2021/fixup.js",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:47.449746+00:00",
+      "path": "assets/7b7343c2787c01db2e7ff6b5",
+      "bytes": 16623,
+      "sha256": "81bd814cfab6e6be40978c9d22f93472635040df12c51071f2a7e557a36474d8",
+      "contentType": "application/javascript; charset=utf-8",
+      "requiredBy": [
+        "a11y",
+        "aria",
+        "css",
+        "eaa",
+        "epub",
+        "multi-rend",
+        "overview",
+        "rs",
+        "ssv",
+        "techniques",
+        "test-index",
+        "test-results",
+        "tts"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "0f48d37964797cc8d0d3722b",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/StyleSheets/TR/2021/W3C-NOTE",
+      "finalUrl": "https://www.w3.org/StyleSheets/TR/2021/W3C-NOTE",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:47.605894+00:00",
+      "path": "assets/0f48d37964797cc8d0d3722b",
+      "bytes": 98,
+      "sha256": "8c05580a320c5fe7a6b6f0b6c22592dd7188cb09cd583c91f9c1df7fa6797fdb",
+      "contentType": "text/css; charset=utf-8",
+      "requiredBy": [
+        "aria",
+        "css",
+        "eaa",
+        "multi-rend",
+        "overview",
+        "ssv",
+        "techniques",
+        "tts"
+      ],
+      "dependencies": [
+        "https://www.w3.org/StyleSheets/TR/2021/base.css",
+        "https://www.w3.org/StyleSheets/TR/2021/logos/NOTE.svg"
+      ]
+    },
+    {
+      "id": "10ca81a2e32deaf6a3c9ba00",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/StyleSheets/TR/2021/dark.css",
+      "finalUrl": "https://www.w3.org/StyleSheets/TR/2021/dark.css",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:47.680601+00:00",
+      "path": "assets/10ca81a2e32deaf6a3c9ba00",
+      "bytes": 3384,
+      "sha256": "c303961273d94d393d67e11079de144bd5b2ac530b5978f95781fb7c69b9dfa0",
+      "contentType": "text/css; charset=utf-8",
+      "requiredBy": [
+        "css",
+        "eaa",
+        "multi-rend",
+        "ssv",
+        "tts"
+      ],
+      "dependencies": [
+        "https://www.w3.org/StyleSheets/TR/2021/logos/UD-watermark-dark-draft",
+        "https://www.w3.org/StyleSheets/TR/2021/logos/UD-watermark-dark-unofficial"
+      ]
+    },
+    {
+      "id": "46945f3afbe5caf1510f8b8c",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/TR/2025/NOTE-epub-overview-33-20250313/images/epub.svg",
+      "finalUrl": "https://www.w3.org/TR/2025/NOTE-epub-overview-33-20250313/images/epub.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:47.785380+00:00",
+      "path": "assets/46945f3afbe5caf1510f8b8c",
+      "bytes": 235288,
+      "sha256": "d0f0bdd3a3d2c96ba481d8556abee7b394f88751bc8a5678c480fce74e7c8d74",
+      "contentType": "image/svg+xml; qs=0.85",
+      "requiredBy": [
+        "overview"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "59ff3d003b7a94ec8c406f88",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/container.rnc",
+      "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/container.rnc",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:47.844245+00:00",
+      "path": "assets/59ff3d003b7a94ec8c406f88",
+      "bytes": 749,
+      "sha256": "d64af090a264aa12df6845768d75d9107ac8b16f68b01a03fdbeca000e673192",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": [
+        "multi-rend"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "f013e4ef1d2a6d82681a1ece",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/mapping.rnc",
+      "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/mapping.rnc",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:47.893809+00:00",
+      "path": "assets/f013e4ef1d2a6d82681a1ece",
+      "bytes": 819,
+      "sha256": "2ae40ac44223a9793951436e7ff43d2878b94fa02e849ad77a289b23a4d0f970",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": [
+        "multi-rend"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "c11241fd1fad599a0e68441c",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/ocf-metadata-30.rnc",
+      "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/ocf-metadata-30.rnc",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:47.943139+00:00",
+      "path": "assets/c11241fd1fad599a0e68441c",
+      "bytes": 1229,
+      "sha256": "f8b90f41a87e9bfe6eaf9c97396936b79065c9c09925c27cfbca1d7fa63c6f58",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": [
+        "multi-rend"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "582b832e5ca0dbbdde276930",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/TR/2008/REC-pronunciation-lexicon-20081014/pls.rng",
+      "finalUrl": "https://www.w3.org/TR/2008/REC-pronunciation-lexicon-20081014/pls.rng",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:48.010114+00:00",
+      "path": "assets/582b832e5ca0dbbdde276930",
+      "bytes": 6852,
+      "sha256": "d40994416874cc264f0138f69f6af346a5e46d8de54cb075048b18afc5fd0a49",
+      "contentType": "application/xml",
+      "requiredBy": [
+        "tts"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "eb38747a9be980621f65c764",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/2002/xmlspec/dtd/2.10/xmlspec.dtd",
+      "finalUrl": "https://www.w3.org/2002/xmlspec/dtd/2.10/xmlspec.dtd",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:48.101633+00:00",
+      "path": "assets/eb38747a9be980621f65c764",
+      "bytes": 80745,
+      "sha256": "a9829244244c485ce37f5f7d149aadf47f8bf288c9c692519dcdd542431d5f9a",
+      "contentType": "application/xml-dtd",
+      "requiredBy": [
+        "574fd8d8295bb84c6d2469fb",
+        "xml"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "3cb7c4bd4ca4db4249c6cfc8",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/Icons/w3c_home",
+      "finalUrl": "https://www.w3.org/assets/logos/w3c-2025-transitional/w3c-72x48.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:48.259395+00:00",
+      "path": "assets/3cb7c4bd4ca4db4249c6cfc8",
+      "bytes": 50203,
+      "sha256": "acf7cffbb3b097ea1da12865d5b7b9c1d0d24dd565981296aeaa64ff3074602c",
+      "contentType": "image/svg+xml",
+      "requiredBy": [
+        "574fd8d8295bb84c6d2469fb",
+        "57c7975c68f4d9bf8a87b370",
+        "errata",
+        "namespaces",
+        "xml"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "7285b424a8fdda519cccb568",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/StyleSheets/TR/W3C-REC.css",
+      "finalUrl": "https://www.w3.org/StyleSheets/TR/W3C-REC.css",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:48.348724+00:00",
+      "path": "assets/7285b424a8fdda519cccb568",
+      "bytes": 3148,
+      "sha256": "7cfab1e1b1e3ac1a0892e0118122856085ed7b63f5d0d522d25c5fe02602bc21",
+      "contentType": "text/css",
+      "requiredBy": [
+        "574fd8d8295bb84c6d2469fb",
+        "57c7975c68f4d9bf8a87b370",
+        "namespaces",
+        "xml"
+      ],
+      "dependencies": [
+        "https://www.w3.org/StyleSheets/TR/logo-REC"
+      ]
+    },
+    {
+      "id": "574fd8d8295bb84c6d2469fb",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/TR/2008/REC-xml-20081126/REC-xml-20081126-review.html",
+      "finalUrl": "https://www.w3.org/TR/2008/REC-xml-20081126/REC-xml-20081126-review.html",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:48.480474+00:00",
+      "path": "assets/574fd8d8295bb84c6d2469fb",
+      "bytes": 216640,
+      "sha256": "6674d76a7e8c02cc63ff96b3682794d28484eaea5abf4f50540b0a9c8b23a453",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [
+        "xml"
+      ],
+      "dependencies": [
+        "https://www.w3.org/2002/xmlspec/dtd/2.10/xmlspec.dtd",
+        "https://www.w3.org/Icons/w3c_home",
+        "https://www.w3.org/StyleSheets/TR/W3C-REC.css"
+      ]
+    },
+    {
+      "id": "41455d4092cf869a6bee214b",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/scripts/TR/fixup.js",
+      "finalUrl": "https://www.w3.org/scripts/TR/fixup.js",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:48.564926+00:00",
+      "path": "assets/41455d4092cf869a6bee214b",
+      "bytes": 3819,
+      "sha256": "0942ba9d816400e377b7078e4081c380d3dc3c4f28fb22f5abb11281b8d84feb",
+      "contentType": "application/javascript; charset=utf-8",
+      "requiredBy": [
+        "namespaces",
+        "xml"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "57c7975c68f4d9bf8a87b370",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/TR/2009/REC-xml-names-20091208/xml-names-10-3e-diff.html",
+      "finalUrl": "https://www.w3.org/TR/2009/REC-xml-names-20091208/xml-names-10-3e-diff.html",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:48.659390+00:00",
+      "path": "assets/57c7975c68f4d9bf8a87b370",
+      "bytes": 56273,
+      "sha256": "34a504a2517b791ca3f05eb19e3055c8367a55ec9b0c21ec57806a1bcd931818",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [
+        "namespaces"
+      ],
+      "dependencies": [
+        "https://www.w3.org/Icons/w3c_home",
+        "https://www.w3.org/StyleSheets/TR/W3C-REC.css"
+      ]
+    },
+    {
+      "id": "5b52e828eb9988db8a44632f",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://html.spec.whatwg.org/html-dfn.js",
+      "finalUrl": "https://html.spec.whatwg.org/html-dfn.js",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:49.030447+00:00",
+      "path": "assets/5b52e828eb9988db8a44632f",
+      "bytes": 6065,
+      "sha256": "901cc9d6de5f81fa8ffe51f18a77790ee3711fd1afcf90a50db2e71d5d8570ad",
+      "contentType": "text/javascript; charset=utf-8",
+      "requiredBy": [
+        "html-xml"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "b2a9443ebdd59ee534454323",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://html.spec.whatwg.org/link-fixup.js",
+      "finalUrl": "https://html.spec.whatwg.org/link-fixup.js",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:49.431340+00:00",
+      "path": "assets/b2a9443ebdd59ee534454323",
+      "bytes": 1073,
+      "sha256": "f51e90122f05433ae985b33911c18c3126f4837e592769c6c237ce8cb7a5f681",
+      "contentType": "text/javascript; charset=utf-8",
+      "requiredBy": [
+        "html-xml"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "890c002070392fa89a82a242",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://html.spec.whatwg.org/styles.css",
+      "finalUrl": "https://html.spec.whatwg.org/styles.css",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:49.794549+00:00",
+      "path": "assets/890c002070392fa89a82a242",
+      "bytes": 8216,
+      "sha256": "c57312d71f93c7e6fb1613bd7b063e1013a082ef31f91c8740f51bf35f9588e9",
+      "contentType": "text/css",
+      "requiredBy": [
+        "html-xml"
+      ],
+      "dependencies": [
+        "https://html.spec.whatwg.org/fonts/Essays1743-Bold-subset.woff2",
+        "https://html.spec.whatwg.org/fonts/Essays1743-subset.woff2"
+      ]
+    },
+    {
+      "id": "ba8c062b1c9efaf1d18f4177",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://html.spec.whatwg.org/var-click-highlighting.js",
+      "finalUrl": "https://html.spec.whatwg.org/var-click-highlighting.js",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:50.169621+00:00",
+      "path": "assets/ba8c062b1c9efaf1d18f4177",
+      "bytes": 2731,
+      "sha256": "7db0993dccc377c41b15fb47dd56423ab0b16701ea49cec10896b71ce8400cec",
+      "contentType": "text/javascript; charset=utf-8",
+      "requiredBy": [
+        "html-xml"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "a60c80a421b54a5cc4d81179",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://resources.whatwg.org/logo.svg",
+      "finalUrl": "https://resources.whatwg.org/logo.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:50.529464+00:00",
+      "path": "assets/a60c80a421b54a5cc4d81179",
+      "bytes": 273,
+      "sha256": "ba725142cb537c8618e39445ef5b9fd10788c3b6d18420e62fbd87785b4af797",
+      "contentType": "image/svg+xml",
+      "requiredBy": [
+        "html-xml"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "5ddf28cf882a03149274f6b1",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://resources.whatwg.org/spec.css",
+      "finalUrl": "https://resources.whatwg.org/spec.css",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:50.896677+00:00",
+      "path": "assets/5ddf28cf882a03149274f6b1",
+      "bytes": 2346,
+      "sha256": "8c7a831b323b1a25ea8800bbcedfcbcc8459b903264f8bdc9625502987e0fc2c",
+      "contentType": "text/css",
+      "requiredBy": [
+        "html-xml"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "c863cce200a52ffbe50cecda",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://resources.whatwg.org/standard-shared-with-dev.css",
+      "finalUrl": "https://resources.whatwg.org/standard-shared-with-dev.css",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:51.320855+00:00",
+      "path": "assets/c863cce200a52ffbe50cecda",
+      "bytes": 19216,
+      "sha256": "4031b3ba18054f43a6d3178e09eb95502c95a8eebeeafaf36b53cf00a7336030",
+      "contentType": "text/css",
+      "requiredBy": [
+        "html-xml"
+      ],
+      "dependencies": [
+        "https://caniuse.com/img/favicon-128.png",
+        "https://nodejs.org/static/images/favicons/favicon.ico",
+        "https://resources.whatwg.org/browser-logos/android-webview.png",
+        "https://resources.whatwg.org/browser-logos/chrome.svg",
+        "https://resources.whatwg.org/browser-logos/edge.svg",
+        "https://resources.whatwg.org/browser-logos/edge_legacy.svg",
+        "https://resources.whatwg.org/browser-logos/firefox.png",
+        "https://resources.whatwg.org/browser-logos/ie.png",
+        "https://resources.whatwg.org/browser-logos/opera.svg",
+        "https://resources.whatwg.org/browser-logos/safari-ios.svg",
+        "https://resources.whatwg.org/browser-logos/safari.png",
+        "https://resources.whatwg.org/browser-logos/samsung.svg"
+      ]
+    },
+    {
+      "id": "2c2635f2aab13ce1b82f1f45",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://resources.whatwg.org/standard.css",
+      "finalUrl": "https://resources.whatwg.org/standard.css",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:51.743986+00:00",
+      "path": "assets/2c2635f2aab13ce1b82f1f45",
+      "bytes": 19069,
+      "sha256": "7eec29b2573dd78aeff7139c78b99dc011b3c7c4dbbadbda926fccc623e427e6",
+      "contentType": "text/css",
+      "requiredBy": [
+        "html-xml"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "6848aa7d3f581b48e323b5a1",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://w3c.github.io/display_errata/assets/errata.css",
+      "finalUrl": "https://w3c.github.io/display_errata/assets/errata.css",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:51.793128+00:00",
+      "path": "assets/6848aa7d3f581b48e323b5a1",
+      "bytes": 2629,
+      "sha256": "cd04c31f80aa77c30175770d245183d438c135852f77d62d06742992bdf09ec0",
+      "contentType": "text/css; charset=utf-8",
+      "requiredBy": [
+        "errata"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "2eb293b57e642adc6ffc7c5a",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://w3c.github.io/display_errata/assets/errata.js",
+      "finalUrl": "https://w3c.github.io/display_errata/assets/errata.js",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:51.851328+00:00",
+      "path": "assets/2eb293b57e642adc6ffc7c5a",
+      "bytes": 82999,
+      "sha256": "e5b89ff1eff34e36d7f1b632c7273e72c34dfb394cf5a4dd890dd6da56665e71",
+      "contentType": "application/javascript; charset=utf-8",
+      "requiredBy": [
+        "errata"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "f9457bc6de12cf6f7d346337",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://w3c.github.io/display_errata/assets/toc.js",
+      "finalUrl": "https://w3c.github.io/display_errata/assets/toc.js",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:51.907795+00:00",
+      "path": "assets/f9457bc6de12cf6f7d346337",
+      "bytes": 15874,
+      "sha256": "82554170d99ab77c9358f8866fe9e3ecded6511fa12dc4c5f8678e04e9d58543",
+      "contentType": "application/javascript; charset=utf-8",
+      "requiredBy": [
+        "errata"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "e0343487994ba6458d34ef08",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://w3c.github.io/epub-specs/epub33/reports/a11y-properties-use.html",
+      "finalUrl": "https://w3c.github.io/epub-specs/epub33/reports/a11y-properties-use.html",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:51.986378+00:00",
+      "path": "assets/e0343487994ba6458d34ef08",
+      "bytes": 2381,
+      "sha256": "e36d12f347208b6d2d225b2d70d37ca6853424ed126752efb72060831a6c048b",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [
+        "implementation-report"
+      ],
+      "dependencies": [
+        "https://w3c.github.io/epub-specs/epub33/reports/a11y-properties-use.md",
+        "https://w3c.github.io/epub-specs/epub33/reports/exit_criteria.html",
+        "https://www.w3.org/Tools/respec/respec-w3c"
+      ]
+    },
+    {
+      "id": "2fec6666e636d4c110b709b2",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://w3c.github.io/epub-specs/epub33/reports/a11y-usage.html",
+      "finalUrl": "https://w3c.github.io/epub-specs/epub33/reports/a11y-usage.html",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:52.057652+00:00",
+      "path": "assets/2fec6666e636d4c110b709b2",
+      "bytes": 2560,
+      "sha256": "342bf04b70e8e7eef69d5418624b2b8b38ee7b62110ec1523c045709a9837881",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [
+        "implementation-report"
+      ],
+      "dependencies": [
+        "https://w3c.github.io/epub-specs/epub33/reports/a11y-usage.md",
+        "https://w3c.github.io/epub-specs/epub33/reports/exit_criteria.html",
+        "https://www.w3.org/Tools/respec/respec-w3c"
+      ]
+    },
+    {
+      "id": "864fa9fcaf7ed276a55936d8",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://w3c.github.io/epub-specs/epub33/reports/epub-properties-use.html",
+      "finalUrl": "https://w3c.github.io/epub-specs/epub33/reports/epub-properties-use.html",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:52.108720+00:00",
+      "path": "assets/864fa9fcaf7ed276a55936d8",
+      "bytes": 2357,
+      "sha256": "c58f1f19501524b2aa6cf0757b5922a844e6bae1d9cb34e9fb3028b9243c5cc0",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [
+        "10141167131f677a9dd284f4",
+        "implementation-report"
+      ],
+      "dependencies": [
+        "https://w3c.github.io/epub-specs/epub33/reports/epub-properties-use.md",
+        "https://w3c.github.io/epub-specs/epub33/reports/exit_criteria.html",
+        "https://www.w3.org/Tools/respec/respec-w3c"
+      ]
+    },
+    {
+      "id": "10141167131f677a9dd284f4",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://w3c.github.io/epub-specs/epub33/reports/exit_criteria.html",
+      "finalUrl": "https://w3c.github.io/epub-specs/epub33/reports/exit_criteria.html",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:52.162154+00:00",
+      "path": "assets/10141167131f677a9dd284f4",
+      "bytes": 16574,
+      "sha256": "7f6eb11dcf5a5469057be4fc0e200829bfe867d4ba24deb99d6c739e3c60948e",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": [
+        "2fec6666e636d4c110b709b2",
+        "864fa9fcaf7ed276a55936d8",
+        "e0343487994ba6458d34ef08",
+        "implementation-report"
+      ],
+      "dependencies": [
+        "https://w3c.github.io/epub-specs/epub33/reports/epub-properties-use.html",
+        "https://www.w3.org/Tools/respec/respec-w3c"
+      ]
+    },
+    {
+      "id": "7a1e612da3085e770d4fc06d",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/Tools/respec/respec-w3c",
+      "finalUrl": "https://www.w3.org/Tools/respec/respec-w3c.js",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:52.323500+00:00",
+      "path": "assets/7a1e612da3085e770d4fc06d",
+      "bytes": 433773,
+      "sha256": "c45414dc68cfbf9a1246ab44eb6a3b0e2b159e4c1d4bac646da586f2bbd0c8a0",
+      "contentType": "text/javascript; charset=utf-8",
+      "requiredBy": [
+        "10141167131f677a9dd284f4",
+        "2fec6666e636d4c110b709b2",
+        "864fa9fcaf7ed276a55936d8",
+        "e0343487994ba6458d34ef08",
+        "implementation-report"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "28d35c6b4a06908a1bf43279",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/StyleSheets/TR/2021/base.css",
+      "finalUrl": "https://www.w3.org/StyleSheets/TR/2021/base.css",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:52.393656+00:00",
+      "path": "assets/28d35c6b4a06908a1bf43279",
+      "bytes": 42269,
+      "sha256": "9fa5424a4a69425f2fdff6c5f8958f516915e97538ec347b7ab414df0959645e",
+      "contentType": "text/css; charset=utf-8",
+      "requiredBy": [
+        "0f48d37964797cc8d0d3722b",
+        "d3e05c46853fc039ee4c1f15",
+        "test-index",
+        "test-results"
+      ],
+      "dependencies": [
+        "https://www.w3.org/StyleSheets/TR/2021/logos/UD-watermark-light-draft.svg",
+        "https://www.w3.org/StyleSheets/TR/2021/logos/UD-watermark-light-unofficial.svg"
+      ]
+    },
+    {
+      "id": "b38d15490047d6e1021cdfa8",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2555/comments?per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2555/comments?per_page=100&page=1",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:52.586262+00:00",
+      "path": "assets/b38d15490047d6e1021cdfa8",
+      "bytes": 16800,
+      "sha256": "22d66aa60ede8fc290ac59bb959989928bc19d0084cb4a452e3786f1a507a80d",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [
+        "errata-confirmed"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "d00a877158cbdd119e2caaf5",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2556/comments?per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2556/comments?per_page=100&page=1",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:52.755178+00:00",
+      "path": "assets/d00a877158cbdd119e2caaf5",
+      "bytes": 2095,
+      "sha256": "a3b641f1bfa0e7097b9dbe07a715b78c6a151c7473ab10c61fc4ef2cc90f80ae",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [
+        "errata-confirmed"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "5ca3ea6ae804ee23c40f0654",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2557/comments?per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2557/comments?per_page=100&page=1",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:52.947967+00:00",
+      "path": "assets/5ca3ea6ae804ee23c40f0654",
+      "bytes": 10938,
+      "sha256": "3c98424e3065c5a1e4875fc1ac4d4598471c3ad9e3f1fe3a73a8b43fdc451dfe",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [
+        "errata-confirmed"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "2861b56a5e9ceb86e2ae4655",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2560/comments?per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2560/comments?per_page=100&page=1",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:53.164808+00:00",
+      "path": "assets/2861b56a5e9ceb86e2ae4655",
+      "bytes": 24248,
+      "sha256": "f245328c2b3f4b0836ed439b555bf05fdaf0de82b917bfa6117e07b5601e8fe1",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [
+        "errata-confirmed"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "9a91c623fbb0ce16a2f00d61",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2567/comments?per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2567/comments?per_page=100&page=1",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:53.359012+00:00",
+      "path": "assets/9a91c623fbb0ce16a2f00d61",
+      "bytes": 2129,
+      "sha256": "f87691e66dff5c0655f2a805c26cc127f534c1571de1775d47a99ff2f34a35c1",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [
+        "errata-confirmed"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "1648fc296d7eeb441edb4273",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2578/comments?per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2578/comments?per_page=100&page=1",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:53.573046+00:00",
+      "path": "assets/1648fc296d7eeb441edb4273",
+      "bytes": 2019,
+      "sha256": "1699ef3d20e4e47e5b025da7df13e60cfa43d56320912b33585f9aa2832eab42",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [
+        "errata-confirmed"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "381cc505e6bcfe510e8d3b72",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2594/comments?per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2594/comments?per_page=100&page=1",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:53.758452+00:00",
+      "path": "assets/381cc505e6bcfe510e8d3b72",
+      "bytes": 15515,
+      "sha256": "4733559f5999d8027dcca3beadd3fa1cee4b8f6f1776a6a06028be4e2950729e",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [
+        "errata-confirmed"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "037209bbb235b35d7b352eb2",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2595/comments?per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2595/comments?per_page=100&page=1",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:53.928777+00:00",
+      "path": "assets/037209bbb235b35d7b352eb2",
+      "bytes": 5908,
+      "sha256": "54b7b6f939fe26e5d2b430aa7c76e6bd50cc0cec706be5934b304bd6c19eddcd",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [
+        "errata-confirmed"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "b517b10b67bf571a5830869e",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2606/comments?per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2606/comments?per_page=100&page=1",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:54.099986+00:00",
+      "path": "assets/b517b10b67bf571a5830869e",
+      "bytes": 1934,
+      "sha256": "fe0dd44769802325282c73892a0f4a219555aca5a95f1594aec8a2848dd52910",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [
+        "errata-confirmed"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "2382bd5913d797839143bb44",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2610/comments?per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2610/comments?per_page=100&page=1",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:54.294666+00:00",
+      "path": "assets/2382bd5913d797839143bb44",
+      "bytes": 22117,
+      "sha256": "9d8b2adcc1dc1132070fb09f289ec5e79679770bf438df878d6251fb70e121aa",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [
+        "errata-confirmed"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "af469cdf93461a452a306747",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2623/comments?per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2623/comments?per_page=100&page=1",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:54.465118+00:00",
+      "path": "assets/af469cdf93461a452a306747",
+      "bytes": 7459,
+      "sha256": "4020ba38a8d521fd030d182bf3d9d5e9a6c4e83b6d68b598acde3d57cda87f0a",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [
+        "errata-confirmed"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "7050930cc920c7a5812785ec",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2629/comments?per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2629/comments?per_page=100&page=1",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:54.633858+00:00",
+      "path": "assets/7050930cc920c7a5812785ec",
+      "bytes": 2046,
+      "sha256": "8fcbb84cc9b1ef5b80713eb0da06a91469c79567bba4cd5ec7c68a725b344e08",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [
+        "errata-confirmed"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "f59703b58564d45ac0ee9fda",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2631/comments?per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2631/comments?per_page=100&page=1",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:54.813419+00:00",
+      "path": "assets/f59703b58564d45ac0ee9fda",
+      "bytes": 1942,
+      "sha256": "25c3cb1bbdcfd406f04525340995f2aaf6f4c8216dd544bfb61768d3f2ebd5c4",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [
+        "errata-confirmed"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "f1c6b5613a7f503a0da321fb",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2632/comments?per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2632/comments?per_page=100&page=1",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:55.048799+00:00",
+      "path": "assets/f1c6b5613a7f503a0da321fb",
+      "bytes": 1945,
+      "sha256": "5c301c19796d3ccb6ee2ca43af360334be48f37b117991f481f4ebcdc4054cb4",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [
+        "errata-confirmed"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "c25f2ef06441a2a04d3625d7",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2658/comments?per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2658/comments?per_page=100&page=1",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:55.259424+00:00",
+      "path": "assets/c25f2ef06441a2a04d3625d7",
+      "bytes": 6764,
+      "sha256": "0f8b9991c736a4ff469ab89a69f8cb73f83b7fc9a339f34bb81712b458e0fc4c",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [
+        "errata-confirmed"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "33c9f212987d65366c65d5a8",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2635/comments?per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2635/comments?per_page=100&page=1",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:55.435482+00:00",
+      "path": "assets/33c9f212987d65366c65d5a8",
+      "bytes": 7417,
+      "sha256": "6ba81e36966736d124e7ef1288d0a3032128cfe6b8e494f15f8f108b45899be1",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [
+        "errata-raised"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "b88dacf7382223729f8b9785",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2637/comments?per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2637/comments?per_page=100&page=1",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:55.597768+00:00",
+      "path": "assets/b88dacf7382223729f8b9785",
+      "bytes": 6893,
+      "sha256": "4768122098981118c1a106f5f682b0eeba5392c8ad735e7cdc66196491a1e588",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [
+        "errata-raised"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "2b842f11c6c4f6155c532257",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2650/comments?per_page=100&page=1",
+      "finalUrl": "https://api.github.com/repos/w3c/epub-specs/issues/2650/comments?per_page=100&page=1",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:55.803548+00:00",
+      "path": "assets/2b842f11c6c4f6155c532257",
+      "bytes": 16397,
+      "sha256": "34b151077315d8064ca2b18472c17c149c0d4474dbf559a19c2c6dfc972b82c8",
+      "contentType": "application/json; charset=utf-8",
+      "requiredBy": [
+        "errata-raised"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "2facf7a4b4d0cfa71815ef5d",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/StyleSheets/TR/2021/logos/REC.svg",
+      "finalUrl": "https://www.w3.org/StyleSheets/TR/2021/logos/REC.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:55.862547+00:00",
+      "path": "assets/2facf7a4b4d0cfa71815ef5d",
+      "bytes": 10599,
+      "sha256": "38109d31b46a54d660d233b7593bace602a2c55ca4eb76af9310b1759d9a8266",
+      "contentType": "image/svg+xml; qs=0.85",
+      "requiredBy": [
+        "d3e05c46853fc039ee4c1f15"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "fa430e5b88725a291dcc659d",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/StyleSheets/TR/2021/logos/NOTE.svg",
+      "finalUrl": "https://www.w3.org/StyleSheets/TR/2021/logos/NOTE.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:55.950758+00:00",
+      "path": "assets/fa430e5b88725a291dcc659d",
+      "bytes": 6844,
+      "sha256": "598fc229b96747ab26af9a843e266ad8c9b793c2a3060d1e809aa6f70213d486",
+      "contentType": "image/svg+xml; qs=0.85",
+      "requiredBy": [
+        "0f48d37964797cc8d0d3722b"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "0a3cb7bc0789df277810317c",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/StyleSheets/TR/2021/logos/UD-watermark-dark-draft",
+      "finalUrl": "https://www.w3.org/StyleSheets/TR/2021/logos/UD-watermark-dark-draft",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:56.105845+00:00",
+      "path": "assets/0a3cb7bc0789df277810317c",
+      "bytes": 329,
+      "sha256": "60b2843c2ccfd53960328dcb0bc01be93499f38b955953ab7f25f6e5df4fab56",
+      "contentType": "image/svg+xml; qs=0.85",
+      "requiredBy": [
+        "10ca81a2e32deaf6a3c9ba00"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "50ce8d3466fbdd1e1d58b78b",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/StyleSheets/TR/2021/logos/UD-watermark-dark-unofficial",
+      "finalUrl": "https://www.w3.org/StyleSheets/TR/2021/logos/UD-watermark-dark-unofficial",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:56.252982+00:00",
+      "path": "assets/50ce8d3466fbdd1e1d58b78b",
+      "bytes": 334,
+      "sha256": "12905c76164e0e0778b5071028cea4ecf34bccf14abef2e8c0bc7672136596ac",
+      "contentType": "image/svg+xml; qs=0.85",
+      "requiredBy": [
+        "10ca81a2e32deaf6a3c9ba00"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "a0bcbc7cc14ccc5255c53536",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/StyleSheets/TR/logo-REC",
+      "finalUrl": "https://www.w3.org/StyleSheets/TR/logo-REC",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:56.397719+00:00",
+      "path": "assets/a0bcbc7cc14ccc5255c53536",
+      "bytes": 1115,
+      "sha256": "04360bbfa08ba8e11b48e90bff6697b58d793e0665b5bfc0927f10f2e04befea",
+      "contentType": "image/png; qs=0.7",
+      "requiredBy": [
+        "7285b424a8fdda519cccb568"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "904665047b02c14875049972",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://html.spec.whatwg.org/fonts/Essays1743-Bold-subset.woff2",
+      "finalUrl": "https://html.spec.whatwg.org/fonts/Essays1743-Bold-subset.woff2",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:56.771177+00:00",
+      "path": "assets/904665047b02c14875049972",
+      "bytes": 2900,
+      "sha256": "6a4b0f8f53dcc0d420b3c3053e5ffc80e212cbfbdadaadb1440b76b672d98dbb",
+      "contentType": "font/woff2",
+      "requiredBy": [
+        "890c002070392fa89a82a242"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "8947dcdbfb939313ed54a145",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://html.spec.whatwg.org/fonts/Essays1743-subset.woff2",
+      "finalUrl": "https://html.spec.whatwg.org/fonts/Essays1743-subset.woff2",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:57.212540+00:00",
+      "path": "assets/8947dcdbfb939313ed54a145",
+      "bytes": 8560,
+      "sha256": "d517eaa20a97d868ba14890b1f061dd4b0bf1c778fd2f607aa2b43fba418d749",
+      "contentType": "font/woff2",
+      "requiredBy": [
+        "890c002070392fa89a82a242"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "ce8d69f648e353ec24d889da",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://caniuse.com/img/favicon-128.png",
+      "finalUrl": "https://caniuse.com/img/favicon-128.png",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:57.382485+00:00",
+      "path": "assets/ce8d69f648e353ec24d889da",
+      "bytes": 5627,
+      "sha256": "26b832d996c9ed2479bd3e1367901287c630120ccd56b00a4f251afadbc280a7",
+      "contentType": "image/png",
+      "requiredBy": [
+        "c863cce200a52ffbe50cecda"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "0e57f484c555101c0fdc8b85",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://nodejs.org/static/images/favicons/favicon.ico",
+      "finalUrl": "https://nodejs.org/static/images/favicons/favicon.png",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:57.505566+00:00",
+      "path": "assets/0e57f484c555101c0fdc8b85",
+      "bytes": 1130,
+      "sha256": "3113d214c0396e4783a0baf0afa3b33317bfa075775efa39f6b708d41acb25f3",
+      "contentType": "image/png",
+      "requiredBy": [
+        "c863cce200a52ffbe50cecda"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "b76040dbfb052714e9b63524",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://resources.whatwg.org/browser-logos/android-webview.png",
+      "finalUrl": "https://resources.whatwg.org/browser-logos/android-webview.png",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:57.863357+00:00",
+      "path": "assets/b76040dbfb052714e9b63524",
+      "bytes": 1829,
+      "sha256": "c60f1c794204c10261c4af212b60ebe4f562a5397cfcf45ac809a0eae2b4da43",
+      "contentType": "image/png",
+      "requiredBy": [
+        "c863cce200a52ffbe50cecda"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "416ea5dc45b06d8a2cf2dee0",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://resources.whatwg.org/browser-logos/chrome.svg",
+      "finalUrl": "https://resources.whatwg.org/browser-logos/chrome.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:58.230578+00:00",
+      "path": "assets/416ea5dc45b06d8a2cf2dee0",
+      "bytes": 1065,
+      "sha256": "98045c791131de00b7c81c5e4bd1ce686891661c0e2c821d588c351a5add919d",
+      "contentType": "image/svg+xml",
+      "requiredBy": [
+        "c863cce200a52ffbe50cecda"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "d8f9f6c001cd408c000c2108",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://resources.whatwg.org/browser-logos/edge.svg",
+      "finalUrl": "https://resources.whatwg.org/browser-logos/edge.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:58.596441+00:00",
+      "path": "assets/d8f9f6c001cd408c000c2108",
+      "bytes": 2886,
+      "sha256": "3b6f52dce2b57af664b63dadb3b61efd5a896fb0f98abe5d85fe312fa6a93228",
+      "contentType": "image/svg+xml",
+      "requiredBy": [
+        "c863cce200a52ffbe50cecda"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "b0024f992ca8d57bdeb199cb",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://resources.whatwg.org/browser-logos/edge_legacy.svg",
+      "finalUrl": "https://resources.whatwg.org/browser-logos/edge_legacy.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:58.971559+00:00",
+      "path": "assets/b0024f992ca8d57bdeb199cb",
+      "bytes": 322,
+      "sha256": "46a27f1c81b44512be8297cab35040c9b965019b97196badb58a30c6ad908196",
+      "contentType": "image/svg+xml",
+      "requiredBy": [
+        "c863cce200a52ffbe50cecda"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "a324c7c9f621cecc6d8e3f84",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://resources.whatwg.org/browser-logos/firefox.png",
+      "finalUrl": "https://resources.whatwg.org/browser-logos/firefox.png",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:10:59.763270+00:00",
+      "path": "assets/a324c7c9f621cecc6d8e3f84",
+      "bytes": 2205,
+      "sha256": "607ab41f2dfa8d5b6677cc67606b45f7fd72e8080c637a9c9d8ea73cfa0c366a",
+      "contentType": "image/png",
+      "requiredBy": [
+        "c863cce200a52ffbe50cecda"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "3c682b476bfbe2a146f64b76",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://resources.whatwg.org/browser-logos/ie.png",
+      "finalUrl": "https://resources.whatwg.org/browser-logos/ie.png",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:11:00.137819+00:00",
+      "path": "assets/3c682b476bfbe2a146f64b76",
+      "bytes": 2583,
+      "sha256": "8a9c59166c64ea1644847e2f66add02bd18be89a4f4c144f877536bbb028ce8e",
+      "contentType": "image/png",
+      "requiredBy": [
+        "c863cce200a52ffbe50cecda"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "4915f2dde603084a79a4b378",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://resources.whatwg.org/browser-logos/opera.svg",
+      "finalUrl": "https://resources.whatwg.org/browser-logos/opera.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:11:00.653348+00:00",
+      "path": "assets/4915f2dde603084a79a4b378",
+      "bytes": 1020,
+      "sha256": "c44ee714df96334b0c31509841b156e920b45549b392a40e255f63e5b5fca383",
+      "contentType": "image/svg+xml",
+      "requiredBy": [
+        "c863cce200a52ffbe50cecda"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "eb2266c555d0ef65d82016a7",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://resources.whatwg.org/browser-logos/safari-ios.svg",
+      "finalUrl": "https://resources.whatwg.org/browser-logos/safari-ios.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:11:01.022940+00:00",
+      "path": "assets/eb2266c555d0ef65d82016a7",
+      "bytes": 1627,
+      "sha256": "ad2668fd250bbaafb7931753d87864e117818ab617e29d4891a9082416cc063c",
+      "contentType": "image/svg+xml",
+      "requiredBy": [
+        "c863cce200a52ffbe50cecda"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "2605a9b6a422967cc6ce2219",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://resources.whatwg.org/browser-logos/safari.png",
+      "finalUrl": "https://resources.whatwg.org/browser-logos/safari.png",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:11:01.393437+00:00",
+      "path": "assets/2605a9b6a422967cc6ce2219",
+      "bytes": 2346,
+      "sha256": "619620e395840f95247e172e41f22323e6cfc3690eba7e83e5204441430643bf",
+      "contentType": "image/png",
+      "requiredBy": [
+        "c863cce200a52ffbe50cecda"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "0b38a739f556497d64d24759",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://resources.whatwg.org/browser-logos/samsung.svg",
+      "finalUrl": "https://resources.whatwg.org/browser-logos/samsung.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:11:01.759688+00:00",
+      "path": "assets/0b38a739f556497d64d24759",
+      "bytes": 626,
+      "sha256": "1d3dd16afd0579f0378d68be7cd2086200cfd44386112abc112f7c6cc50afc73",
+      "contentType": "image/svg+xml",
+      "requiredBy": [
+        "c863cce200a52ffbe50cecda"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "8f14f4339ab53cf0ce52a29e",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://w3c.github.io/epub-specs/epub33/reports/a11y-properties-use.md",
+      "finalUrl": "https://w3c.github.io/epub-specs/epub33/reports/a11y-properties-use.md",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:11:01.897497+00:00",
+      "path": "assets/8f14f4339ab53cf0ce52a29e",
+      "bytes": 19047,
+      "sha256": "3f553d298470a3508e842f20d42ffe6abe21231a051164a098161a3869adadbb",
+      "contentType": "text/markdown; charset=utf-8",
+      "requiredBy": [
+        "e0343487994ba6458d34ef08"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "da49236f1b229a96561a27ae",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://w3c.github.io/epub-specs/epub33/reports/a11y-usage.md",
+      "finalUrl": "https://w3c.github.io/epub-specs/epub33/reports/a11y-usage.md",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:11:02.033565+00:00",
+      "path": "assets/da49236f1b229a96561a27ae",
+      "bytes": 2035,
+      "sha256": "8823fb2341dd6c1e1ea5b714f3a09562c550400237c45dbdaa0b3ef421c06d87",
+      "contentType": "text/markdown; charset=utf-8",
+      "requiredBy": [
+        "2fec6666e636d4c110b709b2"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "24ebbb5146c5c6bb439ef7aa",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://w3c.github.io/epub-specs/epub33/reports/epub-properties-use.md",
+      "finalUrl": "https://w3c.github.io/epub-specs/epub33/reports/epub-properties-use.md",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:11:02.173393+00:00",
+      "path": "assets/24ebbb5146c5c6bb439ef7aa",
+      "bytes": 43808,
+      "sha256": "c44e3831221b84803365b34b9938bc9d99d2b399129bb07d629cd8fb2cfa6984",
+      "contentType": "text/markdown; charset=utf-8",
+      "requiredBy": [
+        "864fa9fcaf7ed276a55936d8"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "095b47fd8363123a1d148dd9",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/StyleSheets/TR/2021/logos/UD-watermark-light-draft.svg",
+      "finalUrl": "https://www.w3.org/StyleSheets/TR/2021/logos/UD-watermark-light-draft.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:11:02.247058+00:00",
+      "path": "assets/095b47fd8363123a1d148dd9",
+      "bytes": 329,
+      "sha256": "e958669ca377cd910fd14eac377c6932c71604e36754437a7ca575b51693bd9e",
+      "contentType": "image/svg+xml; qs=0.85",
+      "requiredBy": [
+        "28d35c6b4a06908a1bf43279"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "cc7386da4319538923a1391e",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://www.w3.org/StyleSheets/TR/2021/logos/UD-watermark-light-unofficial.svg",
+      "finalUrl": "https://www.w3.org/StyleSheets/TR/2021/logos/UD-watermark-light-unofficial.svg",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-05T23:11:02.337368+00:00",
+      "path": "assets/cc7386da4319538923a1391e",
+      "bytes": 334,
+      "sha256": "ecbd9f965d7de50946fc40e507d9272a3893b75760416ae859765177d811bf16",
+      "contentType": "image/svg+xml; qs=0.85",
+      "requiredBy": [
+        "28d35c6b4a06908a1bf43279"
+      ],
+      "dependencies": []
+    }
+  ],
+  "failures": []
+}

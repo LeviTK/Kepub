@@ -1,0 +1,1462 @@
+
+
+
+
+
+
+
+		
+		
+EPUB 3 Multiple-Rendition Publications 1.1
+		
+
+		
+
+		
+		
+		
+		
+	
+
+
+
+
+
+
+
+
+
+
+	
+    
+  
+    EPUB 3 Multiple-Rendition Publications 1.1 
+    W3C Group Note 20 January 2026
+    
+      More details about this document
+      
+        This version:
+                https://www.w3.org/TR/2026/NOTE-epub-multi-rend-11-20260120/
+              
+        Latest published version:
+                https://www.w3.org/TR/epub-multi-rend-11/
+              
+        Latest editor's draft:https://w3c.github.io/epub-specs/wg-notes/multi-rend/
+        History:
+                    https://www.w3.org/standards/history/epub-multi-rend-11/
+                  
+                    Commit history
+                  
+        
+        
+        
+        
+        
+        Editor:
+    Matt Garrish (DAISY Consortium)
+  
+        
+                Former editors:
+              
+    Jim Lester (Barnes & Noble)
+  
+    Takeshi Kanai (Sony Corporation)
+  
+        
+        Feedback:
+        GitHub w3c/epub-specs
+        (pull requests,
+        new issue,
+        open issues)
+      public-pm-wg@w3.org with subject line [epub-multi-rend-11] … message topic … (archives)
+        
+        
+      
+    
+    
+    
+    
+	Copyright © 1999-2026
+	International Digital Publishing Forum
+	and
+	World Wide Web Consortium. 
+	W3C® 
+	liability, 
+	trademark and 
+	permissive document license rules apply.
+
+    
+  
+		
+		Abstract
+			This specification, EPUB Multiple-Rendition Publications, defines the creation and rendering of EPUB®
+				Publications consisting of more than one rendition.
+		
+		Status of This DocumentThis section describes the status of this
+      document at the time of its publication. A list of current W3C
+      publications and the latest revision of this technical report can be found
+      in the
+      W3C standards and drafts index.
+    This document was published by the Publishing Maintenance Working Group as
+    a Group Note using the
+        Note track. 
+  This Group Note is endorsed by
+        the Publishing Maintenance Working Group, but is not endorsed by
+        W3C itself nor its
+        Members. 
+    
+        The
+        W3C Patent
+          Policy
+        does not carry any licensing requirements or commitments on this
+        document.
+      
+    
+  
+                      This document is governed by the
+                      18 August 2025 W3C Process Document.
+                    
+		Table of ContentsAbstractStatus of This Document1. Introduction1.1 Overview1.2 Background1.3 Relationship to EPUB 31.4 Terminology1.5 Conformance2. Specifying multiple renditions3. Expressing metadata3.1 Rendition metadata3.2 Publication metadata3.2.1 The metadata.xml file3.2.1.1 Resource obfuscation3.2.2 Vocabulary association mechanisms4. Rendition selection4.1 Introduction4.2 Content conformance4.3 Reading system conformance4.4 Rendition selection attributes4.4.1 The rendition:media attribute4.4.2 The rendition:layout attribute4.4.3 The rendition:language attribute4.4.4 The rendition:accessMode attribute4.4.5 The rendition:label attribute4.5 Processing model5. Rendition mapping5.1 Introduction5.2 Content conformance5.3 Reading system conformance5.4 EPUB rendition mapping document definition5.4.1 XHTML content document: restrictions5.4.2 The nav element: modifications and restrictions5.4.3 Rendition mappings5.4.4 Container identification5.5 Processing modelA. SchemasA.1 Metadata.xml SchemaA.2 Container.xml schemaA.3 Mapping document schemaB. Change logC. ReferencesC.1 Normative referencesC.2 Informative references
+		1. Introduction
+			
+
+			1.1 OverviewThis section is non-normative.
+				
+
+				The need to include more than one rendition of an EPUB publication has grown as reading systems have evolved and become more sophisticated. While some measure of content adaptation has
+					always been possible at the style sheet level, it is both limited in what it can accomplish and
+					limited to content rendering. Existing fallback mechanisms within the package document
+					similarly only ensure that resources can be rendered.
+
+				Adaptation is not just about optimizing styling and positioning content for screen considerations,
+					such as dimensions and color or reading system orientation, but often involves changing the content
+					itself. The resources and markup required to render a fixed-layout rendition of an EPUB publication
+					may overlap with a reflowable version of the same, but the two are never exactly the same.
+					Adaptation also involves adapting the prose of a work. In an increasingly interconnected world,
+					including multiple translations of a work rather than bundling them all separately as
+					single-language EPUB publications is often a necessity. And adaptation is also about the ability to
+					move from the same spot in one rendition to the equivalent spot in another as changes in the reading
+					environment occur.
+
+				This specification defines how a reading system selects from multiple EPUB creator-provided
+					renditions of the content to best match the current device characteristics and user preferences
+					— it does not define methods for modifying content on the fly. As changes occur to device
+					orientation or the user's preferred reading modality, for example, the reading system will be able
+					to check for a better rendition and seamlessly present it using the functionality defined
+					herein.
+
+				The specification addresses each of the major requirements in the discovery of, selection of, and
+					mapping between, multiple renditions of an EPUB publication. In particular:
+
+				
+					the establishment of a unique identifier common to all the renditions in the
+							META-INF/metadata.xml file;
+					the selection of renditions through a set of attributes that can be attached to
+							rootfile elements in the container document;
+					the optional ability to move from a point in one rendition to the same location in another by
+						means of a mapping document.
+				
+
+				Taken together, these features enable the creation of advanced multiple-rendition publications that
+					reading systems can adapt to changing user needs.
+			
+
+			1.2 BackgroundThis section is non-normative.
+				
+
+				The notion of including multiple renditions of an EPUB publication has existed for as long as the
+					EPUB standard, but the specification has never fully addressed what these renditions are for and how
+					to access them. As a result, the EPUB 3 specification generally equates an EPUB publication with a
+					single rendering of the content. Moreover, most EPUB creators and reading system developers
+					equate an EPUB publication with a single package document referenced from the first
+						rootfile element in the container.xml file [epub-33].
+
+				In practice, however, the container.xml file does not restrict EPUB creators to listing
+					only a single package document. In EPUB 2, for example, EPUB creators could add additional
+						rootfile elements referencing any other format they desired (e.g., another package
+					document, a PDF file, or even a Word Document). In EPUB 3, rootfile elements were
+					restricted to referencing only package documents of the same version of the standard.
+
+				This specification moves beyond merely allowing multiple renderings to define a more complete
+					framework for identifying and selecting from among them. Each package document referenced from a
+						rootfile element is defined to be one rendition of the EPUB publication, with
+					the first package document representing the default rendition (i.e., the one that all reading
+					systems have to process).
+
+				Although this model is intended to work as seamlessly as possible with existing the EPUB ecosystem,
+					the authoring of multiple renditions requires some compromises to maintain compatibility (e.g., some
+					duplication of metadata will be necessary for reading systems that do not handle multiple
+					renditions).
+			
+
+			1.3 Relationship to EPUB 3
+				
+
+				The method defined in this specification for including multiple renditions within an EPUB
+						container is not required for all EPUB publications. Multiple renditions MAY be included
+					in a container without adhering to this specification, as the ability to create multiple-rendition
+					containers pre-dates this specification.
+
+				It is strongly RECOMMENDED, however, that all future needs for multiple renditions in a container
+					follow this specification. Existing implementations that utilize other methods for selecting from
+					multiple renditions are also encouraged to consider migrating to use this specification to improve
+					the overall interoperability of multiple-rendition publications.
+
+				Some of the rendition selection attributes defined in this
+					specification share common names with package document elements and properties [epub-33] as they
+					are designed to reflect that information for selection purposes.
+
+				Despite this commonality, this specification does not enforce equivalence between the rendition
+					selection properties expressed on a rootfile element [epub-33] and the metadata
+					expressed in the corresponding package document, as direct equivalence is not always possible.
+
+				For example, a multilingual EPUB publication will define more than one dc:language element
+					[epub-33] — one for each language — but for rendition selection only the primary
+					language is defined. Likewise, the language defined in the package document could include a specific
+					region code, but for selection purposes the EPUB creator might identify only the language code.
+
+				The reason for common metadata in both locations is to simplify the selection process: including
+					attributes avoids the requirement to parse each referenced package document and allows for
+					expressions of primacy that are not possible at the package level. It also avoids collisions and
+					ambiguities between metadata being used for different purposes (selection versus rendering).
+
+				The selection properties defined in the container.xml file [epub-33] have no rendering behaviors attached to
+					them, either. For example, indicating that a rendition is fixed layout in the rendition:layout attribute does not trigger fixed layout rendering
+					behaviors within the specified rendition.
+
+				A reading system renders a rendition according to the metadata expressed in the package document
+					only.
+			
+
+			1.4 Terminology
+				
+
+				This specification uses terminology defined in EPUB 3
+					[epub-33].
+
+				It also defines the following terms:
+
+				
+					container document
+					
+						The container.xml
+								file located in the child META-INF directory of the EPUB container root directory
+							[epub-33]. Each rendition in the container is identified by a rootfile
+							element [epub-33].
+					
+
+					default rendition
+					
+						The rendition listed in the first rootfile element in the container.xml
+								file [epub-33].
+					
+
+					multiple-rendition publication
+					
+						An EPUB publication that consists of two or more renditions of the content.
+					
+
+					rendition
+					
+						One rendering of the content of an EPUB publication, as expressed by a package document.
+					
+
+					rendition mapping document
+					
+						A specialization of the XHTML content document, containing machine-readable mappings between
+							equivalent content in different renditions, conforming to the constraints expressed in
+								rendition mapping.
+					
+				
+
+				Note
+					Only the first instance of a term in a section links to its definition.
+				
+			
+
+			1.5 ConformanceAs well as sections marked as non-normative, all authoring guidelines, diagrams, examples, and notes in this specification are non-normative. Everything else in this specification is normative.
+        The key words MAY, MUST, MUST NOT, OPTIONAL, RECOMMENDED, and SHOULD in this document
+        are to be interpreted as described in
+        BCP 14
+        [RFC2119] [RFC8174]
+        when, and only when, they appear in all
+        capitals, as shown here.
+      
+		
+		2. Specifying multiple renditions
+			
+
+			Each rendition of an EPUB publication MUST meet the requirements
+					for EPUB publications [epub-33].
+
+			The package document for each rendition MUST be listed in the container.xml file
+				[epub-33], where the first package document listed represents the default rendition.
+
+			
+    Example 1
+  
+				The following example shows SVG and XHTML renditions bundled in the same container:
+
+				<?xml version="1.0"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+    <rootfiles>
+        <rootfile full-path="SVG/Sandman.opf"
+            media-type="application/oebps-package+xml" />
+        <rootfile full-path="XHTML/Sandman.opf"
+            media-type="application/oebps-package+xml" />
+    </rootfiles>
+</container>
+			
+
+			Each rendition of the EPUB publication SHOULD only list the publication resources necessary for its
+				rendering in its package document manifest [epub-33]. Renditions MAY reference the
+				same publication resources.
+
+			Note
+				Renditions may not be able to access resources stored in sibling directories on all reading systems
+					(i.e., some reading systems do not provide access outside the directory a rendition's package
+					document is stored in).
+
+				For example, given the following directory structure (all resources except the package documents
+					omitted for clarity):
+
+				/META-INF
+/Rendition1
+   - rendition1.opf
+/Rendition2
+   - rendition2.opf
+/Shared
+
+				Resources in the "Rendition1" directory may not be able to access resources in either
+						"Rendition2" or "Shared".
+
+				To share resources between renditions, it is recommended that the package documents be located in a
+					common directory and the resources for each rendition stored in separate subdirectories.
+
+				Restructuring the previous example as follows would allow shared access to all resources:
+
+				/META-INF
+/EPUB
+   /Rendition1
+   /Rendition2
+   /Shared
+   - rendition1.opf
+   - rendition2.opf
+			
+		
+		3. Expressing metadata
+			
+
+			3.1 Rendition metadata
+				
+
+				Metadata expressed at the rendition level MAY change from instance to instance. For example,
+					renditions in different languages will have different primary languages and language-specific
+					metadata such as titles will be expressed differently. Similarly, bundled fixed-layout and
+					reflowable renditions will express different rendering metadata.
+			
+
+			3.2 Publication metadata
+				
+
+				3.2.1 The metadata.xml file
+					
+
+					To ensure consistency of metadata at the Publication and rendition levels, this specification
+						defines the content model of the root metadata element in the metadata.xml file
+						[epub-33] to be the same as the package document metadata element [epub-33], with the following differences in syntax
+						and semantics:
+
+					
+						A dc:identifier element [dcterms] MUST contain the unique identifier [epub-33] for the EPUB
+							publication.
+						A meta element [epub-33] MUST contain the last modified date, expressed using
+							the dcterms:modified property [dcterms]. The value of the property MUST
+							conform to the pattern and rules defined in Last modified date [epub-33]. Only
+							one dcterms:modified property without a refines attribute [epub-33] is allowed.
+						All other metadata is OPTIONAL.
+						The obsolete OPF2 meta element
+							[epub-33] is not allowed.
+						The meta and link elements are defined in the same namespace as
+							the metadata root element: http://www.idpf.org/2013/metadata
+						In order to enable the full expression of metadata in the metadata.xml file,
+							all attributes allowed on the package element [epub-33] are allowed on the root metadata element.
+					
+
+					Note
+						The content of this file is also defined informally through an XML schema. See A.1 Metadata.xml Schema for further details.
+					
+
+					This specification does not define a model for the inheritance of metadata from the Publication
+						level to the rendition level, as EPUB processing only requires that the default
+							rendition be recognized by reading systems (i.e., reliance on inheritance could result
+						in reading systems not locating necessary metadata).
+
+					Note
+						EPUB creators are strongly encouraged to include a complete set of Publication metadata in
+							the default rendition to ensure cross-compatibility, even when making use of this file.
+						Titles, languages and other metadata is often not applicable from one rendition to another,
+							further complicating the sharing of metadata. No assumption can be made that metadata in the
+								metadata.xml file is applicable to any given rendition, whether the
+							metadata is expressed in the rendition or not.
+					
+
+					Note
+						As [epub-33] does not define a content model for the metadata.xml file, EPUB
+							publications that do not conform to this specification can include different metadata. EPUB
+							publications that are not valid to the content model restrictions in this section are not
+							valid multiple-rendition publications as defined by this specification, but might still
+							be valid EPUB 3 publications.
+						EPUB creators are strongly encouraged to migrate to the content model defined in this
+							specification, even if not producing multiple-rendition publications, to ensure consistent
+							processing.
+					
+
+					3.2.1.1 Resource obfuscation
+						
+
+						The resource obfuscation algorithm [epub-33]
+							depends on creating an obfuscation key [epub-33]
+							from the unique identifier for the EPUB publication.
+
+						For compatibility reasons, and due to the complexities of being able to share resources
+							across renditions, this specification does not change this requirement but applies it to all
+							obfuscated resources in the EPUB container.
+
+						Consequently, EPUB creators MUST use the unique identifier of the default rendition as
+							the obfuscation key for all resources in a multiple-rendition publication.
+
+						Similarly, reading systems MUST use this unique identifier of the default rendition to
+							de-obfuscate all resources in a multiple-rendition publication.
+					
+				
+
+				3.2.2 Vocabulary association mechanisms
+					
+
+					This specification inherits the mechanisms for associating vocabularies defined in Vocabulary Association Mechanisms [epub-33] as
+						they relate to the package document metadata, with only the following modification: the
+							prefix attribute MAY be attached only to the root metadata
+						element.
+
+					Reserved prefixes [epub-33] for metadata
+						attribute expressions are adopted without change.
+				
+			
+		
+		4. Rendition selection
+			
+
+			4.1 Introduction
+				
+
+				Although each EPUB publication represents a single work, it is possible to optimize the rendering of
+					that work in any number of different ways. An issue of a magazine, for example, could include a
+					fixed layout version (print replica) for rendering on tablet-sized screens with a reflowable version
+					for smaller cellphone screens where the fixed layout would be scaled to illegibility (or
+					automatically reflowed in unwanted ways if fixed layouts are not supported).
+
+				The EPUB container allows multiple renditions of the content to be included in an EPUB
+					publication, but does not specify how reading systems are to determine the unique properties of the
+					renditions listed in the container document, or select between them.
+
+				This section redresses this problem by defining both a set of rendition selection attributes that can
+					be attached to rootfile
+						elements [epub-33] in the container document and a processing model that allows EPUB
+					creators to specify which rendition is the best representation depending on various conditions.
+					Reading systems can then select the appropriate representation from the list of renditions to match
+					the current configuration and user preferences.
+			
+
+			4.2 Content conformance
+				
+
+				A container document:
+
+				
+					MUST be valid to the definition and requirements for the
+							container.xml file specified in container –
+							META-INF/container.xml [epub-33].
+					MAY include any of the selection attributes defined in Rendition selection attributes.
+					MAY Include selection attributes on the rootfile element
+						[epub-33] for the default rendition
+					SHOULD include at least one selection attribute ‒ in addition to the
+						OPTIONAL label ‒ on each subsequent rootfile element.
+				
+			
+
+			4.3 Reading system conformance
+				
+
+				An EPUB reading system SHOULD determine the rendition to present to a user as defined in 4.5 Processing model.
+			
+
+			4.4 Rendition selection attributes
+				
+
+				Note
+					The use of the rendition selection attributes in the container.xml file
+						[epub-33] is also defined informally through an XML schema. See A.2 Container.xml schema for further details.
+				
+
+				4.4.1 The rendition:media attribute
+					
+
+					The rendition:media attribute identifies the media features of a reading system the
+						given rendition is best suitable for rendering on.
+
+					
+						
+							
+								Attribute Name
+							
+							
+								
+									media
+								
+							
+							
+								Namespace
+							
+							
+								
+									http://www.idpf.org/2013/rendition
+								
+							
+							
+								Usage
+							
+							
+								MAY be specified on container document rootfile elements
+									[epub-33].
+							
+							
+								Value
+							
+							
+								A CSS 3 media query [mediaqueries], where the media type, if specified, MUST only
+									be the value "all".
+							
+						
+					
+
+					As per [mediaqueries], the media query in this attribute MUST evaluate to true in order for the
+						given rendition to be selected for rendering. Media queries that evaluate to "not all” per 3.1 Error Handling [mediaqueries] SHOULD be
+						treated as false for the purposes of rendition selection (i.e., the given rendition is not a
+						valid match).
+
+					
+    Example 2
+  
+						The following example shows two renditions of The Sandman bundled in the same container, one
+							optimized for screens 1920 pixels or wider. The default rendition will be used for screen
+							sizes smaller than 1920 pixels by default.
+
+						<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"
+           xmlns:rendition="http://www.idpf.org/2013/rendition"
+           version="1.0">
+   <rootfiles>
+       <rootfile full-path="Sandman.opf"
+           media-type="application/oebps-package+xml"/>
+       <rootfile full-path="Sandman-large.opf"
+           media-type="application/oebps-package+xml"
+            rendition:media="(min-width: 1920px)"/>
+   </rootfiles>
+</container>
+					
+				
+
+				4.4.2 The rendition:layout attribute
+					
+
+					The rendition:layout attribute indicates whether the given rendition is
+						reflowable or pre-paginated.
+
+					
+						
+							
+								Attribute Name
+							
+							
+								
+									layout
+								
+							
+							
+								Namespace
+							
+							
+								
+									http://www.idpf.org/2013/rendition
+								
+							
+							
+								Usage
+							
+							
+								MAY be specified on container document rootfile elements
+									[epub-33].
+							
+							
+								Value
+							
+							
+								The value of the attribute MUST be reflowable or
+										pre-paginated.
+							
+						
+					
+
+					When specified, the value of this attribute MUST match the global rendition:layout setting [epub-33]
+						for the referenced rendition.
+
+					If a user layout preference is defined in the reading system, the attribute evaluates to true if
+						the preference matches the specified value, otherwise it evaluates to false. If no user
+						preference is defined, the reading system SHOULD ignore the attribute when selecting from the
+						available renditions.
+
+					
+    Example 3
+  
+						The following example shows two renditions of a magazine bundled in the same container. Note
+							that it is not necessary to state that the default rendition is reflowable, since renditions
+							are reflowable by default.
+						<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"
+           xmlns:rendition="http://www.idpf.org/2013/rendition"
+           version="1.0">
+   <rootfiles>
+       <rootfile full-path="EPUB/reflow/magazine.opf"
+           media-type="application/oebps-package+xml"/>
+       <rootfile full-path="EPUB/fxl/magazine.opf"
+           media-type="application/oebps-package+xml"
+           rendition:layout="pre-paginated"/>
+    </rootfiles>
+</container>
+					
+				
+
+				4.4.3 The rendition:language attribute
+					
+
+					The rendition:language attribute indicates that the given rendition is optimized
+						for the specified language. 
+
+					
+						
+							
+								Attribute Name
+							
+							
+								
+									language
+								
+							
+							
+								Namespace
+							
+							
+								
+									http://www.idpf.org/2013/rendition
+								
+							
+							
+								Usage
+							
+							
+								MAY be specified on container document rootfile elements
+									[epub-33].
+							
+							
+								Value
+							
+							
+								MUST contain a valid language code conforming to [rfc5646].
+							
+						
+					
+
+					The rendition:language attribute more precisely identifies the primary language of a
+						rendition than does the inclusion of dc:language elements in the rendition's
+						package document, as the presence of dc:language elements only indicates that the
+						specified languages are prominently used in the prose.
+
+					If a user language preference is defined in the reading system, the attribute evaluates to true
+						if the preference matches the specified value, otherwise it evaluates to false. Several matching
+						schemes are defined in Section 3 of [rfc4647]. Reading systems can use the most appropriate
+						matching scheme. If no user preference is defined, the reading system SHOULD ignore the
+						attribute when selecting from the available renditions.
+
+					
+    Example 4
+  
+						The following example shows a multilingual EPUB publication, with English, French and Spanish
+							renditions of the content.
+
+						<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"
+           xmlns:rendition="http://www.idpf.org/2013/rendition"
+           version="1.0">
+   <rootfiles>
+       <rootfile full-path="EPUB/en/package.opf"
+           media-type="application/oebps-package+xml"
+           rendition:language="en"/>
+       <rootfile full-path="EPUB/fr/package.opf"
+           media-type="application/oebps-package+xml"
+           rendition:language="fr"/>
+       <rootfile full-path="EPUB/es/package.opf"
+           media-type="application/oebps-package+xml"
+           rendition:language="es"/>
+   </rootfiles>
+</container>
+					
+				
+
+				4.4.4 The rendition:accessMode attribute
+					
+
+					The rendition:accessMode attribute identifies the way in which intellectual content
+						is communicated in a rendition, and is based on the [iso24751-3] "Access Mode"
+						property.
+
+					
+						
+							
+								Attribute Name
+							
+							
+								
+									accessMode
+								
+							
+							
+								Namespace
+							
+							
+								
+									http://www.idpf.org/2013/rendition
+								
+							
+							
+								Usage
+							
+							
+								MAY be specified on container document rootfile elements
+									[epub-33].
+							
+							
+								Value
+							
+							
+								MUST be one or more of the values: auditory,
+										tactile, textual or visual
+							
+						
+					
+
+					The rendition:accessMode attribute defines the primary access mode(s) for a given
+						rendition. For example, although a textual work may include images, audio and video, its primary
+						means of conveying information is the text. Likewise, a visual work might include alternative
+						text and/or descriptions, but these adaptations are not listed as a textual mode for the
+						rendition for the purpose of selection.
+
+					The way in which information is encoded also needs to be considered when designating an access
+						mode. If a work has text components, or is completely textual in nature, but that content is
+						burned into an image format, the access mode is visual (e.g., character dialogue in a JPEG page
+						of a comic or a scan of a document).
+
+					A rendition MAY include more than one primary access mode. For example, the textual version might
+						also embed the auditory version using media overlays. In such cases, the attribute should list
+						each primary access mode that is available.
+
+					If a user access mode preference is defined in the reading system, the attribute evaluates to
+						true if that preference matches any of the access modes defined in it, otherwise it evaluates to
+						false. If no user preference is defined, the reading system SHOULD ignore the attribute when
+						selecting from the available renditions.
+
+					The rendition:label attribute can be use to inform users
+						about the nature of the content, particularly where such information is not available, or not
+						yet standardized, for selection. For example, a tactile rendition could indicate the braille
+						code and grade in its label, or a textual rendition could be marked as optimized for
+						text-to-speech rendering, not general use.
+
+					
+    Example 5
+  
+						The following example shows an EPUB publication with an image-based rendition and a
+							text-based serialization available.
+
+						<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"
+           xmlns:rendition="http://www.idpf.org/2013/rendition"
+           version="1.0">
+   <rootfiles>
+       <rootfile full-path="EPUB/comic/package.opf"
+           media-type="application/oebps-package+xml"
+           rendition:accessMode="visual"/>
+       <rootfile full-path="EPUB/novel/package.opf"
+           media-type="application/oebps-package+xml"
+           rendition:accessMode="textual"/>
+   </rootfiles>
+</container>
+					
+				
+
+				4.4.5 The rendition:label attribute
+					
+
+					The rendition:label attribute allows each rootfile element [epub-33]
+						to be annotated with a human-readable name.
+
+					
+						
+							
+								Attribute Name
+							
+							
+								
+									label
+								
+							
+							
+								Namespace
+							
+							
+								
+									http://www.idpf.org/2013/rendition
+								
+							
+							
+								Usage
+							
+							
+								MAY be specified on container document rootfile elements
+									[epub-33].
+							
+							
+								Value
+							
+							
+								Text.
+							
+						
+					
+
+					The rendition:label attribute provides a name for the given rendition (e.g., for
+						manual rendition selection).
+
+					The language of the rendition:label attribute MAY be expressed in an
+							xml:lang attribute.
+
+					
+    Example 6
+  
+						The following example shows the rendition:label attribute being used to provide
+							a human-readable name for a rendition.
+
+						<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"
+           xmlns:rendition="http://www.idpf.org/2013/rendition"
+           version="1.0"
+           xml:lang="en">
+   <rootfiles>
+        …
+       <rootfile full-path="EPUB/package.opf"
+           media-type="application/oebps-package+xml"
+           rendition:media="color, min-width: 1024"
+           rendition:layout="pre-paginated"
+           rendition:label="Color-optimized print replica"/>
+   </rootfiles>
+</container>
+					
+
+					The rendition:label attribute is not a selection attribute for the purposes of
+						evaluating which rendition to render.
+				
+			
+
+			4.5 Processing model
+				
+
+				This section describes the method by which reading systems locate the optimal rendition to
+					present to a user.
+
+				Rendition selection SHOULD occur on initial rendering, and reading systems SHOULD re-evaluate the
+					selection in response to changes in the user environment (e.g., change in device orientation or
+					viewport size).
+
+				When a change condition is triggered, the reading system SHOULD evaluate the rootfile
+					elements [epub-33] in the container document as follows, starting with the last
+						rootfile entry:
+
+				
+					If rendition namespaced attributes are set, check each attribute per its definition in 4.4 Rendition selection attributes to determine if the specified conditions are
+						true:
+				
+				
+					If all conditions evaluate to true, select the given rendition and exit the selection
+						process.
+					If any condition is false, move to the preceding rootfile element and continue the
+						evaluation process.
+					If any unrecognized rendition-namespaced attributes are found, they are ignored for the purposes
+						of evaluating a match.
+					If no rendition namespaced attributes are found, move to the preceding rootfile element and continue the evaluation process.
+				
+
+				If the default rendition is reached, select that rendition and exit the process.
+
+				Note
+					This processing model does not require that the selection process occur on a user's device, or
+						that all renditions be provided in the container. Rendition selection could occur on the server
+						side of a cloud-based delivery system, for example, and only a single best-match rendition sent
+						to the device.
+				
+
+				Note
+					Since EPUB 2 reading systems, and EPUB 3 reading systems that do not support multiple-rendition
+						selection, will render the default rendition, EPUB creators need to consider which rendition
+						will have the greatest compatibility across reading systems and ensure it is listed first.
+				
+
+				A reading system MAY provide the user the option to manually select any of the renditions in the
+					container. It SHOULD use the rendition:label attribute
+					attribute value to present the option, when available.
+
+				As EPUB did not previously define a rendition selection model, custom selection models might be
+					encountered in some EPUB publications. When recognized, these selection models SHOULD be utilized.
+					If both rendition selection attributes conformant to this specification and custom attributes are
+					defined, the latter SHOULD be ignored.
+			
+		
+		5. Rendition mapping
+			
+
+			5.1 IntroductionThis section is non-normative.
+				
+
+				The rendition mapping document identifies related content locations across the renditions in
+					a multiple-rendition publication, allowing reading systems to switch between renditions while
+					keeping the user's place.
+
+				The rendition mapping document is represented as XHTML, and uses nav elements
+					with unordered lists to group the mappings. There is no display component to the rendition mapping
+					document; it is designed to enable automated switching. The lack of a rendering context means that
+					the XHTML content model for this document is very restrictive, allowing only a single nav
+					element in the body, to ease both authoring and processing.
+
+				To enable the mapping of content locations between renditions, the rendition mapping document's
+						nav element consists of a series of one or more unordered lists, each of which
+					represents a common point across all the renditions (e.g., a chapter, a page or a component within a
+					page). The list items in each unordered list represent the set of equivalent link destinations
+					across the available renditions for that content (e.g., one link might point to a document
+					representing one page of a fixed layout rendition, while the equivalent link to a reflowable
+					rendition might point to the corresponding page break indicator within the XHTML content document
+					containing the page).
+
+				Knowing the position of the user in the current rendition, when a change in context occurs, or is
+					triggered by the user, the reading system can inspect the sibling list items to determine the EPUB
+					content document to load that best meets the new conditions.
+			
+
+			5.2 Content conformance
+				
+
+				An EPUB publication MAY include a rendition mapping document.
+
+				A conformant rendition mapping document:
+
+				
+					MUST conform to all content conformance constraints for XHTML content
+						documents as defined in XHTML Requirements
+						[epub-33].
+					MUST conform to all content conformance constraints specific for
+						rendition mapping documents expressed in EPUB rendition
+							mapping document definition.
+					MUST NOT be listed in the package document manifest of any of the EPUB
+						publication's renditions.
+				
+			
+
+			5.3 Reading system conformance
+				
+
+				Reading systems SHOULD support the use of rendition mapping documents to switch between content. 
+
+				A reading system that supports mapping:
+
+				
+					MUST, when a change in renditions occurs, locate the current position in
+						the rendition mapping document and load the matching position in the new rendition.
+				
+			
+
+			5.4 EPUB rendition mapping document definition
+				
+
+				Note
+					The content of this file is also defined informally through an XML schema. See A.3 Mapping document schema for further details.
+				
+
+				5.4.1 XHTML content document: restrictions
+					
+
+					The rendition mapping document is a compliant XHTML content document, but with the following
+						restrictions on the [html] content model:
+
+					
+						No attributes are allowed on the html, head, body,
+								ul and li elements. (The xmlns pseudo-attribute
+							for namespace declarations is allowed.) The nav element only accepts an
+								epub:type attribute.
+						The head MAY contain only meta elements. Only the
+								charset attribute or name and content attributes MAY be attached to the meta elements.
+						The head MUST include a meta element whose name
+							attribute has the value "epub.multiple.renditions.version" and whose
+								content attribute has the value "1.0". Reading systems MAY
+							ignore all other meta elements.
+						The body element MUST include exactly one nav element child whose
+								epub:type attribute specifies the value "resource-map", and
+							MAY include one or more optional nav elements. No other [html] content is
+							allowed as a child of the body.
+					
+				
+
+				5.4.2 The nav element: modifications and restrictions
+					
+
+					This specification restricts the content model of nav elements and their descendants
+						in the rendition mapping document as follows:
+
+					
+						Each nav element MUST identify its nature in an epub:type
+							attribute.
+						The rendition mapping documents uses unordered lists (ul) in place of ordered
+							lists (ol).
+						The nav element MAY contain one or more ul element.
+						Each list item (li) MUST contain exactly one a element (i.e.,
+								span headings and nested lists are forbidden).
+						a elements MUST be empty.
+						
+							The a element MUST specify the rendition it is referring to either:
+							
+								by using an Intra-Publication CFI [epubcfi-11] as the value of the href
+									attribute or,
+								by having an epub:rendition attribute whose value is the relative path
+									to the Publication Document for the rendition.
+							
+						
+					
+				
+
+				5.4.3 Rendition mappings
+					
+
+					Each ul element in the rendition mapping document resource-map
+						nav element identifies a content location, listing in its child li
+						elements where that location is found in each of the available renditions. Consequently, each
+							ul element MUST contain an li for each rendition.
+
+					Note
+						In order to allow a broad variety of use cases, this specification does not impose any
+							particular level of mapping granularity. For example, some publications aimed at language
+							learners may define sentence-level synchronisation points, whereas other types of
+							publications may only map major sections across renditions.
+					
+
+					Each list item in the unordered list MUST identify an EPUB content document, or a fragment
+						therein, for one of the renditions ‒ defined in a child a element. Each of these
+						links MUST reference a linear Top-level content
+							document [epub-33].
+
+					Each a element MUST specify which rendition it refers to either 1) by including an
+							Intra-Publication CFI
+						[epubcfi-11] in its href attribute, or 2) by providing the relative path to the
+						package document for the rendition as the value of an epub:rendition attribute.
+
+					If the epub:rendition attribute is used to specify the target rendition, any
+						fragment identifier scheme MAY be used within the URL value of the href attribute
+						of a elements (e.g., unique identifier, or W3C Media Fragment).
+
+					Note
+						The use of [epubcfi-11] expressions is strongly encouraged over other fragment identifier
+							schemes (particularly in the context of reflowable XHTML content documents), as they allow
+							reading systems to ingest rendition mappings without any prior pre-processing. Conversely,
+							the use of unique identifiers forces reading systems to load the targeted EPUB content
+							documents and process their DOM in order to sort/compare the link destinations (in relation
+							to document order). This additional processing has performance implications, and
+							implementation costs in terms of caching, incremental updating, etc.
+					
+
+					
+    Example 7
+  
+						The following example shows a rendition mapping document for a magazine with 3 renditions:
+							text, portrait and landscape. ‘article 1' is on pages 5 and 6 of the fixed layout renditions
+							and the landscape rendition uses spreads (non-synthetic).
+
+						<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <meta charset="utf-8"/>
+    </head>
+    <body>
+        <nav epub:type="resource-map">
+            <ul>
+             <!-- First Page of the Article 1 -->
+                 <li>
+                     <a href= "../../text/default.opf#epubcfi(/6/8[article1]!/4/2:20)" />
+                 </li>
+                 <li>
+                     <a href="../../images/page5.png"
+                        epub:rendition="../../portrait/portrait.opf" />
+                 </li>
+             </ul>
+             <ul>
+                 <!-- Second Page of the Article 1 -->
+                 <li>
+                     <a href= "../../text/default.opf#epubcfi(/6/8[article1]!/4/22:40)" />
+                 </li>
+                 <li>
+                     <a href="../../images/page6.png"
+                        epub:rendition="../../portrait/portrait.opf" />
+                 </li>
+             </ul>
+             <ul>
+                 <!-- Article 1 -->
+                 <li>
+                     <a href= "../../text/default.opf#epubcfi(/6/8[article1])" />
+                 </li>
+                 <li>
+                     <a href="../../images/page5-6.png"
+                        epub:rendition="../../landscape/landscape.opf" />
+                 </li>
+             </ul>
+        </nav>
+    </body>
+</html>
+					
+
+					
+    Example 8
+  
+						The following example shows a multilingual EPUB publication with each language in a separate
+							rendition.
+
+						<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <meta charset="utf-8"/>
+    </head>
+    <body>
+        <nav epub:type="resource-map">
+            <ul>
+                <!-- Chapter 1 -->
+                <li><a href = "../../en/en.opf#epubcfi(/6/2)" /></li>
+                <li><a href = "../../fr/fr.opf#epubcfi(/6/4)" /></li>
+                <li><a href = "../../de/de.opf#epubcfi(/6/2)" /></li>
+                <li><a href = "../../es/es.opf#epubcfi(/6/6)" /></li>
+                <li><a href = "../../it/it.opf#epubcfi(/6/2)" /></li>
+            </ul>
+            <ul>
+                 <!-- Chapter 2 -->
+                <li><a href = "../../en/en.opf#epubcfi(/6/4)" /></li>
+                <li><a href = "../../fr/fr.opf#epubcfi(/6/6)" /></li>
+                <li><a href = "../../de/de.opf#epubcfi(/6/4)" /></li>
+                <li><a href = "../../es/es.opf#epubcfi(/6/8)" /></li>
+                <li><a href = "../../it/it.opf#epubcfi(/6/6)" /></li>
+            </ul>
+            <ul>
+                <!-- Chapter 3 -->
+                <li><a href = "../../en/en.opf#epubcfi(/6/6)" /></li>
+                <li><a href = "../../fr/fr.opf#epubcfi(/6/8)" /></li>
+                <li><a href = "../../de/de.opf#epubcfi(/6/6)" /></li>
+                <li><a href = "../../es/es.opf#epubcfi(/6/10)" /></li>
+                <li><a href = "../../it/it.opf#epubcfi(/6/8)" /></li>
+            </ul>
+            <!-- …  could be even more fine grained for better results … -->
+        </nav>
+    </body>
+</html>
+					
+				
+
+				5.4.4 Container identification
+					
+
+					The location of the rendition mapping document is identified in the container document using
+						a link element [epub-33],
+						where:
+
+					
+						the href attribute MUST reference the location of the rendition mapping
+							document relative to the root of the EPUB container;
+						the rel attribute MUST specify the value "mapping";
+						the media-type attribute MUST specify the value
+								"application/xhtml+xml".
+					
+
+					The container document MUST NOT reference more than one mapping document.
+
+					
+    Example 9
+  
+						The following example shows the container.xml file for a multilingual EPUB
+							publication. The location of the rendition mapping document is included in the
+								link element.
+
+						<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"
+           xmlns:rendition="http://www.idpf.org/2013/rendition"
+           version="1.0">
+   <rootfiles>
+       <rootfile full-path="en/en.opf"
+           rendition:language="en"
+           media-type="application/oebps-package+xml" />
+       <rootfile full-path="de/de.opf"
+           rendition:language="de"
+           media-type="application/oebps-package+xml" />
+   </rootfiles>
+   <links>
+      <link href="renditionMapping.html"
+             rel="mapping"
+             media-type="application/xhtml+xml" />
+   </links>
+</container>
+					
+				
+			
+
+			5.5 Processing modelThis section is non-normative.
+				
+
+				This section provides a non-normative model by which the rendition mapping document could be
+					processed by a reading system. It does not address how or when a reading system should switch
+					renditions. 
+
+				The desired outcome of the rendition mapping document's mapping capabilities is to display content in
+					the new rendition that is equivalent to their location in the current rendition, so that a user
+					maintains their place during reading. To accomplish this goal, a compliant reading system could
+					follow these steps to reset the current rendition when a change condition is triggered:
+
+				
+					
+						First, it would ascertain the position range in the current rendition:
+						
+							For a fixed format rendition, this will most likely be the rectangle for the current
+								viewport.
+							For a reflowable rendition, this will most likely be the range of text currently shown
+								on the screen.
+						
+					
+				
+				
+					Next, it would determine which rendition to navigate to, as defined in 4.5 Processing model.
+					
+						Finally, the reading system would parse the ul elements to find ones that
+							contain li elements with child a elements that both specify the
+							same rendition and intersect the current range:
+						
+							If there is one and only one such ul element, the reading system would
+								navigate to the beginning of the range in the new rendition. 
+							If there is more than one such ul element, then the reading system behavior
+								is undefined. The reading system might prompt the user to select between the new
+								locations, or might choose between them using its own heuristics.
+							If no matching ul elements are found, the reading system will have to
+								determine the location to navigate to in the new rendition as if there was no rendition
+								mapping document.
+						
+					
+				
+
+				Note that what happens during navigation is largely a user experience issue, so a reading system
+					might choose to consider additional information than above to try to achieve a better outcome.
+			
+		
+		A. SchemasThis section is non-normative.
+			
+
+			Validation using the schemas in this appendix requires a processor that supports [relaxng-schema] and
+				[xmlschema11-2].
+
+			A.1 Metadata.xml Schema
+				
+				The schema for including metadata in the metadata.xml file, as described in 3.2 Publication metadata, is available at https://github.com/w3c/epubcheck/blob/main/src/main/resources/com/adobe/epubcheck/schema/30/ocf-metadata-30.rnc.
+			
+
+			A.2 Container.xml schema
+				
+				The schema for including rendition selection attributes in the container.xml file, as described in 4. Rendition selection, is available at
+						https://github.com/w3c/epubcheck/blob/main/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/container.rnc.
+			
+
+			A.3 Mapping document schema
+				
+				The schema for Mapping Documents, as described in 5. Rendition mapping, is available at
+						https://github.com/w3c/epubcheck/blob/main/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/mapping.rnc.
+			
+		
+		B. Change logThis section is non-normative.
+			
+
+			Note that this change log only identifies substantive changes since EPUB Multiple-Rendition Publications 1.0
+				— those that affect the conformance of EPUB publications or are similarly noteworthy.
+
+			For a list of all issues addressed during the revision, refer to the working group's issue tracker.
+
+			
+				19-Mar-2021: Require the use of the unique identifier in the metadata.xml file for
+					obfuscating resources and recommend it be the same as the identifier in the default rendition. See
+						issue 1443.
+				19-Mar-2021: Added note clarifying that package documents need to be in a common directory to share
+					resources. See issue 619.
+				19-Mar-2021: Fixed incorrect reference to link element being a child of the
+						container element. See issue 584.
+				24-Dec-2020: The specification no longer makes reference to a release identifier, but the
+					requirement to include a unique identifier and last modification date in the
+						metadata.xml file remain for backwards compatibility. See issue 1440.
+				16-Dec-2020: Terminology and requirements related to renditions of an EPUB publication have been
+					moved to this specification to simplify readability of both this and the [epub-33] specification.
+					These changes do not affect the ability to include multiple renditions in an EPUB publication. See
+						issue 1436.
+			
+		
+	
+
+C. ReferencesC.1 Normative references
+    
+    [dcterms]
+      DCMI Metadata Terms. DCMI Usage Board.  DCMI. 20 January 2020. DCMI Recommendation. URL: https://www.dublincore.org/specifications/dublin-core/dcmi-terms/
+    [epub-33]
+      EPUB 3.3. Ivan Herman; Matt Garrish; Dave Cramer.  W3C. 13 January 2026. W3C Recommendation. URL: https://www.w3.org/TR/epub-33/
+    [epubcfi-11]
+      EPUB Canonical Fragment Identifiers 1.1. Peter Sorotokin; Garth Conboy; Brady Duga; John Rivlin; Don Beaver; Kevin Ballard; Alastair Fettes; Daniel Weck.  IDPF. 5 October 2017. URL: http://idpf.org/epub/linking/cfi/epub-cfi-20170105.html
+    [html]
+      HTML Standard. Anne van Kesteren; Domenic Denicola; Dominic Farolino; Ian Hickson; Philip Jägenstedt; Simon Pieters.  WHATWG. Living Standard. URL: https://html.spec.whatwg.org/multipage/
+    [iso24751-3]
+       ISO/IEC 24751-3:2008 Information technology -- Individualized adaptability and accessibility in e-learning, education and training -- Part 3: "Access for all" digital resource description. 2008-10-01. URL: http://www.iso.org/iso/catalogue_detail?csnumber=43604
+    [mediaqueries]
+      Media Queries Level 4. Florian Rivoal; Tab Atkins Jr. W3C. 25 December 2021. CRD. URL: https://www.w3.org/TR/mediaqueries-4/
+    [RFC2119]
+      Key words for use in RFCs to Indicate Requirement Levels. S. Bradner.  IETF. March 1997. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc2119
+    [rfc4647]
+      Matching of Language Tags. A. Phillips, Ed.; M. Davis, Ed. IETF. September 2006. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc4647
+    [rfc5646]
+      Tags for Identifying Languages. A. Phillips, Ed.; M. Davis, Ed. IETF. September 2009. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc5646
+    [RFC8174]
+      Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words. B. Leiba.  IETF. May 2017. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc8174
+    
+  C.2 Informative references
+    
+    [relaxng-schema]
+      Information technology -- Document Schema Definition Language (DSDL) -- Part 2: Regular-grammar-based validation -- RELAX NG.  ISO/IEC. 2008. URL: http://standards.iso.org/ittf/PubliclyAvailableStandards/c052348_ISO_IEC_19757-2_2008(E).zip
+    [xmlschema11-2]
+      W3C XML Schema Definition Language (XSD) 1.1 Part 2: Datatypes. David Peterson; Sandy Gao; Ashok Malhotra; Michael Sperberg-McQueen; Henry Thompson; Paul V. Biron et al.  W3C. 5 April 2012. W3C Recommendation. URL: https://www.w3.org/TR/xmlschema11-2/
+    
+  
+    ↑
+  
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 1.1 Overview 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 1.2 Background 
+    
+      § 2. Specifying multiple renditions 
+    
+      § 3.2.1 The metadata.xml file 
+    
+      § 3.2.1.1 Resource obfuscation 
+    
+      § 4.2 Content conformance 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 1.3 Relationship to EPUB 3 
+    
+      § 3.2.1 The metadata.xml file 
+    
+      § 3.2.1.1 Resource obfuscation 
+    
+      § 5.1 Introduction 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 1.1 Overview 
+    
+      § 1.2 Background 
+    
+      § 1.3 Relationship to EPUB 3 
+    
+      § 1.4 Terminology (2) (3) (4) 
+    
+      § 3.2.1 The metadata.xml file (2) 
+    
+      § 4.1 Introduction 
+    
+      § 4.4.1 The rendition:media attribute 
+    
+      § 4.4.2 The rendition:layout attribute 
+    
+      § 4.4.3 The rendition:language attribute 
+    
+      § 4.4.4 The rendition:accessMode attribute 
+    
+      § 4.4.5 The rendition:label attribute 
+    
+      § 4.5 Processing model 
+    
+      § 5.1 Introduction 
+    
+  
+    
+      
+      
+        Permalink
+         
+      
+      Referenced in:
+      
+    
+      § 5.1 Introduction 
+    
+      § 5.2 Content conformance 
+    
+      § 5.3 Reading system conformance 
+    
+      § 5.4.1 XHTML content document: restrictions 
+    
+      § 5.4.2 The nav element: modifications and restrictions 
+    
+      § 5.4.3 Rendition mappings 
+    
+      § 5.4.4 Container identification 
+    
+      § 5.5 Processing model 
+    
+  
+    

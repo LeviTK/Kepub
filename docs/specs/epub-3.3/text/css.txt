@@ -1,0 +1,6790 @@
+
+ 
+  
+  
+  CSS Snapshot 2026
+  
+  
+  
+  
+  
+
+
+
+
+
+
+
+
+  
+  
+ 
+  
+   
+    
+
+
+   CSS Snapshot 2026
+   W3C Group Note,
+    22 June 2026
+   
+    More details about this document
+    
+     
+      This version:
+      https://www.w3.org/TR/2026/NOTE-css-2026-20260622/
+      Latest published version:
+      https://www.w3.org/TR/css-2026/
+      Editor's Draft:
+      https://drafts.csswg.org/css-2026/
+      Previous Versions:
+      https://www.w3.org/TR/2026/NOTE-css-2026-20260326/
+      History:
+      https://www.w3.org/standards/history/css-2026/
+      Feedback:
+      CSSWG Issues Repository
+      Editors:
+      Tab Atkins Jr. (Google)
+      Elika J. Etemad / fantasai (Apple)
+      Florian Rivoal (Invited Expert)
+      Chris Lilley (W3C)
+      Sebastian Zartner (Invited Expert)
+      Suggest an Edit for this Spec:
+      GitHub Editor
+     
+    
+   
+   
+   Copyright © 2026 World Wide Web Consortium. W3C® liability, trademark and permissive document license rules apply.
+
+   
+  
+  
+   Abstract
+   This document collects together into one definition all the specs that
+together form the current state of Cascading Style Sheets (CSS) as of 2026.
+The primary audience is CSS implementers, not CSS authors, as this definition
+includes modules by specification stability, not Web browser adoption rate.
+   
+
+
+CSS is a language for describing the rendering of structured documents
+(such as HTML and XML)
+on screen, on paper, etc.
+
+
+  
+  Status of this document
+  
+   This section describes the status of this document at the time of its publication.
+	A list of current W3C publications
+	and the latest revision of this technical report
+	can be found in the W3C standards and drafts index.
+
+
+   
+	This document was published
+	by the CSS Working Group
+	as a Group Note
+	using the Note track.
+	Group Notes are not endorsed by W3C nor its Members.
+
+
+   Please send feedback
+	by filing issues in GitHub (preferred),
+	including the spec code “css-2026” in the title, like this:
+	“[css-2026] …summary of comment…”.
+	All issues and comments are archived.
+	Alternately, feedback can be sent to the (archived) public mailing list
+	www-style@w3.org.
+
+
+   This document is governed by the
+	18 August 2025 W3C Process Document.
+
+
+   The 15 September 2020 W3C Patent Policy
+	does not carry any licensing requirements or commitments on this document.
+
+
+
+   This document represents the state of CSS as of 2026.
+  
+  
+  
+   Table of Contents
+   
+    
+     1 Introduction
+     
+      1.1 
+What is CSS?
+      1.2 
+Background: The W3C Process and CSS
+     
+    
+     2 
+Classification of CSS Specifications
+     
+      2.1 Cascading Style Sheets (CSS) — The Official Definition
+      2.2 
+Reliable Candidate Recommendations
+      2.3 
+Fairly Stable Modules with limited implementation experience
+      2.4 
+Modules with Rough Interoperability
+      2.5 
+CSS Levels
+      2.6 
+CSS Profiles
+     
+    
+     3 
+Requirements for Responsible Implementation of CSS
+     
+      3.1 Partial Implementations
+      
+       3.2 Implementations of Unstable and Proprietary Features
+       
+        3.2.1 
+Experimentation and Unstable Features
+        3.2.2 
+Proprietary and Non-standardized Features
+        3.2.3 
+Market Pressure and De Facto Standards
+       
+      3.3 Implementations of CR-level Features
+     
+    4 
+Safe to Release pre-CR Exceptions
+    5 The text/css media type
+    6 
+	Security Considerations
+
+    7 
+	Privacy Considerations
+
+    
+     8 Indices
+     
+      8.1 Terms Index
+      8.2 Selector Index
+      8.3 
+At-Rule Index
+      8.4 Property Index
+      8.5 Values Index
+     
+    9 Acknowledgements
+    
+      
+Conformance
+     
+       
+Document conventions
+       
+Conformance classes
+      
+        
+Partial implementations
+       
+         
+Implementations of Unstable and Proprietary Features
+       
+       
+Non-experimental implementations
+     
+    
+      References
+     
+       Normative References
+       Non-Normative References
+     
+   
+  
+  
+   1. Introduction
+   When the first CSS specification was published,
+	all of CSS was contained in one document that defined CSS Level 1.
+	CSS Level 2 was defined also by a single, multi-chapter document.
+	However for CSS beyond Level 2,
+	the CSS Working Group chose to adopt a modular approach,
+	where each module defines a part of CSS,
+	rather than to define a single monolithic specification.
+	This breaks the specification into more manageable chunks
+	and allows more immediate, incremental improvement to CSS.
+   Since different CSS modules are at different levels of stability,
+	the CSS Working Group has chosen to publish this profile
+	to define the current scope and state of Cascading Style Sheets as of 2026.
+   1.1. 
+What is CSS?
+   
+    Cascading Style Sheets (CSS)
+		
+    
+			CSS is a language for writing style sheets,
+			and is designed to describe the rendering of structured documents
+			(such as HTML and XML)
+			on a variety of media.
+			CSS is used to describe the presentation of a source document,
+			and usually does not change the underlying semantics
+			expressed by its document language.
+
+		
+    Style sheet
+		
+    
+			A set of rules that specify the presentation of a document.
+			Style sheets are written by an Author,
+			and interpreted by a user agent,
+			to present the document to the User.
+
+		
+    Source document
+		
+    
+			The document to which one or more style sheets apply.
+			A source document’s structure and semantics are encoded
+			using a document language (e.g., HTML, XHTML, or SVG).
+
+		
+    Author
+		
+    
+			An author is a person who writes documents and associated style sheets.
+			An authoring tool is a user agent that generates style sheets.
+
+		
+    User
+		
+    
+			A user is a person who interacts with a user agent
+			to view, hear, or otherwise use the document.
+
+		
+    User agent (UA)
+		
+    
+			A user agent is any program that interprets a document
+			and its associated style sheets
+			on behalf of a user.
+			A user agent may display a document, read it aloud,
+			cause it to be printed, convert it to another format, etc.
+			For the purposes of the CSS specifications,
+			a user agent is one that supports and interprets Cascading Style Sheets
+			as defined in these specifications.
+	
+   
+   1.2. 
+Background: The W3C Process and CSS
+   This section is non-normative.
+   In the W3C Process,
+	a Recommendation-track document passes through three levels of stability,
+	summarized below:
+   
+    Working Draft (WD)
+		
+    
+     This is the design phase of a W3C spec.
+			The WG iterates the spec in response to internal and external feedback.
+     The first official Working Draft is designated the “First Public Working Draft” (FPWD).
+			In the CSSWG, publishing FPWD indicates that the Working Group as a whole has agreed to work on the module,
+			roughly as scoped out and proposed in the editor’s draft.
+     The transition to the next stage is sometimes called “Last Call Working Draft” (LCWD) phase.
+			The CSSWG transitions Working Drafts once we have resolved all known issues,
+			and can make no further progress without feedback from building tests and implementations.
+     This “Last Call for Comments” sets a deadline for reporting any outstanding issues,
+			and requires the WG to specially track and address incoming feedback.
+			The comment-tracking document is the Disposition of Comments (DoC).
+			It is submitted along with an updated draft for the Director’s approval,
+			to demonstrate wide review and acceptance.
+    Candidate Recommendation (CR)
+		
+    
+     
+			This is the testing phase of a W3C spec.
+			Notably, this phase is about using tests and implementations to test the specification:
+			it is not about testing the implementations.
+			This process often reveals more problems with the spec,
+			and so a Candidate Recommendation will morph over time in response to implementation and testing feedback,
+			though usually less so than during the design phase (WD).
+
+
+     Demonstration of two correct, independent implementations of each feature is required to exit CR,
+			so in this phase the WG builds a test suite and generates implementation reports.
+     The transition to the next stage is “Proposed Recommendation” (PR).
+			During this phase the W3C Advisory Committee must approve the transition to REC.
+    Recommendation (REC)
+		
+    
+			This is the completed state of a W3C spec and represents a maintenance phase.
+			At this point the WG only maintains an errata document
+			and occasionally publishes an updated edition that incorporates the errata back into the spec.
+	
+   
+   An Editor’s Draft is effectively a live copy of the editors’ own working copy.
+	It may or may not reflect Working Group consensus,
+	and can at times be in a self-inconsistent state.
+	(Because the publishing process at W3C is time-consuming and onerous,
+	the Editor’s Draft is usually the best (most up-to-date) reference for a spec.
+	Efforts are currently underway to reduce the friction of publishing,
+	so that official drafts will be regularly up-to-date
+	and Editor’s Drafts can return to their original function as scratch space.)
+   2. 
+Classification of CSS Specifications
+   
+	A list of all CSS modules, stable and in-progress,
+	and their statuses
+	can be found at the CSS Current Work page.
+   2.1. Cascading Style Sheets (CSS) — The Official Definition
+   This profile includes only specifications that we consider stable
+	and for which we have enough implementation experience that we are sure of that stability.
+   Note: This is not intended to be a CSS Desktop Browser Profile:
+	inclusion in this profile is based on feature stability only
+	and not on expected use or Web browser adoption.
+	This profile defines CSS in its most complete form.
+   As of 2026,
+	Cascading Style Sheets (CSS) is defined by the following
+	specifications.
+   
+    CSS Level 2, latest revision (including errata)
+		[CSS2]
+		
+    
+			This defines the core of CSS, parts of which are overridden by later specifications.
+			We recommend in particular reading Chapter 2,
+			which introduces some of the basic concepts of CSS
+			and its design principles.
+
+		
+    CSS Syntax Module Level 3
+		[CSS-SYNTAX-3]
+		
+    
+			Replaces CSS2§4.1, CSS2§4.2, CSS2§4.4, and CSS2§G,
+			redefining how CSS is parsed.
+
+		
+    CSS Style Attributes
+		[CSS-STYLE-ATTR]
+		
+    
+			Defines how CSS declarations can be embedded in markup attributes.
+
+		
+    Media Queries Level 3
+		[CSS3-MEDIAQUERIES]
+		
+    
+			Replaces CSS2§7.3 and expands on the syntax for media-specific styles.
+
+		
+    CSS Conditional Rules Module Level 3
+		[CSS-CONDITIONAL-3]
+		
+    
+			Extends and supersedes CSS2§7.2,
+			updating the definition of @media rules to allow nesting
+			and introducing the @supports rule for feature-support queries.
+
+		
+    Selectors Level 3
+		[SELECTORS-3]
+		
+    
+			Replaces CSS2§5 and CSS2§6.4.3, defining an extended range of selectors.
+
+		
+    CSS Namespaces Module Level 3
+		[CSS3-NAMESPACE]
+		
+    
+			Introduces an @namespace rule to allow namespace-prefixed selectors.
+
+		
+    CSS Cascading and Inheritance Level 4
+		[CSS-CASCADE-4]
+		
+    
+			Extends and supersedes CSS2§1.4.3 and CSS2§6, as well as [CSS-CASCADE-3].
+			Describes how to collate style rules and assign values to all properties on all elements.
+			By way of cascading and inheritance, values are propagated for all properties on all elements.
+
+		
+    CSS Values and Units Module Level 3
+		[CSS-VALUES-3]
+		
+    
+			Extends and supersedes CSS2§1.4.2.1, CSS2§4.3, and CSS2§A.2.1–3,
+			defining CSS’s property definition syntax
+			and expanding its set of units.
+
+		
+    CSS Custom Properties for Cascading Variables Module Level 1
+		[CSS-VARIABLES-1]
+		
+    
+			Introduces cascading variables as a new primitive value type that is accepted by all CSS properties,
+			and custom properties for defining them.
+
+		
+    CSS Box Model Module Level 3
+		[CSS-BOX-3]
+		
+    
+			Replaces CSS2§8.1, §8.2, §8.3 (but not §8.3.1), and §8.4.
+
+		
+    CSS Color Module Level 4
+		[CSS-COLOR-4]
+		
+    
+			Extends and supersedes CSS2§4.3.6, CSS2§14.1, and CSS2§18.2,
+			also extends and supersedes [CSS-COLOR-3],
+			introducing an extended range of color spaces beyond sRGB,
+			extended color values,
+			and CSS Object Model extensions for color.
+			Also defines the opacity property.
+
+		
+    CSS Backgrounds and Borders Module Level 3
+		[CSS-BACKGROUNDS-3]
+		
+    
+			Extends and supersedes CSS2§8.5 and CSS2§14.2,
+			providing more control of backgrounds and borders,
+			including layered background images,
+			image borders,
+			and drop shadows.
+
+		
+    CSS Images Module Level 3
+		[CSS-IMAGES-3]
+		
+    
+			Redefines and incorporates the external 2D image value type,
+			introduces native 2D gradients,
+			and adds additional controls for replaced element sizing and rendering.
+
+		
+    CSS Fonts Module Level 3
+		[CSS-FONTS-3]
+		
+    
+			Extends and supersedes CSS2§15
+			and provides more control over font choice and feature selection.
+
+		
+    CSS Writing Modes Level 3
+		[CSS-WRITING-MODES-3]
+		
+    
+			Defines CSS support for various international writing modes,
+			such as left-to-right (e.g. Latin or Indic),
+			right-to-left (e.g. Hebrew or Arabic),
+			bidirectional (e.g. mixed Latin and Arabic) and vertical (e.g. Asian scripts).
+			Replaces and extends CSS2§8.6 and §9.10.
+
+		
+    CSS Multi-column Layout Module Level 1
+		[CSS-MULTICOL-1]
+		
+    
+			Introduces multi-column flows to CSS layout.
+
+		
+    CSS Flexible Box Layout Module Level 1
+		[CSS-FLEXBOX-1]
+		
+    
+			Introduces a flexible linear layout model for CSS.
+
+		
+    CSS Basic User Interface Module Level 3
+		[CSS-UI-3]
+		
+    
+			Extends and supersedes CSS2§18.1 and CSS2§18.4,
+			defining cursor, outline, and several new CSS features that also enhance the user interface.
+
+		
+    CSS Containment Module Level 1
+		[CSS-CONTAIN-1]
+		
+    
+			Introduces the contain property,
+			which enforces the independent CSS processing of an element’s subtree
+			in order to enable heavy optimizations by user agents when used well.
+
+		
+    CSS Transforms Module Level 1
+		[CSS-TRANSFORMS-1]
+		
+    
+			Introduces coordinate-based graphical transformations to CSS.
+
+		
+    Compositing and Blending Level 1
+		[COMPOSITING]
+		
+    
+			Defines the compositing and blending of overlaid content
+			and introduces features to control their modes.
+
+		
+    CSS Easing Functions Level 1
+		[CSS-EASING-1].
+		
+    
+			Describes a way for authors to define a transformation
+			that controls the rate of change of some value.
+			Applied to animations,
+			such transformations can be used to produce animations
+			that mimic physical phenomena such as momentum
+			or to cause the animation to move in discrete steps producing robot-like movement.
+
+		
+    CSS Counter Styles Level 3
+		[CSS-COUNTER-STYLES-3]
+		
+    
+			Introduces the @counter-style rule,
+			which allows authors to define their own custom counter styles
+			for use with CSS list-marker and generated-content counters [CSS-LISTS-3].
+			It also predefines a set of common counter styles,
+			including the ones present in CSS2 and CSS2.1.
+	
+   
+   Note: Although we don’t anticipate significant changes to the specifications that form this snapshot,
+	their inclusion does not mean they are frozen.
+	The Working Group will continue to address problems as they are found in these specs.
+	Implementers should monitor www-style
+	and/or the CSS Working Group Blog
+	for any resulting changes, corrections, or clarifications.
+   2.2. 
+Reliable Candidate Recommendations
+   The following specifications are considered to be in a reliable state, meaning they have largely stable implementations and specifications, but are not yet at the Recommendation level due to minor issues or the need for additional implementation reports.
+   
+    Media Queries Level 4
+	[MEDIAQUERIES-4]
+	
+    
+		Extends and supersedes [CSS3-MEDIAQUERIES],
+		expanding the syntax,
+		deprecating most media types,
+		and introducing new media features.
+
+	
+    CSS Scroll Snap Module Level 1
+	[CSS-SCROLL-SNAP-1]
+	
+    
+		Contains features to control panning and scrolling behavior with “snap positions”.
+
+	
+    CSS Scrollbars Styling Module Level 1
+	[CSS-SCROLLBARS-1]
+	
+    
+		Defines properties to influence the visual styling of scrollbars,
+		introducing controls for their color and width.
+
+	
+    CSS Grid Layout Module Level 1
+	[CSS-GRID-1]
+	
+    
+		Introduces a two-dimensional grid-based layout system,
+		optimized for user interface design.
+		In the grid layout model, the children of a grid container
+		can be positioned into arbitrary slots in a predefined flexible or fixed-size layout grid.
+
+	
+    CSS Grid Layout Module Level 2
+	[CSS-GRID-2]
+	
+    
+		Extends and supersedes [CSS-GRID-1],
+		introducing “subgrids” for managing nested markup in a shared grid framework.
+
+	
+    CSS Cascading and Inheritance Module Level 5
+	[CSS-CASCADE-5]
+	
+    
+		Extends and supersedes [CSS-CASCADE-4],
+		introducing cascade layers which provide a structured way to organize and balance concerns within a single origin.
+
+	
+    CSS Color Adjustment Module Level 1
+	[CSS-COLOR-ADJUST-1]
+	
+    
+		This module introduces a model and controls over automatic color adjustment by the user agent to handle user preferences and device output optimizations.
+
+	
+    CSS Conditional Rules Module Level 4
+	[CSS-CONDITIONAL-4]
+	
+    
+		Extends [CSS-CONDITIONAL-3] to allow testing for supported selectors.
+
+   
+   2.3. 
+Fairly Stable Modules with limited implementation experience
+   The following modules have completed design work,
+	and are fairly stable,
+	but have not received much testing and implementation experience yet.
+	We hope to incorporate them into the official definition of CSS in a future snapshot.
+   
+    CSS Display Module Level 3
+		[CSS-DISPLAY-3]
+		
+    
+			Replaces CSS2§9.1.2, §9.2.1 (but not §9.2.1.1), §9.2.2 (but not §9.2.2.1), §9.2.3, and §9.2.4 (and lays the foundations for replacing §9.7),
+			defining how the CSS formatting box tree is generated
+			from the document element tree
+			and defining the display property that controls it.
+
+		
+    CSS Writing Modes Level 4
+		[CSS-WRITING-MODES-4]
+		
+    
+			Extends and supersedes [CSS-WRITING-MODES-3],
+			adding more options for vertical writing.
+
+		
+    CSS Fragmentation Module Level 3
+		[CSS-BREAK-3]
+		
+    
+			Describes the fragmentation model that partitions a flow into pages, columns, or regions
+			and defines properties that control it.
+			Extends and supersedes CSS2§13.3.
+
+		
+    CSS Box Alignment Module Level 3
+		[CSS-ALIGN-3]
+		
+    
+			Introduces properties to control the alignment of boxes
+			within their containers in the various CSS box layout models:
+			block layout, table layout, flex layout, and grid layout.
+
+		
+    CSS Shapes Module Level 1
+		[CSS-SHAPES-1]
+		
+    
+			Extends floats (CSS2§9.5) to effect non-rectangular wrapping shapes.
+
+		
+    CSS Text Module Level 3
+		[CSS-TEXT-3]
+		
+    
+			Extends and supersedes CSS2§16 excepting §16.3,
+			defining properties for text manipulation and specifying their processing model.
+			It covers line breaking, justification and alignment, white space handling, and text transformation.
+
+		
+    CSS Text Decoration Module Level 3
+		[CSS-TEXT-DECOR-3]
+		
+    
+			Extends and supersedes CSS2§16.3,
+			providing more control over text decoration lines
+			and adding the ability to specify text emphasis marks
+			and text shadows.
+
+		
+    CSS Masking Module Level 1
+		[CSS-MASKING-1]
+		
+    
+			Replaces CSS2§11.1.2
+			and introduces more powerful ways of clipping and masking content.
+
+		
+    CSS Speech Module Level 1
+		[CSS-SPEECH-1]
+		
+    
+			Replaces CSS2§A,
+			overhauling the (non-normative) speech rendering chapter.
+
+		
+    CSS View Transitions Module Level 1
+		[CSS-VIEW-TRANSITIONS-1]
+    
+			Defines the View Transition API, along with associated properties and pseudo-elements,
+			which allows developers to create animated visual transitions representing
+			changes in the document state.
+		
+   
+   2.4. 
+Modules with Rough Interoperability
+   Although the following modules have been widely deployed with rough interoperability,
+	their details are not fully worked out or sufficiently well-specified
+	and they need more testing and bugfixing.
+	We hope to incorporate them into the official definition of CSS in a future snapshot.
+   
+    CSS Transitions
+		[CSS-TRANSITIONS-1]
+		and CSS Animations Level 1
+		[CSS-ANIMATIONS-1].
+		
+    
+			Introduces mechanisms for transitioning the computed values of CSS properties over time.
+
+		
+    CSS Will Change Module Level 1
+		[CSS-WILL-CHANGE-1]
+		
+    
+			Introduces a performance hint property called will-change.
+
+		
+    Filter Effects Module Level 1
+		[FILTER-EFFECTS-1]
+		
+    
+			Introduces filter effects as a way of processing an element’s rendering before it is displayed in the document.
+
+		
+    CSS Font Loading Module Level 3
+		[CSS-FONT-LOADING-3]
+		
+    
+			Introduces events and interfaces used for dynamically loading font resources.
+
+		
+    CSS Box Sizing Module Level 3
+		[CSS-SIZING-3]
+		
+    
+			Overlays and extends CSS§10.,
+			expanding the value set of the sizing properties,
+			introducing more precise sizing terminology,
+			and defining with more precision and detail
+			various automatic sizing concepts only vaguely defined in CSS2.
+
+
+		
+    CSS Transforms Module Level 2
+		[CSS-TRANSFORMS-2]
+		
+    
+			Builds upon [CSS-TRANSFORMS-1]
+			to add new transform functions and properties for three-dimensional transforms,
+			and convenience functions for simple transforms.
+
+		
+    CSS Lists and Counters Module Level 3
+		[CSS-LISTS-3]
+		
+    
+			Contains CSS features related to list counters:
+			styling them,
+			positioning them,
+			and manipulating their value.
+
+		
+    CSS Logical Properties and Values Level 1
+		[CSS-LOGICAL-1]
+		
+    
+			Introduces logical properties and values
+			that provide the author with the ability to control layout through logical,
+			rather than physical,
+			direction and dimension mappings.
+			Also defines logical properties and values for the features defined in [CSS2].
+			These properties are writing-mode relative equivalents
+			of their corresponding physical properties.
+
+		
+    CSS Positioned Layout Module Level 3
+		[CSS-POSITION-3]
+		
+    
+			Contains defines coordinate-based positioning and offsetting schemes of CSS:
+			relative positioning,
+			sticky positioning,
+			absolute positioning,
+			and fixed positioning.
+
+		
+    Resize Observer
+		[RESIZE-OBSERVER-1]
+		
+    
+			This specification describes an API for observing changes to element’s principal box’s size.
+
+		
+    Web Animations
+		[WEB-ANIMATIONS-1]
+		
+    
+			Defines a model for synchronization and timing of changes to the presentation of a Web page.
+			Also defines an application programming interface for interacting with this model.
+
+		
+    CSS Fonts Module Level 4
+		[CSS-FONTS-4]
+		
+    
+			Extends and supersedes CSS Fonts 3
+			and provides more control over font choice and feature selection,
+			including support for OpenType variations.
+
+		
+    Motion Path Module Level 1
+		[MOTION-1]
+		
+    
+			This module allows authors to position any graphical object and animate it along an author specified path.
+
+		
+    CSS Scroll Anchoring Module Level 1
+		[CSS-SCROLL-ANCHORING-1]
+		
+    
+			This module aims to minimize content shifts
+			by locking the scroll position of a scroll container to a particular anchor element.
+
+		
+    CSS Object Model (CSSOM)
+		[CSSOM-1]
+		
+    
+			This module defines APIs for parsing, serializing,
+			and manipulating CSS, Media Queries, and Selectors.
+
+		
+    CSS Color Module Level 5
+		[CSS-COLOR-5]
+		
+    
+			Extends CSS Color 4 to add color spaces and color modification functions.
+
+		
+    Selectors Level 4
+		[SELECTORS-4]
+		
+    
+			Extends Selectors Level 3 by introducing new pseudo-classes,
+			pseudo-elements, and combinators,
+			enhancing the ability to select elements
+			based on more complex criteria and states.
+
+		
+    CSS Containment Module Level 2
+		[CSS-CONTAIN-2]
+		
+    
+			Extends CSS Containment 1 to add style containment.
+
+		
+    CSSOM View Module
+		[CSSOM-VIEW-1]
+		
+    
+			This module defines APIs for querying and manipulating
+			the visual viewport and layout viewport,
+			as well as methods for scrolling elements into view.
+
+		
+    Geometry Interfaces Module Level 1
+		[GEOMETRY-1]
+		
+    
+			This module defines basic basic geometric interfaces to represent points, rectangles, quadrilaterals,
+			and transformation matrices.
+		
+    CSS Nesting Module Level 1
+		[CSS-NESTING-1]
+		
+    
+			This module introduces the ability to nest one style rule 
+			inside another, with the selector of the child rule 
+			relative to the selector of the parent rule. 
+			This increases the modularity and maintainability of CSS stylesheets.
+		
+   
+   2.5. 
+CSS Levels
+   Cascading Style Sheets does not have versions in the traditional sense;
+	instead it has levels. Each level of CSS builds on the previous,
+	refining definitions and adding features. The feature set of each higher
+	level is a superset of any lower level, and the behavior allowed for a given
+	feature in a higher level is a subset of that allowed in the lower levels.
+	A user agent conforming to a higher level of CSS is thus also conformant to
+	all lower levels.
+   
+    CSS Level 1
+		
+    
+			The CSS Working Group considers the
+			CSS1 specification to be
+			obsolete. CSS Level 1 is defined as all the features defined
+			in the CSS1 specification (properties, values, at-rules, etc), but using
+			the syntax and definitions in the
+			CSS2.1 specification.
+			CSS Style Attributes
+			defines its inclusion in element-specific style attributes.
+
+		
+    CSS Level 2
+		
+    
+     
+			Although the CSS2 specification
+			is technically a W3C Recommendation, it passed into the Recommendation stage
+			before the W3C had defined the Candidate Recommendation stage. Over time
+			implementation experience and further review has brought to light many problems
+			in the CSS2 specification, so instead of expanding an already unwieldy
+			errata list, the CSS Working Group chose to define CSS Level 2
+			Revision 1 (CSS2.1). In case of any conflict between the two specs
+			CSS2.1 contains the definitive definition.
+
+
+     Once CSS2.1 became Candidate Recommendation—effectively though not
+			officially the same level of stability as CSS2—obsoleted the CSS2
+			Recommendation.  Features in CSS2 that were dropped from CSS2.1 should be
+			considered to be at the Candidate Recommendation stage, but note that many
+			of these have been or will be pulled into a CSS Level 3 working draft, in
+			which case that specification will, once it reaches CR, obsolete the
+			definitions in CSS2.
+     The CSS2.1 specification defines
+			CSS Level 2 and the CSS
+			Style Attributes specification defines its inclusion in
+			element-specific style attributes.
+    CSS Level 3
+		
+    
+     
+			CSS Level 3 builds on CSS Level 2 module by module, using the CSS2.1
+			specification as its core. Each module adds functionality and/or
+			replaces part of the CSS2.1 specification. The CSS Working Group
+			intends that the new CSS modules will not contradict the CSS2.1
+			specification: only that they will add functionality and refine
+			definitions. As each module is completed, it will be plugged in to
+			the existing system of CSS2.1 plus previously-completed modules.
+
+
+     From this level on modules are levelled independently: for example
+			Selectors Level 4 may well be completed before CSS Line Module Level 3.
+			Modules with no CSS Level 2 equivalent start at Level 1;
+			modules that update features that existed in CSS Level 2 start at Level 3.
+    CSS Level 4 and beyond
+		
+    
+			There is no CSS Level 4.
+			Independent modules can reach level 4 or beyond,
+			but CSS the language no longer has levels.
+			("CSS Level 3" as a term is used only to differentiate it from the previous monolithic versions.)
+	
+   
+   2.6. 
+CSS Profiles
+   Not all implementations will implement all functionality defined in CSS.
+   In the past, the Working Group published a few Profiles,
+	which were meant to define the minimal subset of CSS
+	that various classes of user agents were expected to support.
+   This effort has been discontinued,
+	as the Working Group was not finding it effective or useful,
+	and the profiles previously defined are now unmaintained.
+   Note: Partial implementations of CSS, even if that subset is an official profile,
+	must follow the forward-compatible parsing rules for partial implementations.
+   3. 
+Requirements for Responsible Implementation of CSS
+   The following sections define several conformance requirements
+	for implementing CSS responsibly,
+	in a way that promotes interoperability in the present and future.
+   3.1. Partial Implementations
+   So that authors can exploit the forward-compatible parsing rules to assign fallback values,
+	CSS renderers must treat as invalid
+	(and ignore as appropriate)
+	any at-rules, properties, property values, keywords, and other syntactic constructs
+	for which they have no usable level of support.
+	In particular, user agents must not selectively ignore
+	unsupported property values and honor supported values in a single multi-value property declaration:
+	if any value is considered invalid (as unsupported values must be),
+	CSS requires that the entire declaration be ignored.
+   3.2. Implementations of Unstable and Proprietary Features
+   To avoid clashes with future stable CSS features,
+	the CSSWG recommends the following best practices for the implementation of
+	unstable features and proprietary extensions to CSS:
+   3.2.1. 
+Experimentation and Unstable Features
+   Implementations of unstable features
+	that are described in W3C specifications
+	but are not interoperable
+	should not be released broadly for general use;
+	but may be released for limited, experimental use in controlled environments.
+   
+    Why?
+    
+		We want to allow both authors and implementors to experiment with the feature and give feedback,
+		but prevent authors from relying on them in production websites
+		and thereby accidentally "locking in" (through content dependence)
+		certain syntax or behavior that might change later.
+	
+   
+   
+		For example,
+		a UA could release an unstable features for experimentation
+		through beta or other testing-stage builds;
+		behind a hidden configuration flag;
+		behind a switch enabled only for specific testing partners;
+		or through some other means of limiting dependent use.
+	
+   A CSS feature is considered unstable until
+	its specification has reached the Candidate Recommendation (CR) stage in the W3C process.
+	In exceptional cases,
+	the CSSWG may additionally, by an officially-recorded resolution,
+	add pre-CR features to the set that are considered safe to release for broad use.
+	See § 4 Safe to Release pre-CR Exceptions.
+   Note: Vendors should consult the WG explicitly and not make assumptions on this point,
+	as a pre-CR spec that hasn’t changed in awhile is usually more out-of-date than stable.
+   3.2.2. 
+Proprietary and Non-standardized Features
+   To avoid clashes with future CSS features,
+	the CSS2.1 specification reserves a
+	prefixed syntax [CSS2]
+	for proprietary and experimental extensions to CSS.
+	A CSS feature is a proprietary extension if it is meant for use
+	in a closed environment accessible only to a single vendor’s user agent(s).
+	A UA should support such proprietary extensions
+	only through a vendor-prefixed syntax
+	and not expose them to open (multi-UA) environments such as the World Wide Web.
+   
+    Why?
+    
+		The prefixing requirement allows shipping specialized features in closed environments
+		without conflicting with future additions to standard CSS.
+		The restriction on exposure to open systems is to prevent
+		accidentally causing the public CSS environment
+		to depend on an unstandardized proprietary extensions.
+	
+   
+   
+		For example,
+		Firefox’s XUL-based UI, Apple’s iTunes UI, and Microsoft’s Universal Windows Platform app
+		use extensions to CSS implemented by their respective UAs.
+		So long as these UAs do not allow Web content to access these features,
+		they do not provide an opportunity for such content
+		to become dependent on their proprietary extensions.
+	
+   Even if a feature is intended to eventually be used in the Web,
+	if it hasn’t yet been standardized
+	it should still not be exposed to the Web.
+   3.2.3. 
+Market Pressure and De Facto Standards
+   If a feature is unstable (i.e. the spec has not yet stabilized), but
+   
+    
+     at least three UAs implement the feature
+(or a UA has broken the other rules and shipped for broad use
+an unstable or otherwise non-standard feature in a production release),
+    
+     and the implementations have rough interoperability,
+    
+     and the CSS Working Group has recorded consensus
+that this feature should exist and be released,
+   
+   implementers may ship that feature unprefixed in broad-release builds.
+	Rough interoperability is satisfied by a subjective judgment
+	that even though there may be differences,
+	the implementations are sufficiently similar
+	to be used in production websites for a substantial number of use cases.
+   Note that the CSSWG must still be consulted to ensure coordination across vendors
+		and to ensure coherency review by the CSS experts from each vendor.
+		Note also that rough interoperability still usually means
+		painful lack of interop in edge (or not-so-edge) cases,
+		particularly because details have not been ironed out through the standards review process.
+
+	
+   
+    Why?
+    
+		If a feature is sufficiently popular that three or more browsers have implemented it before it’s finished standardization,
+		this clause allows releasing the pressure to ship.
+		Also, if a feature has already escaped into the wild and sites have started depending on it,
+		pretending it’s still “experimental” doesn’t help anyone.
+		Allowing others to ship unprefixed recognizes that the feature is now de facto standardized
+		and encourages authors to write cross-platform code.
+	
+   
+   3.2.3.1. 
+Vendor-prefixing Unstable Features
+   When exposing such a standards-track unstable feature to the Web in a production release,
+	implementations should support both vendor-prefixed and unprefixed syntaxes
+	for the feature.
+	Once the feature has stabilized and the implementation is updated to match interoperable behavior,
+	support for the vendor-prefixed syntax should be removed.
+
+	
+   
+    Why?
+    
+		This is recommended so that authors can use the unprefixed syntax to target all implementations,
+		but when necessary, can target specific implementations
+		to work around incompatibilities among implementations
+		as they get ironed out through the standards/bugfixing process.
+
+
+    The lack of a phase
+		where only the prefixed syntax is supported
+		greatly reduces the risk of stylesheets
+		being written with only the vendor-prefixed syntax.
+		This in turn allows UA vendors to retire
+		their prefixed syntax once the feature is stable,
+		with a lower risk of breaking existing content.
+		It also reduces the need occasionally felt by some vendors
+		to support a feature with the prefix of another vendor,
+		due to content depending on that syntax.
+   
+   Anyone promoting unstable features to authors
+	should document them using their standard unprefixed syntax,
+	and avoid encouraging the use of the vendor-prefixed syntax
+	for any purpose other than working around implementation differences.
+   3.2.3.2. 
+Preserving the Openness of CSS
+   In order to preserve the open nature of CSS as a technology,
+	vendors should make it possible for other implementors
+	to freely implement any features that they do ship.
+	To this end, they should provide spec-editing and testing resources
+	to complete standardization of such features,
+	and avoid other obstacles (e.g., platform dependency, licensing restrictions)
+	to their competitors shipping the feature.
+   3.3. Implementations of CR-level Features
+   Once a specification reaches the Candidate Recommendation stage,
+	implementers should release an unprefixed implementation
+	of any CR-level feature they can demonstrate
+	to be correctly implemented according to spec,
+	and should avoid exposing a prefixed variant of that feature.
+   To establish and maintain the interoperability of CSS across
+	implementations, the CSS Working Group requests that non-experimental
+	CSS renderers submit an implementation report (and, if necessary, the
+	testcases used for that implementation report) to the W3C before
+	releasing an unprefixed implementation of any CSS features. Testcases
+	submitted to W3C are subject to review and correction by the CSS
+	Working Group.
+   Up to date implementation reports for CSS specifications
+	can be found on Web Platform Tests,
+	which is maintained
+	on GitHub.
+   4. 
+Safe to Release pre-CR Exceptions
+   The following features have been explicitly and proactively cleared
+	by the CSS Working Group for broad release
+	prior to the spec reaching Candidate Recommendation.
+	See § 3.2.1 Experimentation and Unstable Features.
+   
+    The flow-relative equivalents of
+		the sizing properties (width, height, etc.),
+		the border properties,
+		the margin and padding properties.
+		See explanation
+		and specification.
+
+		
+    The min-content and max-content keywords of the sizing properties.
+		See decision
+		and specification.
+		
+    The conic-gradient() gradient notation. See decision.
+
+		
+    The aspect-ratio property. [CSS-SIZING-4]
+
+		
+    The translate, rotate, and scale properties. [CSS-TRANSFORMS-2]
+
+		
+    The hyphenate-character property. [CSS-TEXT-4]
+
+		
+    The color-mix() function. [CSS-COLOR-5]
+
+		
+    The <color-interpolation-method>, defined in [CSS-COLOR-4] and used for interpolation of linear, radial and conic gradients. [CSS-IMAGES-4]
+
+		
+    The relative color syntax, defined in [CSS-COLOR-5]
+    The request url modifiers, defined in [CSS-VALUES-5]
+    The display-modes,
+			dynamic-range,
+			scripting,
+			prefers-reduced-motion,
+			prefers-reduced-transparency,
+			prefers-contrast,
+			forced-colors,
+			and prefers-color-scheme,
+			media features, defined in [MEDIAQUERIES-5]
+
+		
+    The font-tech() and font-format() functions, defined in [CSS-CONDITIONAL-5]
+
+		
+    The :is(), :where(), and :has() pseudo-classes,
+			and selector lists in :not(), defined in [SELECTORS-4]
+
+		
+    The text-decoration-thickness and text-underline-offset properties and the from-font value for text-underline-position, defined in [CSS-TEXT-DECOR-4]
+
+		
+    The ::marker pseudo-element, defined in [CSS-PSEUDO-4]
+
+		
+    The text-box-trim and text-box-edge properties including their text-box shorthand, defined in [CSS-INLINE-3]
+
+		
+    The env() function including the save-area-inset-* variables, defined in [CSS-ENV-1]
+
+		
+    The pseudo-classes :scope, :defined, :focus-within, :dir(), :any-link, :open, :popover-open, :modal, :fullscreen, :placeholder-shown, :default, :valid, :invalid, :required, :optional, and selector lists for the :nth-child() and :nth-last-child() pseudo-classes, defined in [SELECTORS-4]
+
+		
+    The accent-color property, the auto value for the outline-color property, and the <url-set> data type for the cursor property, defined in [CSS-UI-4]
+
+		
+    Everything in
+			CSS Animations Level 1
+			and
+			CSS Transitions Level 1.
+	
+   
+   5. The text/css media type
+   This updated registration obsoletes RFC 2318.
+Type name: text
+
+Subtype name: css
+
+Required parameters: N/A
+
+Optional parameters: charset (but see below)
+
+Encoding considerations:
+
+  binary
+
+Security considerations:
+
+  CSS is a modular specification and thus, the individual
+  Security Considerations section of each CSS module in use
+  should be consulted.
+
+Interoperability considerations:
+
+  CSS has proven to be widely interoperable across computer
+  platforms, across Web browsers of different makes, and for import
+  and export in multiple authoring tools.
+
+Published specification:
+
+  https://www.w3.org/TR/css
+
+Applications that use this media type:
+
+  CSS is device-, platform- and vendor-neutral and is supported by
+  a wide range of Web user agents and authoring tools for
+  formatting HTML documents.
+
+Fragment identifier considerations:
+
+  N/A
+
+Additional information:
+
+  Deprecated alias names for this type: N/A
+  Magic number(s): N/A
+  File extension(s): .css
+  macOS Uniform Type Identifier(s): public.css
+  Windows clipboard name(s): N/A
+
+Person & email address to contact for further information:
+
+  The W3C CSS Working Group <www-style@w3.org>
+
+Intended usage:
+
+  COMMON
+
+Restrictions on usage:
+
+  N/A
+
+Author: The W3C CSS Working Group
+
+Change controller: W3C
+
+Fallback encoding: 
+
+  For Web compatibility, to determine the character encoding,
+  user agents follow the CSS Syntax Level 3 specification,
+  "To determine the fallback encoding of a stylesheet"
+  https://www.w3.org/TR/css-syntax-3/#determine-the-fallback-encoding
+
+  Stylesheet authors should author their stylesheets in UTF-8, and 
+  ensure that either an HTTP header (or equivalent method) declares
+  the encoding of the stylesheet to be UTF-8, or that the referring
+  document declares its encoding to be UTF-8.
+
+   6. 
+	Security Considerations
+
+   Please see the Security Considerations of the individual CSS modules.
+   7. 
+	Privacy Considerations
+
+   Please see the Privacy Considerations of the individual CSS modules.
+   8. Indices
+   These sections are non-normative.
+   8.1. Terms Index
+   
+    
+     
+     
+      =
+      
+       in css2
+       in css2
+      
+     ~=
+     1st <length>
+     2d matrix
+     2nd <length>
+     3d matrix
+     3d rendering context
+     3d transformed element
+     3d transform functions
+     3rd <length [0,∞]>
+     4th <length>
+     absolute color
+     absolute length
+     absolute length unit
+     absolutely position
+     absolutely-positioned
+     absolutely positioned box
+     absolutely positioned element
+     absolute position
+     absolute-position containing block
+     absolute positioning containing block
+     absolute positioning layout
+     absolute positioning layout model
+     absolute scroll
+     abstract dimensions
+     accumulated 3d transformation matrix
+     accumulation for one-based values
+     activate view transition
+     :active
+     active-after boundary time
+     activeborder
+     activecaption
+     
+      active duration
+      
+       in css-animations-1
+       in web-animations-1
+      
+     active interval
+     active phase
+     active (pseudo-class)
+     active replace state
+     active time
+     active timeline
+     active time space
+     active view transition
+     actual value
+     actual values
+     add a css style sheet
+     additive color space
+     additive tuple
+     adjoining
+     adjoining margins
+     adjusted radius dimension
+     advance measure
+     
+      :after
+      
+       in css2
+       in css2
+      
+     after
+     after-change style
+     after phase
+     aliceblue
+     aligned subtree
+     alignment baseline
+     alignment container
+     alignment context
+     alignment subject
+     'all' media group
+     alphabetic baseline
+     alpha channel
+     alpha component
+     <alphavalue>
+     alternate
+     alternate flag
+     alternate-reverse
+     ambiguous image url
+     analogous components
+     analogous set
+     an+b
+     ancestor
+     anchor
+     anchor node
+     anchor node selection algorithm
+     anchor priority candidate
+     anchor unit
+     <angle>
+     animatable
+     animation
+     animation class
+     animation composite order
+     animation direction
+     animation effect
+     animation events
+     animation frame
+     animation model
+     animation origin
+     animation playback events
+     animation property name to idl attribute name
+     animation-tainted
+     animation time to origin-relative time
+     animation time to timeline time
+     animation type
+     
+      anonymous
+      
+       in css-display-3, for CSS
+       in css2
+      
+     anonymous box
+     anonymous inline boxes
+     antiquewhite
+     apply any pending playback rate
+     apply to
+     appworkspace
+     aqua
+     aquamarine
+     are a valid escape
+     aspect value
+     associated animation
+     associated css style sheet
+     associated document
+     associated effect
+     associated effect end
+     associated with an animation
+     associated with a timeline
+     at-keyword
+     atomic inline
+     atomic inline box
+     atomic inline-level box
+     atomic inline-level boxes
+     at-rule
+     at-rules
+     attr()
+     attribute
+     attribute selector
+     'audio' media group
+     auditory icon
+     augmented grid
+     aural box model
+     author
+     authoring tool
+     author origin
+     author-origin
+     author presentational hint origin
+     author style sheet
+     automatic block size
+     automatic column position
+     automatic grid position
+     automatic inline size
+     automatic minimum size
+     automatic numbering
+     automatic placement
+     automatic position
+     automatic row position
+     automatic size
+     auto-placement
+     auto-placement cursor
+     available block space
+     available font faces
+     available grid space
+     available inline space
+     available space
+     avoid break values
+     axis-lock
+     axis value
+     azure
+     backdrop
+     background
+     background color
+     background image
+     background image layer
+     background painting area
+     background positioning area
+     backslash escapes
+     backwards
+     baseline
+     baseline alignment
+     baseline alignment preference
+     baseline content-alignment
+     baseline self-alignment
+     baseline set
+     baseline-sharing group
+     baseline table
+     base size
+     bearing angle
+     
+      :before
+      
+       in css2
+       in css2
+      
+     before
+     before-active boundary time
+     before-change style
+     before flag
+     before phase
+     beginning edges
+     behave as auto
+     behaves as auto
+     behaving as auto
+     beige
+     bfc
+     bidi formatting characters
+     bidi-isolate
+     bidi-isolated
+     bidi isolation
+     bidi paragraph
+     bidirectionality
+     bidirectionality (bidi)
+     binary search gamut map with local minde
+     bi-orientational
+     bi-orientational transform
+     bisque
+     'bitmap' media group
+     black
+     blanchedalmond
+     ()-block
+     []-block
+     block
+     {}-block
+     block at-rule
+     block axis
+     block-axis
+     block box
+     block boxes
+     block container
+     block container box
+     block dimension
+     block end
+     block-end
+     block flow direction
+     block formatting context
+     block formatting context root
+     blockification
+     blockify
+     block layout
+     block-level
+     block-level box
+     block-level boxes
+     block-level content
+     block-level element
+     block-level elements
+     block scripts
+     block size
+     block-size
+     block start
+     block-start
+     blue
+     blueviolet
+     blur radius
+     boolean context
+     border
+     border area
+     border box
+     border color
+     border edge
+     border image
+     border image area
+     border image region
+     border (of a box)
+     border::of a box
+     border properties
+     border radius
+     <border-style>
+     border style
+     border width
+     both
+     bottom
+     box
+     box alignment properties
+     box::border
+     box::content
+     box::content height
+     box::content width
+     box-corner
+     box edge
+     box fragment
+     box::margin
+     box::overflow
+     box::padding
+     box tree
+     break
+     broadcast active observations
+     broadcast active resize observations
+     brown
+     burlywood
+     buttonface
+     buttonhighlight
+     buttons
+     buttonshadow
+     buttontext
+     by computed value
+     cadetblue
+     calculate a color-mix()
+     calculate box size
+     calculate depth for node
+     calibrated
+     call the update callback
+     can be displayed
+     cancel
+     cancel an animation
+     cancel event
+     candidate examination algorithm
+     canonical unit
+     can't be displayed
+     canvas
+     canvas background
+     canvas surface
+     captiontext
+     captured element
+     captured in a view transition
+     capture rendering characteristics
+     captures snap positions
+     capture the image
+     capture the new state
+     capture the old state
+     capturing the image
+     caret node
+     caret offset
+     caret position
+     carried forward
+     cascade
+     cascade-dependent keyword
+     cascaded value
+     cascade layers
+     cascade origin
+     case-sensitive flag
+     cast a ray
+     central baseline
+     change the preferred css style sheet set name
+     character
+     character encoding
+     characterized
+     character map
+     "@charset"
+     chartreuse
+     check if three code points would start an ident sequence
+     check if three code points would start a number
+     check if three code points would start a unicode-range
+     check if two code points are a valid escape
+     check the completion record
+     child
+     child combinator
+     child css rules
+     child selector
+     chinese
+     chocolate
+     chromatic adaptation transform
+     chromaticity
+     circled-lower-latin
+     clamp a grid area
+     class selector
+     clearance
+     clearance.
+     clear view transition
+     clipping path
+     clipping region
+     close to the viewport
+     clustered scripts
+     collapse
+     collapsed
+     collapsed flex item
+     collapsed grid track
+     collapsed gutter
+     collapsed margin
+     collapse through
+     collapsible white space
+     collapsing margin
+     collection of media queries
+     <color>
+     color
+     color functions
+     color scheme
+     color scheme preference
+     color scheme support
+     color space
+     color stop
+     color stop list
+     color transition hint
+     column box
+     column break
+     column gap
+     column height
+     column rule
+     column width
+     
+      combinator
+      
+       in css2
+       in selectors-4, for selector
+      
+     
+      combinators
+      
+       in css2
+       in selectors-3
+      
+     combined duration
+     combining shadow lists
+     comments
+     commit computed styles
+     compare media queries
+     compatible baseline alignment preferences
+     compatible units
+     complete
+     completed transition
+     complex selector
+     component keyword
+     component value
+     composite
+     composited value
+     composite face
+     composite operation
+     compositeoperation
+     composite operation accumulate
+     composite operation add
+     composite operation replace
+     composition
+     compound selector
+     compute a property value
+     computed color
+     computed flag
+     computed <image>
+     computed keyframe offset
+     computed keyframe offsets
+     computed keyframes
+     computed repeat notation
+     computed track list
+     computed track size
+     computed value
+     computed values
+     compute missing keyframe offsets
+     concrete object size
+     conditional group rule
+     conditional import
+     conditionally hang
+     conformance
+     conforming scripted web animations user agent
+     consecutive
+     constraint rectangle
+     constructed flag
+     constructor document
+     consume a block
+     consume a block's contents
+     consume a component value
+     consume a declaration
+     consume a function
+     consume a list of component values
+     consume a list of declarations
+     consume a list of rules
+     consume an at-rule
+     consume an escaped code point
+     consume an ident-like token
+     consume an ident sequence
+     consume a number
+     consume a numeric token
+     consume a qualified rule
+     consume a simple block
+     consume a string token
+     consume a style block's contents
+     consume a stylesheet's contents
+     
+      consume a token
+      
+       in css-syntax-3
+       in css-syntax-3, for token stream
+       in css-syntax-3, for tokenizer
+      
+     consume a unicode-range token
+     consume a url token
+     consume comments
+     consume the next input token
+     consume the remnants of a bad declaration
+     consume the remnants of a bad url
+     consume the value of a unicode-range descriptor
+     contain constraint
+     containing block
+     containing block chain
+     containing block for all descendants
+     containing block::initial
+     containment
+     content
+     content area
+     
+      content-based minimum size
+      
+       in css-flexbox-1
+       in css-grid-1
+      
+     content box
+     content distribution
+     content-distribution
+     content-distribution properties
+     content edge
+     content height
+     content language
+     content (of a box)
+     content::of a box
+     content rect
+     content::rendered
+     contents
+     
+      content size suggestion
+      
+       in css-flexbox-1
+       in css-grid-1
+      
+     content width
+     content writing system
+     continuous media
+     'continuous' media group
+     convert a color
+     convert a string to a number
+     coordinated self-alignment preference
+     coral
+     cornflowerblue
+     cornsilk
+     <counter>
+     counter
+     counter()
+     counter properties
+     counters
+     counter scope
+     counter style
+     counter symbol
+     cover constraint
+     create a constructed cssstylesheet
+     create a css style sheet
+     create a medialist object
+     create and populate a resizeobserverentry
+     creator
+     crimson
+     cross axis
+     cross-axis
+     cross-axis baseline set
+     cross dimension
+     cross-end
+     cross size
+     cross size property
+     cross-start
+     css bracketed range notation
+     css color profile
+     css-connected
+     css counters set
+     css declaration
+     css declaration block
+     css feature queries
+     cssfontfacerule
+     cssfontfeaturevaluesrule
+     css gamut mapped
+     css gamut mapping algorithms
+     css ident
+     css identifier
+     css ident sequence
+     css property to idl attribute
+     css qualified name
+     css rule
+     css rules
+     css style sheet
+     css style sheet set
+     css style sheet set name
+     css value definition syntax
+     css-wide keywords
+     cubic bézier easing function
+     current
+     currentcolor
+     current finished promise
+     current input code point
+     current input token
+     current iteration
+     current iteration index
+     currently relevant to the user
+     current ready promise
+     
+      current time
+      
+       in web-animations-1, for animation
+       in web-animations-1, for timeline
+      
+     current transformation matrix
+     current value
+     cursive
+     cursive script
+     custom property
+     cyan
+     cyclic percentage size
+     cylindrical polar color
+     d50
+     d65
+     darkblue
+     dark color scheme
+     darkcyan
+     darkgoldenrod
+     darkgray
+     darkgreen
+     darkgrey
+     darkkhaki
+     darkmagenta
+     darkolivegreen
+     darkorange
+     darkorchid
+     darkred
+     darksalmon
+     darkseagreen
+     darkslateblue
+     darkslategray
+     darkslategrey
+     darkturquoise
+     darkviolet
+     
+      declaration
+      
+       in css-syntax-3, for CSS
+       in css2
+      
+     declaration block
+     declarations
+     declared
+     declared value
+     decode bytes
+     decorating box
+     decreasing
+     deeppink
+     deepskyblue
+     default
+     default document timeline
+     default face
+     default namespace
+     default object size
+     default sizing algorithm
+     default style sheet
+     
+      definite
+      
+       in css-flexbox-1
+       in css-sizing-3
+      
+     definite column position
+     definite column span
+     definite grid position
+     definite grid span
+     definite position
+     definite row position
+     definite row span
+     
+      definite size
+      
+       in css-flexbox-1
+       in css-sizing-3
+      
+     definite span
+     deliver resize loop error notification
+     descendant
+     descendant combinator
+     descendant-selectors
+     descriptor
+     descriptor declarations
+     destination
+     determine the device pixel ratio
+     determine the fallback encoding
+     determine the scroll-into-view position
+     determine the used color scheme
+     device pixel
+     dice
+     digit
+     dimension
+     dimgray
+     dimgrey
+     directed progress
+     direction-agnostic size
+     directional embedding
+     directional keyword
+     directional override
+     disabled flag
+     disallow modification flag
+     discard a mark
+     discard a token
+     discard whitespace
+     discrete
+     display type
+     distributed alignment
+     distribute extra space
+     
+      document
+      
+       in css-speech-1
+       in css-style-attr
+       in cssom-view-1, for MediaQueryList
+      
+     document for timing
+     document language
+     document order
+     document or shadow root css style sheets
+     document-scoped view transition name
+     document timeline
+     document time space
+     document tree
+     document white space
+     document white space characters
+     dodgerblue
+     dominant baseline
+     dynamic view transition style sheet
+     easing function
+     east asian width property
+     edge
+     effect easing function
+     effective character map
+     effective percentage
+     effective playback rate
+     effect stack
+     effect target
+     effect value
+     
+      element
+      
+       in css-display-3, for CSS
+       in css2
+      
+     element color scheme
+     element contents
+     element::following
+     element::preceding
+     element tree
+     emoji presentation participating code points
+     
+      empty
+      
+       in css-syntax-3, for token stream
+       in css2
+      
+     emulated forced colors theme data
+     em (unit)
+     enable a css style sheet set
+     enabled css style sheet set
+     encapsulation contexts
+     end
+     end delay
+     ending edges
+     ending point
+     ending shape
+     ending token
+     endmost
+     endpoint-inclusive active interval
+     
+      end time
+      
+       in css-transitions-1, for transition
+       in web-animations-1
+       in web-animations-1, for animation effect
+      
+     end value
+     environment encoding
+     eof code point
+     equivalent colors
+     
+      equivalent path
+      
+       in motion-1, for <basic-shape>
+       in motion-1, for inset()
+       in motion-1, for rect()
+       in motion-1, for xywh()
+      
+     escape a character
+     escape a character as code point
+     escaped as code point
+     escaping
+     establish an independent formatting context
+     establish an orthogonal flow
+     established an independent formatting context
+     establishes an independent formatting context
+     establishing an independent formatting context
+     evaluate media queries and report changes
+     evaluating a selector
+     exact matching
+     excluded subtree
+     expanded name
+     explicit grid
+     explicit grid column
+     explicit grid properties
+     explicit grid row
+     explicit grid track
+     explicitly-assigned line name
+     extrinsic sizing
+     ex (unit)
+     fallback
+     fallback alignment
+     fallback size
+     false in the negative range
+     fantasy
+     far away from the viewport
+     featureless
+     feature value block
+     fetch a css style sheet
+     fetch a font
+     fetch an external color profile
+     fetch an @import
+     fictional tag sequence
+     fill mode
+     filter code points
+     filtered code points
+     filter function
+     filter primitive
+     filter primitive attributes
+     filter primitive subregion
+     filter primitive tree
+     filter region
+     final css style sheets
+     find the matching font faces
+     finish an animation
+     finished
+     finished promise
+     finish event
+     finish notification steps
+     fire a font load event
+     firebrick
+     :first
+     first available font
+     first-baseline alignment
+     first-baseline content-alignment
+     first baselines
+     first-baseline self-alignment
+     first baseline set
+     :first-child
+     first-child
+     first cross-axis baseline set
+     first formatted line
+     :first-letter
+     first-letter
+     :first-line
+     first-line
+     first main-axis baseline set
+     first symbol value
+     fit-content block size
+     fit-content inline size
+     fit-content size
+     fixed position
+     fixed-positioned
+     fixed-positioned box
+     fixed positioning containing block
+     fixed sizing function
+     flex base size
+     flex basis
+     flex container
+     flex direction
+     
+      flex factor
+      
+       in css-flexbox-1
+       in css-grid-1, for grid-template-columns, grid-template-rows
+      
+     flex factor sum
+     flex formatting context
+     flex fraction
+     flex grow factor
+     flexible
+     flexible length
+     flexible sizing function
+     flexible tracks
+     flex item
+     flex layout
+     flex-level
+     flex line
+     flex shrink factor
+     float area
+     float rules
+     floralwhite
+     flow layout
+     flow of an element
+     flow-relative
+     flow-relative direction
+     flush the update callback queue
+     :focus
+     focus
+     focus (pseudo-class)
+     following element
+     font block period
+     font download timer
+     font failure period
+     font feature value block
+     font feature value declaration
+     font-relative lengths
+     font source
+     font specific
+     font swap period
+     footnote
+     forced break
+     forced break values
+     forced colors mode
+     forced colors mode emulation color palettes
+     forced line break
+     forced paragraph break
+     forestgreen
+     formatting context
+     formatting structure
+     forward-compatible parsing
+     forwards
+     fragment
+     fragmentainer
+     fragmentation
+     fragmentation break
+     fragmentation container
+     fragmentation context
+     fragmentation direction
+     fragmentation root
+     fragmented flow
+     free space
+     <frequency>
+     fuchsia
+     full-size
+     full-size kana
+     full-width
+     fully clipped
+     fully inflexible
+     fully visible
+     function
+     functional notation
+     functional pseudo-class
+     functional pseudo-element
+     gainsboro
+     gamut
+     gamut-map
+     gather active observations at depth
+     gather active resize observations
+     gather active resize observations at depth
+     general category
+     generate a counter
+     generate a counter representation
+     generate baselines
+     generated content
+     <generic-voice>
+     get emulated forced colors theme data
+     get the bounding box
+     ghostwhite
+     global animation list
+     global view transition user agent style sheet
+     go
+     gold
+     goldenrod
+     gradient-average-color
+     gradient box
+     gradient center
+     gradient function
+     gradient line
+     grapheme cluster
+     gray
+     graytext
+     green
+     greenyellow
+     grey
+     grid
+     grid area
+     grid cell
+     grid column
+     grid column line
+     grid container
+     grid formatting context
+     grid item
+     grid item placement algorithm
+     grid layout
+     grid layout algorithm
+     grid-level
+     grid line
+     'grid' media group
+     grid-modified document order
+     grid order
+     grid placement
+     grid-placement property
+     grid position
+     grid row
+     grid row line
+     grid sizing algorithm
+     grid span
+     grid track
+     group animation name rule
+     group keyframes
+     group styles rule
+     growth limit
+     guaranteed-invalid value
+     gutter
+     half-width
+     handle transition frame
+     hang
+     hanging glyph
+     has active observations
+     has active resize observations
+     :has-allowed pseudo-element
+     has skipped observations
+     has skipped resize observations
+     
+      height
+      
+       in css-sizing-3
+       in css-writing-modes-4
+       in cssom-view-1, for supported open() feature name
+      
+     hex color
+     hex color notation
+     hex digit
+     highlight
+     highlighttext
+     hold time
+     honeydew
+     horizontal axis
+     horizontal-axis
+     horizontal block flow
+     horizontal dimension
+     horizontal offset
+     horizontal-only
+     horizontal script
+     horizontal typographic mode
+     horizontal writing mode
+     host language
+     host syntax
+     hotpink
+     :hover
+     hover (pseudo-class)
+     html-compatible serialization is requested
+     http-default-style
+     hyphenate
+     hyphenation
+     hyphenation opportunity
+     hyphen-separated matching
+     hypothetical cross size
+     hypothetical fr size
+     hypothetical main size
+     ident
+     ident code point
+     
+      identifier
+      
+       in css-values-3, for CSS
+       in css2
+      
+     identity transform
+     identity transform function
+     ident sequence
+     ident-start code point
+     idl attribute name to animation property name
+     idl attribute to css property
+     idle
+     idle phase
+     id selector
+     ignore
+     ignored
+     ignore unknown
+     ignore valid
+     illegal
+     image animation name rule
+     image pair isolation rule
+     implicit grid
+     implicit grid column
+     implicit grid lines
+     implicit grid properties
+     implicit grid row
+     implicit grid track
+     implicitly-assigned line name
+     implicitly-named area
+     @import
+     important
+     important flag
+     import conditions
+     inactiveborder
+     inactivecaption
+     inactivecaptiontext
+     inactive timeline
+     increasing
+     
+      indefinite
+      
+       in css-flexbox-1
+       in css-sizing-3
+      
+     
+      indefinite size
+      
+       in css-flexbox-1
+       in css-sizing-3
+      
+     independent formatting context
+     index
+     indianred
+     indicate focus
+     indigo
+     in effect
+     infinitely growable
+     in flow
+     in-flow
+     in-flow box
+     infobackground
+     infotext
+     in-gamut
+     
+      inherit
+      
+       in css-cascade-5
+       in css-cascade-5, for CSS
+      
+     
+      inheritance
+      
+       in css-cascade-5
+       in css-cascade-5, for CSS
+      
+     inherit counters
+     inherited property
+     inherited value
+     initial containing block
+     initial fixed containing block
+     initial free space
+     initial representation for the counter value
+     initial snapshot containing block size
+     initial value
+     inline
+     inline axis
+     inline-axis
+     inline base direction
+     inline block
+     inline-block
+     inline block box
+     inline box
+     inline dimension
+     inline end
+     inline-end
+     inline formatting context
+     inline-level
+     inline-level box
+     inline-level boxes
+     inline-level content
+     inline-level element
+     inline-level elements
+     inline size
+     inline-size
+     inline-size containment
+     inline start
+     inline-start
+     inlinification
+     inlinify
+     inner block size
+     inner box-shadow
+     inner display type
+     inner edge
+     inner height
+     inner inline size
+     innermost
+     inner size
+     inner width
+     in play
+     input progress value
+     input stream
+     input value pseudo-classes
+     insert a css rule
+     inset-modified containing block
+     inset properties
+     installed font fallback
+     instantiate counter
+     instant scroll
+     integer
+     intended direction
+     intended direction and end position
+     intended end position
+     'interactive media group
+     internal ruby box
+     internal ruby element
+     internal table box
+     internal table element
+     interpolation color space
+     
+      interpreter
+      
+       in css-namespaces-3
+       in css-style-attr
+      
+     intrinsic dimensions
+     intrinsic size
+     intrinsic size constraint
+     intrinsic size contribution
+     intrinsic sizing
+     intrinsic sizing function
+     invalid
+     invalid at computed-value time
+     invalid color
+     invalid image
+     invalid rule error
+     invalid selector
+     invisible box
+     isolated sequence
+     isolation
+     iteration count
+     iteration duration
+     iteration index
+     iteration interval
+     iteration order
+     iteration progress
+     iteration start
+     iteration time
+     iteration time space
+     ivory
+     japanese
+     justification opportunity
+     keyframe
+     keyframe effect
+     keyframe offset
+     keyframe-specific composite operation
+     keyframe-specific easing function
+     keyword
+     khaki
+     known
+     korean
+     :lang
+     lang (pseudo-class)
+     language range
+     last-baseline alignment
+     last-baseline content-alignment
+     last baselines
+     last-baseline self-alignment
+     last baseline set
+     last cross-axis baseline set
+     last css style sheet set name
+     last main-axis baseline set
+     lavender
+     lavenderblush
+     lawngreen
+     layer name
+     laying out in-place
+     layout containment
+     layout containment box
+     layout-internal
+     layout viewport
+     :left
+     
+      left
+      
+       in css-writing-modes-4
+       in cssom-view-1, for supported open() feature name
+      
+     leftover space
+     legacy color syntax
+     legacy name alias
+     legacy selector alias
+     legacy shorthand
+     legacy value alias
+     lemonchiffon
+     
+      letter
+      
+       in css-syntax-3
+       in css-text-3
+      
+     lightblue
+     light color scheme
+     lightcoral
+     lightcyan
+     lightgoldenrodyellow
+     lightgray
+     lightgreen
+     lightgrey
+     lightpink
+     lightsalmon
+     lightseagreen
+     lightskyblue
+     lightslategray
+     lightslategrey
+     light source
+     lightsteelblue
+     lightyellow
+     lime
+     limegreen
+     limited max-content contribution
+     limited min-content contribution
+     linear easing function
+     linear timing function
+     line box
+     
+      line break
+      
+       in css-break-3
+       in css-text-3
+      
+     line breaking
+     line breaking process
+     line-left
+     linen
+     line name
+     line name set
+     line orientation
+     line-over
+     line-relative
+     line-relative direction
+     line-right
+     line-under
+     :link
+     link (pseudo-class)
+     list item
+     list-item
+     list of complex selectors
+     list of compound selectors
+     list of selectors
+     list of simple selectors
+     list properties
+     loading image
+     local coordinate system
+     local time
+     local time space
+     local url flag
+     location
+     logical combination pseudo-classes
+     logical height
+     logical property group
+     logical width
+     longer
+     longhand
+     longhand property
+     loosely sorted by offset
+     lowercase letter
+     luminance
+     magenta
+     main axis
+     main-axis
+     main-axis baseline set
+     main dimension
+     main-end
+     main size
+     main size property
+     main-start
+     map document language elements to table elements
+     mapping logic
+     margin
+     margin area
+     margin box
+     margin edge
+     margin (of a box)
+     margin::of a box
+     margin properties
+     <margin-width>
+     mark
+     marked indexes
+     marker
+     marker box
+     marker image
+     marker string
+     maroon
+     mask border image
+     mask border image area
+     mask image
+     mask layer image
+     mask painting area
+     mask-position
+     mask positioning area
+     mask-size
+     match
+     match a complex selector against an element
+     match a selector against an element
+     match a selector against a pseudo-element
+     match a selector against a tree
+     matches state
+     matching transition delay
+     matching transition duration
+     matching transition-property value
+     matching transition timing function
+     max-content
+     max-content block size
+     max-content block-size contribution
+     max-content constraint
+     max-content contribution
+     max-content inline size
+     max-content inline-size contribution
+     max-content size
+     max cross size
+     max cross size property
+     max height
+     maximum allowed code point
+     maximum height
+     maximum size
+     maximum width
+     max inner height
+     max inner width
+     max main size
+     max main size property
+     max size
+     max size property
+     max track sizing function
+     max width
+     may
+     
+      media
+      
+       in css2
+       in cssom-1, for CSSStyleSheet
+       in cssom-view-1, for MediaQueryList
+      
+     media condition
+     media-dependent import
+     media feature
+     media group
+     media groups
+     media query
+     
+      media query list
+      
+       in cssom-view-1, for MediaQueryList
+       in mediaqueries-4
+      
+     media query modifier
+     media type
+     mediumaquamarine
+     mediumblue
+     mediumorchid
+     mediumpurple
+     mediumseagreen
+     mediumslateblue
+     mediumspringgreen
+     mediumturquoise
+     mediumvioletred
+     menu
+     menutext
+     message entity
+     midnightblue
+     min-content
+     min-content block size
+     min-content block-size contribution
+     min-content constraint
+     min-content contribution
+     min-content inline size
+     min-content inline-size contribution
+     min-content size
+     min cross size
+     min cross size property
+     minde
+     min height
+     minimum contribution
+     minimum height
+     minimum size
+     minimum width
+     min inner height
+     min inner width
+     min main size
+     min main size property
+     min size
+     min size property
+     mintcream
+     min track sizing function
+     min width
+     missing
+     missing color component
+     missing component
+     mistyrose
+     moccasin
+     modern color syntax
+     monolithic
+     monospace
+     monotonically increasing timeline
+     multicol container
+     multi-col line
+     multicol line
+     multi-column container
+     multi-column formatting context
+     multi-column layout
+     multi-column line
+     multi-column spanner
+     multi-column spanning element
+     multi-line flex container
+     multiple declarations
+     multiply
+     must
+     must not
+     naively converted to cmyk
+     naively converted to rgba
+     naively convert from cmyk to rgba
+     naively convert from rgba to cmyk
+     name
+     named cell token
+     named color
+     named elements
+     named grid area
+     named view transition pseudo-elements
+     namespace prefix
+     name-start code point
+     natural aspect ratio
+     natural dimension
+     natural end-point
+     natural height
+     natural size
+     natural width
+     navajowhite
+     navy
+     nearest neighbor
+     neutral value for composition
+     new element
+     newline
+     next input code point
+     next input token
+     next-sibling combinator
+     next token
+     non-ascii code point
+     non-ascii ident code point
+     none
+     'none'::as display value
+     non-overridable counter-style names
+     non-printable code point
+     non-replaced
+     non-replaced element
+     
+      normal
+      
+       in css-cascade-5
+       in web-animations-1, for playback direction
+      
+     normalize into a token stream
+     normalize non-finite values
+     not animatable
+     not determined
+     null cell token
+     number
+     numeric data types
+     objects
+     object size negotiation
+     occupied
+     offset anchor point
+     offset distance
+     offsetk
+     offset path
+     offset position
+     offset starting position
+     offset transform
+     old backdrop-filter
+     old color-scheme
+     old direction
+     old height
+     old image
+     oldlace
+     old mix-blend-mode
+     old text-orientation
+     old transform
+     old width
+     old writing-mode
+     olive
+     olivedrab
+     opacity
+     opaque black
+     operating coordinate space
+     optimal viewing region
+     optional
+     orange
+     orangered
+     orchid
+     order-modified document order
+     origin
+     original containing block
+     originally specified color space
+     originating element
+     originating pseudo-element
+     origin-clean flag
+     origin color
+     origin time
+     orthogonal
+     orthogonal flow
+     other space separators
+     outer block size
+     outer box-shadow
+     outer display type
+     outer edge
+     outer height
+     outer inline size
+     outer size
+     outer width
+     outline
+     out of flow
+     out-of-flow
+     out-of-flow box
+     out of gamut
+     output of the cascade
+     output progress value
+     outset-adjusted border radius
+     over
+     overall progress
+     overflow
+     overflow alignment
+     overflow columns
+     overflow directions
+     override the color scheme
+     overriding preference
+     owner css rule
+     
+      owner node
+      
+       in cssom-1, for CSSStyleDeclaration
+       in cssom-1, for CSSStyleSheet
+      
+     padding
+     padding area
+     padding box
+     padding edge
+     padding (of a box)
+     padding::of a box
+     padding properties
+     <padding-width>
+     @page
+     page area
+     page box
+     page break
+     page color scheme
+     page context
+     page-context
+     paged media
+     'paged' media group
+     page selector
+     page's supported color scheme
+     page's supported color schemes
+     page zoom
+     pagination
+     paint containment
+     paint containment box
+     palegoldenrod
+     palegreen
+     paleturquoise
+     palevioletred
+     papayawhip
+     parent
+     parent box
+     
+      parent css rule
+      
+       in cssom-1, for CSSRule
+       in cssom-1, for CSSStyleDeclaration
+      
+     
+      parent css style sheet
+      
+       in cssom-1, for CSSRule
+       in cssom-1, for CSSStyleSheet
+      
+     parse
+     parse a block's contents
+     parse a comma-separated list according to a css grammar
+     parse a comma-separated list of component values
+     parse a component value
+     parse a css <color> value
+     parse a css declaration block
+     parse a css rule
+     parse a css stylesheet
+     parse a css value
+     parse a declaration
+     parse a group of selectors
+     parse a list
+     parse a list of component values
+     parse a list of css page selectors
+     parse a list of declarations
+     parse a list of rules
+     parse a media query
+     parse a media query list
+     parse a relative selector
+     parse a rule
+     parse as a forgiving selector list
+     parse a selector
+     parse a style block's contents
+     parse a stylesheet
+     parse a stylesheet's contents
+     parse error
+     parse something according to a css grammar
+     parsing a list
+     partially visible
+     participates in baseline alignment
+     pass through filter
+     pause an animation
+     paused
+     peachpuff
+     pending animation event queue
+     pending on the environment
+     pending pause task
+     pending playback rate
+     pending play task
+     pending scrollend event targets
+     pending scroll events
+     pending scroll event targets
+     pending-substitution value
+     percentage
+     
+      perform a scroll
+      
+       in cssom-view-1
+       in cssom-view-1, for viewport
+      
+     perform pending transition operations
+     persisted replace state
+     persistent css style sheet
+     perspective matrix
+     peru
+     phase
+     physical
+     physical bottom
+     physical dimensions
+     physical direction
+     physical left
+     physical right
+     physical top
+     physical unit
+     pink
+     pixel
+     pixel unit
+     play an animation
+     playback control
+     playback direction
+     playback rate
+     play state
+     plum
+     positional alignment
+     position box
+     positioned
+     positioned box
+     positioned element/box
+     positioning scheme
+     positioning schemes:
+     post-multiplied
+     post-multiply
+     potentially scrollable
+     powderblue
+     powerless color component
+     preceding element
+     preferred aspect ratio
+     preferred color scheme
+     preferred css style sheet set name
+     preferred height
+     preferred order
+     preferred size
+     preferred size property
+     preferred width
+     pre-multiplied
+     premultiplied
+     pre-multiply
+     prepare a color col1 for conversion
+     preserved tokens
+     preserved white space
+     previous current time
+     primary filter primitive tree
+     principal block-level box
+     principal box
+     principal writing mode
+     priority candidates
+     process
+     process a keyframe-like object
+     process a keyframes argument
+     prolog
+     propagate
+     propagation
+     proper table child
+     proper table row parent
+     
+      property
+      
+       in css-cascade-5, for CSS
+       in css2
+      
+     property declarations
+     property name
+     proximity to the viewport
+     pseudo-class
+     pseudo-classes
+     pseudo-classes:::active
+     pseudo-classes:::focus
+     pseudo-classes:::hover
+     pseudo-classes:::lang
+     pseudo-classes:::link
+     pseudo-classes:::visited
+     pseudo-class:::first
+     pseudo-class:::left
+     pseudo-class:::right
+     pseudo-compound selector
+     pseudo-element root
+     pseudo-elements
+     
+      pseudo-elements:::after
+      
+       in css2
+       in css2
+      
+     
+      pseudo-elements:::before
+      
+       in css2
+       in css2
+      
+     pseudo-elements:::first-letter
+     pseudo-elements:::first-line
+     pseudo-element tree
+     purple
+     quad width
+     qualified rule
+     range context
+     ray trace gamut map
+     readonly flag
+     ready
+     ready promise
+     recommended
+     reconsume the current input code point
+     reconsume the current input token
+     rectangular orthogonal color
+     red
+     
+      reference box
+      
+       in css-shapes-1, for <basic-shape>
+       in css-transforms-1
+      
+     reference pixel
+     region break
+     relative color
+     relative color processing space
+     relative length
+     relative length unit
+     relatively position
+     relatively-positioned
+     relatively positioned box
+     relative position
+     relative positioning
+     relative scroll
+     relative selector
+     relative selector anchor elements
+     relative units
+     relevant
+     relevant animations
+     relevant animations for a subtree
+     relevant to the user
+     remaining fragmentainer extent
+     remaining free space
+     remove a css rule
+     remove a css style sheet
+     removed replace state
+     remove event
+     remove replaced animations
+     rendered content
+     rendering suppression for view transitions
+     render with a fallback font face
+     render with an invisible fallback font face
+     repeatable list
+     replaceable animation
+     replaced
+     replaced element
+     replace state
+     representation
+     required
+     required conversion
+     reset an animation's pending tasks
+     reset-only sub-property
+     re-snap
+     resolved type
+     resolved value
+     resolved value special case property
+     resolved value special case property like color
+     resolved value special case property like height
+     resolved value special case property like top
+     resolve to srgb
+     restore a mark
+     reverse
+     reverse an animation
+     reversed
+     reversing-adjusted start value
+     reversing shortening factor
+     :right
+     right
+     root
+     root element
+     rosybrown
+     row group box
+     row groups
+     royalblue
+     rule
+     rule set
+     rules on anonymous table objects
+     run-in
+     run-in box
+     run-in sequence
+     running
+     running transition
+     run snapshot post-layout state steps
+     run the resize steps
+     run the scroll steps
+     saddlebrown
+     salmon
+     sandybrown
+     sans-serif
+     scaled flex shrink factor
+     scale factor
+     scheduled event time
+     schedule the update callback
+     scope
+     scoped
+     scoped properties
+     scoped property
+     scoped selector
+     scoped to an element
+     scoped to an element's sub-tree
+     scoped to a sub-tree
+     scoped to the element
+     scoped to the element's sub-tree
+     scoped to the sub-tree
+     scoping root
+     screen reader
+     script property
+     scroll anchoring bounding rect
+     scroll an element
+     scroll a target into view
+     scrollbar
+     scroll completed
+     scrolling area
+     scrolling area origin
+     scrolling box
+     scroll snap
+     scroll snap area
+     scroll snap container
+     scroll snapport
+     scroll snap position
+     scroll to the beginning of the document
+     seagreen
+     seamlessly update the playback rate
+     seashell
+     seek
+     segment break
+     select a css style sheet set
+     selector
+     selector list
+     selector::match
+     selector matches
+     selector::subject of
+     self-alignment
+     self-alignment properties
+     semitone
+     separated borders model
+     sequence of simple selectors
+     serialize a comma-separated list
+     serialize a css component value
+     serialize a css declaration
+     serialize a css declaration block
+     serialize a css rule
+     serialize a css value
+     serialize a function
+     serialize a group of selectors
+     serialize a list of css page selectors
+     serialize a local
+     serialize a media feature value
+     serialize a media query
+     serialize a media query list
+     serialize an <an+b> value
+     serialize an <a-n-plus-b> value
+     serialize an identifier
+     serialize as a string
+     serialize a selector
+     serialize a simple selector
+     serialize a string
+     serialize a url
+     serialize a whitespace-separated list
+     serif
+     set
+     set a css declaration
+     set emulated forced colors theme data
+     set entries
+     set the associated effect of an animation
+     set the current time
+     set the playback rate
+     set the start time
+     set the timeline of an animation
+     set up browsing context features
+     setup transition pseudo-elements
+     setup view transition
+     shall
+     shall not
+     shared alignment context
+     sheet
+     sheets
+     shorter
+     shorthand
+     shorthand properties
+     shorthand property
+     should
+     should not
+     show view transition tree
+     sibling
+     sideways typesetting
+     sienna
+     silently set the current time
+     silver
+     simple block
+     simple iteration progress
+     simple selector
+     single-line flex container
+     size
+     size containment
+     size containment box
+     sizing as if empty
+     sizing function
+     sizing property
+     skip its contents
+     skipped contents
+     skipping its contents
+     skips its contents
+     skip the view transition
+     skyblue
+     slateblue
+     slategray
+     slategrey
+     small
+     small kana
+     smooth scroll
+     smooth scroll aborted
+     smooth scroll completed
+     snapshot containing block
+     snapshot containing block origin
+     snapshot containing block size
+     snow
+     soft wrap break
+     soft wrap opportunity
+     source
+     source document
+     spaces
+     space-separated matching
+     space to fill
+     span count
+     specificity
+     <specific-voice>
+     specified order
+     specified size
+     
+      specified size suggestion
+      
+       in css-flexbox-1
+       in css-grid-1
+      
+     specified value
+     specified values
+     'speech' media group
+     spread break
+     spread distance
+     springgreen
+     srgb
+     srgb-linear
+     stacking context
+     stack level
+     start
+     start delay
+     starting point
+     startmost
+     starts with an ident sequence
+     starts with a number
+     starts with a valid escape
+     
+      start time
+      
+       in css-transitions-1, for transition
+       in web-animations-1, for animation
+      
+     start value
+     start with an ident sequence
+     start with a number
+     statement at-rule
+     'static' media group
+     static position
+     static-position containing block
+     
+      static-position rectangle
+      
+       in css-align-3
+       in css-position-3
+      
+     stationary scroll
+     steelblue
+     step easing function
+     step position
+     steps
+     sticky position
+     sticky-positioned
+     sticky-positioned box
+     sticky view rectangle
+     stop or comma
+     stretched
+     stretch fit
+     stretch-fit block size
+     stretch-fit inline size
+     stretch-fit size
+     strictness value
+     <string>
+     stringification behavior
+     stroke bounding box
+     stronger inset
+     structural pseudo-classes
+     stuck on the environment
+     style attribute
+     style change event
+     style containment
+     style definitions
+     style rule
+     
+      style sheet
+      
+       in css-namespaces-3
+       in css-speech-1
+       in css2
+      
+     stylesheet
+     stylesheet base url
+     subject
+     subject of a selector
+     subject (of selector)
+     subject of the selector
+     subjects
+     subjects of the selector
+     sub-property
+     sub-pseudo-element
+     subsequent-sibling combinator
+     substitute a var()
+     
+      support
+      
+       in css-conditional-3, for CSS
+       in css-fonts-4
+      
+     support a css selector
+     supported css property
+     supported open() feature name
+     supported styling language
+     support legacy color syntax
+     supports queries
+     suppression trigger
+     suppression window
+     svg layout box
+     svg viewport origin box
+     switch the fontfaceset to loaded
+     switch the fontfaceset to loading
+     synchronously replace the rules of a cssstylesheet
+     synthesize baseline
+     synthesized baseline
+     system color pairings
+     system colors
+     system fonts
+     table
+     table caption box
+     table element
+     table grid box
+     tables
+     table wrapper box
+     tabs
+     tab size
+     tab stop
+     tabular container
+     'tactile' media group
+     tagged image
+     tan
+     target element
+     target main size
+     target property
+     target pseudo-selector
+     teal
+     text
+     text/css
+     text node
+     text sequence
+     textual data types
+     thistle
+     threeddarkshadow
+     threedface
+     threedhighlight
+     threedlightshadow
+     threedshadow
+     thumb
+     <time>
+     timeline
+     timeline associated with a document
+     timeline time to origin-relative time
+     time spaces
+     time value
+     timing function
+     timing model
+     timing nodes
+     title
+     tokenization
+     tokenize
+     tokenizer
+     tokens
+     token stream
+     tomato
+     
+      top
+      
+       in css-writing-modes-4
+       in cssom-view-1, for supported open() feature name
+      
+     total length
+     track
+     tracking
+     track list
+     track section
+     track sizing algorithm
+     track sizing function
+     transfer function element
+     transfer function element attributes
+     
+      transferred size suggestion
+      
+       in css-flexbox-1
+       in css-grid-1
+      
+     transformable element
+     transformation matrix
+     transformed element
+     transformed progress
+     transforms
+     transitionable
+     transition origin
+     transition root pseudo-element
+     transitions
+     transparent
+     transparent black
+     trash token
+     triangle
+     trinary
+     turquoise
+     
+      type
+      
+       in cssom-1, for CSSRule
+       in cssom-1, for CSSStyleSheet
+      
+     type selector
+     typeset sideways
+     typesetting sideways
+     typesetting upright
+     typeset upright
+     typographic character
+     typographic character unit
+     typographic letter unit
+     typographic mode
+     
+      ua
+      
+       in css-speech-1
+       in css2
+      
+     ua origin
+     ua-origin
+     ua style sheet
+     ultimate originating element
+     under
+     underlying value
+     unforced break
+     unicode category
+     unicode east asian width
+     unicode general category
+     unicode script
+     unicode vertical orientation
+     universal selector
+     unknown
+     unknown -webkit- pseudo-elements
+     unoccupied
+     unresolved
+     unset
+     untagged image
+     untagged video
+     update an animation's finished state
+     update animations and send events
+     update callback
+     update callback done promise
+     update callback queue
+     update content relevancy for a document
+     update currently relevant to the user
+     update pseudo-element styles
+     update style attribute for
+     update the timing properties of an animation effect
+     updating flag
+     upper-alpha-legal
+     uppercase letter
+     upright typesetting
+     url
+     use a negative sign
+     used color
+     used color scheme
+     used offset distance
+     used value
+     used values
+     user
+     user action pseudo-class
+     
+      user agent
+      
+       in css-speech-1
+       in css2
+      
+     user-agent origin
+     user-agent style sheet
+     user agent (ua)
+     user coordinate system
+     user origin
+     user-origin
+     user style sheet
+     uses a negative sign
+     valid color
+     valid image
+     validity
+     valid style sheet
+     
+      value
+      
+       in css-lists-3, for CSS counter
+       in css2
+       in cssom-1, for CSS declaration
+      
+     value definition syntax
+     values
+     var() substitution
+     vertical axis
+     vertical-axis
+     vertical block flow
+     vertical dimension
+     vertical offset
+     vertical-only
+     vertical orientation
+     vertical script
+     vertical typographic mode
+     vertical writing mode
+     viable candidate
+     viewport
+     viewport-percentage lengths
+     view transition layer
+     view transition name
+     view transition page-visibility change steps
+     view transition pseudo-elements
+     view transitions
+     view transition tree
+     violet
+     :visited
+     visited (pseudo-class)
+     visual angle unit
+     visual formatting model
+     'visual' media group
+     visual viewport
+     volume
+     weaker inset
+     web animations animation model
+     web animations api
+     web animations model
+     web animations timing model
+     web-exposed available screen area
+     web-exposed screen area
+     wheat
+     white
+     white point
+     whitesmoke
+     
+      white space
+      
+       in css-text-3
+       in selectors-4
+      
+     whitespace
+     white space characters
+     
+      width
+      
+       in css-sizing-3
+       in css-writing-modes-4
+       in cssom-view-1, for supported open() feature name
+      
+     window
+     windowframe
+     windowtext
+     word separator
+     word-separator character
+     would start an ident sequence
+     would start a number
+     would start a unicode-range
+     
+      wrap
+      
+       in css-shapes-1
+       in css-text-3
+      
+     
+      wrapping
+      
+       in css-shapes-1
+       in css-text-3
+      
+     writing mode
+     x-axis
+     x-height
+     y-axis
+     yellow
+     yellowgreen
+    
+   
+   8.2. Selector Index
+   
+    
+     *
+     +
+     >
+     ~
+     :active
+     ::after
+     :after
+     :any-link
+     :autofill
+     ::before
+     :before
+     :buffering
+     :checked
+     :default
+     :defined
+     :dir()
+     :disabled
+     :empty
+     :enabled
+     :first
+     :first-child
+     first-child
+     ::first-letter
+     :first-letter
+     ::first-line
+     :first-line
+     :first-of-type
+     :focus
+     :focus-visible
+     :focus-within
+     :fullscreen
+     :has()
+     :hover
+     :indeterminate
+     :in-range
+     :invalid
+     :is()
+     
+      :lang
+      
+       in css2
+       in selectors-3
+      
+     :lang()
+     :last-child
+     :last-of-type
+     :left
+     :link
+     :matches()
+     :modal
+     :muted
+     :not()
+     :nth-child()
+     :nth-last-child()
+     :nth-last-of-type()
+     :nth-of-type()
+     :only-child
+     :only-of-type
+     :open
+     :optional
+     :out-of-range
+     :paused
+     :picture-in-picture
+     :placeholder-shown
+     :playing
+     :popover-open
+     :read-only
+     :read-write
+     :required
+     :right
+     :root
+     :scope
+     :seeking
+     :stalled
+     :target
+     :unchecked
+     :user-invalid
+     :user-valid
+     :valid
+     ::view-transition
+     ::view-transition-group()
+     ::view-transition-image-pair()
+     ::view-transition-new()
+     ::view-transition-old()
+     :visited
+     :volume-locked
+     :where()
+    
+   
+   8.3. 
+At-Rule Index
+   
+    
+     @annotation
+     @character-variant
+     @charset
+     @color-profile
+     @counter-style
+     @font-face
+     @font-feature-values
+     @font-palette-values
+     @historical-forms
+     @import
+     @keyframes
+     @layer
+     @media
+     @namespace
+     @ornaments
+     @page
+     @styleset
+     @stylistic
+     @supports
+     @swash
+    
+   
+   8.4. Property Index
+   
+    
+     --*
+     
+      align-content
+      
+       in css-align-3
+       in css-flexbox-1
+      
+     
+      align-items
+      
+       in css-align-3
+       in css-flexbox-1
+      
+     
+      align-self
+      
+       in css-align-3
+       in css-flexbox-1
+      
+     all
+     animation
+     animation-delay
+     animation-direction
+     animation-duration
+     animation-fill-mode
+     animation-iteration-count
+     animation-name
+     animation-play-state
+     animation-timing-function
+     azimuth
+     backface-visibility
+     background
+     background-attachment
+     background-blend-mode
+     background-clip
+     background-color
+     background-image
+     background-origin
+     background-position
+     background-repeat
+     background-size
+     block-size
+     border
+     border-block
+     border-block-color
+     border-block-end
+     border-block-end-color
+     border-block-end-style
+     border-block-end-width
+     border-block-start
+     border-block-start-color
+     border-block-start-style
+     border-block-start-width
+     border-block-style
+     border-block-width
+     border-bottom
+     border-bottom-color
+     border-bottom-left-radius
+     border-bottom-right-radius
+     border-bottom-style
+     border-bottom-width
+     border-collapse
+     border-color
+     border-end-end-radius
+     border-end-start-radius
+     border-image
+     border-image-outset
+     border-image-repeat
+     border-image-slice
+     border-image-source
+     border-image-width
+     border-inline
+     border-inline-color
+     border-inline-end
+     border-inline-end-color
+     border-inline-end-style
+     border-inline-end-width
+     border-inline-start
+     border-inline-start-color
+     border-inline-start-style
+     border-inline-start-width
+     border-inline-style
+     border-inline-width
+     border-left
+     border-left-color
+     border-left-style
+     border-left-width
+     border-radius
+     border-right
+     border-right-color
+     border-right-style
+     border-right-width
+     border-spacing
+     border-start-end-radius
+     border-start-start-radius
+     border-style
+     border-top
+     border-top-color
+     border-top-left-radius
+     border-top-right-radius
+     border-top-style
+     border-top-width
+     border-width
+     bottom
+     box-decoration-break
+     box-shadow
+     
+      box-sizing
+      
+       in css-sizing-3
+       in css-ui-3
+      
+     break-after
+     break-before
+     break-inside
+     caption-side
+     caret-color
+     clear
+     clip
+     clip-path
+     clip-rule
+     color
+     color-adjust
+     color-interpolation-filters
+     color-scheme
+     column-count
+     column-fill
+     column-gap
+     column-rule
+     column-rule-color
+     column-rule-style
+     column-rule-width
+     columns
+     column-span
+     column-width
+     contain
+     content
+     content-visibility
+     counter-increment
+     counter-reset
+     counter-set
+     
+      cue
+      
+       in css-speech-1
+       in css2
+      
+     
+      cue-after
+      
+       in css-speech-1
+       in css2
+      
+     
+      cue-before
+      
+       in css-speech-1
+       in css2
+      
+     cursor
+     direction
+     display
+     elevation
+     empty-cells
+     filter
+     flex
+     flex-basis
+     flex-direction
+     flex-flow
+     flex-grow
+     flex-shrink
+     flex-wrap
+     float
+     flood-color
+     flood-opacity
+     font
+     font-family
+     font-feature-settings
+     font-kerning
+     font-language-override
+     font-optical-sizing
+     font-palette
+     font-size
+     font-size-adjust
+     font-stretch
+     font-style
+     font-synthesis
+     font-synthesis-position
+     font-synthesis-small-caps
+     font-synthesis-style
+     font-synthesis-weight
+     font-variant
+     font-variant-alternates
+     font-variant-caps
+     font-variant-east-asian
+     font-variant-emoji
+     font-variant-ligatures
+     font-variant-numeric
+     font-variant-position
+     font-variation-settings
+     font-weight
+     font-width
+     forced-color-adjust
+     gap
+     glyph-orientation-vertical
+     grid
+     grid-area
+     grid-auto-columns
+     grid-auto-flow
+     grid-auto-rows
+     grid-column
+     grid-column-end
+     grid-column-gap
+     grid-column-start
+     grid-gap
+     grid-row
+     grid-row-end
+     grid-row-gap
+     grid-row-start
+     grid-template
+     grid-template-areas
+     grid-template-columns
+     grid-template-rows
+     hanging-punctuation
+     height
+     hyphens
+     image-orientation
+     image-rendering
+     inline-size
+     inset
+     inset-block
+     inset-block-end
+     inset-block-start
+     inset-inline
+     inset-inline-end
+     inset-inline-start
+     isolation
+     
+      justify-content
+      
+       in css-align-3
+       in css-flexbox-1
+      
+     justify-items
+     justify-self
+     left
+     letter-spacing
+     lighting-color
+     line-break
+     line-height
+     list-style
+     list-style-image
+     list-style-position
+     list-style-type
+     margin
+     margin-block
+     margin-block-end
+     margin-block-start
+     margin-bottom
+     margin-inline
+     margin-inline-end
+     margin-inline-start
+     margin-left
+     margin-right
+     margin-top
+     marker-side
+     mask
+     mask-border
+     mask-border-mode
+     mask-border-outset
+     mask-border-repeat
+     mask-border-slice
+     mask-border-source
+     mask-border-width
+     mask-clip
+     mask-composite
+     mask-image
+     mask-mode
+     mask-origin
+     mask-position
+     mask-repeat
+     mask-size
+     mask-type
+     max-block-size
+     max-height
+     max-inline-size
+     max-width
+     min-block-size
+     min-height
+     min-inline-size
+     min-width
+     mix-blend-mode
+     object-fit
+     object-position
+     offset
+     offset-anchor
+     offset-distance
+     offset-path
+     offset-position
+     offset-rotate
+     opacity
+     order
+     orphans
+     outline
+     outline-color
+     outline-offset
+     outline-style
+     outline-width
+     overflow
+     overflow-anchor
+     overflow-wrap
+     padding
+     padding-block
+     padding-block-end
+     padding-block-start
+     padding-bottom
+     padding-inline
+     padding-inline-end
+     padding-inline-start
+     padding-left
+     padding-right
+     padding-top
+     page-break-after
+     page-break-before
+     page-break-inside
+     
+      pause
+      
+       in css-speech-1
+       in css2
+      
+     
+      pause-after
+      
+       in css-speech-1
+       in css2
+      
+     
+      pause-before
+      
+       in css-speech-1
+       in css2
+      
+     perspective
+     perspective-origin
+     pitch
+     pitch-range
+     place-content
+     place-items
+     place-self
+     play-during
+     position
+     print-color-adjust
+     property-name
+     quotes
+     resize
+     rest
+     rest-after
+     rest-before
+     richness
+     right
+     rotate
+     row-gap
+     scale
+     scrollbar-color
+     scrollbar-width
+     scroll-margin
+     scroll-margin-block
+     scroll-margin-block-end
+     scroll-margin-block-start
+     scroll-margin-bottom
+     scroll-margin-inline
+     scroll-margin-inline-end
+     scroll-margin-inline-start
+     scroll-margin-left
+     scroll-margin-right
+     scroll-margin-top
+     scroll-padding
+     scroll-padding-block
+     scroll-padding-block-end
+     scroll-padding-block-start
+     scroll-padding-bottom
+     scroll-padding-inline
+     scroll-padding-inline-end
+     scroll-padding-inline-start
+     scroll-padding-left
+     scroll-padding-right
+     scroll-padding-top
+     scroll-snap-align
+     scroll-snap-stop
+     scroll-snap-type
+     shape-image-threshold
+     shape-margin
+     shape-outside
+     
+      speak
+      
+       in css-speech-1
+       in css2
+      
+     speak-as
+     speak-header
+     speak-numeral
+     speak-punctuation
+     speech-rate
+     stress
+     table-layout
+     tab-size
+     text-align
+     text-align-all
+     text-align-last
+     text-combine-upright
+     text-decoration
+     text-decoration-color
+     text-decoration-line
+     text-decoration-style
+     text-emphasis
+     text-emphasis-color
+     text-emphasis-position
+     text-emphasis-style
+     text-indent
+     text-justify
+     text-orientation
+     text-overflow
+     text-shadow
+     text-transform
+     text-underline-position
+     top
+     transform
+     transform-box
+     transform-origin
+     transform-style
+     transition
+     transition-delay
+     transition-duration
+     transition-property
+     transition-timing-function
+     translate
+     unicode-bidi
+     vertical-align
+     view-transition-name
+     visibility
+     voice-balance
+     voice-duration
+     
+      voice-family
+      
+       in css-speech-1
+       in css2
+      
+     voice-pitch
+     voice-range
+     voice-rate
+     voice-stress
+     voice-volume
+     volume
+     white-space
+     widows
+     width
+     will-change
+     word-break
+     word-spacing
+     word-wrap
+     writing-mode
+     z-index
+    
+   
+   8.5. Values Index
+   
+    
+     
+      a
+      
+       in css-color-5, for lab()
+       in css-color-5, for oklab()
+      
+     a98-rgb
+     
+      absolute
+      
+       in css-position-3, for position
+       in css-speech-1, for voice-pitch
+       in css-speech-1, for voice-range
+      
+     absolute-colorimetric
+     accentcolor
+     accentcolortext
+     activeborder
+     activecaption
+     activetext
+     add
+     additive
+     alias
+     aliceblue
+     
+      all
+      
+       in css-multicol-1, for column-span
+       in css-transitions-1, for transition-property
+       in css-writing-modes-4, for text-combine-upright
+       in css2, for @media
+       in mediaqueries-4, for @media
+      
+     allow-end
+     all-petite-caps
+     all-scroll
+     all-small-caps
+     
+      alpha
+      
+       in css-color-5, for alpha()
+       in css-color-5, for color()
+       in css-color-5, for hsl()
+       in css-color-5, for hwb()
+       in css-color-5, for lab()
+       in css-color-5, for lch()
+       in css-color-5, for oklab()
+       in css-color-5, for oklch()
+       in css-color-5, for rgb()
+       in css-masking-1, for mask-border-mode
+       in css-masking-1, for mask-mode
+       in css-masking-1, for mask-type
+      
+     alphabetic
+     alternate
+     alternate-reverse
+     
+      always
+      
+       in css-scroll-snap-1, for scroll-snap-stop
+       in css-speech-1, for speak
+       in css2, for page-break-before, page-break-after, page-break-inside
+      
+     <angle>
+     annotation(<font-feature-value-name>)
+     antiquewhite
+     
+      anywhere
+      
+       in css-text-3, for line-break
+       in css-text-3, for overflow-wrap
+      
+     appworkspace
+     
+      aqua
+      
+       in css-color-4, for <color>, <named-color>
+       in css2, for <color>
+      
+     aquamarine
+     arabic-indic
+     arc
+     
+      armenian
+      
+       in css-counter-styles-3, for <counter-style-name>
+       in css2
+       in css2, for list-style-type
+      
+     at <position>
+     attr(x)
+     aural
+     
+      auto
+      
+       in css-align-3, for align-self
+       in css-align-3, for justify-self
+       in css-backgrounds-3, for background-size
+       in css-backgrounds-3, for border-image-width
+       in css-break-3, for break-before, break-after
+       in css-break-3, for break-inside, page-break-inside
+       in css-color-adjust-1, for forced-color-adjust
+       in css-contain-2, for content-visibility
+       in css-counter-styles-3, for @counter-style/range
+       in css-counter-styles-3, for @counter-style/speak-as
+       in css-flexbox-1, for align-items, align-self
+       in css-flexbox-1, for flex-basis
+       in css-fonts-4, for @font-face/font-display
+       in css-fonts-4, for font-kerning
+       in css-fonts-4, for font-optical-sizing
+       in css-fonts-4, for font-synthesis-position
+       in css-fonts-4, for font-synthesis-small-caps
+       in css-fonts-4, for font-synthesis-style
+       in css-fonts-4, for font-synthesis-weight
+       in css-grid-1, for <grid-line>
+       in css-grid-1, for grid-template-columns, grid-template-rows
+       in css-images-3, for image-rendering
+       in css-multicol-1, for column-count
+       in css-multicol-1, for column-fill
+       in css-multicol-1, for column-width
+       in css-position-3, for top, right, bottom, left, inset-block-start, inset-inline-start, inset-block-end, inset-inline-end, inset-block, inset-inline, inset
+       in css-scroll-anchoring-1, for overflow-anchor
+       in css-scroll-snap-1, for scroll-padding, scroll-padding-inline, scroll-padding-inline-start, scroll-padding-inline-end, scroll-padding-block, scroll-padding-block-start, scroll-padding-block-end
+       in css-scrollbars-1, for scrollbar-color
+       in css-scrollbars-1, for scrollbar-width
+       in css-sizing-3, for width, height, min-width, min-height
+       in css-speech-1, for speak
+       in css-speech-1, for voice-duration
+       in css-text-3, for hyphens
+       in css-text-3, for line-break
+       in css-text-3, for text-align-last
+       in css-text-3, for text-justify
+       in css-text-decor-3, for text-underline-position
+       in css-ui-3, for caret-color
+       in css-ui-3, for cursor
+       in css-will-change-1, for will-change
+       in css2, for <top>, <right>, <bottom>, <left>
+       in css2, for clip
+       in css2, for height
+       in css2, for overflow
+       in css2, for page-break-before, page-break-after, page-break-inside
+       in css2, for table-layout
+       in css2, for top, right, bottom, left
+       in css2, for width
+       in css2, for z-index
+       in filter-effects-1, for color-interpolation-filters
+       in motion-1, for offset-anchor
+       in motion-1, for offset-position
+       in motion-1, for offset-rotate
+      
+     auto-fill
+     auto-fit
+     [ auto-flow && dense? ] <'grid-auto-rows'>? / <'grid-template-columns'>
+     
+      avoid
+      
+       in css-break-3, for break-before, break-after
+       in css-break-3, for break-inside, page-break-inside
+       in css2, for page-break-before, page-break-after, page-break-inside
+      
+     
+      avoid-column
+      
+       in css-break-3, for break-before, break-after
+       in css-break-3, for break-inside, page-break-inside
+      
+     
+      avoid-page
+      
+       in css-break-3, for break-before, break-after
+       in css-break-3, for break-inside, page-break-inside
+      
+     
+      avoid-region
+      
+       in css-break-3, for break-before, break-after
+       in css-break-3, for break-inside, page-break-inside
+      
+     azure
+     
+      b
+      
+       in css-color-5, for color()
+       in css-color-5, for hwb()
+       in css-color-5, for lab()
+       in css-color-5, for oklab()
+       in css-color-5, for rgb()
+      
+     background
+     backwards
+     balance
+     balance-all
+     
+      baseline
+      
+       in css-align-3, for justify-self, justify-items, align-content, align-self, align-items, <baseline-position>
+       in css-flexbox-1, for align-items, align-self
+       in css2, for vertical-align
+      
+     <basic-shape>
+     beige
+     bengali
+     bidi-override
+     bisque
+     
+      black
+      
+       in css-color-4, for <color>, <named-color>
+       in css2, for <color>
+      
+     blanchedalmond
+     
+      blink
+      
+       in css-text-decor-3, for text-decoration-line
+       in css2, for text-decoration
+      
+     
+      block
+      
+       in css-display-3, for display, <display-outside>
+       in css-fonts-4, for @font-face/font-display
+       in css-scroll-snap-1, for scroll-snap-type
+       in css2, for display
+      
+     
+      blue
+      
+       in css-color-4, for <color>, <named-color>
+       in css2, for <color>
+      
+     blueviolet
+     bold
+     bolder
+     
+      border-box
+      
+       in css-backgrounds-3, for background-clip
+       in css-backgrounds-3, for background-origin
+       in css-box-3, for <box>, <visual-box>, <layout-box>, <shape-box>, <geometry-box>, <paint-box>, <coord-box>
+       in css-masking-1, for mask-clip
+       in css-masking-1, for mask-origin
+       in css-shapes-1, for <shape-box>, shape-outside
+       in css-sizing-3, for box-sizing
+       in css-transforms-1, for transform-box
+       in css-ui-3, for box-sizing
+      
+     
+      both
+      
+       in css-animations-1, for animation-fill-mode
+       in css-scroll-snap-1, for scroll-snap-type
+       in css2, for clear
+      
+     
+      bottom
+      
+       in css-backgrounds-3, for background-position
+       in css-transforms-1, for transform-origin
+       in css-transforms-2, for perspective-origin
+       in css2, for caption-side
+       in css2, for vertical-align
+      
+     
+      braille
+      
+       in css2, for @media
+       in mediaqueries-4, for @media
+      
+     break-all
+     break-spaces
+     
+      break-word
+      
+       in css-text-3, for overflow-wrap
+       in css-text-3, for word-break
+      
+     brown
+     bullets
+     burlywood
+     buttonborder
+     buttonface
+     buttonhighlight
+     buttonshadow
+     buttontext
+     by
+     
+      c
+      
+       in css-color-5, for lch()
+       in css-color-5, for oklch()
+      
+     cadetblue
+     cambodian
+     canvas
+     canvastext
+     capitalize
+     caption
+     captiontext
+     ccw
+     cell
+     
+      center
+      
+       in css-align-3, for <self-position>, <content-position>, justify-self, align-self, justify-content, align-content
+       in css-backgrounds-3, for background-position
+       in css-flexbox-1, for align-content
+       in css-flexbox-1, for align-items, align-self
+       in css-flexbox-1, for justify-content
+       in css-scroll-snap-1, for scroll-snap-align
+       in css-speech-1, for voice-balance
+       in css-text-3, for text-align
+       in css-transforms-1, for transform-origin
+       in css-transforms-2, for perspective-origin
+      
+     ch
+     character-variant(<font-feature-value-name>#)
+     chartreuse
+     child
+     chocolate
+     ch unit
+     
+      circle
+      
+       in css-counter-styles-3, for <counter-style-name>
+       in css-images-3, for <radial-shape>
+       in css-text-decor-3, for text-emphasis-style
+       in css2
+       in css2, for list-style-type
+      
+     cjk-decimal
+     cjk-earthly-branch
+     cjk-heavenly-stem
+     cjk-ideographic
+     clip
+     clone
+     close
+     
+      close-quote
+      
+       in css2
+       in css2, for content
+      
+     
+      closest-corner
+      
+       in css-images-3, for <radial-extent>, radial-gradient(), repeating-radial-gradient()
+       in motion-1, for <ray-size>
+      
+     
+      closest-side
+      
+       in css-images-3, for <radial-extent>, radial-gradient(), repeating-radial-gradient()
+       in motion-1, for <ray-size>
+      
+     cm
+     coarse
+     
+      collapse
+      
+       in css-display-3, for visibility
+       in css2, for border-collapse
+      
+     <color>
+     color
+     color-burn
+     color-cbdt
+     color-colrv0
+     color-colrv1
+     color-dodge
+     color-sbix
+     color-svg
+     col-resize
+     
+      column
+      
+       in css-break-3, for break-before, break-after
+       in css-flexbox-1, for flex-direction
+       in css-grid-1, for grid-auto-flow
+      
+     column-reverse
+     common-ligatures
+     condensed
+     
+      contain
+      
+       in css-backgrounds-3, for background-size
+       in css-images-3, for object-fit
+       in motion-1, for ray()
+      
+     
+      content
+      
+       in css-contain-2, for contain
+       in css-flexbox-1, for flex-basis
+      
+     
+      content-box
+      
+       in css-backgrounds-3, for background-clip
+       in css-backgrounds-3, for background-origin
+       in css-box-3, for <box>, <visual-box>, <layout-box>, <shape-box>, <geometry-box>, <paint-box>, <coord-box>
+       in css-masking-1, for mask-clip
+       in css-masking-1, for mask-origin
+       in css-shapes-1, for <shape-box>, shape-outside
+       in css-sizing-3, for box-sizing
+       in css-transforms-1, for transform-box
+       in css-ui-3, for box-sizing
+      
+     
+      contents
+      
+       in css-display-3, for display, <display-box>
+       in css-will-change-1, for will-change
+      
+     context-menu
+     contextual
+     copy
+     coral
+     cornflowerblue
+     cornsilk
+     <counter>
+     
+      <counter-name> <integer>?
+      
+       in css-lists-3, for counter-reset
+       in css-lists-3, for counter-set counter-increment
+       in css-lists-3, for counter-set, counter-increment
+      
+     <counter-style-name>
+     
+      cover
+      
+       in css-backgrounds-3, for background-size
+       in css-images-3, for object-fit
+      
+     crimson
+     crisp-edges
+     crosshair
+     currentcolor
+     
+      cursive
+      
+       in css-fonts-4, for font-family, <generic-font-family>
+       in css2, for <generic-family>
+      
+     <cursor-predefined>
+     curve
+     cw
+     cyan
+     cyclic
+     
+      dark
+      
+       in css-color-adjust-1, for color-scheme
+       in css-fonts-4, for base-palette
+       in css-fonts-4, for font-palette
+      
+     darkblue
+     darkcyan
+     darken
+     darkgoldenrod
+     darkgray
+     darkgreen
+     darkgrey
+     darkkhaki
+     darkmagenta
+     darkolivegreen
+     darkorange
+     darkorchid
+     darkred
+     darksalmon
+     darkseagreen
+     darkslateblue
+     darkslategray
+     darkslategrey
+     darkturquoise
+     darkviolet
+     
+      dashed
+      
+       in css-backgrounds-3, for <line-style>, border-style, border-top-style, border-left-style, border-bottom-style, border-right-style, border
+       in css2
+       in css2, for <border-style>, border-top-style, border-right-style, border-bottom-style, border-left-style, border-style
+      
+     <decibel>
+     
+      decimal
+      
+       in css-counter-styles-3, for <counter-style-name>
+       in css2
+       in css2, for list-style-type
+      
+     
+      decimal-leading-zero
+      
+       in css-counter-styles-3, for <counter-style-name>
+       in css2
+       in css2, for list-style-type
+      
+     deeppink
+     deepskyblue
+     default
+     deg
+     dense
+     devanagari
+     diagonal-fractions
+     difference
+     digits
+     digits <integer>?
+     digits <integer [2,4]>?
+     dimgray
+     dimgrey
+     
+      disc
+      
+       in css-counter-styles-3, for <counter-style-name>
+       in css2
+       in css2, for list-style-type
+      
+     disclosure-closed
+     disclosure-open
+     discretionary-ligatures
+     display-p3
+     display-p3-linear
+     distribute
+     dodgerblue
+     dot
+     
+      dotted
+      
+       in css-backgrounds-3, for <line-style>, border-style, border-top-style, border-left-style, border-bottom-style, border-right-style, border
+       in css2
+       in css2, for <border-style>, border-top-style, border-right-style, border-bottom-style, border-left-style, border-style
+      
+     
+      double
+      
+       in css-backgrounds-3, for <line-style>, border-style, border-top-style, border-left-style, border-bottom-style, border-right-style, border
+       in css2
+       in css2, for <border-style>, border-top-style, border-right-style, border-bottom-style, border-left-style, border-style
+      
+     double-circle
+     dpcm
+     dpi
+     dppx
+     each-line
+     ease
+     ease-in
+     ease-in-out
+     ease-out
+     economy
+     ellipse
+     ellipsis
+     em
+     embed
+     
+      embossed
+      
+       in css2, for @media
+       in mediaqueries-4, for @media
+      
+     emoji
+     em unit
+     
+      end
+      
+       in css-align-3, for <self-position>, <content-position>, justify-self, align-self, justify-content, align-content
+       in css-easing-1, for steps()
+       in css-scroll-snap-1, for scroll-snap-align
+       in css-text-3, for text-align
+      
+     e-resize
+     ethiopic-numeric
+     evenodd
+     ew-resize
+     ex
+     exact
+     exclude
+     exclusion
+     expanded
+     extends
+     extra-condensed
+     extra-expanded
+     ex unit
+     fallback
+     
+      fantasy
+      
+       in css-fonts-4, for font-family, <generic-font-family>
+       in css2, for <generic-family>
+      
+     
+      farthest-corner
+      
+       in css-images-3, for <radial-extent>, radial-gradient(), repeating-radial-gradient()
+       in motion-1, for <ray-size>
+      
+     
+      farthest-side
+      
+       in css-images-3, for <radial-extent>, radial-gradient(), repeating-radial-gradient()
+       in motion-1, for <ray-size>
+      
+     
+      fast
+      
+       in css-speech-1, for voice-rate
+       in mediaqueries-4, for @media/update
+      
+     features-aat
+     features-graphite
+     features-opentype
+     female
+     field
+     fieldtext
+     
+      fill
+      
+       in css-backgrounds-3, for border-image-slice
+       in css-images-3, for object-fit
+       in css-masking-1, for mask-border-slice
+      
+     
+      fill-box
+      
+       in css-box-3, for <box>, <geometry-box>, <paint-box>, <coord-box>
+       in css-masking-1, for clip-path
+       in css-masking-1, for mask-clip
+       in css-masking-1, for mask-origin
+       in css-transforms-1, for transform-box
+      
+     filled
+     fine
+     firebrick
+     
+      first
+      
+       in css-align-3, for justify-self, justify-items, align-content, align-self, align-items, <baseline-position>
+       in css-text-3, for hanging-punctuation
+      
+     first baseline
+     
+      fit-content(<length-percentage>)
+      
+       in css-sizing-3, for column-width
+       in css-sizing-3, for width, min-width, max-width, height, min-height, max-height
+      
+     
+      fixed
+      
+       in css-backgrounds-3, for background-attachment
+       in css-counter-styles-3, for @counter-style/system
+       in css-position-3, for position
+       in css2, for table-layout
+      
+     
+      flex
+      
+       in css-display-3, for display, <display-inside>
+       in css-flexbox-1, for display
+      
+     <flex [0,∞]>
+     <'flex-basis'>
+     
+      flex-end
+      
+       in css-align-3, for <self-position>, <content-position>, justify-self, align-self, justify-content, align-content
+       in css-flexbox-1, for align-content
+       in css-flexbox-1, for align-items, align-self
+       in css-flexbox-1, for justify-content
+      
+     <'flex-grow'>
+     <'flex-shrink'>
+     
+      flex-start
+      
+       in css-align-3, for <self-position>, <content-position>, justify-self, align-self, justify-content, align-content
+       in css-flexbox-1, for align-content
+       in css-flexbox-1, for align-items, align-self
+       in css-flexbox-1, for justify-content
+      
+     flip
+     floralwhite
+     flow
+     flow-root
+     force-end
+     forestgreen
+     format( <font-format> )
+     forwards
+     fr
+     from-image
+     fr unit
+     
+      fuchsia
+      
+       in css-color-4, for <color>, <named-color>
+       in css2, for <color>
+      
+     full-size-kana
+     
+      full-width
+      
+       in css-fonts-4, for font-variant-east-asian
+       in css-text-3, for text-transform
+      
+     
+      g
+      
+       in css-color-5, for color()
+       in css-color-5, for rgb()
+      
+     gainsboro
+     generic(fangsong)
+     generic(kai)
+     generic(khmer-mul)
+     generic(nastaliq)
+     
+      georgian
+      
+       in css-counter-styles-3, for <counter-style-name>
+       in css2
+       in css2, for list-style-type
+      
+     ghostwhite
+     gold
+     goldenrod
+     grab
+     grabbing
+     grad
+     
+      gray
+      
+       in css-color-4, for <color>, <named-color>
+       in css2, for <color>
+      
+     graytext
+     
+      green
+      
+       in css-color-4, for <color>, <named-color>
+       in css2, for <color>
+      
+     greenyellow
+     grey
+     
+      grid
+      
+       in css-display-3, for display, <display-inside>
+       in css-grid-1, for display
+      
+     <'grid-template-rows'> / [ auto-flow && dense? ] <'grid-auto-columns'>?
+     <'grid-template-rows'> / <'grid-template-columns'>
+     
+      groove
+      
+       in css-backgrounds-3, for <line-style>, border-style, border-top-style, border-left-style, border-bottom-style, border-right-style, border
+       in css2
+       in css2, for <border-style>, border-top-style, border-right-style, border-bottom-style, border-left-style, border-style
+      
+     gujarati
+     gurmukhi
+     
+      h
+      
+       in css-color-5, for hsl()
+       in css-color-5, for hwb()
+       in css-color-5, for lch()
+       in css-color-5, for oklch()
+      
+     half-border-box
+     
+      handheld
+      
+       in css2, for @media
+       in mediaqueries-4, for @media
+      
+     hanging
+     hard-light
+     hebrew
+     help
+     
+      hidden
+      
+       in css-backgrounds-3, for <line-style>, border-style, border-top-style, border-left-style, border-bottom-style, border-right-style, border
+       in css-contain-2, for content-visibility
+       in css-display-3, for visibility
+       in css2
+       in css2, for <border-style>, border-top-style, border-right-style, border-bottom-style, border-left-style, border-style
+       in css2, for overflow
+      
+     hide
+     
+      high
+      
+       in css-speech-1, for voice-pitch
+       in css-speech-1, for voice-range
+      
+     highlight
+     highlighttext
+     high-quality
+     hiragana
+     hiragana-iroha
+     historical-forms
+     historical-ligatures
+     honeydew
+     horizontal-tb
+     hotpink
+     hover
+     hsl
+     hue
+     hwb
+     hz
+     icon
+     in
+     inactiveborder
+     inactivecaption
+     inactivecaptiontext
+     incremental
+     indianred
+     indigo
+     
+      infinite
+      
+       in css-animations-1, for animation-iteration-count
+       in mediaqueries-4, for @media/resolution
+      
+     infobackground
+     infotext
+     inherit
+     initial
+     
+      inline
+      
+       in css-display-3, for display, <display-outside>
+       in css-scroll-snap-1, for scroll-snap-type
+       in css2, for display
+      
+     
+      inline-block
+      
+       in css-display-3, for display, <display-legacy>
+       in css2, for display
+      
+     
+      inline-flex
+      
+       in css-display-3, for display, <display-legacy>
+       in css-flexbox-1, for display
+      
+     
+      inline-grid
+      
+       in css-display-3, for display, <display-legacy>
+       in css-grid-1, for display
+      
+     inline-size
+     
+      inline-table
+      
+       in css-display-3, for display, <display-legacy>
+       in css2
+       in css2, for display
+      
+     
+      inset
+      
+       in css-backgrounds-3, for <line-style>, border-style, border-top-style, border-left-style, border-bottom-style, border-right-style, border
+       in css-backgrounds-3, for box-shadow
+       in css2
+       in css2, for <border-style>, border-top-style, border-right-style, border-bottom-style, border-left-style, border-style
+      
+     inside
+     [ <integer [-∞,-1]> | <integer [1,∞]> ] && <custom-ident>?
+     inter-character
+     interlace
+     intersect
+     inter-word
+     
+      invert
+      
+       in css-ui-3, for outline-color
+       in css2
+      
+     isolate
+     isolate-override
+     italic
+     ivory
+     
+      japanese-formal
+      
+       in css-counter-styles-3, for <counter-style-name>
+       in css-counter-styles-3, for <counter-style>
+      
+     
+      japanese-informal
+      
+       in css-counter-styles-3, for <counter-style-name>
+       in css-counter-styles-3, for <counter-style>
+      
+     jis04
+     jis78
+     jis83
+     jis90
+     jump-both
+     jump-end
+     jump-none
+     jump-start
+     justify
+     justify-all
+     kannada
+     katakana
+     katakana-iroha
+     keep-all
+     <keyframes-name>
+     khaki
+     khmer
+     khz
+     korean-hangul-formal
+     korean-hanja-formal
+     korean-hanja-informal
+     
+      l
+      
+       in css-color-5, for hsl()
+       in css-color-5, for lab()
+       in css-color-5, for lch()
+       in css-color-5, for oklab()
+       in css-color-5, for oklch()
+      
+     lab
+     landscape
+     lao
+     
+      large
+      
+       in css-shapes-1, for shape(), arc
+       in css2, for font-size
+      
+     
+      last
+      
+       in css-align-3, for justify-self, justify-items, align-content, align-self, align-items, <baseline-position>
+       in css-text-3, for hanging-punctuation
+      
+     last baseline
+     lavender
+     lavenderblush
+     lawngreen
+     layout
+     lch
+     
+      left
+      
+       in css-align-3, for justify-content, justify-self, justify-items
+       in css-backgrounds-3, for background-position
+       in css-break-3, for break-before, break-after
+       in css-fonts-4, for font-style
+       in css-speech-1, for voice-balance
+       in css-text-3, for text-align
+       in css-text-decor-3, for text-emphasis-position
+       in css-text-decor-3, for text-underline-position
+       in css-transforms-1, for transform-origin
+       in css-transforms-2, for perspective-origin
+       in css2, for clear
+       in css2, for float
+       in css2, for page-break-before, page-break-after, page-break-inside
+      
+     leftwards
+     legacy
+     lemonchiffon
+     
+      <length>
+      
+       in css-position-3, for top, right, bottom, left, inset-block-start, inset-inline-start, inset-block-end, inset-inline-end, inset-block, inset-inline, inset
+       in css-text-3, for letter-spacing
+       in css-text-3, for text-indent
+       in css-text-3, for word-spacing
+       in css2, for <border-width>, border-top-width, border-right-width, border-bottom-width, border-left-width, border-width
+       in css2, for <padding-width>
+       in css2, for top, right, bottom, left
+       in css2, for vertical-align
+      
+     <length [0,∞]>
+     <length-percentage [0,∞]>{2}
+     
+      light
+      
+       in css-color-adjust-1, for color-scheme
+       in css-fonts-4, for base-palette
+       in css-fonts-4, for font-palette
+      
+     lightblue
+     lightcoral
+     lightcyan
+     lighten
+     lighter
+     lightgoldenrodyellow
+     lightgray
+     lightgreen
+     lightgrey
+     lightpink
+     lightsalmon
+     lightseagreen
+     lightskyblue
+     lightslategray
+     lightslategrey
+     lightsteelblue
+     lightyellow
+     
+      lime
+      
+       in css-color-4, for <color>, <named-color>
+       in css2, for <color>
+      
+     limegreen
+     line
+     linear
+     linearrgb
+     linen
+     [ <line-names>? <string> <track-size>? <line-names>? ]+ [ / <explicit-track-list> ]?
+     
+      line-through
+      
+       in css-text-decor-3, for text-decoration-line
+       in css2, for text-decoration
+      
+     lining-nums
+     linktext
+     
+      list-item
+      
+       in css-display-3, for display, <display-listitem>
+       in css-lists-3, for counter-increment, counter-set, counter-reset, counter(), counters()
+       in css2, for display
+      
+     literal-punctuation
+     local
+     local( <font-family-name> )
+     logical
+     loose
+     loud
+     
+      low
+      
+       in css-speech-1, for voice-pitch
+       in css-speech-1, for voice-range
+      
+     
+      lower-alpha
+      
+       in css-counter-styles-3, for <counter-style-name>
+       in css2, for list-style-type
+      
+     lower-armenian
+     lowercase
+     
+      lower-greek
+      
+       in css-counter-styles-3, for <counter-style-name>
+       in css2
+       in css2, for list-style-type
+      
+     
+      lower-latin
+      
+       in css-counter-styles-3, for <counter-style-name>
+       in css2
+       in css2, for list-style-type
+      
+     
+      lower-roman
+      
+       in css-counter-styles-3, for <counter-style-name>
+       in css2
+       in css2, for list-style-type
+      
+     ltr
+     
+      luminance
+      
+       in css-masking-1, for mask-border-mode
+       in css-masking-1, for mask-mode
+       in css-masking-1, for mask-type
+      
+     luminosity
+     magenta
+     malayalam
+     male
+     mandatory
+     manual
+     
+      margin-box
+      
+       in css-box-3, for <box>, <layout-box>, <shape-box>, <geometry-box>
+       in css-shapes-1, for <shape-box>, shape-outside
+      
+     mark
+     marktext
+     
+      maroon
+      
+       in css-color-4, for <color>, <named-color>
+       in css2, for <color>
+      
+     
+      match-parent
+      
+       in css-lists-3, for marker-side
+       in css-text-3, for text-align
+      
+     match-self
+     match-source
+     
+      math
+      
+       in css-fonts-4, for font-family
+       in css-fonts-4, for font-size
+      
+     
+      max-content
+      
+       in css-grid-1, for grid-template-columns, grid-template-rows
+       in css-sizing-3, for column-width
+       in css-sizing-3, for width, min-width, max-width, height, min-height, max-height
+      
+     
+      medium
+      
+       in css-backgrounds-3, for <line-width>, border-width, border-top-width, border-left-width, border-bottom-width, border-right-width, border
+       in css-speech-1, for pause-before, pause-after
+       in css-speech-1, for rest-before, rest-after
+       in css-speech-1, for voice-pitch
+       in css-speech-1, for voice-range
+       in css-speech-1, for voice-rate
+       in css-speech-1, for voice-volume
+       in css2, for <border-width>, border-top-width, border-right-width, border-bottom-width, border-left-width, border-width
+       in css2, for font-size
+      
+     mediumaquamarine
+     mediumblue
+     mediumorchid
+     mediumpurple
+     mediumseagreen
+     mediumslateblue
+     mediumspringgreen
+     mediumturquoise
+     mediumvioletred
+     
+      menu
+      
+       in css-color-4, for <color>, <deprecated-color>
+       in css-fonts-4, for font
+      
+     menutext
+     message-box
+     middle
+     midnightblue
+     
+      min-content
+      
+       in css-grid-1, for grid-template-columns, grid-template-rows
+       in css-sizing-3, for column-width
+       in css-sizing-3, for width, min-width, max-width, height, min-height, max-height
+      
+     mintcream
+     mistyrose
+     mixed
+     mm
+     moccasin
+     moderate
+     mongolian
+     
+      monospace
+      
+       in css-fonts-4, for font-family, <generic-font-family>
+       in css2, for <generic-family>
+      
+     
+      move
+      
+       in css-shapes-1, for shape()
+       in css-ui-3, for cursor
+      
+     ms
+     multiply
+     myanmar
+     navajowhite
+     
+      navy
+      
+       in css-color-4, for <color>, <named-color>
+       in css2, for <color>
+      
+     ne-resize
+     nesw-resize
+     neutral
+     never
+     no-clip
+     
+      no-close-quote
+      
+       in css2
+       in css2, for content
+      
+     no-common-ligatures
+     no-contextual
+     no-discretionary-ligatures
+     no-drop
+     no-historical-ligatures
+     
+      none
+      
+       in css-animations-1, for animation-fill-mode
+       in css-animations-1, for animation-name
+       in css-backgrounds-3, for <line-style>, border-style, border-top-style, border-left-style, border-bottom-style, border-right-style, border
+       in css-backgrounds-3, for background-image
+       in css-backgrounds-3, for box-shadow
+       in css-color-4, for <color>
+       in css-color-5, for light-dark()
+       in css-color-adjust-1, for forced-color-adjust
+       in css-contain-2, for contain
+       in css-display-3, for display, <display-box>
+       in css-flexbox-1, for flex
+       in css-fonts-4, for font-kerning
+       in css-fonts-4, for font-optical-sizing
+       in css-fonts-4, for font-size-adjust
+       in css-fonts-4, for font-synthesis-position
+       in css-fonts-4, for font-synthesis-small-caps
+       in css-fonts-4, for font-synthesis-style
+       in css-fonts-4, for font-synthesis-weight
+       in css-fonts-4, for font-variant
+       in css-fonts-4, for font-variant-ligatures
+       in css-grid-1, for grid-template
+       in css-grid-1, for grid-template-areas
+       in css-grid-1, for grid-template-rows, grid-template-columns
+       in css-images-3, for image-orientation
+       in css-images-3, for object-fit
+       in css-lists-3, for counter-reset
+       in css-lists-3, for counter-set counter-increment
+       in css-lists-3, for counter-set, counter-increment
+       in css-lists-3, for list-style-image
+       in css-lists-3, for list-style-type
+       in css-multicol-1, for column-span
+       in css-scroll-anchoring-1, for overflow-anchor
+       in css-scroll-snap-1, for scroll-snap-align
+       in css-scroll-snap-1, for scroll-snap-type
+       in css-scrollbars-1, for scrollbar-width
+       in css-shapes-1, for shape-outside
+       in css-sizing-3, for max-width, max-height
+       in css-speech-1, for pause-before, pause-after
+       in css-speech-1, for rest-before, rest-after
+       in css-speech-1, for voice-stress
+       in css-text-3, for hanging-punctuation
+       in css-text-3, for hyphens
+       in css-text-3, for text-justify
+       in css-text-3, for text-transform
+       in css-text-decor-3, for text-decoration-line
+       in css-text-decor-3, for text-emphasis-style
+       in css-transforms-2, for perspective
+       in css-transforms-2, for perspective()
+       in css-transforms-2, for translate, rotate, scale
+       in css-transitions-1, for transition-property
+       in css-ui-3, for cursor
+       in css-view-transitions-1, for view-transition-name
+       in css-writing-modes-4, for text-combine-upright
+       in css2, for <border-style>, border-top-style, border-right-style, border-bottom-style, border-left-style, border-style
+       in css2, for clear
+       in css2, for content
+       in css2, for counter-reset, counter-increment
+       in css2, for display
+       in css2, for float
+       in css2, for max-height
+       in css2, for max-width
+       in css2, for quotes
+       in css2, for text-decoration
+       in mediaqueries-4, for @media/hover
+       in mediaqueries-4, for @media/overflow-block
+       in mediaqueries-4, for @media/overflow-inline
+       in mediaqueries-4, for @media/pointer
+       in mediaqueries-4, for @media/update
+       in motion-1, for offset-path
+      
+     'none'::as border style
+     nonzero
+     
+      no-open-quote
+      
+       in css2
+       in css2, for content
+      
+     no-punctuation
+     no-repeat
+     
+      normal
+      
+       in compositing-1, for <blend-mode>
+       in css-align-3, for align-self
+       in css-align-3, for justify-content, align-content
+       in css-align-3, for justify-self
+       in css-align-3, for row-gap, column-gap, gap
+       in css-animations-1, for animation-direction
+       in css-color-adjust-1, for color-scheme
+       in css-fonts-4, for font-feature-settings
+       in css-fonts-4, for font-kerning
+       in css-fonts-4, for font-language override
+       in css-fonts-4, for font-palette
+       in css-fonts-4, for font-style
+       in css-fonts-4, for font-variant
+       in css-fonts-4, for font-variant-alternates
+       in css-fonts-4, for font-variant-caps
+       in css-fonts-4, for font-variant-east-asian
+       in css-fonts-4, for font-variant-emoji
+       in css-fonts-4, for font-variant-ligatures
+       in css-fonts-4, for font-variant-numeric
+       in css-fonts-4, for font-variant-position
+       in css-fonts-4, for font-weight
+       in css-fonts-4, for font-width
+       in css-scroll-snap-1, for scroll-snap-stop
+       in css-speech-1, for speak-as
+       in css-speech-1, for voice-rate
+       in css-speech-1, for voice-stress
+       in css-text-3, for letter-spacing
+       in css-text-3, for line-break
+       in css-text-3, for overflow-wrap
+       in css-text-3, for white-space
+       in css-text-3, for word-break
+       in css-text-3, for word-spacing
+       in css-writing-modes-4, for unicode-bidi
+       in css2, for content
+       in css2, for line-height
+       in motion-1, for offset-position
+      
+     not
+     not-allowed
+     
+      nowrap
+      
+       in css-flexbox-1, for flex-wrap
+       in css-text-3, for white-space
+      
+     n-resize
+     ns-resize
+     numbers
+     numeric
+     nw-resize
+     nwse-resize
+     
+      objectboundingbox
+      
+       in css-masking-1, for clipPathUnits
+       in css-masking-1, for maskContentUnits
+       in css-masking-1, for maskUnits
+      
+     oblique
+     oblique <angle [-90deg,90deg]>?
+     oblique-only
+     off
+     <offset-path> || <coord-box>
+     oklab
+     oklch
+     old
+     oldlace
+     oldstyle-nums
+     
+      olive
+      
+       in css-color-4, for <color>, <named-color>
+       in css2, for <color>
+      
+     olivedrab
+     on
+     
+      only
+      
+       in css-color-adjust-1, for color-scheme
+       in mediaqueries-4, for @media
+      
+     open
+     
+      open-quote
+      
+       in css2
+       in css2, for content
+      
+     optional
+     
+      orange
+      
+       in css-color-4, for <color>, <named-color>
+       in css2, for <color>
+      
+     orangered
+     orchid
+     ordinal
+     oriya
+     ornaments(<font-feature-value-name>)
+     
+      outset
+      
+       in css-backgrounds-3, for <line-style>, border-style, border-top-style, border-left-style, border-bottom-style, border-right-style, border
+       in css2
+       in css2, for <border-style>, border-top-style, border-right-style, border-bottom-style, border-left-style, border-style
+      
+     outside
+     over
+     overlay
+     
+      overline
+      
+       in css-text-decor-3, for text-decoration-line
+       in css2, for text-decoration
+      
+     p3
+     
+      padding-box
+      
+       in css-backgrounds-3, for background-clip
+       in css-backgrounds-3, for background-origin
+       in css-box-3, for <box>, <visual-box>, <layout-box>, <shape-box>, <geometry-box>, <paint-box>, <coord-box>
+       in css-masking-1, for mask-clip
+       in css-masking-1, for mask-origin
+       in css-shapes-1, for <shape-box>, shape-outside
+      
+     page
+     paged
+     paint
+     palegoldenrod
+     palegreen
+     palettes
+     paleturquoise
+     palevioletred
+     papayawhip
+     paused
+     pc
+     peachpuff
+     
+      <percentage>
+      
+       in css-position-3, for top, right, bottom, left, inset-block-start, inset-inline-start, inset-block-end, inset-inline-end, inset-block, inset-inline, inset
+       in css-text-3, for text-indent
+       in css2, for <padding-width>
+       in css2, for top, right, bottom, left
+       in css2, for vertical-align
+      
+     perceptual
+     persian
+     peru
+     petite-caps
+     pink
+     pixelated
+     plaintext
+     plum
+     pointer
+     portrait
+     powderblue
+     pre
+     pre-line
+     preserve
+     preserve-parent-color
+     pre-wrap
+     
+      print
+      
+       in css2, for @media
+       in mediaqueries-4, for @media
+      
+     progress
+     progressive
+     
+      projection
+      
+       in css2, for @media
+       in mediaqueries-4, for @media
+      
+     prophoto-rgb
+     proportional-nums
+     proportional-width
+     proximity
+     pt
+     
+      purple
+      
+       in css-color-4, for <color>, <named-color>
+       in css2, for <color>
+      
+     px
+     q
+     
+      r
+      
+       in css-color-5, for color()
+       in css-color-5, for rgb()
+      
+     rad
+     <radial-shape>
+     <radial-size>
+     <ray()>
+     <ray-size>
+     rebeccapurple
+     
+      rec2020
+      
+       in css-color-4, for color()
+       in mediaqueries-4, for @media/color-gamut
+      
+     :recto
+     
+      recto
+      
+       in css-break-3, for break-before, break-after
+       in css-logical-1, for logical-page
+      
+     
+      red
+      
+       in css-color-4, for <color>, <named-color>
+       in css2, for <color>
+      
+     reduced
+     region
+     relative
+     relative-colorimetric
+     rem
+     rem unit
+     
+      repeat
+      
+       in css-backgrounds-3, for background-repeat
+       in css-backgrounds-3, for border-image-repeat
+      
+     repeat-x
+     repeat-y
+     
+      reverse
+      
+       in css-animations-1, for animation-direction
+       in motion-1, for offset-rotate
+      
+     <reversed-counter-name> <integer>?
+     revert
+     revert-layer
+     revert-rule
+     
+      ridge
+      
+       in css-backgrounds-3, for <line-style>, border-style, border-top-style, border-left-style, border-bottom-style, border-right-style, border
+       in css2
+       in css2, for <border-style>, border-top-style, border-right-style, border-bottom-style, border-left-style, border-style
+      
+     
+      right
+      
+       in css-align-3, for justify-content, justify-self, justify-items
+       in css-backgrounds-3, for background-position
+       in css-break-3, for break-before, break-after
+       in css-fonts-4, for font-style
+       in css-speech-1, for voice-balance
+       in css-text-3, for text-align
+       in css-text-decor-3, for text-emphasis-position
+       in css-text-decor-3, for text-underline-position
+       in css-transforms-1, for transform-origin
+       in css-transforms-2, for perspective-origin
+       in css2, for clear
+       in css2, for float
+       in css2, for page-break-before, page-break-after, page-break-inside
+      
+     rightwards
+     rosybrown
+     
+      round
+      
+       in css-backgrounds-3, for background-repeat
+       in css-backgrounds-3, for border-image-repeat
+      
+     
+      row
+      
+       in css-flexbox-1, for flex-direction
+       in css-grid-1, for grid-auto-flow
+      
+     row-resize
+     row-reverse
+     royalblue
+     rtl
+     
+      ruby
+      
+       in css-display-3, for display, <display-inside>
+       in css-fonts-4, for font-variant-east-asian
+      
+     ruby-base
+     ruby-base-container
+     ruby-text
+     ruby-text-container
+     run-in
+     running
+     
+      s
+      
+       in css-color-5, for hsl()
+       in css-values-3, for <time>
+      
+     saddlebrown
+     safe
+     salmon
+     sandybrown
+     
+      sans-serif
+      
+       in css-fonts-4, for font-family, <generic-font-family>
+       in css2, for <generic-family>
+      
+     
+      saturation
+      
+       in compositing-1, for <blend-mode>
+       in css-color-5, for @color-profile/rendering-intent
+      
+     scale-down
+     
+      screen
+      
+       in compositing-1, for <blend-mode>
+       in css2, for @media
+       in mediaqueries-4, for @media
+      
+     
+      scroll
+      
+       in css-backgrounds-3, for background-attachment
+       in css2, for overflow
+       in mediaqueries-4, for @media/overflow-block
+       in mediaqueries-4, for @media/overflow-inline
+      
+     scrollbar
+     scroll-position
+     seagreen
+     seashell
+     selecteditem
+     selecteditemtext
+     self-end
+     self-start
+     semi-condensed
+     semi-expanded
+     
+      <semitones>
+      
+       in css-speech-1, for voice-pitch
+       in css-speech-1, for voice-range
+      
+     separate
+     se-resize
+     
+      serif
+      
+       in css-fonts-4, for font-family, <generic-font-family>
+       in css2, for <generic-family>
+      
+     sesame
+     show
+     sides
+     sideways
+     sideways-lr
+     sideways-right
+     sideways-rl
+     sienna
+     silent
+     
+      silver
+      
+       in css-color-4, for <color>, <named-color>
+       in css2, for <color>
+      
+     simp-chinese-formal
+     simp-chinese-informal
+     simplified
+     size
+     skyblue
+     slashed-zero
+     slateblue
+     slategray
+     slategrey
+     slice
+     
+      slow
+      
+       in css-speech-1, for voice-rate
+       in mediaqueries-4, for @media/update
+      
+     
+      small
+      
+       in css-shapes-1, for shape(), arc
+       in css2, for font-size
+      
+     
+      small-caps
+      
+       in css-fonts-4, for font-variant-caps
+       in css2, for font-style
+      
+     small-caption
+     
+      smooth
+      
+       in css-images-3, for image-rendering
+       in css-shapes-1, for shape()
+      
+     snow
+     soft
+     soft-light
+     
+      solid
+      
+       in css-backgrounds-3, for <line-style>, border-style, border-top-style, border-left-style, border-bottom-style, border-right-style, border
+       in css2
+       in css2, for <border-style>, border-top-style, border-right-style, border-bottom-style, border-left-style, border-style
+      
+     
+      space
+      
+       in css-backgrounds-3, for background-repeat
+       in css-backgrounds-3, for border-image-repeat
+      
+     
+      space-around
+      
+       in css-align-3, for align-content, justify-content, <content-distribution>
+       in css-flexbox-1, for align-content
+       in css-flexbox-1, for justify-content
+      
+     
+      space-between
+      
+       in css-align-3, for align-content, justify-content, <content-distribution>
+       in css-flexbox-1, for align-content
+       in css-flexbox-1, for justify-content
+      
+     space-evenly
+     span && [ <integer [1,∞]> || <custom-ident> ]
+     
+      speech
+      
+       in css2, for @media
+       in mediaqueries-4, for @media
+      
+     
+      spell-out
+      
+       in css-counter-styles-3, for @counter-style/speak-as
+       in css-speech-1, for speak-as
+      
+     springgreen
+     
+      square
+      
+       in css-counter-styles-3, for <counter-style-name>
+       in css2
+       in css2, for list-style-type
+      
+     s-resize
+     
+      srgb
+      
+       in css-color-4, for color()
+       in filter-effects-1, for color-interpolation-filters
+       in mediaqueries-4, for @media/color-gamut
+      
+     srgb-linear
+     stacked-fractions
+     
+      start
+      
+       in css-align-3, for <self-position>, <content-position>, justify-self, align-self, justify-content, align-content
+       in css-easing-1, for steps()
+       in css-scroll-snap-1, for scroll-snap-align
+       in css-text-3, for text-align
+      
+     static
+     status-bar
+     steelblue
+     step-end
+     step-start
+     sticky
+     
+      stretch
+      
+       in css-align-3, for align-content, justify-content, <content-distribution>
+       in css-align-3, for align-self
+       in css-align-3, for justify-self
+       in css-backgrounds-3, for border-image-repeat
+       in css-flexbox-1, for align-content
+       in css-flexbox-1, for align-items, align-self
+      
+     
+      strict
+      
+       in css-contain-2, for contain
+       in css-text-3, for line-break
+      
+     <string>
+     <string>+
+     [<string> <string>]+
+     
+      stroke-box
+      
+       in css-box-3, for <box>, <geometry-box>, <paint-box>, <coord-box>
+       in css-masking-1, for clip-path
+       in css-masking-1, for mask-clip
+       in css-masking-1, for mask-origin
+       in css-transforms-1, for transform-box
+      
+     
+      strong
+      
+       in css-speech-1, for pause-before, pause-after
+       in css-speech-1, for rest-before, rest-after
+       in css-speech-1, for voice-stress
+      
+     style
+     styleset(<font-feature-value-name>#)
+     stylistic(<font-feature-value-name>)
+     
+      sub
+      
+       in css-fonts-4, for font-variant-position
+       in css2, for vertical-align
+      
+     subtract
+     
+      super
+      
+       in css-fonts-4, for font-variant-position
+       in css2, for vertical-align
+      
+     swap
+     swash(<font-feature-value-name>)
+     sw-resize
+     symbolic
+     system-ui
+     
+      table
+      
+       in css-display-3, for display, <display-inside>
+       in css2
+       in css2, for display
+      
+     
+      table-caption
+      
+       in css-display-3, for display, <display-internal>
+       in css2
+       in css2, for display
+      
+     
+      table-cell
+      
+       in css-display-3, for display, <display-internal>
+       in css2
+       in css2, for display
+      
+     
+      table-column
+      
+       in css-display-3, for display, <display-internal>
+       in css2
+       in css2, for display
+      
+     
+      table-column-group
+      
+       in css-display-3, for display, <display-internal>
+       in css2
+       in css2, for display
+      
+     
+      table-footer-group
+      
+       in css-display-3, for display, <display-internal>
+       in css2
+       in css2, for display
+      
+     
+      table-header-group
+      
+       in css-display-3, for display, <display-internal>
+       in css2
+       in css2, for display
+      
+     
+      table-row
+      
+       in css-display-3, for display, <display-internal>
+       in css2
+       in css2, for display
+      
+     
+      table-row-group
+      
+       in css-display-3, for display, <display-internal>
+       in css2
+       in css2, for display
+      
+     tabular-nums
+     tamil
+     tan
+     
+      teal
+      
+       in css-color-4, for <color>, <named-color>
+       in css2, for <color>
+      
+     tech( <font-tech># )
+     telugu
+     
+      text
+      
+       in css-fonts-4, for font-variant-emoji
+       in css-ui-3, for cursor
+      
+     text-bottom
+     text-top
+     thai
+     
+      thick
+      
+       in css-backgrounds-3, for <line-width>, border-width, border-top-width, border-left-width, border-bottom-width, border-right-width, border
+       in css2, for <border-width>, border-top-width, border-right-width, border-bottom-width, border-left-width, border-width
+      
+     
+      thin
+      
+       in css-backgrounds-3, for <line-width>, border-width, border-top-width, border-left-width, border-bottom-width, border-right-width, border
+       in css-scrollbars-1, for scrollbar-width
+       in css2, for <border-width>, border-top-width, border-right-width, border-bottom-width, border-left-width, border-width
+      
+     thistle
+     threeddarkshadow
+     threedface
+     threedhighlight
+     threedlightshadow
+     threedshadow
+     tibetan
+     titling-caps
+     to
+     tomato
+     
+      top
+      
+       in css-backgrounds-3, for background-position
+       in css-transforms-1, for transform-origin
+       in css-transforms-2, for perspective-origin
+       in css2, for caption-side
+       in css2, for vertical-align
+      
+     <track-list> | <auto-track-list>
+     trad-chinese-formal
+     trad-chinese-informal
+     traditional
+     
+      transparent
+      
+       in css-color-4, for <color>
+       in css2, for border-color, border-top-color, border-right-color, border-bottom-color, border-left-color
+      
+     triangle
+     
+      tty
+      
+       in css2, for @media
+       in mediaqueries-4, for @media
+      
+     turn
+     turquoise
+     
+      tv
+      
+       in css2, for @media
+       in mediaqueries-4, for @media
+      
+     ui-monospace
+     ui-rounded
+     ui-sans-serif
+     ui-serif
+     ultra-condensed
+     ultra-expanded
+     
+      under
+      
+       in css-text-decor-3, for text-emphasis-position
+       in css-text-decor-3, for text-underline-position
+      
+     
+      underline
+      
+       in css-text-decor-3, for text-decoration-line
+       in css2, for text-decoration
+      
+     unicase
+     unicode
+     unsafe
+     unset
+     
+      upper-alpha
+      
+       in css-counter-styles-3, for <counter-style-name>
+       in css2, for list-style-type
+      
+     upper-armenian
+     uppercase
+     
+      upper-latin
+      
+       in css-counter-styles-3, for <counter-style-name>
+       in css2
+       in css2, for list-style-type
+      
+     
+      upper-roman
+      
+       in css-counter-styles-3, for <counter-style-name>
+       in css2
+       in css2, for list-style-type
+      
+     upright
+     
+      <uri>
+      
+       in css2, for background-image
+       in css2, for content
+      
+     <url>
+     
+      userspaceonuse
+      
+       in css-masking-1, for clipPathUnits
+       in css-masking-1, for maskContentUnits
+       in css-masking-1, for maskUnits
+      
+     variations
+     :verso
+     
+      verso
+      
+       in css-break-3, for break-before, break-after
+       in css-logical-1, for logical-page
+      
+     vertical-lr
+     vertical-rl
+     vertical-text
+     vh
+     
+      view-box
+      
+       in css-box-3, for <box>, <geometry-box>, <coord-box>
+       in css-masking-1, for clip-path
+       in css-masking-1, for mask-clip
+       in css-masking-1, for mask-origin
+       in css-transforms-1, for transform-box
+      
+     violet
+     
+      visible
+      
+       in css-contain-2, for content-visibility
+       in css-display-3, for visibility
+       in css2, for overflow
+      
+     visitedtext
+     vmax
+     vmin
+     vw
+     w
+     wait
+     
+      weak
+      
+       in css-speech-1, for pause-before, pause-after
+       in css-speech-1, for rest-before, rest-after
+      
+     wheat
+     
+      white
+      
+       in css-color-4, for <color>, <named-color>
+       in css2, for <color>
+      
+     whitesmoke
+     window
+     windowframe
+     windowtext
+     words
+     wrap
+     wrap-reverse
+     w-resize
+     
+      x
+      
+       in css-color-5, for color()
+       in css-scroll-snap-1, for scroll-snap-type
+       in css-transforms-2, for rotate
+      
+     x-fast
+     
+      x-high
+      
+       in css-speech-1, for voice-pitch
+       in css-speech-1, for voice-range
+      
+     x-large
+     x-loud
+     
+      x-low
+      
+       in css-speech-1, for voice-pitch
+       in css-speech-1, for voice-range
+      
+     x-slow
+     x-small
+     x-soft
+     
+      x-strong
+      
+       in css-speech-1, for pause-before, pause-after
+       in css-speech-1, for rest-before, rest-after
+      
+     
+      x-weak
+      
+       in css-speech-1, for pause-before, pause-after
+       in css-speech-1, for rest-before, rest-after
+      
+     xx-large
+     xx-small
+     xyz
+     xyz-d50
+     xyz-d65
+     
+      y
+      
+       in css-color-5, for color()
+       in css-scroll-snap-1, for scroll-snap-type
+       in css-transforms-2, for rotate
+      
+     
+      yellow
+      
+       in css-color-4, for <color>, <named-color>
+       in css2, for <color>
+      
+     yellowgreen
+     young
+     
+      z
+      
+       in css-color-5, for color()
+       in css-transforms-2, for rotate
+      
+     zoom-in
+     zoom-out
+    
+   
+   9. Acknowledgements
+   Special thanks to Florian Rivoal for creating the initial draft of the § 3.2.1 Experimentation and Unstable Features recommendations.
+  
+  
+Conformance
+  
+Document conventions
+  Conformance requirements are expressed with a combination of
+    descriptive assertions and RFC 2119 terminology. The key words “MUST”,
+    “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”, “SHOULD”, “SHOULD NOT”,
+    “RECOMMENDED”, “MAY”, and “OPTIONAL” in the normative parts of this
+    document are to be interpreted as described in RFC 2119.
+    However, for readability, these words do not appear in all uppercase
+    letters in this specification.
+
+    
+  All of the text of this specification is normative except sections
+    explicitly marked as non-normative, examples, and notes. [RFC2119]
+  Examples in this specification are introduced with the words “for example”
+    or are set apart from the normative text with class="example",
+    like this:
+
+    
+  
+   
+        
+   This is an example of an informative example.
+  
+  Informative notes begin with the word “Note” and are set apart from the
+    normative text with class="note", like this:
+
+    
+  Note, this is an informative note.
+  Advisements are normative sections styled to evoke special attention and are
+    set apart from other normative text with <strong class="advisement">, like
+    this:
+
+    
+        UAs MUST provide an accessible alternative.
+    
+  
+Conformance classes
+  Conformance to this specification
+    is defined for three conformance classes:
+    
+  
+   style sheet
+            
+   A CSS
+            style sheet.
+        
+   renderer
+            
+   A UA
+            that interprets the semantics of a style sheet and renders
+            documents that use them.
+        
+   authoring tool
+            
+   A UA
+            that writes a style sheet.
+    
+  
+  A style sheet is conformant to this specification
+    if all of its statements that use syntax defined in this module are valid
+    according to the generic CSS grammar and the individual grammars of each
+    feature defined in this module.
+
+    
+  A renderer is conformant to this specification
+    if, in addition to interpreting the style sheet as defined by the
+    appropriate specifications, it supports all the features defined
+    by this specification by parsing them correctly
+    and rendering the document accordingly. However, the inability of a
+    UA to correctly render a document due to limitations of the device
+    does not make the UA non-conformant. (For example, a UA is not
+    required to render color on a monochrome monitor.)
+
+    
+  An authoring tool is conformant to this specification
+    if it writes style sheets that are syntactically correct according to the
+    generic CSS grammar and the individual grammars of each feature in
+    this module, and meet all other conformance requirements of style sheets
+    as described in this module.
+
+
+  
+Partial implementations
+  So that authors can exploit the forward-compatible parsing rules to
+    assign fallback values, CSS renderers must
+    treat as invalid (and ignore
+    as appropriate) any at-rules, properties, property values, keywords,
+    and other syntactic constructs for which they have no usable level of
+    support. In particular, user agents must not selectively
+    ignore unsupported component values and honor supported values in a single
+    multi-value property declaration: if any value is considered invalid
+    (as unsupported values must be), CSS requires that the entire declaration
+    be ignored.
+  
+Implementations of Unstable and Proprietary Features
+  To avoid clashes with future stable CSS features,
+        the CSSWG recommends following best practices for the implementation of unstable features and proprietary extensions to CSS.
+
+
+  
+Non-experimental implementations
+  Once a specification reaches the Candidate Recommendation stage,
+    non-experimental implementations are possible, and implementors should
+    release an unprefixed implementation of any CR-level feature they
+    can demonstrate to be correctly implemented according to spec.
+
+    
+  To establish and maintain the interoperability of CSS across
+    implementations, the CSS Working Group requests that non-experimental
+    CSS renderers submit an implementation report (and, if necessary, the
+    testcases used for that implementation report) to the W3C before
+    releasing an unprefixed implementation of any CSS features. Testcases
+    submitted to W3C are subject to review and correction by the CSS
+    Working Group.
+
+    
+  Further information on submitting testcases and implementation reports
+    can be found from on the CSS Working Group’s website at
+    https://www.w3.org/Style/CSS/Test/.
+    Questions should be directed to the
+    public-css-testsuite@w3.org
+    mailing list.
+  
+  References
+  Normative References
+  
+   [COMPOSITING]
+   Chris Harrelson. Compositing and Blending Level 1. 21 March 2024. CRD. URL: https://www.w3.org/TR/compositing-1/
+   [CSS-BACKGROUNDS-3]
+   Elika Etemad; Brad Kemper. CSS Backgrounds and Borders Module Level 3. 11 March 2024. CRD. URL: https://www.w3.org/TR/css-backgrounds-3/
+   [CSS-BOX-3]
+   Elika Etemad. CSS Box Model Module Level 3. 11 April 2024. REC. URL: https://www.w3.org/TR/css-box-3/
+   [CSS-CASCADE-4]
+   Elika Etemad; Tab Atkins Jr.. CSS Cascading and Inheritance Level 4. 13 January 2022. CR. URL: https://www.w3.org/TR/css-cascade-4/
+   [CSS-COLOR-4]
+   Tab Atkins Jr.; Chris Lilley; Lea Verou. CSS Color Module Level 4. 2 May 2026. CRD. URL: https://www.w3.org/TR/css-color-4/
+   [CSS-COLOR-5]
+   Chris Lilley; Una Kravets; Lea Verou. CSS Color Module Level 5. 7 May 2026. WD. URL: https://www.w3.org/TR/css-color-5/
+   [CSS-CONDITIONAL-3]
+   Chris Lilley; David Baron; Elika Etemad. CSS Conditional Rules Module Level 3. 15 August 2024. CRD. URL: https://www.w3.org/TR/css-conditional-3/
+   [CSS-CONDITIONAL-5]
+   Chris Lilley; et al. CSS Conditional Rules Module Level 5. 30 October 2025. WD. URL: https://www.w3.org/TR/css-conditional-5/
+   [CSS-CONTAIN-1]
+   Tab Atkins Jr.; Florian Rivoal. CSS Containment Module Level 1. 25 June 2024. REC. URL: https://www.w3.org/TR/css-contain-1/
+   [CSS-CONTAIN-2]
+   Tab Atkins Jr.; Florian Rivoal; Vladimir Levin. CSS Containment Module Level 2. 17 September 2022. WD. URL: https://www.w3.org/TR/css-contain-2/
+   [CSS-COUNTER-STYLES-3]
+   Tab Atkins Jr.. CSS Counter Styles Level 3. 27 July 2021. CR. URL: https://www.w3.org/TR/css-counter-styles-3/
+   [CSS-DISPLAY-3]
+   Elika Etemad; Tab Atkins Jr.. CSS Display Module Level 3. 30 March 2023. CR. URL: https://www.w3.org/TR/css-display-3/
+   [CSS-EASING-1]
+   Brian Birtles; Dean Jackson; Matt Rakow. CSS Easing Functions Level 1. 13 February 2023. CRD. URL: https://www.w3.org/TR/css-easing-1/
+   [CSS-ENV-1]
+   CSS Environment Variables Module Level 1. 23 September 2025. FPWD. URL: https://www.w3.org/TR/css-env-1/
+   [CSS-FLEXBOX-1]
+   Elika Etemad; Tab Atkins Jr.; Rossen Atanassov. CSS Flexible Box Layout Module Level 1. 14 October 2025. CRD. URL: https://www.w3.org/TR/css-flexbox-1/
+   [CSS-FONTS-3]
+   John Daggett; Myles Maxfield; Chris Lilley. CSS Fonts Module Level 3. 20 September 2018. REC. URL: https://www.w3.org/TR/css-fonts-3/
+   [CSS-FONTS-4]
+   Chris Lilley. CSS Fonts Module Level 4. 22 April 2026. WD. URL: https://www.w3.org/TR/css-fonts-4/
+   [CSS-IMAGES-3]
+   Tab Atkins Jr.; Elika Etemad; Lea Verou. CSS Images Module Level 3. 18 December 2023. CRD. URL: https://www.w3.org/TR/css-images-3/
+   [CSS-IMAGES-4]
+   Elika Etemad; Tab Atkins Jr.; Lea Verou. CSS Images Module Level 4. 30 September 2025. WD. URL: https://www.w3.org/TR/css-images-4/
+   [CSS-INLINE-3]
+   Elika Etemad. CSS Inline Layout Module Level 3. 18 December 2024. WD. URL: https://www.w3.org/TR/css-inline-3/
+   [CSS-MULTICOL-1]
+   Florian Rivoal; Rachel Andrew. CSS Multi-column Layout Module Level 1. 16 May 2024. CR. URL: https://www.w3.org/TR/css-multicol-1/
+   [CSS-POSITION-3]
+   Elika Etemad; Tab Atkins Jr.. CSS Positioned Layout Module Level 3. 7 October 2025. WD. URL: https://www.w3.org/TR/css-position-3/
+   [CSS-PSEUDO-4]
+   Elika Etemad; Alan Stearns. CSS Pseudo-Elements Module Level 4. 27 June 2025. WD. URL: https://www.w3.org/TR/css-pseudo-4/
+   [CSS-SIZING-3]
+   Tab Atkins Jr.; Elika Etemad. CSS Box Sizing Module Level 3. 17 December 2021. WD. URL: https://www.w3.org/TR/css-sizing-3/
+   [CSS-SIZING-4]
+   Tab Atkins Jr.; Elika Etemad; Jen Simmons. CSS Box Sizing Module Level 4. 20 May 2021. WD. URL: https://www.w3.org/TR/css-sizing-4/
+   [CSS-STYLE-ATTR]
+   Tantek Çelik; Elika Etemad. CSS Style Attributes. 7 November 2013. REC. URL: https://www.w3.org/TR/css-style-attr/
+   [CSS-SYNTAX-3]
+   Tab Atkins Jr.; Simon Sapin. CSS Syntax Module Level 3. 24 December 2021. CRD. URL: https://www.w3.org/TR/css-syntax-3/
+   [CSS-TEXT-4]
+   Elika Etemad; et al. CSS Text Module Level 4. 29 May 2024. WD. URL: https://www.w3.org/TR/css-text-4/
+   [CSS-TEXT-DECOR-4]
+   Elika Etemad; Koji Ishii. CSS Text Decoration Module Level 4. 4 May 2022. WD. URL: https://www.w3.org/TR/css-text-decor-4/
+   [CSS-TRANSFORMS-1]
+   Simon Fraser; et al. CSS Transforms Module Level 1. 14 February 2019. CR. URL: https://www.w3.org/TR/css-transforms-1/
+   [CSS-TRANSFORMS-2]
+   Tab Atkins Jr.; et al. CSS Transforms Module Level 2. 9 November 2021. WD. URL: https://www.w3.org/TR/css-transforms-2/
+   [CSS-UI-3]
+   Tantek Çelik; Florian Rivoal. CSS Basic User Interface Module Level 3 (CSS3 UI). 7 April 2026. REC. URL: https://www.w3.org/TR/css-ui-3/
+   [CSS-UI-4]
+   Tab Atkins Jr.; Florian Rivoal. CSS Basic User Interface Module Level 4. 20 January 2026. WD. URL: https://www.w3.org/TR/css-ui-4/
+   [CSS-VALUES-3]
+   Tab Atkins Jr.; Elika Etemad. CSS Values and Units Module Level 3. 22 March 2024. CRD. URL: https://www.w3.org/TR/css-values-3/
+   [CSS-VALUES-5]
+   Tab Atkins Jr.; Elika Etemad; Miriam Suzanne. CSS Values and Units Module Level 5. 11 November 2024. WD. URL: https://www.w3.org/TR/css-values-5/
+   [CSS-VARIABLES-1]
+   Tab Atkins Jr.. CSS Custom Properties for Cascading Variables Module Level 1. 16 June 2022. CR. URL: https://www.w3.org/TR/css-variables-1/
+   [CSS-WILL-CHANGE-1]
+   Tab Atkins Jr.. CSS Will Change Module Level 1. 5 May 2022. CRD. URL: https://www.w3.org/TR/css-will-change-1/
+   [CSS-WRITING-MODES-3]
+   Elika Etemad; Koji Ishii. CSS Writing Modes Level 3. 10 December 2019. REC. URL: https://www.w3.org/TR/css-writing-modes-3/
+   [CSS2]
+   Bert Bos; et al. Cascading Style Sheets Level 2 Revision 1 (CSS 2.1) Specification. 7 June 2011. REC. URL: https://www.w3.org/TR/CSS2/
+   [CSS3-MEDIAQUERIES]
+   Florian Rivoal. Media Queries Level 3. 21 May 2024. REC. URL: https://www.w3.org/TR/mediaqueries-3/
+   [CSS3-NAMESPACE]
+   Elika Etemad. CSS Namespaces Module Level 3. 20 March 2014. REC. URL: https://www.w3.org/TR/css-namespaces-3/
+   [MEDIAQUERIES-5]
+   Tab Atkins Jr.; et al. Media Queries Level 5. 19 February 2026. WD. URL: https://www.w3.org/TR/mediaqueries-5/
+   [RFC2119]
+   S. Bradner. Key words for use in RFCs to Indicate Requirement Levels. March 1997. Best Current Practice. URL: https://datatracker.ietf.org/doc/html/rfc2119
+   [SELECTORS-3]
+   Tantek Çelik; et al. Selectors Level 3. 6 November 2018. REC. URL: https://www.w3.org/TR/selectors-3/
+   [SELECTORS-4]
+   Elika Etemad; Tab Atkins Jr.. Selectors Level 4. 22 January 2026. WD. URL: https://www.w3.org/TR/selectors-4/
+  
+  Non-Normative References
+  
+   [CSS-ALIGN-3]
+   Elika Etemad; Tab Atkins Jr.. CSS Box Alignment Module Level 3. 30 January 2026. WD. URL: https://www.w3.org/TR/css-align-3/
+   [CSS-ANIMATIONS-1]
+   David Baron; et al. CSS Animations Level 1. 2 March 2023. WD. URL: https://www.w3.org/TR/css-animations-1/
+   [CSS-BREAK-3]
+   Rossen Atanassov; Elika Etemad. CSS Fragmentation Module Level 3. 4 December 2018. CR. URL: https://www.w3.org/TR/css-break-3/
+   [CSS-CASCADE-3]
+   Elika Etemad; Tab Atkins Jr.. CSS Cascading and Inheritance Level 3. 11 February 2021. REC. URL: https://www.w3.org/TR/css-cascade-3/
+   [CSS-CASCADE-5]
+   Elika Etemad; Miriam Suzanne; Tab Atkins Jr.. CSS Cascading and Inheritance Level 5. 13 January 2022. CR. URL: https://www.w3.org/TR/css-cascade-5/
+   [CSS-COLOR-3]
+   Tantek Çelik; Chris Lilley; David Baron. CSS Color Module Level 3. 18 January 2022. REC. URL: https://www.w3.org/TR/css-color-3/
+   [CSS-COLOR-ADJUST-1]
+   Elika Etemad; et al. CSS Color Adjustment Module Level 1. 16 December 2025. CR. URL: https://www.w3.org/TR/css-color-adjust-1/
+   [CSS-CONDITIONAL-4]
+   Chris Lilley; David Baron; Elika Etemad. CSS Conditional Rules Module Level 4. 4 September 2025. CRD. URL: https://www.w3.org/TR/css-conditional-4/
+   [CSS-FONT-LOADING-3]
+   Tab Atkins Jr.. CSS Font Loading Module Level 3. 6 April 2023. WD. URL: https://www.w3.org/TR/css-font-loading-3/
+   [CSS-GRID-1]
+   Tab Atkins Jr.; et al. CSS Grid Layout Module Level 1. 26 March 2025. CRD. URL: https://www.w3.org/TR/css-grid-1/
+   [CSS-GRID-2]
+   Tab Atkins Jr.; et al. CSS Grid Layout Module Level 2. 26 March 2025. CRD. URL: https://www.w3.org/TR/css-grid-2/
+   [CSS-LISTS-3]
+   Elika Etemad; Tab Atkins Jr.. CSS Lists and Counters Module Level 3. 17 November 2020. WD. URL: https://www.w3.org/TR/css-lists-3/
+   [CSS-LOGICAL-1]
+   Elika Etemad; Rossen Atanassov. CSS Logical Properties and Values Module Level 1. 4 December 2025. WD. URL: https://www.w3.org/TR/css-logical-1/
+   [CSS-MASKING-1]
+   Dirk Schulze; Brian Birtles; Tab Atkins Jr.. CSS Masking Module Level 1. 5 August 2021. CRD. URL: https://www.w3.org/TR/css-masking-1/
+   [CSS-NESTING-1]
+   Tab Atkins Jr.. CSS Nesting Module Level 1. 22 January 2026. WD. URL: https://www.w3.org/TR/css-nesting-1/
+   [CSS-SCROLL-ANCHORING-1]
+   Tab Atkins Jr.. CSS Scroll Anchoring Module Level 1. 11 November 2020. WD. URL: https://www.w3.org/TR/css-scroll-anchoring-1/
+   [CSS-SCROLL-SNAP-1]
+   Matt Rakow; et al. CSS Scroll Snap Module Level 1. 11 March 2021. CR. URL: https://www.w3.org/TR/css-scroll-snap-1/
+   [CSS-SCROLLBARS-1]
+   Tantek Çelik; Rossen Atanassov; Florian Rivoal. CSS Scrollbars Styling Module Level 1. 9 December 2021. CR. URL: https://www.w3.org/TR/css-scrollbars-1/
+   [CSS-SHAPES-1]
+   Alan Stearns; Rossen Atanassov; Noam Rosenthal. CSS Shapes Module Level 1. 12 June 2025. CRD. URL: https://www.w3.org/TR/css-shapes-1/
+   [CSS-SPEECH-1]
+   Léonie Watson; Elika Etemad. CSS Speech Module Level 1. 14 February 2023. CRD. URL: https://www.w3.org/TR/css-speech-1/
+   [CSS-TEXT-3]
+   Elika Etemad; Koji Ishii; Florian Rivoal. CSS Text Module Level 3. 30 September 2024. CRD. URL: https://www.w3.org/TR/css-text-3/
+   [CSS-TEXT-DECOR-3]
+   Elika Etemad; Koji Ishii. CSS Text Decoration Module Level 3. 5 May 2022. CRD. URL: https://www.w3.org/TR/css-text-decor-3/
+   [CSS-TRANSITIONS-1]
+   Chris Marrin; et al. CSS Transitions Module Level 1. 8 January 2026. WD. URL: https://www.w3.org/TR/css-transitions-1/
+   [CSS-VIEW-TRANSITIONS-1]
+   Tab Atkins Jr.; Jake Archibald; Khushal Sagar. CSS View Transitions Module Level 1. 28 March 2024. CRD. URL: https://www.w3.org/TR/css-view-transitions-1/
+   [CSS-WRITING-MODES-4]
+   Elika Etemad; Koji Ishii. CSS Writing Modes Level 4. 30 July 2019. CR. URL: https://www.w3.org/TR/css-writing-modes-4/
+   [CSSOM-1]
+   Daniel Glazman; Emilio Cobos Álvarez. CSS Object Model (CSSOM). 26 August 2021. WD. URL: https://www.w3.org/TR/cssom-1/
+   [CSSOM-VIEW-1]
+   Simon Fraser; Emilio Cobos Álvarez. CSSOM View Module. 16 September 2025. WD. URL: https://www.w3.org/TR/cssom-view-1/
+   [FILTER-EFFECTS-1]
+   Dirk Schulze; Dean Jackson. Filter Effects Module Level 1. 18 December 2018. WD. URL: https://www.w3.org/TR/filter-effects-1/
+   [GEOMETRY-1]
+   Sebastian Zartner; Yehonatan Daniv. Geometry Interfaces Module Level 1. 4 December 2025. CRD. URL: https://www.w3.org/TR/geometry-1/
+   [MEDIAQUERIES-4]
+   Tab Atkins Jr.; Florian Rivoal. Media Queries Level 4. 19 February 2026. CRD. URL: https://www.w3.org/TR/mediaqueries-4/
+   [MOTION-1]
+   Tab Atkins Jr.; Dirk Schulze; Jihye Hong. Motion Path Module Level 1. 5 November 2024. WD. URL: https://www.w3.org/TR/motion-1/
+   [RESIZE-OBSERVER-1]
+   Aleks Totic; Greg Whitworth. Resize Observer. 11 February 2020. FPWD. URL: https://www.w3.org/TR/resize-observer-1/
+   [WEB-ANIMATIONS-1]
+   Brian Birtles; et al. Web Animations. 5 June 2023. WD. URL: https://www.w3.org/TR/web-animations-1/
+  
+
+

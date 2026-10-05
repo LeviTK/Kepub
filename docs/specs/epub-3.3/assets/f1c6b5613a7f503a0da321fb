@@ -1,0 +1,49 @@
+[
+  {
+    "url": "https://api.github.com/repos/w3c/epub-specs/issues/comments/2203391467",
+    "html_url": "https://github.com/w3c/epub-specs/issues/2632#issuecomment-2203391467",
+    "issue_url": "https://api.github.com/repos/w3c/epub-specs/issues/2632",
+    "id": 2203391467,
+    "node_id": "IC_kwDOAfSEcs6DVRXr",
+    "user": {
+      "login": "iherman",
+      "id": 520723,
+      "node_id": "MDQ6VXNlcjUyMDcyMw==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/520723?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/iherman",
+      "html_url": "https://github.com/iherman",
+      "followers_url": "https://api.github.com/users/iherman/followers",
+      "following_url": "https://api.github.com/users/iherman/following{/other_user}",
+      "gists_url": "https://api.github.com/users/iherman/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/iherman/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/iherman/subscriptions",
+      "organizations_url": "https://api.github.com/users/iherman/orgs",
+      "repos_url": "https://api.github.com/users/iherman/repos",
+      "events_url": "https://api.github.com/users/iherman/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/iherman/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "created_at": "2024-07-02T14:36:34Z",
+    "updated_at": "2024-07-02T14:36:34Z",
+    "body": "We collect the auch moments... :-)",
+    "author_association": "MEMBER",
+    "pin": null,
+    "reactions": {
+      "url": "https://api.github.com/repos/w3c/epub-specs/issues/comments/2203391467/reactions",
+      "total_count": 0,
+      "+1": 0,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "performed_via_github_app": null,
+    "minimized": null
+  }
+]
