@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 
 	"github.com/LeviTK/Kepub/internal/fault"
@@ -16,7 +17,7 @@ func TestPlanApplyFilesystemFailuresAreIOErrors(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("permission failure requires non-root user")
 	}
-	for _, action := range []string{"plan", "apply"} {
+	for _, action := range []string{"plan", "apply", "publish"} {
 		t.Run(action, func(t *testing.T) {
 			dir := t.TempDir()
 			book, ws := filepath.Join(dir, "book.epub"), filepath.Join(dir, "workspace")
@@ -35,6 +36,8 @@ func TestPlanApplyFilesystemFailuresAreIOErrors(t *testing.T) {
 			blocked := filepath.Join(ws, "plans")
 			if action == "apply" {
 				blocked = filepath.Join(ws, "staging")
+			} else if action == "publish" {
+				blocked = filepath.Join(ws, "tasks")
 			}
 			if err := os.Chmod(blocked, 0500); err != nil {
 				t.Fatal(err)
@@ -63,6 +66,7 @@ func TestEditArgumentErrorClassification(t *testing.T) {
 		{fmt.Errorf("write: %w", &os.PathError{Op: "open", Path: "plans/x", Err: os.ErrPermission}), 6, "IO_ERROR"},
 		{fmt.Errorf("publish: %w", &os.LinkError{Op: "rename", Old: "a", New: "b", Err: os.ErrPermission}), 6, "IO_ERROR"},
 		{fmt.Errorf("sync: %w", os.NewSyscallError("fsync", os.ErrPermission)), 6, "IO_ERROR"},
+		{fmt.Errorf("publish: %w", syscall.EACCES), 6, "IO_ERROR"},
 		{errors.New("invalid locator"), 2, "INVALID_OPERATIONS"},
 		{fault.New(3, "UNSUPPORTED_INPUT", "unsupported"), 3, "UNSUPPORTED_INPUT"},
 		{errors.Join(workspace.ErrStalePlan, &os.PathError{Op: "open", Err: os.ErrNotExist}), 4, "INPUT_DRIFT"},

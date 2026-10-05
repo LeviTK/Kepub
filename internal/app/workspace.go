@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"syscall"
 
 	"github.com/LeviTK/Kepub/internal/bookpath"
 	"github.com/LeviTK/Kepub/internal/fault"
@@ -180,7 +181,8 @@ func editArgumentError(code string, err error) error {
 	var pathError *os.PathError
 	var linkError *os.LinkError
 	var syscallError *os.SyscallError
-	if errors.As(mapped, &pathError) || errors.As(mapped, &linkError) || errors.As(mapped, &syscallError) {
+	var errno syscall.Errno
+	if errors.As(mapped, &pathError) || errors.As(mapped, &linkError) || errors.As(mapped, &syscallError) || errors.As(mapped, &errno) {
 		return fault.New(6, "IO_ERROR", "%v", mapped)
 	}
 	return fault.New(2, code, "%v", err)

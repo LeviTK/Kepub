@@ -208,6 +208,50 @@ func prepareExecution(t *testing.T, w *Workspace, p Plan) (Execution, []byte) {
 	return e, out
 }
 
+func TestPublishedTaskStartupFailureRetainsID(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("permission failure requires non-root user")
+	}
+	for _, blocked := range []string{"tasks/active/checkpoints", "tasks/active"} {
+		t.Run(blocked, func(t *testing.T) {
+			w, dir := makeWorkspace(t)
+			p := planTitle(t, w, "startup failure")
+			if _, err := w.createCandidate(&p); err != nil {
+				t.Fatal(err)
+			}
+			id, err := w.TaskID()
+			if err != nil {
+				t.Fatal(err)
+			}
+			path := filepath.Join(dir, blocked)
+			if err := os.Chmod(path, 0500); err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { os.Chmod(path, 0700) })
+			e, err := w.startExecution(p)
+			if err == nil || e.TaskID != id || digest(e.Plan) != digest(p) {
+				t.Fatalf("startup result: %+v, %v; durable ID %s", e, err, id)
+			}
+			if err := os.Chmod(path, 0700); err != nil {
+				t.Fatal(err)
+			}
+			w.Close()
+			w, err = Open(dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer w.Close()
+			d, err := w.TaskDiff(e.TaskID)
+			if err != nil || d.Diff.Changed {
+				t.Fatalf("recovery diff: %+v, %v", d, err)
+			}
+			if _, err := w.Reject(e.TaskID); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
 func TestActualWriteSetFailureRollbackAndReopen(t *testing.T) {
 	for _, scenario := range []string{"add", "delete", "type", "wrong-opf", "io"} {
 		t.Run(scenario, func(t *testing.T) {

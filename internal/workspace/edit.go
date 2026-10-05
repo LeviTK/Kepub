@@ -438,7 +438,7 @@ func (w *Workspace) verifyPlan(p Plan, bindPath bool) ([]byte, error) {
 
 // Apply strictly reads a plan, re-derives its effects, then creates the sole
 // independent candidate. Repeated application is a conflict, never a new task.
-func (w *Workspace) Apply(planJSON []byte) (Execution, error) {
+func (w *Workspace) Apply(planJSON []byte) (e Execution, err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	if err := w.ready(); err != nil {
@@ -458,28 +458,57 @@ func (w *Workspace) Apply(planJSON []byte) (Execution, error) {
 	if exists(w.root, "plans/"+p.ID+".used.json") {
 		return Execution{}, ErrTaskConflict
 	}
+	defer func() {
+		if err == nil {
+			return
+		}
+		// Publication can succeed before a later sync/startup error. Expose
+		// only this call's durable, identity- and plan-bound task, never latest.
+		if e.TaskID == "" && exists(w.root, "tasks/active") {
+			id, idErr := w.taskID()
+			var intent Plan
+			var used planUse
+			if idErr == nil && readEditJSON(w.root, "tasks/active/edit-intent.json", &intent) == nil && digest(intent) == digest(p) && readEditJSON(w.root, "plans/"+p.ID+".used.json", &used) == nil && used.Version == 1 && used.TaskID == id && used.PlanSHA256 == digest(p) {
+				e = Execution{Version: p.SchemaVersion, TaskID: id, Plan: p, Conformance: "not_run"}
+			}
+		}
+		if e.TaskID != "" {
+			e.Status, e.Failure, e.ReviewRequired = "failed", err.Error(), false
+		}
+	}()
 	if _, err := w.createCandidate(&p); err != nil {
 		return Execution{}, err
 	}
+	e, err = w.startExecution(p)
+	if err != nil {
+		return e, err
+	}
+	return w.execute(e, out, nil)
+}
+
+// startExecution records the pre-mutation checkpoint and durable start. Even
+// when startup fails, its return value identifies the already published task.
+func (w *Workspace) startExecution(p Plan) (e Execution, err error) {
+	task, err := w.taskID()
+	if err != nil {
+		return e, err
+	}
+	e = Execution{Version: p.SchemaVersion, TaskID: task, Plan: p, Status: "running", Conformance: "not_run"}
 	s, err := w.checkpoint()
 	if err != nil {
 		w.recovery = true
-		return Execution{}, err
+		return e, err
 	}
-	task, err := w.taskID()
-	if err != nil {
-		return Execution{}, err
-	}
-	e := Execution{Version: p.SchemaVersion, TaskID: task, Plan: p, Checkpoint: s.ID, Status: "running", Conformance: "not_run", Diff: compareTrees(s.Tree, s.Tree)}
+	e.Checkpoint, e.Diff = s.ID, compareTrees(s.Tree, s.Tree)
 	if err := writeJSON(w.root, "tasks/active/edit-start.json", e); err != nil {
 		w.recovery = true
-		return Execution{}, err
+		return e, err
 	}
 	if err := syncDir(w.root, "tasks/active"); err != nil {
 		w.recovery = true
-		return Execution{}, err
+		return e, err
 	}
-	return w.execute(e, out, nil)
+	return e, nil
 }
 
 // execute's hook is used only by package tests to simulate a stopped external
