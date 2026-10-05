@@ -245,15 +245,25 @@ func execute(ctx context.Context, o options) (any, error) {
 
 func run(args []string, stdout, stderr io.Writer) int {
 	o, err := parse(args)
-	// Detect --json even when an earlier malformed option stopped parsing; never
-	// reinterpret a filename after -- as an option.
-	machine := false
-	for _, s := range args {
-		if s == "--" {
-			break
-		}
-		if s == "--json" {
-			machine = true
+	machine := o.json
+	if err != nil {
+		// Find later --json after a parse error using the same token boundaries:
+		// option values and filenames after -- are not flags.
+		for i := 0; i < len(args); i++ {
+			s := args[i]
+			if s == "--" {
+				break
+			}
+			if s == "--json" {
+				machine = true
+			}
+			key, _, has := strings.Cut(s, "=")
+			if key == "-o" {
+				key = "--output"
+			}
+			if valueOption(key) && !has {
+				i++
+			}
 		}
 	}
 	if o.command == "" && len(args) > 0 && !strings.HasPrefix(args[0], "-") {

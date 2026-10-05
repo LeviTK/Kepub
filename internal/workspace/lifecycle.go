@@ -657,7 +657,7 @@ func (w *Workspace) taskDigests(dir string, j *settlement) error {
 	if snap.Version != 1 || snap.ID != s.Checkpoint || snap.BaseRevision != t.BaseRevision || digest(snap.Tree) != digest(tree) || tree.SHA256 != p.InputTreeSHA256 {
 		return fmt.Errorf("settlement checkpoint mismatch")
 	}
-	if !validPlanOperation(p) || p.Rootfile != w.state.Rootfile || p.OperationSetSHA256 != digest(p.Operations) || s.Version != p.SchemaVersion || e.Version != s.Version || s.TaskID != e.TaskID || s.TaskID != id && !(id == "active" && s.TaskID == "") || s.Status != "running" || s.ReviewRequired || s.Conformance != "not_run" || digest(s.Diff) != digest(compareTrees(tree, tree)) || e.Conformance != "not_run" || e.Diff.Changes == nil {
+	if !validPlanOperation(p) || p.Rootfile != w.state.Rootfile || p.OperationSetSHA256 != digest(p.Operations) || s.Version != p.SchemaVersion || e.Version != s.Version || s.TaskID != e.TaskID || s.TaskID != id && !(id == "active" && s.TaskID == "") || (s.Status != "running" && s.Status != "unstarted") || (s.Status == "unstarted" && e.Status != "failed") || s.ReviewRequired || s.Conformance != "not_run" || digest(s.Diff) != digest(compareTrees(tree, tree)) || e.Conformance != "not_run" || e.Diff.Changes == nil {
 		return fmt.Errorf("settlement operation/execution version mismatch")
 	}
 	out, writes, err := w.recomputeAt(p.Operations, dir+"/checkpoints/"+s.Checkpoint+"/pub", p.BaseRevision)

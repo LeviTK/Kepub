@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -107,6 +108,34 @@ func invoke(t *testing.T, args []string, want int) map[string]any {
 		t.Fatalf("unexpected stderr: %s", errout.String())
 	}
 	return result
+}
+
+func TestJSONModeDoesNotInterpretOptionValues(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "missing")
+	for _, tc := range []struct {
+		args []string
+		json bool
+	}{
+		{[]string{"pack", missing, "--output", "--", "--json"}, true},
+		{[]string{"pack", missing, "--output", "--json"}, false},
+		{[]string{"pack", missing, "--output=--json"}, false},
+		{[]string{"pack", missing, "--output=--", "--json"}, true},
+		{[]string{"pack", missing, "--unknown", "--output", "--json"}, false},
+		{[]string{"pack", missing, "--unknown", "--output", "--", "--json"}, true},
+		{[]string{"pack", missing, "--unknown", "--", "--json"}, false},
+	} {
+		t.Run(fmt.Sprint(tc.args), func(t *testing.T) {
+			var out, errout bytes.Buffer
+			if code := run(tc.args, &out, &errout); code == 0 {
+				t.Fatal("missing path/unknown option succeeded")
+			}
+			var e envelope
+			machine := json.Unmarshal(out.Bytes(), &e) == nil && e.SchemaVersion == 1
+			if machine != tc.json || tc.json && errout.Len() != 0 || !tc.json && errout.Len() == 0 {
+				t.Fatalf("wrong mode: stdout=%s stderr=%s", out.String(), errout.String())
+			}
+		})
+	}
 }
 
 func TestJSONSuccessFailureAndSelection(t *testing.T) {

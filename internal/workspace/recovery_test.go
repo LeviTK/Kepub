@@ -11,6 +11,67 @@ import (
 	"github.com/LeviTK/Kepub/internal/validation"
 )
 
+func TestUnstartedRecoveryPreservesDriftAcrossResultInterruption(t *testing.T) {
+	for _, operation := range []string{"metadata", "content"} {
+		t.Run(operation, func(t *testing.T) {
+			w, dir, _ := legalWorkspace(t, "3.0")
+			p := fieldPlan(t, w, "title", "title", "Title", "New")
+			if operation == "content" {
+				p = contentPlan(t, w, "Changed")
+			}
+			_, err := w.createCandidate(&p)
+			if err != nil {
+				t.Fatal(err)
+			}
+			id, err := w.taskID()
+			if err != nil {
+				t.Fatal(err)
+			}
+			put(t, filepath.Join(dir, candidate, "user-notes.txt"), []byte("outside changes"))
+			before := treeAt(t, filepath.Join(dir, candidate)).SHA256
+			w.Close()
+			// Use the actual synthesized start, then materialize interruption
+			// before its failed result publication. Repeated retries must not
+			// reinterpret that record as authorization to undo outside changes.
+			for attempt := 0; attempt < 3; attempt++ {
+				w, err = Open(dir)
+				if err != nil {
+					t.Fatal(err)
+				}
+				e, err := w.Execution()
+				if !errors.Is(err, ErrCandidateDrift) || e.TaskID != id || e.Status != "failed" || e.ReviewRequired {
+					t.Fatalf("outside changes no longer reviewable: %+v, %v", e, err)
+				}
+				if treeAt(t, filepath.Join(dir, candidate)).SHA256 != before {
+					t.Fatal("synthesized recovery destroyed outside changes")
+				}
+				if _, err := w.TaskDiff(id); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := w.Accept(context.Background(), id, validation.Options{}); !errors.Is(err, ErrCandidateDrift) {
+					t.Fatalf("drift accepted: %v", err)
+				}
+				if attempt < 2 {
+					if err := w.root.Remove("tasks/active/edit-result.json"); err != nil {
+						t.Fatal(err)
+					}
+				} else if _, err := w.Reject(id); err != nil {
+					t.Fatal(err)
+				}
+				w.Close()
+			}
+			w, err = Open(dir)
+			if err != nil {
+				t.Fatal("rejected synthetic history", err)
+			}
+			if treeAt(t, filepath.Join(dir, revisionPath(w.current))).SHA256 != p.InputTreeSHA256 {
+				t.Fatal("accepted publication changed")
+			}
+			w.Close()
+		})
+	}
+}
+
 func TestInterruptedApplyWithPreJournalRestoreLeftovers(t *testing.T) {
 	for _, operation := range []string{"metadata", "content"} {
 		for _, phase := range []string{"partial-copy", "unpublished-journal"} {

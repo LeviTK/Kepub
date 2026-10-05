@@ -748,8 +748,13 @@ func (w *Workspace) execution() (Execution, error) {
 		if err != nil {
 			return e, err
 		}
-		start = Execution{Version: intent.SchemaVersion, TaskID: task, Plan: intent, Checkpoint: s.ID, Status: "running", Conformance: "not_run", Diff: compareTrees(s.Tree, s.Tree)}
+		// Persist the distinction: retrying after start but before result must
+		// not mistake this synthetic record for a mutation that needs rollback.
+		start = Execution{Version: intent.SchemaVersion, TaskID: task, Plan: intent, Checkpoint: s.ID, Status: "unstarted", Conformance: "not_run", Diff: compareTrees(s.Tree, s.Tree)}
 		if err := writeJSON(w.root, "tasks/active/edit-start.json", start); err != nil {
+			return e, err
+		}
+		if err := syncDir(w.root, "tasks/active"); err != nil {
 			return e, err
 		}
 	} else if err := readEditJSON(w.root, "tasks/active/edit-start.json", &start); err != nil {
@@ -765,7 +770,7 @@ func (w *Workspace) execution() (Execution, error) {
 	if err != nil {
 		return e, err
 	}
-	if start.Version != intent.SchemaVersion || start.Status != "running" || start.ReviewRequired || start.Conformance != "not_run" || digest(start.Diff) != digest(compareTrees(s.Tree, s.Tree)) || s.Tree.SHA256 != w.base.SHA256 {
+	if start.Version != intent.SchemaVersion || (start.Status != "running" && start.Status != "unstarted") || start.ReviewRequired || start.Conformance != "not_run" || digest(start.Diff) != digest(compareTrees(s.Tree, s.Tree)) || s.Tree.SHA256 != w.base.SHA256 {
 		return e, fmt.Errorf("invalid execution start")
 	}
 	if !exists(w.root, "tasks/active/edit-result.json") {
@@ -776,7 +781,7 @@ func (w *Workspace) execution() (Execution, error) {
 		}
 		e = start
 		e.Diff = compareTrees(w.base, actual)
-		if !unstarted {
+		if start.Status == "running" {
 			if err := w.restore(start.Checkpoint); err != nil {
 				return e, err
 			}
@@ -795,7 +800,7 @@ func (w *Workspace) execution() (Execution, error) {
 	if e.TaskID != start.TaskID {
 		return e, fmt.Errorf("execution task identity mismatch")
 	}
-	if e.Version != start.Version || e.Diff.Changes == nil || digest(e.Plan) != digest(start.Plan) || e.Checkpoint != start.Checkpoint || e.Conformance != "not_run" {
+	if e.Version != start.Version || e.Diff.Changes == nil || digest(e.Plan) != digest(start.Plan) || e.Checkpoint != start.Checkpoint || e.Conformance != "not_run" || (start.Status == "unstarted" && e.Status != "failed") {
 		return e, fmt.Errorf("invalid execution provenance")
 	}
 	tree, err := hashAt(w.root, candidate)
