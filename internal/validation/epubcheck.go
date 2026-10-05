@@ -19,7 +19,9 @@ import (
 	"time"
 
 	"github.com/LeviTK/Kepub/internal/archive"
+	"github.com/LeviTK/Kepub/internal/bookpath"
 	"github.com/LeviTK/Kepub/internal/fault"
+	"golang.org/x/text/unicode/norm"
 )
 
 const Version = "5.3.0"
@@ -81,9 +83,11 @@ type upstream struct {
 		Spines     int    `json:"nSpines"`
 	} `json:"publication"`
 	Items []struct {
-		Name     string `json:"fileName"`
-		Size     int64  `json:"uncompressedSize"`
-		Checksum string `json:"checkSum"`
+		Name              string          `json:"fileName"`
+		Size              *int64          `json:"uncompressedSize"`
+		CompressedSize    *int64          `json:"compressedSize"`
+		CompressionMethod json.RawMessage `json:"compressionMethod"`
+		Checksum          json.RawMessage `json:"checkSum"`
 	} `json:"items"`
 	Messages []struct {
 		ID         string `json:"ID"`
@@ -438,19 +442,60 @@ func validateReport(u upstream, tree archive.Tree, successful bool) error {
 			return fmt.Errorf("missing full-publication evidence")
 		}
 		want := map[string]archive.Entry{}
+		aliases := map[string]string{}
 		for _, e := range tree.Entries {
 			if e.Type == "file" {
 				want[e.Path] = e
+				// OPFItem reports decoded NFC; ValidationContext reports the
+				// normalized URI path. Match EPUBCheck 5.3.0/Galimatias 0.1.3's
+				// preserved ASCII, not Go's different EscapedPath character set.
+				decoded := norm.NFC.String(e.Path)
+				var encoded strings.Builder
+				for _, b := range []byte(decoded) {
+					if b >= 'a' && b <= 'z' || b >= 'A' && b <= 'Z' || b >= '0' && b <= '9' || strings.ContainsRune("!$&'()*+,-./:;=@_~", rune(b)) {
+						encoded.WriteByte(b)
+					} else {
+						fmt.Fprintf(&encoded, "%%%02X", b)
+					}
+				}
+				for _, alias := range []string{decoded, encoded.String()} {
+					if source, ok := aliases[alias]; ok && source != e.Path {
+						aliases[alias] = "" // Ambiguous auxiliary identity.
+					} else if !ok {
+						aliases[alias] = e.Path
+					}
+				}
 			}
 		}
+		seen := map[string]bool{}
+		inventory := map[string]bool{}
 		for _, e := range u.Items {
-			entry, ok := want[e.Name]
-			if !ok || e.Size != entry.Size || e.Checksum != upstreamChecksum(entry.SHA256) {
+			if seen[e.Name] || e.Size == nil || len(e.Checksum) == 0 {
 				return fmt.Errorf("report inventory mismatch")
 			}
-			delete(want, e.Name)
+			seen[e.Name] = true
+			if bytes.Equal(bytes.TrimSpace(e.Checksum), []byte("null")) {
+				// Feature-only rows have all four inventory fields at explicit
+				// defaults. Neither NFC nor URI aliases ever prove ZIP inventory.
+				if *e.Size != 0 || e.CompressedSize == nil || *e.CompressedSize != 0 || !bytes.Equal(bytes.TrimSpace(e.CompressionMethod), []byte("null")) || aliases[e.Name] == "" {
+					return fmt.Errorf("report metadata alias mismatch")
+				}
+				if _, err := bookpath.Parse(e.Name); err != nil {
+					return fmt.Errorf("report metadata alias mismatch")
+				}
+				continue
+			}
+			var checksum string
+			if err := json.Unmarshal(e.Checksum, &checksum); err != nil {
+				return fmt.Errorf("report inventory mismatch")
+			}
+			entry, ok := want[e.Name]
+			if !ok || *e.Size != entry.Size || checksum != upstreamChecksum(entry.SHA256) {
+				return fmt.Errorf("report inventory mismatch")
+			}
+			inventory[e.Name] = true
 		}
-		if len(want) != 0 {
+		if len(inventory) != len(want) {
 			return fmt.Errorf("report inventory incomplete")
 		}
 	}

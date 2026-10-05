@@ -93,6 +93,121 @@ func code(t *testing.T, e error, want string) {
 	}
 }
 
+func TestRealEncodedReportInventory(t *testing.T) {
+	if os.Getenv("KEPUB_EPUBCHECK_JAR") == "" {
+		t.Skip("requires pinned real EPUBCheck")
+	}
+	for _, tc := range []struct {
+		version string
+		query   bool
+	}{{"2.0", false}, {"3.0", false}, {"3.0", true}} {
+		t.Run(fmt.Sprintf("%s/query=%v", tc.version, tc.query), func(t *testing.T) {
+			dir := legal(t, tc.version)
+			// Independently spelled raw names and URI hrefs, including two
+			// distinct files that a second decode or exact-first fallback aliases.
+			resources := []struct{ name, href string }{
+				{"章 节.xhtml", "%E7%AB%A0%20%E8%8A%82.xhtml"},
+				{"literal%20.xhtml", "literal%2520.xhtml"},
+				{"literal .xhtml", "literal%20.xhtml"},
+				{"plus+.xhtml", "plus%2B.xhtml"},
+				{"hash#.xhtml", "hash%23.xhtml"},
+				{"cafe\u0301.xhtml", "cafe%CC%81.xhtml"},
+				{"cafe\u0301!'().xhtml", "cafe%CC%81%21%27%28%29.xhtml"},
+				{"cafe\u0301%20 .xhtml", "cafe%CC%81%2520%20.xhtml"},
+			}
+			if tc.query {
+				resources = append(resources, struct{ name, href string }{"query?.xhtml", "query%3F.xhtml"})
+			}
+			if err := os.Rename(filepath.Join(dir, "EPUB/chapter.xhtml"), filepath.Join(dir, "EPUB", resources[0].name)); err != nil {
+				t.Fatal(err)
+			}
+			for _, name := range []string{"EPUB/package.opf", "EPUB/nav.xhtml", "EPUB/toc.ncx"} {
+				b, err := os.ReadFile(filepath.Join(dir, name))
+				if errors.Is(err, os.ErrNotExist) {
+					continue
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				text := strings.ReplaceAll(string(b), "chapter.xhtml", resources[0].href)
+				if name == "EPUB/package.opf" {
+					var items, spine strings.Builder
+					for i, r := range resources[1:] {
+						fmt.Fprintf(&items, `<item id="extra%d" href="%s" media-type="application/xhtml+xml"/>`, i, r.href)
+						fmt.Fprintf(&spine, `<itemref idref="extra%d"/>`, i)
+						write(t, dir, "EPUB/"+r.name, fmt.Sprintf(`<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Extra %d</title></head><body><p>Distinct extra %d.</p></body></html>`, i, i))
+					}
+					text = strings.Replace(text, "</manifest>", items.String()+"</manifest>", 1)
+					text = strings.Replace(text, "</spine>", spine.String()+"</spine>", 1)
+				}
+				write(t, dir, name, text)
+			}
+			book := zipFixture(t, dir)
+			before, err := archive.FileSHA256(book)
+			if err != nil {
+				t.Fatal(err)
+			}
+			r, err := validation.Validate(context.Background(), book, validation.Options{})
+			wantExit := 0
+			if tc.query {
+				wantExit = 1 // OCF forbids a literal ? even with an encoded href.
+			}
+			checked := false
+			for _, c := range r.Checks {
+				if c.ID == "epubcheck" {
+					checked = true
+					if c.BackendExitCode == nil || *c.BackendExitCode != wantExit {
+						t.Fatalf("want real backend exit %d: diagnostics=%+v, %v", wantExit, r.Diagnostics, err)
+					}
+					if !tc.query {
+						var raw struct {
+							Items []struct {
+								Name     string  `json:"fileName"`
+								Checksum *string `json:"checkSum"`
+							} `json:"items"`
+						}
+						if e := json.Unmarshal(c.RawReport, &raw); e != nil {
+							t.Fatal(e)
+						}
+						aux := map[string]bool{}
+						for _, row := range raw.Items {
+							aux[row.Name] = row.Checksum == nil
+						}
+						for _, name := range []string{"EPUB/café.xhtml", "EPUB/caf%C3%A9.xhtml", "EPUB/café!'().xhtml", "EPUB/caf%C3%A9!'().xhtml", "EPUB/café%20 .xhtml", "EPUB/caf%C3%A9%2520%20.xhtml"} {
+							if !aux[name] {
+								t.Fatalf("fixture did not exercise expected real auxiliary row %q", name)
+							}
+						}
+						if onlyAux, exists := aux["EPUB/cafe\u0301.xhtml"]; !exists || onlyAux {
+							t.Fatal("raw NFD inventory evidence missing")
+						}
+					}
+				}
+			}
+			if !checked {
+				t.Fatal("formal checker was not run")
+			}
+			if tc.query {
+				if err == nil || r.Status == "pass" {
+					t.Fatal("invalid query filename accepted")
+				}
+				found := false
+				for _, d := range r.Diagnostics {
+					found = found || d.UpstreamCode == "PKG-009"
+				}
+				if !found {
+					t.Fatalf("missing upstream forbidden-name diagnostic: %+v", r.Diagnostics)
+				}
+			} else if err != nil || r.Status != "pass" {
+				t.Fatalf("encoded inventory rejected: status=%s, %v", r.Status, err)
+			}
+			if after, err := archive.FileSHA256(book); err != nil || after != before {
+				t.Fatal("validation changed original bytes", err)
+			}
+		})
+	}
+}
+
 func TestDraftMissingDependenciesAndTreeBinding(t *testing.T) {
 	dir := legal(t, "3.0")
 	write(t, dir, "unlisted.bin", string([]byte{0, 255, 13, 10, 42}))

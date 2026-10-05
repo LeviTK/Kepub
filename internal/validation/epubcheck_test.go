@@ -69,6 +69,138 @@ func TestReportRejectsFalseCompleteness(t *testing.T) {
 	}
 }
 
+func TestReportInventoryAndMetadataAliases(t *testing.T) {
+	raw, _ := reportFixture()
+	var report map[string]any
+	if err := json.Unmarshal([]byte(raw), &report); err != nil {
+		t.Fatal(err)
+	}
+	var tree archive.Tree
+	var inventory []any
+	for i, name := range []string{"literal%20.xhtml", "literal .xhtml", "章 节.xhtml", "plus+.xhtml", "hash#.xhtml", "query?.xhtml", "cafe\u0301.xhtml", "cafe\u0301!'().xhtml", "cafe\u0301%20 .xhtml", "empty"} {
+		payload := []byte(fmt.Sprintf("independent payload %d", i))
+		if name == "empty" {
+			payload = nil
+		}
+		h := sha256.Sum256(payload)
+		entry := archive.Entry{Path: name, Type: "file", Size: int64(len(payload)), SHA256: hex.EncodeToString(h[:])}
+		tree.Entries = append(tree.Entries, entry)
+		inventory = append(inventory, map[string]any{"fileName": name, "uncompressedSize": entry.Size, "checkSum": upstreamChecksum(entry.SHA256)})
+	}
+	alias := func(name string) any {
+		return map[string]any{"fileName": name, "uncompressedSize": 0, "compressedSize": 0, "compressionMethod": nil, "checkSum": nil}
+	}
+	// Independent expected spellings from official URLUtils/Galimatias:
+	// literal percent is escaped, plus/!'() are preserved, and Unicode is NFC.
+	aliases := []any{alias("literal%2520.xhtml"), alias("%E7%AB%A0%20%E8%8A%82.xhtml"), alias("hash%23.xhtml"), alias("query%3F.xhtml"), alias("café.xhtml"), alias("caf%C3%A9.xhtml"), alias("café!'().xhtml"), alias("caf%C3%A9!'().xhtml"), alias("café%20 .xhtml"), alias("caf%C3%A9%2520%20.xhtml")}
+	// Only raw, complete size/checksum rows prove inventory. URI metadata
+	// aliases are independent, and must not choose between literal %20 and space.
+	for _, tc := range []struct {
+		name string
+		edit func([]any) []any
+		pass bool
+	}{
+		{"raw inventory", func(rows []any) []any { return rows }, true},
+		{"bound metadata aliases", func(rows []any) []any { return append(rows, aliases...) }, true},
+		{"aliases before inventory", func(rows []any) []any { return append(append([]any{}, aliases...), rows...) }, true},
+		{"alias cannot replace inventory", func(rows []any) []any { return append(rows[1:], aliases...) }, false},
+		{"duplicate raw", func(rows []any) []any { return append(rows, rows[0]) }, false},
+		{"duplicate alias", func(rows []any) []any { return append(rows, aliases[0], aliases[0]) }, false},
+		{"raw alias collision", func(rows []any) []any { return append(rows, alias("literal%20.xhtml")) }, false},
+		{"unknown raw", func(rows []any) []any { rows[0].(map[string]any)["fileName"] = "unknown"; return rows }, false},
+		{"unknown alias", func(rows []any) []any { return append(rows, alias("unknown%20.xhtml")) }, false},
+		{"bad escape", func(rows []any) []any { return append(rows, alias("literal%xy.xhtml")) }, false},
+		{"double decode", func(rows []any) []any { return append(rows, alias("literal%252520.xhtml")) }, false},
+		{"traversal alias", func(rows []any) []any { return append(rows, alias("../literal%2520.xhtml")) }, false},
+		{"noncanonical plus escape", func(rows []any) []any { return append(rows, alias("plus%2B.xhtml")) }, false},
+		{"noncanonical punctuation escape", func(rows []any) []any { return append(rows, alias("caf%C3%A9%21%27%28%29.xhtml")) }, false},
+		{"non-NFC URI alias", func(rows []any) []any { return append(rows, alias("cafe%CC%81.xhtml")) }, false},
+		{"lowercase escape alias", func(rows []any) []any { return append(rows, alias("caf%c3%a9.xhtml")) }, false},
+		{"NFC name cannot replace raw inventory", func(rows []any) []any { rows[6].(map[string]any)["fileName"] = "café.xhtml"; return rows }, false},
+		{"ambiguous alias cannot replace raw", func(rows []any) []any { return append(rows[1:], alias("literal%20.xhtml")) }, false},
+		{"wrong size", func(rows []any) []any {
+			rows[0].(map[string]any)["uncompressedSize"] = 0
+			return append(rows, aliases...)
+		}, false},
+		{"swapped checksums", func(rows []any) []any {
+			a, b := rows[0].(map[string]any), rows[1].(map[string]any)
+			a["checkSum"], b["checkSum"] = b["checkSum"], a["checkSum"]
+			return append(rows, aliases...)
+		}, false},
+		{"empty checksum is not metadata", func(rows []any) []any {
+			a := alias("literal%2520.xhtml").(map[string]any)
+			a["checkSum"] = ""
+			return append(rows, a)
+		}, false},
+		{"nonzero metadata size", func(rows []any) []any {
+			a := alias("literal%2520.xhtml").(map[string]any)
+			a["uncompressedSize"] = 7
+			return append(rows, a)
+		}, false},
+		{"missing metadata checksum", func(rows []any) []any {
+			a := alias("literal%2520.xhtml").(map[string]any)
+			delete(a, "checkSum")
+			return append(rows, a)
+		}, false},
+		{"missing metadata compressed size", func(rows []any) []any {
+			a := alias("literal%2520.xhtml").(map[string]any)
+			delete(a, "compressedSize")
+			return append(rows, a)
+		}, false},
+		{"null metadata compressed size", func(rows []any) []any {
+			a := alias("literal%2520.xhtml").(map[string]any)
+			a["compressedSize"] = nil
+			return append(rows, a)
+		}, false},
+		{"nonzero metadata compressed size", func(rows []any) []any {
+			a := alias("literal%2520.xhtml").(map[string]any)
+			a["compressedSize"] = 1
+			return append(rows, a)
+		}, false},
+		{"missing metadata method", func(rows []any) []any {
+			a := alias("literal%2520.xhtml").(map[string]any)
+			delete(a, "compressionMethod")
+			return append(rows, a)
+		}, false},
+		{"non-null metadata method", func(rows []any) []any {
+			a := alias("literal%2520.xhtml").(map[string]any)
+			a["compressionMethod"] = "Stored"
+			return append(rows, a)
+		}, false},
+		{"URL query is not a path", func(rows []any) []any { return append(rows, alias("query?.xhtml")) }, false},
+		{"URL fragment is not a path", func(rows []any) []any { return append(rows, alias("hash#.xhtml")) }, false},
+		{"non-string inventory checksum", func(rows []any) []any { rows[0].(map[string]any)["checkSum"] = true; return rows }, false},
+		{"missing empty-file size", func(rows []any) []any { delete(rows[len(rows)-1].(map[string]any), "uncompressedSize"); return rows }, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// JSON roundtrip keeps each mutation independent of the other cases.
+			b, err := json.Marshal(inventory)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var rows []any
+			if err := json.Unmarshal(b, &rows); err != nil {
+				t.Fatal(err)
+			}
+			report["items"] = tc.edit(rows)
+			b, err = json.Marshal(report)
+			if err != nil {
+				t.Fatal(err)
+			}
+			u, err := decodeReport(b)
+			if err == nil {
+				err = validateReport(u, tree, true)
+			}
+			if (err == nil) != tc.pass {
+				t.Fatalf("pass=%v: %v", tc.pass, err)
+			}
+			if tc.name == "ambiguous alias cannot replace raw" && !strings.Contains(err.Error(), "metadata alias mismatch") {
+				t.Fatalf("ambiguous source was not rejected before counting inventory: %v", err)
+			}
+		})
+	}
+}
+
 func TestMissingOrUnpinnedBackend(t *testing.T) {
 	for _, o := range []Options{{Java: "kepub-nonexistent-java"}, {Java: "sh", JAR: filepath.Join(t.TempDir(), "epubcheck.jar")}} {
 		c, _, e := epubcheck(context.Background(), "unused", "", archive.Tree{}, o)
