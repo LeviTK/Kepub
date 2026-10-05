@@ -101,7 +101,7 @@ C2 首版命令为 `kepub content --workspace DIR --resource BOOK_PATH [--query 
 
 Apply、Open 恢复和 Accept 都须重新推导相同的单资源写集合及精确结果哈希，不能只改分派入口。正文 review 增加可选 `content`，包含 bookPath、locatorVersion、locator、oldValue、plannedValue、实际候选 newValue（不可读取时为 null）及可选 unavailable；不把计划新值当实际候选值。既有 metadata review 字段含义保持。候选漂移仍可 diff／reject，不得接受或沿用旧检查；接受及正式导出仍运行真实固定 EPUBCheck，不自动接受、不自动草稿。
 
-先完成保持 metadata 行为的必要重构并独立提交／回归，再加入正文能力。验收包括旧二进制生成的计划及待审任务、新旧版本组合拒绝、节点局部字节保留、陈旧读取绑定、写集合／执行记录篡改、恢复回滚，以及真实二进制正文接受和拒绝闭环。正文能力通过本批验收后才提升为 available；C4 模型运行、GUI 和正式检查器既有编码 href 兼容问题不进入本批。
+先完成保持 metadata 行为的必要重构并独立提交／回归，再加入正文能力。验收包括旧二进制生成的计划及待审任务、新旧版本组合拒绝、节点局部字节保留、陈旧读取绑定、写集合／执行记录篡改、恢复回滚，以及真实二进制正文接受和拒绝闭环。正文能力通过本批验收后才提升为 available；C4 模型运行和 GUI 不进入本批。编码 href 的报告兼容问题未在 C3 初次交付时修复，后续独立审查已解决其库存／附属行区分，当前规则见 §7.1；不改变正文操作 schema 或旧摘要。
 
 ## 3. 目标选择与全局约定
 
@@ -312,6 +312,8 @@ v0.2首期的plan以accepted revision为基线，不直接对运行中Amp候选�
 `ok`表示请求是否达到其契约，不直接等于出版物合规。`inspect`成功返回问题列表仍可ok=true；`validate`仅在请求的必需检查完整且门槛通过时ok=true。`task run/apply`执行成功不代表accepted，输出必须带 `reviewRequired` 和校验状态。
 
 必需检查必须由用例的版本化政策指定，并在报告中区分。无结构改写的 `pack` 和本轮局部 metadata 编辑，需要安全容器/可解析结构以及正式产物的 EPUBCheck；不要求 Kepub 自有引用提取器覆盖全部 CSS 语法。引用 partial/blocked、未运行项及已发现诊断仍必须保留，不能改标 complete 或藏起具体 error/fatal。`resource.rename` 的覆盖门槛不同，不能以 EPUBCheck 通过代替受影响引用的充分覆盖。总体 `pass` 仅表示已声明的必需检查通过，不表示渲染、可访问性人工审核和所有自有分析均完整。
+
+固定 EPUBCheck 5.3.0 的成功报告必须逐项绑定冻结 ZIP 的完整文件库存：原始文件名精确匹配，明确的 uncompressedSize 和字符串 checkSum 与实际资源一致，每个文件恰好一项。报告可能另含 OPF／内容检查生成的附属元数据行，只有 uncompressedSize／compressedSize 明确为 0、checkSum／compressionMethod 明确为 null，且名称与冻结原名派生的 NFC 明文或规范 URI 编码表示唯一关联时才允许；字段缺失不等价于 null。附属行不计入完整库存，不能弥补缺失文件或错误大小／哈希；原名重复、未知或歧义关联均拒绝。不对完整库存做 Unicode／百分号归一化，不以多次解码或优先猜测消除歧义。原始 BookPath 的安全与长度上限保持；由它派生的 URI 报告表示不是磁盘路径，不再套用原始路径的字节长度上限。正式成功退出、诊断计数、工具固定版本和归档／工具前后哈希门槛均保持。
 
 检查报告可同时有内容错误与依赖缺失，全部保留。顶层error/退出码选择优先级：参数/授权错误 → 锁或版本冲突 → 必需依赖缺失 → 执行故障 → 内容/策略失败。示例因此返回依赖不可用，而没有丢弃XML错误。
 
