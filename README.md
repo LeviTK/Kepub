@@ -69,7 +69,7 @@ query 区分大小写、按单个结果元素的文本做字面子串匹配；�
 
 请求仍经下文的 `plan → apply → task diff → task accept/reject → workspace export`，没有直接正文写入命令。只修改 manifest XHTML 的单个 body 后代简单文本元素，支持显式空元素，不支持混合内容、子元素、注释、CDATA、处理指令、自闭合或脚本／样式目标。新值按 XML 文本转义，不解释成标签；目标外字节和 OPF 时间戳保持，no-op 不改字节。读取绑定过期明确拒绝，不自动重新找相似目标。
 
-正文 plan 和 execution 为 v2，已有 `metadata.set` 请求、计划、执行记录与摘要仍保持 v1。diff 的 `content.newValue` 是实际候选文本，不是计划新值；候选漂移可审阅／拒绝，不能接受。`content` 仍只读 accepted，accept 与正式 export 仍须真实 EPUBCheck。正文之外的结构、CSS、批量修改和真实 Amp 联调不在 C3 范围。
+正文 plan 和 execution 为 v2，已有 `metadata.set` 请求、计划、执行记录与摘要仍保持 v1。diff 的 `content.newValue` 是实际候选文本，不是计划新值；安全普通文件树的候选字节漂移可审阅／拒绝，不能接受。`content` 仍只读 accepted，accept 与正式 export 仍须真实 EPUBCheck。正文之外的结构、CSS、批量修改和真实 Amp 联调不在 C3 范围。
 
 父 orb 独立执行 67 次真实 CLI 调用：旧二进制生成的 v1 计划／待审任务兼容、v2 操作／策略摘要、同文第二节点的精确修改、正文接受／正式导出／拒绝、空值／no-op、陈旧读取绑定和候选漂移均通过。导出仅替换预期节点文本，其他字节与原书 SHA-256 保持。证据见 [C3 正文修改验证](docs/verification/C3_CONTENT_EDIT.md)。已知检查器对部分百分号编码中文 href 的报告兼容问题仍会明确失败，C3 未绕过或修复该问题。
 
@@ -95,6 +95,8 @@ pack 从明确的出版根冻结完整资源清单，不递归归档工作区；
 `internal/workspace` 提供 Create/Open/Close、唯一独立候选、Checkpoint/Checkpoints/Restore 和精确内容树 SHA-256。原书、初始版本、候选与检查点均为独立副本；flock 保证协作进程单写者，恢复 journal 处理已记录的中断边界。候选普通写入不会污染基线；已知不支持内容和书内 Agent 配置保留但限制候选创建。
 
 元数据 v1 计划仅修改一个唯一选中的现有 `dc:title` 或 `dc:creator` 简单文本，匹配预期旧值；C3 正文 v2 计划见上节，两类均每计划一个操作。目标外 OPF 与资源字节不变，no-op 不重排 XML 或更新时间。计划绑定工作区身份、绝对路径、当前 accepted revision、完整树和策略；apply 重新计算，失败回滚，成功仍是 `review_required` / `conformance:not_run`，不是自动接受。
+
+工作区整体搬迁后，未执行的旧计划失效；已开始任务和已接受历史仍按身份、记录和精确内容来源核验。活动任务可审阅／拒绝，已接受历史可继续读取，原有持久决定可恢复。已登记执行的中断写入回滚；仅建候选、尚未登记执行时保留外部漂移供审阅并记录 failed，不将其晋升为基线。失败任务不能接受，也不会自动重跑；正常待审任务的显式接受仍需真实 EPUBCheck。完整边界见 [CLI 契约 §2](docs/CLI_CONTRACT.md#2-命令分组与实施次序)。
 
 将下面请求保存为工作区外的 `operations.json`，并把旧值替换为书内的实际标题。若有多个标题，须提供明确的可选 `id`，不能自动选择第一个。
 
@@ -126,10 +128,13 @@ pack 从明确的出版根冻结完整资源清单，不递归归档工作区；
 
 - 不接受修改时，在 accept 前执行 `task reject TASK_ID --workspace work`；记录与检查点保留，随后可生成新计划。已消费计划不能重跑，旧 task ID 不能操作新的候选。
 - accept 对独立冻结树运行正式检查，通过后生成独立 revision；下一次编辑使用新基线。检查尝试与接受决策分开记录；最终取消检查位于持久 journal 发布之前，意图提交后重开只向前完成。没有草稿接受或既有错误豁免。
-- export 只读取当前 accepted，而不是 active 候选；初始导入不带合规通过状态。正式导出重新检查最终 ZIP，显式 `--draft` 才允许未正式验证的草稿。候选被普通外部写者改动后可以重开 diff/reject，但不能沿用旧执行状态接受。
+- export 只读取当前 accepted，而不是 active 候选；初始导入不带合规通过状态。正式导出重新检查最终 ZIP，显式 `--draft` 才允许未正式验证的草稿。候选被外部改动后，只要仍是安全、可完整散列的普通文件与真实目录树，就可以重开 diff/reject，但不能沿用旧执行状态接受。
+- 链接、特殊文件、路径碰撞或损坏来源仍拒绝打开；accepted 的 content/export 也不绕过工作区核验。外部写者引入这些条目时，须停止写者并保留现场，只修复已确认由自己引入的候选条目，再以原 taskId 审阅／拒绝；不能通过删除任务、used 记录、检查点或 journal 绕过检查。详见 [CLI 安全树边界](docs/CLI_CONTRACT.md#2-命令分组与实施次序)。
 - 工作区用明确目录定位，不使用全局注册表或 latest。open 只新建，不覆盖；plan 报告和 export 输出必须在整个工作区根之外、父目录已存在且输出不存在。操作／计划文件拒绝链接和特殊文件，FIFO 无 writer 不阻塞。
 
 父 orb 另用含 BOM/CRLF/注释、特殊字符及空目录的自制 EPUB3 执行 27 次真实 CLI 调用：两次接受推进基线、旧计划拒绝、未接受内容隔离、缺 checker 拒绝、候选新增文件的 diff/reject、no-op、FIFO 与输出保护均通过。导出仅含预期两处 OPF 文本替换，其他文件字节完全一致；原书 SHA-256 未变。外部写者必须先停止；flock 与 cwd 不是同用户 OS 沙箱，断电和 ENOSPC 未证明。接口、恢复边界与 EPUB2/3 验证见 [M2-A](docs/verification/M2_A.md) 和 [M2-B](docs/verification/M2_B.md)。
+
+来源复验会遍历 accepted 历史及完整内容树，历史增长会增加读取成本；大型书籍与长历史的目标平台性能尚未验收，当前不缓存跳过这些校验。
 
 ## Orb 启动
 

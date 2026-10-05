@@ -49,6 +49,24 @@ Obsidian CLI 的参考取舍见 [开发方案 §9.1／§9.2](DEVELOPMENT_PLAN.md
 
 当前 M2 通过显式目录定位，不接收用户填的 workspaceId 代替实际状态，不查询全局注册表或“latest”。除 `workspace open` 新建外，各命令 Open 已有目录并验证持久身份、来源与锁。Plan 报告与 export 输出统一要求在整个 workspace 根之外、父目录已存在且为真实目录、输出此前不存在；不存在的新文件也不得放入 original、revision 或候选 pub。操作/计划输入拒绝符号链接、硬链接及特殊文件，打开使用非阻塞 regular-file 检查，FIFO 不等待 writer。
 
+本文允许审阅／拒绝的候选漂移，限于安全、可完整散列的普通文件与真实目录树的字节或文件增删变化。符号链接（包括树内链接）、硬链接、特殊文件、非规范路径、大小写／Unicode 碰撞仍拒绝；文件不可读取也不能伪装成完整 diff。任务、来源记录或检查点损坏不是候选字节漂移。即使 accepted 本身未变，工作区 `content`／export 也须通过 Open 的完整核验，不提供绕过不安全 active 候选的入口。这沿用 [M2-B 的安全树边界](verification/M2_B.md#持久状态和提交恢复语义)，不是新增不安全条目审计／归档能力。
+
+外部写者造成不安全候选后，应先停止写者、保留现场证据，仅人工移出或修复已确认由自己引入的候选条目，不跟随链接；恢复为安全、可完整散列的树后，再以原 taskId diff／reject。不得通过删除任务、used 记录、检查点或 journal 来强行解锁／重建来源。无法确认来源或记录已损坏时，应保留现场，不能承诺自动恢复。
+
+工作区整体搬迁后，未执行的旧计划仍因绝对路径变化而 stale，不能经 Apply 或 WritePlanReport 重新授权。已开始任务及已接受历史按持久身份、已登记计划、检查点、版本和精确内容来源验证，不依赖旧主机路径。活动任务仍可 diff／reject，待审任务仍可经真实检查显式 accept；已接受历史可继续读取，但已结算任务不能重复接受或拒绝。已经发布 settlement journal 的恢复只完成原有持久决定，不产生新的批准。搬迁不会放宽漂移、损坏记录或检查器门槛。
+
+有 `status:running` 的 edit-start、缺少 result 的中断执行恢复 checkpoint 并记录 failed，不重跑写入。只有 intent、尚未登记执行的中断任务从已验证 accepted 建立来源 checkpoint，并持久标记合成 start 为 `unstarted`，只允许生成 failed 结果；即使恢复再次中断，也保留外部候选差异供 diff／reject，不把漂移候选当作基线。failed 后的普通候选字节漂移也可审阅／拒绝，但 failed 任务永远不能接受；身份、计划、检查点或失败记录的来源／状态不符合约束时明确拒绝打开。
+
+升级前已经写出的合成 `running` 与真实 `running` 记录无法可靠区分，旧记录继续按原回滚语义处理；不猜测迁移来源，也不能恢复旧版本已经丢失的外部差异。新标记不改变计划 schema 或旧摘要，但不能据此宣称旧二进制支持新状态。
+
+尚未提交的执行恢复必须先核对任务身份、intent 和已消费计划绑定，再合成 checkpoint／start 或执行回滚；已有 start 的 taskId 也须在回滚前核对。损坏来源不能先改写候选或新增执行记录再报错。旧版 active 任务可没有消费记录；若记录存在，仍须核对，不能通过降低外层任务版本绕过它。
+
+持久 JSON 记录先在同目录临时文件中完整写入并同步，再原子、不覆盖地发布。写入失败不会把半截 JSON 发布到正式记录名；故障解除后可重试恢复。Open 必须先校验并完成已发布的 settlement／restore journal，再清理保留的内部 staging，最后恢复中断执行；回滚复制在 journal 发布前再次中断，不应阻断下次重试。损坏 journal 保留证据并拒绝打开，不以清理绕过校验。这些边界已有短写和中断反例验证，不表示断电、任意磁盘故障或非协作外部写者均已覆盖。
+
+已发布且通过自身来源与哈希检查的 restore journal 仍先恢复指定 checkpoint，即使后续 execution 校验因损坏的 used／start 记录而拒绝打开；这也覆盖 pub 暂缺的已提交中断状态。它只完成原持久决定，不生成新的执行结果、不重放操作，也不更改原书或 accepted。此规则不允许损坏 journal 自身或检查点时继续恢复。
+
+如果 `apply` 已发布本次候选，随后启动失败且仍能核对任务、intent 与已消费计划，JSON 错误回复保留 `data.taskId`，供排除 I/O 故障后显式 diff／reject。回复仍为 `ok:false`，不是成功执行或接受授权；未发布候选时不生成虚假 taskId。此行为不提供其他计划的任务发现、latest 选择或丢失回复后的发现协议，也不会重放操作。
+
 ### 2.1 C1/C2 本批实施契约
 
 本节记录本批接口约束。C1 与 C2 的读核心、app/CLI 已本地集成，尚未发布。C1 保留现有参数语法、envelope、退出码和编辑行为，在现有 app/CLI 中建立命令描述来源，用于帮助、参数校验和能力描述；不更换解析框架、不新增运行时。
@@ -97,12 +115,12 @@ Apply、Open 恢复和 Accept 都须重新推导相同的单资源写集合及�
 
 ### 3.2 输出和交互
 
-- `--json`：stdout 恰好一个 UTF-8 JSON 对象；包括失败情况。日志/进度去stderr。
+- `--json`：stdout 恰好一个 UTF-8 JSON 对象；包括失败情况。日志/进度去stderr。作为其他选项的值时不启用 JSON 模式；解析失败后的模式识别也按相同值边界处理。
 - `--jsonl`：仅长任务支持，逐行完整事件，最后一个terminal事件；与 `--json` 互斥。
 - `--output/-o`：仅产物命令使用，值为显式输出位置；Kepub 自己保持一致，不能直接映射到 Calibre `-o`。
 - `--strict`：正式检查门槛提高至warning；不意味着全世界阅读器一致。
 - `--timeout`：正数秒，作用于当前请求及受管子进程；超时回收进程组并保留失败记录。
-- `--`：结束选项，用于以短横线开头的路径。调用外部工具时先转为合法绝对路径并用参数数组。
+- `--`：未被前一选项作为值消费时结束选项，用于以短横线开头的路径。调用外部工具时先转为合法绝对路径并用参数数组。
 - `--no-input`：禁止交互，缺少目标、授权或必要选择时返回明确错误。JSON模式默认不做终端问答。
 
 不提供可以跳过所有安全、版本和校验门槛的全局 `--force`。草稿导出是显式模式 `--draft`，输出和报告均标记未获正式验证；不能因缺Java而自动切草稿。
@@ -247,7 +265,7 @@ plan从指定accepted revision读取，完成参数、能力和引用覆盖检�
 
 计划读取后输入变化返回STALE_PLAN；越界改动、未知语法、阶段失败均不接受。必须验证创建/删除/改名与内容写入的完整文件集合，不仅检查被写文件的后缀。
 
-当前 M2 的 apply 只返回显式 taskId、`status:"review_required"`、`reviewRequired:true`、`conformance:"not_run"`，包括 no-op；正式检查在 accept/export 执行。计划登记并绑定绝对 workspacePath、持久ID、baseRevision、rootfile、精确Tree及操作/策略摘要，apply重算写集；已消费计划不能重跑，基线推进使旧计划返回 `INPUT_DRIFT`（退出4），已有/已结算/不匹配任务返回 `TASK_CONFLICT`（退出4）。候选被外部改动后仍可重开 diff/reject，`matchesExecution:false`，不能继承原执行或检查状态。
+当前 M2 的 apply 成功时返回显式 taskId、`status:"review_required"`、`reviewRequired:true`、`conformance:"not_run"`，包括 no-op；发布后启动失败的错误回复见 §2，正式检查在 accept/export 执行。计划登记并绑定绝对 workspacePath、持久ID、baseRevision、rootfile、精确Tree及操作/策略摘要，apply重算写集；已消费计划不能重跑，基线推进使旧计划返回 `INPUT_DRIFT`（退出4），已有/已结算/不匹配任务返回 `TASK_CONFLICT`（退出4）。候选被外部改动但仍是 §2 定义的安全、可完整散列普通文件树时，可重开 diff/reject，`matchesExecution:false`，不能继承原执行或检查状态；不安全条目或损坏来源仍拒绝打开。`matchesExecution:true` 仅表示实际候选符合已核验执行记录；已精确回滚的 failed 任务也可为 true，仍不能接受。
 
 accept 不接受 passed 布尔值、检查替换回调或 draft 模式。它检查独立冻结树，要求 archive、parse.structure、固定 EPUBCheck 正式检查完整通过且无 error/fatal，再验证实际字节和来源。检查尝试记录为 checks_passed/checks_failed；通过检查本身不等于已接受。最终取消检查位于全部昂贵重算和日志准备之后、持久 settlement journal 发布紧前；journal 发布是不可撤回的接受意图，之后重开始终 roll-forward。随后 accepted 指针原子替换安装新可见基线，任务和检查点归档保留。无 journal 的预备快照不接受。初始导入不标为 pass；export 仅选当前accepted（初始为未验证的 initial），重新检查最终ZIP，显式草稿标记未获正式验证。No-op 接受仍建立独立审计revision，但内容树和字节不变。
 
