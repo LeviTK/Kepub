@@ -6,7 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/LeviTK/Kepub/internal/bookpath"
 	"github.com/LeviTK/Kepub/internal/fault"
+	"github.com/LeviTK/Kepub/internal/publication"
 	"github.com/LeviTK/Kepub/internal/validation"
 	"github.com/LeviTK/Kepub/internal/workspace"
 )
@@ -33,6 +35,48 @@ func OpenWorkspace(book, dir, rootfile string) (WorkspaceResult, error) {
 		return WorkspaceResult{}, err
 	}
 	return WorkspaceResult{abs, id, w.State(), "not_run"}, nil
+}
+
+type WorkspaceContent struct {
+	WorkspaceID string `json:"workspaceId"`
+	RevisionID  string `json:"revisionId"`
+	Rootfile    string `json:"rootfile"`
+	publication.Content
+}
+
+// ContentWorkspace keeps the cooperative lock until the accepted snapshot has
+// been parsed and queried. Candidate bytes and external checkers are not used.
+func ContentWorkspace(dir, resource string, o publication.ContentOptions) (WorkspaceContent, error) {
+	if err := o.Validate(); err != nil {
+		return WorkspaceContent{}, err
+	}
+	bp, err := bookpath.Parse(resource)
+	if err != nil {
+		return WorkspaceContent{}, fault.New(2, "INVALID_ARGUMENT", "resource must be a canonical BookPath: %v", err)
+	}
+	w, err := workspace.Open(dir)
+	if err != nil {
+		return WorkspaceContent{}, WorkspaceError(err)
+	}
+	defer w.Close()
+	id, err := w.ID()
+	if err != nil {
+		return WorkspaceContent{}, WorkspaceError(err)
+	}
+	a, _, revision, err := w.AcceptedSnapshot()
+	if err != nil {
+		return WorkspaceContent{}, WorkspaceError(err)
+	}
+	defer a.Close()
+	p, err := publication.Load(a, revision.Rootfile)
+	if err != nil {
+		return WorkspaceContent{}, err
+	}
+	text, err := publication.ReadContent(a, p, bp, o)
+	if err != nil {
+		return WorkspaceContent{}, err
+	}
+	return WorkspaceContent{id, revision.ID, revision.Rootfile, text}, nil
 }
 
 func readEditFile(file string) ([]byte, error) {

@@ -17,6 +17,7 @@ import (
 
 	"github.com/LeviTK/Kepub/internal/app"
 	"github.com/LeviTK/Kepub/internal/fault"
+	"github.com/LeviTK/Kepub/internal/publication"
 	"github.com/LeviTK/Kepub/internal/validation"
 )
 
@@ -27,6 +28,7 @@ type options struct {
 	json, help                               bool
 	strict, draft                            bool
 	timeout                                  time.Duration
+	content                                  publication.ContentOptions
 	seen                                     map[string]bool
 }
 type envelope struct {
@@ -145,6 +147,14 @@ func parse(args []string) (o options, err error) {
 				o.rootfile = val
 			case "--resource":
 				o.resource = val
+			case "--query":
+				o.content.Query = &val
+			case "--limit":
+				n, e := strconv.Atoi(val)
+				if e != nil {
+					return o, fault.New(2, "INVALID_ARGUMENT", "--limit requires an integer between 1 and 200")
+				}
+				o.content.Limit = &n
 			case "--direction":
 				o.direction = val
 			default:
@@ -183,6 +193,9 @@ func execute(ctx context.Context, o options) (any, error) {
 	}
 	if o.command == "doctor" {
 		return app.Doctor(ctx)
+	}
+	if o.command == "content" {
+		return app.ContentWorkspace(o.workspace, o.resource, o.content)
 	}
 	if o.command == "workspace" || o.command == "task" || o.command == "plan" || o.command == "apply" {
 		data, err := executeWorkspace(ctx, o)

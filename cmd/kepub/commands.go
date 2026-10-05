@@ -61,7 +61,7 @@ func validateCommand(o options) (string, error) {
 			}
 		}
 		if !o.help {
-			values := map[string]string{"book": o.book, "task": o.book, "workspace": o.workspace, "operations": o.operations, "plan": o.plan, "output": o.output, "section": o.section}
+			values := map[string]string{"book": o.book, "task": o.book, "workspace": o.workspace, "operations": o.operations, "plan": o.plan, "output": o.output, "section": o.section, "resource": o.resource}
 			if c.Positional == "workspace" {
 				values["workspace"] = o.book
 			}
@@ -74,6 +74,16 @@ func validateCommand(o options) (string, error) {
 		if name == "inspect" && (o.section != "" || o.resource != "" || o.direction != "" || !o.help) {
 			if err := app.ValidateInspect(o.section, o.resource, o.direction); err != nil {
 				return name, err
+			}
+		}
+		if name == "content" {
+			if err := o.content.Validate(); err != nil {
+				return name, err
+			}
+			if o.resource != "" {
+				if _, err := bookpath.Parse(o.resource); err != nil {
+					return bad("resource must be a canonical BookPath")
+				}
 			}
 		}
 		if c.Status == "planned" && !o.help {

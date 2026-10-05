@@ -19,6 +19,7 @@ func TestCommandOptionMatrix(t *testing.T) {
 	want := map[string]string{
 		"capabilities": "", "version": "", "doctor": "",
 		"info": "rootfile", "toc": "rootfile",
+		"content": "workspace resource query limit",
 		"inspect": "rootfile section resource direction",
 		"unpack":  "rootfile output", "validate": "rootfile strict timeout", "pack": "rootfile output strict draft timeout",
 		"workspace open": "rootfile output", "workspace export": "output strict draft timeout",
@@ -26,7 +27,7 @@ func TestCommandOptionMatrix(t *testing.T) {
 		"task diff": "workspace", "task accept": "workspace strict timeout", "task reject": "workspace",
 		"workspace list": "", "preview": "", "serve": "", "amp": "", "task run": "",
 	}
-	samples := map[string]string{"rootfile": "EPUB/package.opf", "section": "references", "resource": "EPUB/chapter.xhtml", "direction": "incoming", "output": "out", "strict": "", "draft": "", "timeout": "2", "workspace": "ws", "operations": "ops.json", "plan": "plan.json"}
+	samples := map[string]string{"rootfile": "EPUB/package.opf", "section": "references", "resource": "EPUB/chapter.xhtml", "direction": "incoming", "output": "out", "strict": "", "draft": "", "timeout": "2", "workspace": "ws", "operations": "ops.json", "plan": "plan.json", "query": "needle", "limit": "7"}
 	for _, c := range app.Commands() {
 		allowed, ok := want[c.Name]
 		if !ok {

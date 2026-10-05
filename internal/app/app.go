@@ -68,6 +68,19 @@ func Capabilities() []Capability {
 		}
 		out = append(out, Capability{ID: "publication." + id, Version: 1, Status: "available", Reason: "Implemented; formal validation requires locally installed pinned EPUBCheck 5.3.0 and Java; no download or automatic draft fallback", Commands: []string{id}, Risk: "external", InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": required, "properties": properties}, OutputSchema: map[string]any{"type": "object"}, SupportedFeatures: []string{"safe ZIP / explicit publication directory snapshot", "kepub-tree-v1 approved inventory", "full EPUBCheck conformance", "partial reference coverage is not a conformance gate"}, Preconditions: []string{"frozen input", "explicit rootfile if ambiguous", "pack output outside publication root and absent"}, PostChecks: []string{"final ZIP safety and input hash", "EPUBCheck full report except explicit draft"}, Idempotency: "read only input; pack never replaces output"})
 	}
+	out = append(out, Capability{
+		ID: "publication.content", Version: 1, Status: "available", Commands: []string{"content"}, Risk: "read_only",
+		Reason: "C2 bounded accepted-revision XHTML text extraction; not full-text search, EPUB conformance or permission to edit",
+		InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "resource"}, "properties": map[string]any{
+			"workspace": stringSchema, "resource": stringSchema,
+			"query": map[string]any{"type": "string", "minLength": 1, "maxLength": 4096, "x-maxUtf8Bytes": 4096, "description": "1–4096 UTF-8 bytes; case-sensitive literal substring of each decoded element text; omitted selects all nodes"},
+			"limit": map[string]any{"type": "integer", "minimum": 1, "maximum": 200, "default": 50},
+		}},
+		OutputSchema:      map[string]any{"type": "object", "required": []string{"workspaceId", "revisionId", "rootfile", "bookPath", "resourceSha256", "locatorVersion", "matchedCount", "returnedCount", "truncated", "nodes"}},
+		SupportedFeatures: []string{"selected manifest application/xhtml+xml only", "exact BookPath", "decoded mixed text and structural locator v1", "excluded script/style/head/foreign subtrees and their ancestors", "8 MiB XML input; 1 MiB returned text; no clipping"},
+		Preconditions:     []string{"explicit workspace directory and resource", "cooperative exclusive workspace lock", "same frozen accepted input for publication, hash and text"},
+		PostChecks:        []string{"resource hash from original bytes", "matched/returned counts and explicit truncation"}, Idempotency: "read only; no publication changes",
+	})
 	metadataSchema := map[string]any{"type": "object", "additionalProperties": false, "required": []string{"namespace", "localName", "expectedOldValue", "newValue"}, "properties": map[string]any{"namespace": map[string]any{"const": "http://purl.org/dc/elements/1.1/"}, "localName": map[string]any{"enum": []string{"title", "creator"}}, "id": stringSchema, "expectedOldValue": map[string]any{"type": "string"}, "newValue": map[string]any{"type": "string"}}}
 	for _, c := range []Capability{
 		{ID: "metadata.set", Mutates: true, Risk: "bounded_edit", InputSchema: metadataSchema, SupportedFeatures: []string{"unique existing dc:title/dc:creator simple text", "exact namespace/local name/optional ID", "expected old value", "local escaped byte replacement", "no-op preserves bytes; no automatic timestamp"}},
