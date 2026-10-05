@@ -32,11 +32,12 @@ func TestNavigationHTMLURLPeripheralWhitespace(t *testing.T) {
 	entries := testfixture.NavigationEPUB("2.0")
 	for i := range entries {
 		if entries[i].Name == "书/toc.ncx" {
-			entries[i].Data = []byte(strings.ReplaceAll(string(entries[i].Data), "Text/-first.xhtml#start", "Text/-first.xhtml%20#start"))
+			entries[i].Data = []byte(strings.ReplaceAll(string(entries[i].Data), "Text/-first.xhtml#start", "Text/-first.xhtml "))
 		}
 	}
 	n := navigationFixture(t, entries)
-	if *n.Entries[1].Exists {
-		t.Fatal("NCX URL space was trimmed")
+	x := n.Entries[1]
+	if x.Href == nil || *x.Href != "Text/-first.xhtml " || x.Target == nil || x.Target.Path != "书/Text/-first.xhtml " || x.Exists == nil || *x.Exists {
+		t.Fatalf("NCX URL space was trimmed: %+v", x)
 	}
 }
