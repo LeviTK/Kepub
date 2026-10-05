@@ -637,9 +637,9 @@ func (w *Workspace) taskDigests(dir string, j *settlement) error {
 			return err
 		}
 	}
-	// Settled history remains bound to identity, stored plan and exact bytes,
-	// not its former host directory. Active/unconsumed plans retain path binding.
-	if id != j.Decision.TaskID || t.BaseRevision != j.Decision.BaseRevision || p.BaseRevision != t.BaseRevision || p.WorkspaceID != j.WorkspaceID || dir == "tasks/active" && p.WorkspacePath != w.dir || digest(s.Plan) != digest(p) || digest(e.Plan) != digest(p) || e.Checkpoint != s.Checkpoint {
+	// Consumed plans remain bound to identity, stored plan and exact bytes,
+	// not their former host directory, including durable pending settlements.
+	if id != j.Decision.TaskID || t.BaseRevision != j.Decision.BaseRevision || p.BaseRevision != t.BaseRevision || p.WorkspaceID != j.WorkspaceID || digest(s.Plan) != digest(p) || digest(e.Plan) != digest(p) || e.Checkpoint != s.Checkpoint {
 		return fmt.Errorf("settlement task provenance mismatch")
 	}
 	var snap Snapshot

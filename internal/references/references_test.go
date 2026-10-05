@@ -232,6 +232,10 @@ func TestUnimplementedSyntaxNeverLooksLikeNoReferences(t *testing.T) {
 		{`<svg xmlns="http://www.w3.org/2000/svg"><animate attributeName="href" values="hidden.xhtml"/></svg>`, "svg.animation", "blocked"},
 		{`<img src="data:image/svg+xml,hidden"/>`, "embedded-data", "partial"},
 		{`<video poster="hidden.png"/>`, "other-url-attribute", "blocked"},
+		{`<blockquote cite="hidden.xhtml#quote">Quote</blockquote>`, "other-url-attribute", "blocked"},
+		{`<img usemap="#map"/>`, "other-url-attribute", "blocked"},
+		{`<html manifest="hidden.appcache"/>`, "other-url-attribute", "blocked"},
+		{`<div itemscope="" itemid="hidden.xhtml" itemtype="https://example.invalid/type"/>`, "other-url-attribute", "blocked"},
 		{`<a href="#epubcfi(/6/2)">CFI</a>`, "fragment", "partial"},
 	} {
 		entries := testfixture.NavigationEPUB("3.0")
@@ -240,6 +244,10 @@ func TestUnimplementedSyntaxNeverLooksLikeNoReferences(t *testing.T) {
 		requireCoverage(t, g, "书/Text/第二 章.xhtml", tc.syntax, tc.status)
 		if g.Status != "partial" {
 			t.Fatal("unknown syntax hidden", tc)
+		}
+		filtered, err := g.Filter("书/Text/第二 章.xhtml", "incoming")
+		if err != nil || filtered.Status != "partial" || !reflect.DeepEqual(filtered.Coverage, g.Coverage) {
+			t.Fatal("incoming filter hid global uncertainty", tc, filtered, err)
 		}
 	}
 	entries := testfixture.NavigationEPUB("3.0")

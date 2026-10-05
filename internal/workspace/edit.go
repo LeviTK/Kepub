@@ -406,14 +406,14 @@ func (w *Workspace) Plan(requestJSON []byte) (Plan, error) {
 	return p, syncDir(w.root, "plans")
 }
 
-func (w *Workspace) verifyPlan(p Plan) ([]byte, error) {
+func (w *Workspace) verifyPlan(p Plan, bindPath bool) ([]byte, error) {
 	if err := w.ensureIdentity(); err != nil {
 		return nil, err
 	}
 	if err := w.verifyBaseline(); err != nil {
 		return nil, errors.Join(ErrStalePlan, err)
 	}
-	if !validPlanOperation(p) || !validID(p.ID) || p.WriteSet == nil || p.WorkspaceID != w.id || p.WorkspacePath != w.dir || p.BaseRevision != w.current || p.InputTreeSHA256 != w.base.SHA256 || p.Rootfile != w.state.Rootfile || p.OperationSetSHA256 != digest(p.Operations) {
+	if !validPlanOperation(p) || !validID(p.ID) || p.WriteSet == nil || p.WorkspaceID != w.id || bindPath && p.WorkspacePath != w.dir || p.BaseRevision != w.current || p.InputTreeSHA256 != w.base.SHA256 || p.Rootfile != w.state.Rootfile || p.OperationSetSHA256 != digest(p.Operations) {
 		return nil, ErrStalePlan
 	}
 	var stored Plan
@@ -448,7 +448,7 @@ func (w *Workspace) Apply(planJSON []byte) (Execution, error) {
 	if err := decodeStrict(planJSON, &p); err != nil {
 		return Execution{}, err
 	}
-	out, err := w.verifyPlan(p)
+	out, err := w.verifyPlan(p, true)
 	if err != nil {
 		return Execution{}, err
 	}
@@ -683,7 +683,9 @@ func (w *Workspace) execution() (Execution, error) {
 	if err := readEditJSON(w.root, "tasks/active/edit-intent.json", &intent); err != nil {
 		return e, err
 	}
-	out, err := w.verifyPlan(intent)
+	// A registered task has consumed its plan. Its stored identity and source
+	// still bind execution after moving the workspace, not the former host path.
+	out, err := w.verifyPlan(intent, false)
 	if err != nil {
 		return e, err
 	}

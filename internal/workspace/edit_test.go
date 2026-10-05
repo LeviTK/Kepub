@@ -186,7 +186,7 @@ func TestRequestsAndPlansRejectTampering(t *testing.T) {
 }
 func prepareExecution(t *testing.T, w *Workspace, p Plan) (Execution, []byte) {
 	t.Helper()
-	out, err := w.verifyPlan(p)
+	out, err := w.verifyPlan(p, true)
 	if err != nil {
 		t.Fatal(err)
 	}

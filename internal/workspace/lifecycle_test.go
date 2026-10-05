@@ -353,8 +353,10 @@ func TestAcceptanceJournalRecovery(t *testing.T) {
 		t.Fatal(err)
 	}
 	w.Close()
-	for _, phase := range []string{"before-intent", "intent", "revision", "pointer", "decision", "archive", "clean", "tamper"} {
+	for _, phase := range []string{"before-intent", "intent", "revision", "pointer", "decision", "archive", "clean", "tamper", "moved-intent", "moved-pointer", "moved-tamper"} {
 		t.Run(phase, func(t *testing.T) {
+			moved := strings.HasPrefix(phase, "moved-")
+			phase = strings.TrimPrefix(phase, "moved-")
 			dir := filepath.Join(t.TempDir(), "ws")
 			w, err := Create(dir, source, Options{})
 			if err != nil {
@@ -416,6 +418,12 @@ func TestAcceptanceJournalRecovery(t *testing.T) {
 				put(t, filepath.Join(dir, stage, "pub", w.state.Rootfile), []byte("changed frozen bytes"))
 			}
 			w.Close()
+			if moved {
+				if err := os.Rename(dir, dir+"-moved"); err != nil {
+					t.Fatal(err)
+				}
+				dir += "-moved"
+			}
 			w, err = Open(dir)
 			if phase == "tamper" {
 				if err == nil {
@@ -624,6 +632,65 @@ func TestAcceptedHistoryAfterWorkspaceMove(t *testing.T) {
 			}
 			applyPlan(t, w, fieldPlan(t, w, "creator", "creator", "Writer", "Next"))
 		})
+	}
+}
+
+func TestActiveTaskAfterWorkspaceMove(t *testing.T) {
+	requireChecker(t)
+	for _, content := range []bool{false, true} {
+		for _, action := range []string{"reject", "accept", "interrupted"} {
+			t.Run(fmt.Sprintf("content=%v/%s", content, action), func(t *testing.T) {
+				w, dir, _ := legalWorkspace(t, "3.0")
+				p := fieldPlan(t, w, "title", "title", "Title", "New")
+				if content {
+					p = contentPlan(t, w, "Reviewed")
+				}
+				e := applyPlan(t, w, p)
+				if action == "interrupted" {
+					if err := w.root.Remove("tasks/active/edit-result.json"); err != nil {
+						t.Fatal(err)
+					}
+				}
+				w.Close()
+				moved := dir + "-moved"
+				if err := os.Rename(dir, moved); err != nil {
+					t.Fatal(err)
+				}
+				w, err := Open(moved)
+				if err != nil {
+					t.Fatal("moved active task unavailable", err)
+				}
+				defer w.Close()
+				if action == "interrupted" {
+					x, err := w.Execution()
+					actual, hashErr := hashAt(w.root, candidate)
+					if err != nil || hashErr != nil || x.Status != "failed" || actual.SHA256 != w.base.SHA256 {
+						t.Fatal("moved interrupted mutation was not rolled back", x, err, hashErr)
+					}
+					if _, err := w.Reject(e.TaskID); err != nil {
+						t.Fatal(err)
+					}
+					return
+				}
+				r, err := w.TaskDiff(e.TaskID)
+				if err != nil || !r.MatchesExecution || len(r.Diff.Changes) != 1 {
+					t.Fatal("lost actual execution review", r, err)
+				}
+				if _, err := w.Apply(editJSON(t, p)); !errors.Is(err, ErrStalePlan) {
+					t.Fatal("moved old plan reusable", err)
+				}
+				if action == "accept" {
+					d, err := w.Accept(context.Background(), e.TaskID, validation.Options{})
+					if err != nil || d.Validation == nil || d.Validation.Status != "pass" || w.current != d.RevisionID {
+						t.Fatal("moved task acceptance lost real checker gate", d, err)
+					}
+					return
+				}
+				if _, err := w.Reject(e.TaskID); err != nil {
+					t.Fatal("moved active task not rejectable", err)
+				}
+			})
+		}
 	}
 }
 

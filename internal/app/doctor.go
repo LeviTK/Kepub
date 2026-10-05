@@ -11,6 +11,8 @@ import (
 	"github.com/LeviTK/Kepub/internal/validation"
 )
 
+var pseudoVersion = regexp.MustCompile(`[-.][0-9]{14}-[0-9a-f]{12}(?:\+dirty)?$`)
+
 func BuildVersion() map[string]any {
 	v := map[string]any{"version": "development", "development": true, "goVersion": runtime.Version(), "os": runtime.GOOS, "arch": runtime.GOARCH}
 	if info, ok := debug.ReadBuildInfo(); ok {
@@ -18,7 +20,7 @@ func BuildVersion() map[string]any {
 			v["version"] = info.Main.Version
 			// Go 1.27 can embed a VCS pseudo-version for an untagged local
 			// build. That is build metadata, not a software release.
-			v["development"] = regexp.MustCompile(`-[0-9]{14}-[0-9a-f]{12}(?:\+dirty)?$`).MatchString(info.Main.Version) || strings.HasSuffix(info.Main.Version, "+dirty")
+			v["development"] = pseudoVersion.MatchString(info.Main.Version) || strings.HasSuffix(info.Main.Version, "+dirty")
 		}
 		for _, s := range info.Settings {
 			switch s.Key {

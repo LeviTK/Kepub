@@ -53,7 +53,7 @@ func (w *Workspace) WritePlanReport(p Plan, output string) (err error) {
 	if err := w.ready(); err != nil {
 		return err
 	}
-	if _, err := w.verifyPlan(p); err != nil {
+	if _, err := w.verifyPlan(p, true); err != nil {
 		return err
 	}
 	abs, err := w.outputPath(output)
