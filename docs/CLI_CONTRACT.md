@@ -10,7 +10,11 @@ CLI 是与 GUI 平级的产品入口，也是 Agent 的确定性工具层。不�
 
 一个子命令对应一个应用用例。GUI 不拼 shell 字符串复用 CLI；GUI/CLI 都调用 Go 服务。Agent 使用 CLI 时仍面对相同任务、校验与审核语义。
 
+Obsidian CLI 的参考取舍见 [开发方案 §9.1／§9.2](DEVELOPMENT_PLAN.md#91-参考-obsidian-cli但保持真正-headless)：借鉴可发现能力、精确目标、结构化查询和差异，不引入桌面运行依赖、当前活动文件默认值或任意 eval。保留现有 `--option` 与 JSON 请求文件语法；Amp 经 shell 使用本 CLI 不需要 SDK 或 External API。反向运行 Amp 的接口边界见 [§8.1.3](DEVELOPMENT_PLAN.md#813-external-apicli-与-typescript-sdk-的适用边界)。此补充不改变现有 schema 或注册新命令。
+
 ## 2. 命令分组与实施次序
+
+下表 M0～M6 是技术工作包编号，不再表示执行先后。当前按 [开发方案 v0.7 §11.3](DEVELOPMENT_PLAN.md#113-v07-开发批次与依赖) 先完成 CLI + 外部 Amp 协作，再实现 MyGo UI，最后在 UI 内集成 Amp；受管 Agent 不是 UI 前置。C1 补齐发现／诊断；C2/C3 拟增加有界内容读取、定位及单个 XHTML 简单文本的确定性修改，其命令／操作 schema 尚未冻结，边界见 [§11.4](DEVELOPMENT_PLAN.md#114-首个正文读写版本的边界)，不表示下表已经开放正文编辑。
 
 | 命令形态 | 语义 | 阶段 |
 |---|---|---|
@@ -42,6 +46,23 @@ CLI 是与 GUI 平级的产品入口，也是 Agent 的确定性工具层。不�
 上述命令按阶段逐步实现，`capabilities` 不能把表中所有设计都提前报告为 available。
 
 当前 M2 通过显式目录定位，不接收用户填的 workspaceId 代替实际状态，不查询全局注册表或“latest”。除 `workspace open` 新建外，各命令 Open 已有目录并验证持久身份、来源与锁。Plan 报告与 export 输出统一要求在整个 workspace 根之外、父目录已存在且为真实目录、输出此前不存在；不存在的新文件也不得放入 original、revision 或候选 pub。操作/计划输入拒绝符号链接、硬链接及特殊文件，打开使用非阻塞 regular-file 检查，FIFO 不等待 writer。
+
+### 2.1 C1/C2 本批实施契约
+
+本节是已进入开发的接口约束，不代表当前二进制已经实现。C1 保留现有参数语法、envelope、退出码和编辑行为，在现有 app/CLI 中建立命令描述来源，用于帮助、参数校验和能力描述；不更换解析框架、不新增运行时。
+
+- `kepub version --json` 返回构建版本、Go 版本、平台与可用的构建修订信息；没有发行版本时明确为开发构建，不运行 Git 或网络查询来猜测版本。
+- `kepub doctor --json` 检查核心运行环境及 Java／固定 EPUBCheck 的就绪状态，单独报告可选 Amp 的发现状态，不验证登录、不调用模型、不安装依赖、不输出完整环境。诊断成功收集可返回 `ok:true`，依赖缺失体现在报告和正式检查能力中，不能冒充检查器就绪；执行故障和取消明确报告。对外部版本探测设置时间／输出上限并回收受管进程，复用现有 checker 完整性规则。
+- 帮助支持总览和明确命令的说明，JSON 帮助仍是单 envelope；未知命令或选项不得因加 `--help` 就成为有效命令。capabilities 的已有数组形状和 operation ID 保留，新字段可增量添加；未实现能力仍为 planned。
+
+C2 首版命令形态为 `kepub content --workspace DIR --resource BOOK_PATH [--query TEXT] [--limit N] --json`，只读，不接受 BOOK、rootfile 覆盖或任务参数。先在 publication 读核心实现，再在 C1 交接 app/CLI 后接入：
+
+- 工作区使用已有 `AcceptedSnapshot` 冻结当前 accepted；返回真实 workspaceId、revisionId、rootfile、精确 bookPath、resourceSha256 和 locatorVersion。查询期间保持现有协作锁，关闭快照和工作区；不从内部目录猜当前版本，不修改出版内容。
+- 仅支持所选 publication manifest 声明的 `application/xhtml+xml`，路径必须为精确 BookPath，不是 href／fragment／本机路径。沿用 UTF-8 XML、8 MiB、深度／token／索引限制；不支持的资源类型明确失败，CSS 查询留到后续，不为本批增加第二套语法。
+- 结果节点取 XHTML body 内的 XHTML 元素：叶元素，或有非空白直接文本的非叶元素；不包括 body 容器、head、script/style 子树和外来命名空间子树。含被排除子树的祖先元素也不作为结果，仍遍历其受支持子元素，避免经祖先 text 返回被排除内容；这不是全书全文索引。`text` 为 XML 解码后的后代文本原顺序，不 trim、不做 Unicode／空白归一化；同时返回元素 namespace/localName、可选 id、结构 locator 和 `hasChildElements`。混合内容仅供读取，不能由这个布尔值推导已允许编辑；locator 不是 XPath 执行器或可写偏移。
+- query 缺省表示全部上述节点；显式 query 必须非空且不超过 4096 UTF-8 字节，以区分大小写的字面子串匹配解码后的 text，不支持正则，不跨节点拼接搜索。每个匹配元素返回一次，不默认选择首个；重叠父子节点可分别返回且 locator 不同。
+- limit 缺省 50，范围 1～200；按文档顺序返回。报告匹配元素总数、返回数量和 truncated；无命中是成功的空数组。返回文本累计上限 1 MiB，超限明确 `CONTENT_LIMIT`，不裁剪单节点文本或悄悄遗漏。所有上限校验在访问工作区前尽可能完成。
+- 整本与资源原字节不变；同文多处、实体、非 BMP、BOM/CRLF、命名空间、活动候选存在但只读 accepted、并发 busy、超限与哈希独立核对均须测试。本批不开放正文写入，也不把定位信息当编辑授权。
 
 ## 3. 目标选择与全局约定
 
@@ -103,6 +124,8 @@ serve默认在stderr显示本机访问说明，结构化使用场景用受控事
 `metadata.set` 首期不改变package unique identifier、语言体系、复杂关联或升级EPUB版本。无变化返回 `changed:false`，不借机重新格式化整份OPF或更新时间。
 
 第二轮实现范围进一步限定为：每个计划恰好一个 `metadata.set` v1，仅现有 `dc:title` 或 `dc:creator` 的简单文本。按 namespace、local name 和可选明确 ID 选择，预期旧值必须匹配且目标必须唯一；不能通过选择第一个同名字段消除歧义。局部替换保留目标外全部 OPF 字节，复杂子内容或无法确定字节区间时拒绝。标识符、语言、批量操作和 `resource.rename` 仍不开放；这不是把未来操作契约缩减为永远只支持一个字段。
+
+下一轮 C3 优先增加受限正文操作，`resource.rename` 不在该轮范围。新增操作须扩展版本化分派、计划重算、持久执行来源及接受／恢复验证，保留元数据 v1 语义；不能只把参数改成任意 JSON 或提供整文件覆盖入口。C2 的只读定位信息绑定 revision／资源 hash，不能直接作为可信字节偏移执行写入。
 
 本轮可执行请求的字段和 Go/CLI API 见 [M2-B 验证记录](verification/M2_B.md)。以下 rename/impact 示例仍是未来设计，不能作为当前可执行计划输入。
 

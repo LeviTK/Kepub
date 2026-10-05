@@ -2,7 +2,7 @@
 
 面向 Amp 的 EPUB 阅读、制作预览与编辑工作台。
 
-**当前状态：设计 v0.5，第一轮已发布只读 Go 核心与 CLI、工作区库及两种独立 Amp 接入实验。第二轮由 Medium 实现的 validate/pack、单字段元数据编辑、候选审阅、接受／拒绝与工作区导出已本地集成，尚未发布。没有 GUI、生产 Agent、安装包或已完成的 Mac 实机测试。**
+**当前状态：开发方案 v0.7，路线为 CLI + 外部 Amp 协作 → MyGo UI → UI 内集成 Amp，新接口仍暂定。第一轮已发布只读 Go 核心与 CLI、工作区库及两种独立 Amp 接入实验。第二轮由 Medium 实现的 validate/pack、单字段元数据编辑、候选审阅、接受／拒绝与工作区导出已本地集成，尚未发布。没有正文编辑、GUI、生产 Agent、安装包或已完成的 Mac 实机测试。**
 
 ## 已实现：M1-A / M1-B1 只读 CLI
 
@@ -99,7 +99,7 @@ pack 从明确的出版根冻结完整资源清单，不递归归档工作区；
 
 ## 文档
 
-- [开发方案 v0.5](docs/DEVELOPMENT_PLAN.md)：产品范围、MyGo 0.2.0 桌面层、Amp 接入 A/B 实验、工作区与第二轮 Medium 分工。
+- [开发方案 v0.7](docs/DEVELOPMENT_PLAN.md)：CLI／UI／Amp 三阶段、具体开发批次、正文编辑边界、Medium 分工与验收。
 - [CLI 与操作契约](docs/CLI_CONTRACT.md)：拟定命令、OperationRegistry、plan/apply、机器输出、退出码与验收要求。
 - [Calibre CLI 与编辑内核研究](docs/research/CALIBRE_CLI_REVIEW.md)：官方命令全景、关键源码调用链、证据及采用/不采用的设计。
 - [开发方案 v0.2 历史原文](docs/history/DEVELOPMENT_PLAN_V0_2.md)：Calibre 研究后形成的上一版设计。
@@ -107,7 +107,9 @@ pack 从明确的出版根冻结完整资源清单，不递归归档工作区；
 
 ## 产品方向
 
-首发只适配 Apple Silicon Mac，后期再考虑跨平台。桌面端以 **MyGo 0.2.0** 作为当前候选基线：主编辑窗口继续使用 Go + TypeScript + WKWebView，所有网页控制通过新的 `Window.Page()` API；MyGo 纯 Go 原生 UI 只作为独立设置、诊断、检查器等辅助窗口的候选。独立 `kepub` CLI 与 GUI 共用 Go EPUB 核心。
+首发只适配 Apple Silicon Mac，后期再考虑跨平台。**已确认采用 MyGo 与系统 WebView**，当前接口基线为 MyGo 0.2.0，macOS 使用 WKWebView，不捆绑 Chromium。主编辑窗口计划使用 Go + TypeScript，MyGo 网页控制通过 `Window.Page()` API；React + Vite 仍是前端计划，尚未实现。MyGo 纯 Go 原生 UI 只作为独立设置、诊断、检查器等辅助窗口的候选。独立 `kepub` CLI 与 GUI 共用 Go EPUB 核心。
+
+Bridge 是系统 WebView 的脚本通信适配，与系统 WebView 本身不冲突；框架选型确认不代表预览安全已经通过。MyGo 0.2.0 公共网页窗口的顶层页面会注入 bridge，另开窗口不等于无桥或独立存储；导航拦截也不等于禁止所有网络请求。[边界实验](experiments/mygo-boundary/README.md)已在真实 Linux WebKitGTK 发布模式复现同源 iframe 经 `parent.mygo` 调用 Go，并验证受限 sandbox 对照；这不是 Mac 或完整 EPUB 预览验收。出版物隔离仍须在 MyGo／WKWebView 适配内解决并完成 Apple Silicon release 实测，详见 [预览安全边界](docs/DEVELOPMENT_PLAN.md#62-可信壳与不可信出版内容)。
 
 Amp 负责内容理解与编辑；Kepub 提供不依赖模型的确定性 EPUB 操作，并管理工作区、预览、差异、检查、审核和导出。Calibre 是参考和可选适配，不是运行核心功能的必需依赖。
 
@@ -121,17 +123,17 @@ Amp 负责内容理解与编辑；Kepub 提供不依赖模型的确定性 EPUB �
  差异 + 检查覆盖 → 审核接受 → 导出
 ```
 
-## v0.4：核心继续开发，Amp 接入做对照实验
+## 历史：v0.4 Amp 接入对照实验
 
-Go 仍负责出版物、工作区、写租约、候选冻结、审核和导出。Amp 接入并行验证 **A：Go 直接管理 CLI/JSONL** 与 **B：Go 监督 Node/TypeScript SDK 辅助进程，再调用 CLI**，按相同输入/事件约定和取消、异常退出等故障场景比较，最终择一进入生产适配。SDK 不放入 WebView，也不成为只读 CLI 的依赖。
+Go 仍负责出版物、工作区、写租约、候选冻结、审核和导出。此前已并行比较 **A：Go 直接管理 CLI/JSONL** 与 **B：Go 监督 Node/TypeScript SDK 辅助进程，再调用 CLI**，采用相同输入/事件约定和取消、异常退出等故障场景，后续择一进入生产适配。SDK 不放入 WebView，也不成为只读 CLI 的依赖。
 
-第一轮四条 Ultra 工作线已经完成：M1-B1 目录/引用/覆盖、M2-A 工作区快照与单写者、M0-A CLI 原型、M0-B SDK 原型。实现目录与依赖边界见 [第一轮分工](docs/DEVELOPMENT_PLAN.md#111-第一轮并行工作与文件所有权)。第二轮改用 Medium，先并行完成 M1-B2 校验/打包和 M2-B 元数据计划/候选/diff，再集成审核与导出；范围见 [第二轮计划](docs/DEVELOPMENT_PLAN.md#112-第二轮medium-并行实现随后集成编辑闭环)。原型成功不等于生产 Agent 已接入；真实 Amp 与 Mac 实机验证单独列为门槛。
+第一轮四条 Ultra 工作线已经完成：M1-B1 目录/引用/覆盖、M2-A 工作区快照与单写者、M0-A CLI 原型、M0-B SDK 原型。实现目录与依赖边界见 [第一轮分工](docs/DEVELOPMENT_PLAN.md#111-第一轮并行工作与文件所有权)。第二轮改用 Medium，M1-B2 校验/打包和 M2-B 元数据计划/候选/diff、审核与导出也已本地集成；范围见 [第二轮记录](docs/DEVELOPMENT_PLAN.md#112-第二轮medium-并行实现随后集成编辑闭环)。原型成功不等于生产 Agent 已接入；真实 Amp 与 Mac 实机验证单独列为门槛。
 
-本轮建议 **A 作为下一轮接入候选，B 暂不晋级**。固定 SDK 实包复现 stderr 排空、退出早于 EOF、原始未结束消息无大小上限的缺口；其测试通过代表成功复现并收敛失败，不是协议门槛通过。A 无需新增运行时，已通过 Linux 受控协议与进程测试，但两者都未验证真实 Amp、配置/权限发现、任意脱组写者或 Mac 回收。证据与离线命令见 [CLI 原型](docs/verification/AMP_CLI_SPIKE.md) / [SDK 原型](docs/verification/AMP_SDK_SPIKE.md)；后者为独立模块，根目录 `go test ./...` 不运行其 Node/Go 测试，须在 `experiments/amp-sdk` 执行 `npm test` 和 `npm run check`。
+实验结论为 **A 优先进入后续受管 Agent 验证，B 暂不晋级**。固定 SDK 实包复现 stderr 排空、退出早于 EOF、原始未结束消息无大小上限的缺口；其测试通过代表成功复现并收敛失败，不是协议门槛通过。A 无需新增运行时，已通过 Linux 受控协议与进程测试，但两者都未验证真实 Amp、配置/权限发现、任意脱组写者或 Mac 回收。证据与离线命令见 [CLI 原型](docs/verification/AMP_CLI_SPIKE.md) / [SDK 原型](docs/verification/AMP_SDK_SPIKE.md)；后者为独立模块，根目录 `go test ./...` 不运行其 Node/Go 测试，须在 `experiments/amp-sdk` 执行 `npm test` 和 `npm run check`。
 
 编辑器集成只借鉴文档/选区/诊断与 Agent 分离的职责，不复刻已停用 VS Code 侧栏或其私有协议。后续如需实时工具交接，再在 OperationRegistry 稳定后评估公开 MCP/插件 API。
 
-## v0.3 的关键变化
+## 历史：v0.3 的关键变化
 
 MyGo 0.2.0 已正式发布。Kepub 因此固定新的桌面接口假设：网页能力从 `Window` 迁移到 `Page`；Preview 的加载、刷新、导航和崩溃恢复统一使用 `Window.Page()`。页面就绪不能只检查 `document.readyState`，而要绑定 workspace/task/generation/bookPath 并完成目标视图握手。
 
@@ -149,16 +151,20 @@ v0.2 的 Calibre 优化继续保留：转换、整理、结构编辑和只读查
 - 正式导出以冻结归档及明确版本的 EPUBCheck 报告为依据。
 - 项目名 Kepub 不表示默认输出 Kobo KEPUB，默认仍是普通 EPUB。
 
-## 实施路线
+## 开发路线：CLI 与外部 Amp → UI → UI 内 Amp
 
-| 阶段 | 目标 |
+| 阶段 | 开发批次与终点 |
 |---|---|
-| M0 | 验证 MyGo 0.2.0 Page API、目标页面 readiness、安全预览、Amp CLI/SDK 两方案及依赖版本 |
-| M1 | EPUB 核心、路径/引用模型、文件级 CLI、覆盖报告 |
-| M2 | 工作区与确定性编辑，plan/apply、检查点、审核 |
-| M3 | MyGo Page 生命周期、制作预览、Locator 与本机预览服务 |
-| M4 | Amp 编辑、工具交接、GUI/CLI审核导出闭环 |
-| M5 | Apple Silicon 打包分发和实机验收 |
-| M6 | 可选 Calibre 适配及其他受控扩展 |
+| 1．CLI + 外部 Amp | C1 完善命令／能力契约和 doctor；C2 有界内容读取／定位；C3 单个 XHTML 简单文本的确定性编辑；C4 真实 Amp 经 CLI 生成候选、展示差异，用户决定接受／拒绝和导出 |
+| 2．MyGo UI | U1 在 Apple Silicon 验证 WKWebView 隔离／生命周期；U2 复用 Go 用例，实现导航、阅读、受限编辑、候选预览和可视审核，无需 Amp 登录 |
+| 3．UI 内集成 Amp | A1 由 Go 管理 Amp CLI，加入任务／线程绑定、进度、取消回收、冻结与失败恢复；仍不自动接受 |
+
+先验证 **Amp → Kepub CLI**，不必先引入 SDK 或 MCP；**Kepub → Amp** 的受管执行不再作为 UI 前置。正文操作必须扩展已有计划、执行来源与恢复校验，不是直接写候选文件；CSS 写入、结构改名、批量修改另行验收。CLI 与桌面可分别发布，但均须通过对应的 Mac 安装与依赖检查，签名公证和发布另获授权。
+
+当前 `task accept` 不能鉴别人类和 Agent，“先询问用户”是合作约定，不是权限隔离。GUI 不通过拼接命令或解析终端文本复用业务逻辑，而与 CLI 共用 Go 用例。
+
+参考 Obsidian CLI 的命令发现、目标选择、查询与诊断，但 Kepub 保持无 GUI 可运行，不照搬当前活动文件或任意 eval；具体见 [CLI 构建取舍](docs/DEVELOPMENT_PLAN.md#91-参考-obsidian-cli但保持真正-headless)。[Amp 接口边界](docs/DEVELOPMENT_PLAN.md#813-external-apicli-与-typescript-sdk-的适用边界)另区分 SDK／CLI 的 Agent 执行与 External API 的工作区数据管理，后者不是发送编辑 prompt 的入口。
+
+依赖、范围和验收见 [v0.7 开发批次](docs/DEVELOPMENT_PLAN.md#113-v07-开发批次与依赖)。现已开始整理共同基线，由 **Medium** 并行推进 C1 与 C2 读核心；共享 app/CLI 单一所有者，C3 接在两者之后。本批接口约束见 [CLI 契约 §2.1](docs/CLI_CONTRACT.md#21-c1c2-本批实施契约)。M0～M6 仅保留为技术工作包编号；开始开发不等于真实模型调用或远端发布。
 
 除上面明确列出的命令、库与独立实验外，设计文档中的命令和接口仍待实现；不能将其他设计示例当作当前安装使用说明。

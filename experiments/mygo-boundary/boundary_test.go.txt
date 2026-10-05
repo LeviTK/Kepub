@@ -1,0 +1,199 @@
+// This file is an additive test layer for github.com/egoist/mygo v0.2.0.
+// Run via run.sh, which copies this .go.txt into the disposable upstream module.
+package mygo
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+)
+
+// Probes have no file/network effects: only count calls and return caller ID.
+type kepubBoundaryProbe struct {
+	calls    atomic.Int64
+	allowed  int
+	contexts chan context.Context
+}
+
+func (p *kepubBoundaryProbe) Caller(ctx context.Context) int {
+	p.calls.Add(1)
+	if p.contexts != nil {
+		p.contexts <- ctx
+	}
+	return CallerWindow(ctx).ID()
+}
+
+func (p *kepubBoundaryProbe) UIOnly(ctx context.Context) (int, error) {
+	w := CallerWindow(ctx)
+	if w == nil || w.ID() != p.allowed {
+		return 0, errors.New("kepub boundary: UI window required")
+	}
+	p.calls.Add(1)
+	return w.ID(), nil
+}
+
+func kepubRegisterBook(t *testing.T) {
+	t.Helper()
+	if Protocol.IsHandled("kepub-book") {
+		t.Fatal("kepub-book unexpectedly already registered")
+	}
+	if err := Protocol.Handle("kepub-book", http.NotFoundHandler()); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { Protocol.Unhandle("kepub-book") })
+}
+
+func kepubReply(t *testing.T, reply map[string]any, wantID int, wantError string) {
+	t.Helper()
+	if wantError != "" {
+		e, _ := reply["e"].(string)
+		if reply["ok"] != false || !strings.Contains(e, wantError) {
+			t.Fatalf("expected rejection containing %q, got %v", wantError, reply)
+		}
+		return
+	}
+	if reply["ok"] != true || reply["v"] != float64(wantID) {
+		t.Fatalf("expected successful caller ID %d, got %v", wantID, reply)
+	}
+}
+
+func TestKepubBoundaryTrustMatrix(t *testing.T) {
+	kepubRegisterBook(t)
+	p := &kepubBoundaryProbe{}
+	BindAs("KepubTrustProbe", p)
+	t.Logf("CORE CONFIG: IsDev=%v (runner links production=1 for production runs)", IsDev())
+	// Names are unique to this one-shot test process, like public app bindings.
+	for _, config := range []struct {
+		name    string
+		origins []string
+	}{
+		{"empty", nil},
+		{"explicit", []string{"https://ui.kepub.invalid"}},
+	} {
+		t.Run(config.name, func(t *testing.T) {
+			w, fw := readyWindow(t, WindowOptions{Page: PageOptions{TrustedOrigins: config.origins}})
+			for i, c := range []struct {
+				name, url string
+				allowed   bool
+				danger    bool
+			}{
+				{"app", "mygo://localhost/index.html", true, false},
+				{"external_https", "https://external.kepub.invalid/book", false, false},
+				{"loopback_development_only", "http://localhost:5173/", IsDev(), false},
+				{"listed_https", "https://ui.kepub.invalid/view", config.name == "explicit", false},
+				{"origin_suffix_attack", "https://ui.kepub.invalid.evil.invalid/", false, false},
+				{"file", "file:///tmp/untrusted-book.html", true, true},
+				{"about", "about:blank", true, true},
+				{"registered_book", "kepub-book://localhost/book/chapter.html", true, true},
+				{"unregistered_scheme", "kepub-unregistered://localhost/chapter.html", false, false},
+			} {
+				t.Run(c.name, func(t *testing.T) {
+					onMain(func() { fw.H.NavigationCommitted(c.url) })
+					before := p.calls.Load()
+					reply := call(t, fw, 100+i, "KepubTrustProbe.Caller")
+					wantCalls := before
+					if c.allowed {
+						kepubReply(t, reply, w.ID(), "")
+						wantCalls++
+					} else {
+						kepubReply(t, reply, 0, "not allowed to call Go methods")
+					}
+					if got := p.calls.Load(); got != wantCalls {
+						t.Fatalf("probe executions = %d, want %d", got, wantCalls)
+					}
+					if c.danger {
+						t.Logf("DANGER REPRODUCED: %s origins: %s called global probe (caller=%d); NOT safe configuration acceptance", config.name, c.url, w.ID())
+					} else {
+						t.Logf("CORE CHECK PASS: %s allowed=%v", c.url, c.allowed)
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestKepubBoundaryWindowAuthorizationAndNavigation(t *testing.T) {
+	kepubRegisterBook(t)
+	ui, uiFake := readyWindow(t, WindowOptions{})
+	book, bookFake := readyWindow(t, WindowOptions{})
+	onMain(func() {
+		uiFake.H.NavigationCommitted("mygo://localhost/ui.html")
+		bookFake.H.NavigationCommitted("kepub-book://localhost/chapter.html")
+	})
+	p := &kepubBoundaryProbe{allowed: ui.ID(), contexts: make(chan context.Context, 2)}
+	BindAs("KepubWindowProbe", p)
+	kepubReply(t, call(t, uiFake, 1, "KepubWindowProbe.Caller"), ui.ID(), "")
+	old := <-p.contexts
+	kepubReply(t, call(t, bookFake, 1, "KepubWindowProbe.Caller"), book.ID(), "")
+	<-p.contexts
+	t.Logf("DANGER REPRODUCED: second window reaches global binding with its own caller ID %d (UI=%d)", book.ID(), ui.ID())
+	kepubReply(t, call(t, uiFake, 2, "KepubWindowProbe.UIOnly"), ui.ID(), "")
+	before := p.calls.Load()
+	kepubReply(t, call(t, bookFake, 2, "KepubWindowProbe.UIOnly"), 0, "UI window required")
+	if p.calls.Load() != before {
+		t.Fatal("rejected second window executed guarded probe")
+	}
+	t.Log("SERVICE CHECK PASS: CallerWindow ID guard allows UI and denies second window")
+	// Same-window replacement is a different threat: ID does not identify a document.
+	onMain(func() { uiFake.H.NavigationCommitted("kepub-book://localhost/replacement.html") })
+	select {
+	case <-old.Done():
+		if old.Err() != context.Canceled {
+			t.Fatalf("old call context error = %v", old.Err())
+		}
+	case <-time.After(time.Second):
+		t.Fatal("navigation did not cancel actual bound-call context")
+	}
+	kepubReply(t, call(t, uiFake, 3, "KepubWindowProbe.Caller"), ui.ID(), "")
+	fresh := <-p.contexts
+	if fresh == old || fresh.Err() != nil || CallerWindow(fresh) != ui {
+		t.Fatal("replacement call did not get a fresh live context with the same caller window")
+	}
+	t.Log("CORE CHECK PASS: old bound-call context canceled; replacement context is live")
+	kepubReply(t, call(t, uiFake, 4, "KepubWindowProbe.UIOnly"), ui.ID(), "")
+	t.Log("DANGER REPRODUCED: book document replacing UI in the SAME window passes ID-only authorization; navigation policy/document authorization still required")
+	onMain(func() { uiFake.H.NavigationCommitted("https://external.kepub.invalid/replacement") })
+	kepubReply(t, call(t, uiFake, 5, "KepubWindowProbe.UIOnly"), 0, "not allowed to call Go methods")
+	t.Log("CORE CHECK PASS: navigation to external HTTPS updates trust and rejects calls")
+}
+
+func TestKepubBoundarySecrets(t *testing.T) {
+	p := &kepubBoundaryProbe{}
+	BindAs("KepubSecretProbe", p)
+	a, af := readyWindow(t, WindowOptions{})
+	b, bf := readyWindow(t, WindowOptions{})
+	if secret(af) == secret(bf) {
+		t.Fatal("two windows share a bridge secret")
+	}
+	for i, c := range []struct {
+		name, prefix string
+	}{
+		{"missing", ""},
+		{"wrong", strings.Repeat("x", len(secret(af)))},
+		{"cross_window", secret(bf)},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			before := p.calls.Load()
+			msg := fmt.Sprintf(`{"t":"call","id":%d,"k":"tok","m":"KepubSecretProbe.Caller","a":[]}`, 100+i)
+			onMain(func() { af.H.Message(c.prefix + msg) })
+			// Mirror upstream negative-message test; these messages are silently dropped,
+			// not replies. A valid call is the positive liveness control.
+			time.Sleep(50 * time.Millisecond)
+			if p.calls.Load() != before {
+				t.Fatal("invalid secret executed probe")
+			}
+			kepubReply(t, call(t, af, 200+i, "KepubSecretProbe.Caller"), a.ID(), "")
+			if p.calls.Load() != before+1 {
+				t.Fatal("only the valid-secret control should execute probe")
+			}
+			t.Logf("CORE CHECK PASS: %s secret dropped; correct per-window secret accepted", c.name)
+		})
+	}
+	kepubReply(t, call(t, bf, 300, "KepubSecretProbe.Caller"), b.ID(), "")
+	t.Log("LIMIT: fake messages do not prove browser frame isolation or secret confidentiality")
+}

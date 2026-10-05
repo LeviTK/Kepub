@@ -1,0 +1,146 @@
+// Additive coverage for the real upstream internal/e2e package, not a fake DOM.
+package e2e
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/egoist/mygo"
+)
+
+type kepubNativeProbe struct{ calls atomic.Int64 }
+
+func (p *kepubNativeProbe) Touch(ctx context.Context) int {
+	p.calls.Add(1)
+	return mygo.CallerWindow(ctx).ID()
+}
+
+type kepubFrameReport struct {
+	Status string `json:"status"`
+	Name   string `json:"name"`
+	ID     int    `json:"id"`
+}
+
+func TestKepubNativeParentBridgeBoundary(t *testing.T) {
+	if mygo.IsDev() {
+		t.Fatal("run native coverage with production=1; see run.sh native")
+	}
+	p := &kepubNativeProbe{}
+	mygo.BindAs("KepubNativeFrameProbe", p)
+	for _, c := range []struct {
+		name, sandbox, want string
+	}{
+		{"unsandboxed", "", "called"},
+		{"opaque_origin", "allow-scripts", "SecurityError"},
+		{"no_scripts", "", "no execution"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			w := newWindow(t, mygo.WindowOptions{Hidden: true})
+			before := p.calls.Load()
+			// Both active cases run IDENTICAL child code. It calls the parent's
+			// top-level bridge, NOT an iframe's handler or injected runtime.
+			frame := `<p id="frame-content">frame loaded</p><script>
+(async () => {
+  parent.postMessage({status:"started"}, "*");
+  try {
+    const id = await parent.mygo.call("KepubNativeFrameProbe.Touch");
+    parent.postMessage({status:"called", id}, "*");
+  } catch (e) {
+    parent.postMessage({status:"denied", name:e.name}, "*");
+  }
+})();
+</script>`
+			encodedFrame, _ := json.Marshal(frame)
+			// Install host observers before navigating the iframe. Observe the
+			// actual source WindowProxy; no outbound network or file operations.
+			host := fmt.Sprintf(`<!doctype html><html><body data-kepub="%s">
+<script>
+const f = document.createElement("iframe");
+f.id = "book";
+if (%t) f.setAttribute("sandbox", %q);
+window.kepubReports = [];
+window.kepubLoads = 0;
+addEventListener("message", e => {
+  if (e.source === f.contentWindow) kepubReports.push(e.data);
+});
+f.addEventListener("load", () => { kepubLoads++ });
+f.srcdoc = %s;
+// Connect only after setting srcdoc, so a prior about:blank load cannot
+// masquerade as evidence that the no-scripts sandbox loaded its document.
+document.body.append(f);
+</script></body></html>`, c.name, c.name != "unsandboxed", c.sandbox, encodedFrame)
+			w.Page().LoadHTML(host, "app://localhost/")
+			waitFor(t, w, fmt.Sprintf(`document.body && document.body.dataset.kepub === %q && window.kepubLoads >= 1 && document.readyState === "complete"`, c.name))
+			if c.name != "no_scripts" {
+				waitFor(t, w, "window.kepubReports.length === 2")
+			} else {
+				// Load event is positive evidence that srcdoc navigation finished;
+				// do not equate silence from an unloaded/broken frame with isolation.
+				time.Sleep(100 * time.Millisecond)
+			}
+			reports, err := mygo.EvalAs[[]kepubFrameReport](w.Page(), "window.kepubReports")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if c.name == "no_scripts" {
+				if len(reports) != 0 || p.calls.Load() != before {
+					t.Fatalf("scripts executed in no-scripts sandbox: reports=%+v count=%d", reports, p.calls.Load())
+				}
+				t.Log("NATIVE CONTROL PASS: srcdoc load completed; sandbox without allow-scripts executed no script/probe")
+			} else {
+				if len(reports) != 2 || reports[0].Status != "started" {
+					t.Fatalf("missing positive frame execution report: %+v", reports)
+				}
+				if c.want == "called" {
+					if reports[1].Status != "called" || reports[1].ID != w.ID() || p.calls.Load() != before+1 {
+						t.Fatalf("same-origin parent bridge counterexample not reproduced: %+v count=%d UI=%d", reports, p.calls.Load(), w.ID())
+					}
+					t.Logf("DANGER REPRODUCED: unsandboxed srcdoc used parent.mygo.call; Go probe incremented with host caller ID %d", w.ID())
+				} else {
+					if reports[1].Status != "denied" || reports[1].Name != "SecurityError" || p.calls.Load() != before {
+						t.Fatalf("expected observed same-origin-policy rejection with zero probe calls: %+v count=%d", reports, p.calls.Load())
+					}
+					t.Log("NATIVE CONTROL PASS: allow-scripts opaque-origin frame ran and posted SecurityError; Go probe did not increment")
+				}
+			}
+			// Positive host control also rules out an unavailable binding/runtime.
+			id, err := mygo.EvalAs[int](w.Page(), `mygo.call("KepubNativeFrameProbe.Touch")`)
+			want := before + 1
+			if c.want == "called" {
+				want++
+			}
+			if err != nil || id != w.ID() || p.calls.Load() != want {
+				t.Fatalf("host control: id=%d error=%v count=%d want=%d", id, err, p.calls.Load(), want)
+			}
+		})
+	}
+}
+
+func TestKepubNativeCSPDoesNotRemoveBridge(t *testing.T) {
+	if mygo.IsDev() {
+		t.Fatal("run native coverage with production=1; see run.sh native")
+	}
+	p := &kepubNativeProbe{}
+	mygo.BindAs("KepubNativeCSPProbe", p)
+	w := newWindow(t, mygo.WindowOptions{Hidden: true})
+	w.Page().LoadHTML(`<!doctype html><html><head>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'none'">
+</head><body id="kepub-csp-loaded"><script>
+window.kepubInlineRan = true;
+mygo.call("KepubNativeCSPProbe.Touch");
+</script></body></html>`, "app://localhost/")
+	waitFor(t, w, `document.getElementById("kepub-csp-loaded") && document.readyState === "complete"`)
+	ok, err := mygo.EvalAs[bool](w.Page(), `window.kepubInlineRan === undefined && typeof mygo === "object" && typeof mygo.call === "function"`)
+	if err != nil || !ok || p.calls.Load() != 0 {
+		t.Fatalf("CSP inline suppression/runtime visibility: ok=%v error=%v count=%d", ok, err, p.calls.Load())
+	}
+	id, err := mygo.EvalAs[int](w.Page(), `mygo.call("KepubNativeCSPProbe.Touch")`)
+	if err != nil || id != w.ID() || p.calls.Load() != 1 {
+		t.Fatalf("Page.Eval runtime control: id=%d error=%v count=%d", id, err, p.calls.Load())
+	}
+	t.Log("NATIVE CONTROL PASS: script-src none suppressed inline script, but Page.Eval still observed and called top-level bridge; CSP did NOT uninstall it")
+}
