@@ -3,6 +3,7 @@ package workspace
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -72,6 +73,205 @@ func TestInterruptedApplyWithPreJournalRestoreLeftovers(t *testing.T) {
 					w.Close()
 				}
 			})
+		}
+	}
+}
+
+func TestRecoveryRejectsAlteredIdentityBeforeWriting(t *testing.T) {
+	for _, operation := range []string{"metadata", "content"} {
+		for _, phase := range []string{"intent", "start"} {
+			for _, tamper := range []string{"missing-use", "malformed-use", "wrong-use-task", "wrong-use-digest", "wrong-use-version", "downgraded-task", "wrong-start"} {
+				if phase == "intent" && tamper == "wrong-start" {
+					continue
+				}
+				t.Run(operation+"/"+phase+"/"+tamper, func(t *testing.T) {
+					w, dir, _ := legalWorkspace(t, "3.0")
+					p := fieldPlan(t, w, "title", "title", "Title", "New")
+					if operation == "content" {
+						p = contentPlan(t, w, "Changed")
+					}
+					var e Execution
+					if phase == "intent" {
+						if _, err := w.createCandidate(&p); err != nil {
+							t.Fatal(err)
+						}
+						put(t, filepath.Join(dir, candidate, "external.txt"), []byte("outside drift"))
+					} else {
+						var out []byte
+						e, out = prepareExecution(t, w, p)
+						put(t, filepath.Join(dir, candidate, p.WriteSet[0]), out)
+					}
+					usedName := "plans/" + p.ID + ".used.json"
+					var used planUse
+					if err := readEditJSON(w.root, usedName, &used); err != nil {
+						t.Fatal(err)
+					}
+					switch tamper {
+					case "missing-use":
+						if err := w.root.Remove(usedName); err != nil {
+							t.Fatal(err)
+						}
+					case "malformed-use":
+						put(t, filepath.Join(dir, usedName), []byte("{"))
+					case "downgraded-task":
+						put(t, filepath.Join(dir, "tasks/active/task.json"), editJSON(t, taskRecord{Version: 1, BaseRevision: "initial"}))
+					case "wrong-start":
+						e.TaskID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+						put(t, filepath.Join(dir, "tasks/active/edit-start.json"), editJSON(t, e))
+					default:
+						switch tamper {
+						case "wrong-use-task":
+							used.TaskID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+						case "wrong-use-digest":
+							used.PlanSHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+						case "wrong-use-version":
+							used.Version = 2
+						}
+						put(t, filepath.Join(dir, usedName), editJSON(t, used))
+					}
+					w.Close()
+					before := treeAt(t, dir).SHA256
+					for attempt := 0; attempt < 2; attempt++ {
+						opened, err := Open(dir)
+						if opened != nil {
+							opened.Close()
+						}
+						if err == nil {
+							t.Fatal("tampered recovery accepted")
+						}
+						if after := treeAt(t, dir).SHA256; after != before {
+							t.Fatalf("recovery changed bytes/records before refusing: %s → %s, %v", before, after, err)
+						}
+					}
+				})
+			}
+		}
+	}
+}
+
+func TestLegacyRegisteredRecoveryAllowsEmptyStartID(t *testing.T) {
+	for _, recordedUse := range []bool{false, true} {
+		t.Run(fmt.Sprint(recordedUse), func(t *testing.T) {
+			w, dir := makeWorkspace(t)
+			p := planTitle(t, w, "Legacy edit")
+			e, out := prepareExecution(t, w, p)
+			put(t, filepath.Join(dir, candidate, p.WriteSet[0]), out)
+			put(t, filepath.Join(dir, "tasks/active/task.json"), editJSON(t, taskRecord{Version: 1, BaseRevision: "initial"}))
+			e.TaskID = ""
+			put(t, filepath.Join(dir, "tasks/active/edit-start.json"), editJSON(t, e))
+			if err := w.root.Remove("plans/" + p.ID + ".used.json"); err != nil {
+				t.Fatal(err)
+			}
+			if recordedUse {
+				if err := writeJSON(w.root, "plans/"+p.ID+".used.json", planUse{1, "active", digest(p)}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			w.Close()
+			w, err := Open(dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer w.Close()
+			got, err := w.Execution()
+			if err != nil || got.TaskID != "" || got.Status != "failed" || got.ReviewRequired {
+				t.Fatalf("legacy recovery: %+v, %v", got, err)
+			}
+			if treeAt(t, filepath.Join(dir, candidate)).SHA256 != p.InputTreeSHA256 {
+				t.Fatal("legacy rollback bytes changed")
+			}
+			if _, err := w.Reject("active"); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestCommittedRestoreFinishesBeforeExecutionRefusal(t *testing.T) {
+	for _, operation := range []string{"metadata", "content"} {
+		for _, tamper := range []string{"used", "start"} {
+			for _, journal := range []string{"valid", "valid-pub-missing", "wrong-hash", "malformed"} {
+				t.Run(operation+"/"+tamper+"/"+journal, func(t *testing.T) {
+					w, dir, _ := legalWorkspace(t, "3.0")
+					p := fieldPlan(t, w, "title", "title", "Title", "New")
+					if operation == "content" {
+						p = contentPlan(t, w, "Changed")
+					}
+					e, out := prepareExecution(t, w, p)
+					put(t, filepath.Join(dir, candidate, p.WriteSet[0]), out)
+					s, err := w.snapshot(e.Checkpoint)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if _, err := copyTree(w.root, checkpointDir(s.ID)+"/pub", restoreNew); err != nil {
+						t.Fatal(err)
+					}
+					j := restoreRecord{1, s.ID, s.Tree.SHA256}
+					if journal == "wrong-hash" {
+						j.SHA256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+					}
+					if err := writeJSON(w.root, restoreJournal, j); err != nil {
+						t.Fatal(err)
+					}
+					if journal == "malformed" {
+						put(t, filepath.Join(dir, restoreJournal), []byte("{"))
+					}
+					if journal == "valid-pub-missing" {
+						if err := publish(w.root, candidate, restoreOld); err != nil {
+							t.Fatal(err)
+						}
+					}
+					usedName := filepath.Join(dir, "plans", p.ID+".used.json")
+					startName := filepath.Join(dir, "tasks/active/edit-start.json")
+					if tamper == "used" {
+						put(t, usedName, editJSON(t, planUse{1, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", digest(p)}))
+					} else {
+						e.TaskID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+						put(t, startName, editJSON(t, e))
+					}
+					put(t, filepath.Join(dir, "user-file"), []byte("keep"))
+					w.Close()
+					before := treeAt(t, dir).SHA256
+					checkpoints := treeAt(t, filepath.Join(dir, "tasks/active/checkpoints")).SHA256
+					original := treeAt(t, filepath.Join(dir, "original")).SHA256
+					accepted := treeAt(t, filepath.Join(dir, "revisions")).SHA256
+					usedBytes, err := os.ReadFile(usedName)
+					if err != nil {
+						t.Fatal(err)
+					}
+					startBytes, err := os.ReadFile(startName)
+					if err != nil {
+						t.Fatal(err)
+					}
+					opened, err := Open(dir)
+					if opened != nil {
+						opened.Close()
+					}
+					if err == nil {
+						t.Fatal("damaged execution accepted")
+					}
+					if journal != "valid" && journal != "valid-pub-missing" {
+						if treeAt(t, dir).SHA256 != before {
+							t.Fatal("invalid committed journal changed evidence")
+						}
+					} else {
+						if treeAt(t, filepath.Join(dir, candidate)).SHA256 != s.Tree.SHA256 {
+							t.Fatal("committed exact rollback not completed")
+						}
+						assertEmpty(t, filepath.Join(dir, "journal"))
+						assertEmpty(t, filepath.Join(dir, "staging"))
+					}
+					if treeAt(t, filepath.Join(dir, "tasks/active/checkpoints")).SHA256 != checkpoints || treeAt(t, filepath.Join(dir, "original")).SHA256 != original || treeAt(t, filepath.Join(dir, "revisions")).SHA256 != accepted {
+						t.Fatal("recovery changed immutable sources/checkpoints")
+					}
+					assertBytes(t, usedName, usedBytes)
+					assertBytes(t, startName, startBytes)
+					assertBytes(t, filepath.Join(dir, "user-file"), []byte("keep"))
+					if _, err := os.Stat(filepath.Join(dir, "tasks/active/edit-result.json")); !errors.Is(err, os.ErrNotExist) {
+						t.Fatalf("new execution result published: %v", err)
+					}
+				})
+			}
 		}
 	}
 }

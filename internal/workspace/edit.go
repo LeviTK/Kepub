@@ -722,6 +722,21 @@ func (w *Workspace) execution() (Execution, error) {
 	if err != nil {
 		return e, err
 	}
+	task, err := w.taskID()
+	if err != nil {
+		return e, err
+	}
+	// Legacy active tasks may predate consumption records; an existing record
+	// must still bind the task, not be bypassed by changing its outer version.
+	if task != "active" || exists(w.root, "plans/"+intent.ID+".used.json") {
+		var used planUse
+		if err := readEditJSON(w.root, "plans/"+intent.ID+".used.json", &used); err != nil {
+			return e, err
+		}
+		if used.Version != 1 || used.TaskID != task || used.PlanSHA256 != digest(intent) {
+			return e, fmt.Errorf("execution plan consumption mismatch")
+		}
+	}
 	unstarted := !exists(w.root, "tasks/active/edit-start.json")
 	if unstarted {
 		if exists(w.root, "tasks/active/edit-result.json") {
@@ -730,10 +745,6 @@ func (w *Workspace) execution() (Execution, error) {
 		// No registered mutation can precede edit-start. Capture the verified
 		// baseline as provenance; preserve any outside writer's candidate drift.
 		s, err := w.checkpointFrom(revisionPath(w.current))
-		if err != nil {
-			return e, err
-		}
-		task, err := w.taskID()
 		if err != nil {
 			return e, err
 		}
@@ -746,6 +757,9 @@ func (w *Workspace) execution() (Execution, error) {
 	}
 	if digest(start.Plan) != digest(intent) {
 		return e, fmt.Errorf("execution intent mismatch")
+	}
+	if start.TaskID != task && !(start.TaskID == "" && task == "active") {
+		return e, fmt.Errorf("execution task identity mismatch")
 	}
 	s, err := w.snapshot(start.Checkpoint)
 	if err != nil {
@@ -778,18 +792,8 @@ func (w *Workspace) execution() (Execution, error) {
 	} else if err := readEditJSON(w.root, "tasks/active/edit-result.json", &e); err != nil {
 		return e, err
 	}
-	task, err := w.taskID()
-	if err != nil || (start.TaskID != task && !(start.TaskID == "" && task == "active")) || e.TaskID != start.TaskID {
+	if e.TaskID != start.TaskID {
 		return e, fmt.Errorf("execution task identity mismatch")
-	}
-	if task != "active" {
-		var used planUse
-		if err := readEditJSON(w.root, "plans/"+intent.ID+".used.json", &used); err != nil {
-			return e, err
-		}
-		if used.Version != 1 || used.TaskID != task || used.PlanSHA256 != digest(intent) {
-			return e, fmt.Errorf("execution plan consumption mismatch")
-		}
 	}
 	if e.Version != start.Version || e.Diff.Changes == nil || digest(e.Plan) != digest(start.Plan) || e.Checkpoint != start.Checkpoint || e.Conformance != "not_run" {
 		return e, fmt.Errorf("invalid execution provenance")
