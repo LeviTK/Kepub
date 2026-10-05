@@ -2,7 +2,7 @@
 
 面向 Amp 的 EPUB 阅读、制作预览与编辑工作台。
 
-**当前状态：开发方案 v0.7，路线为 CLI + 外部 Amp 协作 → MyGo UI → UI 内集成 Amp，新接口仍暂定。第一轮已发布只读 Go 核心与 CLI、工作区库及两种独立 Amp 接入实验。第二轮由 Medium 实现的 validate/pack、单字段元数据编辑、候选审阅、接受／拒绝与工作区导出已本地集成，尚未发布。没有正文编辑、GUI、生产 Agent、安装包或已完成的 Mac 实机测试。**
+**当前状态：开发方案 v0.7，路线为 CLI + 外部 Amp 协作 → MyGo UI → UI 内集成 Amp，新接口仍暂定。第一轮已发布只读 Go 核心与 CLI、工作区库及两种独立 Amp 接入实验。第二轮编辑／审核／导出闭环，以及本轮 Medium 实现的 C1 命令框架和 C2 正文查询已本地集成，尚未发布。下一批 C3 增加受限正文修改；当前没有正文编辑、GUI、生产 Agent、安装包或已完成的 Mac 实机测试。**
 
 ## 已实现：M1-A / M1-B1 只读 CLI
 
@@ -27,9 +27,41 @@ go build -o kepub ./cmd/kepub
 - `--json` 成功/失败 stdout 都是一个统一 envelope；失败用稳定 code，退出码 1 内容/安全问题、2 参数、3 未实现能力、6 I/O。`--output/-o`、`--rootfile`、`--section` 可置于 BOOK 前后，`--` 结束选项，JSON 和 `--no-input` 不问答。其他契约中的选项尚未实现，会拒绝，不忽略。
 - 固定版式、脚本标记、SMIL/音视频、签名、加密/字体混淆声明会记录限制；不执行、不解密、不验证签名、不删除内容。缺失 manifest 资源显式报告。成功只表示只读请求完成，**不是 EPUB 合规验证**。
 
-`doctor`、workspace list/注册表、资源改名、GUI、预览、生产 Agent、Mac 发布仍未实现。capabilities 中这些项为 `planned`，不能据此执行。当前 schema 描述已实现命令的参数和结果基本形状，完整 OperationRegistry schema/help 自动生成仍待后续完成。
+workspace list/注册表、资源改名、GUI、预览、生产 Agent、Mac 发布仍未实现。capabilities 中这些项为 `planned`，不能据此执行。当前 schema 描述已实现命令的参数和结果基本形状，不代表所有操作的细粒度结果 schema 均已完成。
 
 验证：`go test -count=1 ./...`、`go test -race -count=1 ./...`、`go vet ./...`；真实 CLI smoke 含 EPUB2/3、双向引用与错误 envelope。小型 EPUB 与恶意输入由测试生成，无第三方书籍。证据见 [M1-A](docs/verification/M1_A.md) 和 [M1-B1](docs/verification/M1_B1.md)。
+
+## 本地已集成：C1 命令发现与诊断
+
+```sh
+go install ./cmd/kepub  # 安装到 GOBIN，未设置时为 $(go env GOPATH)/bin
+./kepub --help
+./kepub inspect --help --json
+./kepub version --json
+./kepub doctor --json
+```
+
+上面的 `./kepub` 使用前文构建的本地二进制；`go install` 后也可将安装目录加入 PATH，以 `kepub` 调用。构建需要 Go，已构建的 CLI 不要求用户安装 Go、Node、MyGo 或 Amp。正式 EPUB 校验另需 Java 17+ 与固定版 EPUBCheck。
+
+- 命令帮助、capabilities 的增量 `commandSchemas`、必填及允许参数使用同一描述来源；保留原 capabilities 数组和 operation ID。未知选项、重复参数或非法值不会因加 `--help` 被忽略。
+- `version` 返回实际 Go 构建／VCS 信息；没有发行标签的构建明确为 development，不联网推测版本。
+- `doctor` 区分核心可运行与正式检查器可用。缺依赖仍可成功收集诊断，但 `formalValidationAvailable:false`；外部探测故障明确失败。探测有时间和输出上限，只发现 Amp 路径，不启动 Amp、不验证登录、不安装依赖。
+
+证据见 [C1 CLI 验证](docs/verification/C1_CLI.md)。此批为本地源码交付，不是已发布的安装包或 Mac 实机验收。
+
+## 本地已集成：C2 已接受版本的正文查询
+
+```sh
+./kepub workspace open 'book.epub' --output 'work' --json
+./kepub content --workspace 'work' --resource 'EPUB/Text/chapter.xhtml' --json
+./kepub content --workspace 'work' --resource 'EPUB/Text/chapter.xhtml' --query '目标短语' --limit 20 --json
+```
+
+`--resource` 必须是所选 manifest 中 XHTML 的精确 BookPath，不能传 href、fragment 或本机路径。返回 `workspaceId`、`revisionId`、`rootfile`、原资源 SHA-256、结构 locator 和解码文本；始终查询 accepted，即使存在被修改的活动候选。持锁查询，并发占用返回 `WORKSPACE_BUSY`（exit 4）。不需要 Java、Amp、Node 或 GUI。
+
+query 区分大小写、按单个结果元素的文本做字面子串匹配；省略表示全部，显式值须为 1～4096 UTF-8 字节。limit 默认为 50，范围 1～200，另返回完整匹配数和 `truncated`，不会默选第一个匹配。XML 输入上限 8 MiB、返回文本累计上限 1 MiB；超限明确失败，不截断节点文本。
+
+结果排除 script/style/head、外来命名空间子树及含这些内容的祖先。混合内容可读，但不代表允许修改；这不是浏览器可见文本、全书搜索或 EPUB 合规检查，locator 也不是可写偏移。证据见 [C2 内容查询验证](docs/verification/C2_CONTENT.md)。外部 Amp 现在可通过 CLI 发现能力、查询正文并使用既有元数据编辑闭环；正文写入仍等待 C3。
 
 ## 本地已集成：M1-B2 校验与打包
 

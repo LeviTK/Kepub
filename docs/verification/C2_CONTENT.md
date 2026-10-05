@@ -115,3 +115,29 @@ go vet ./...
 - 201 个匹配时默认返回 50、显式返回 1／200，计数及 truncated 正确；精确路径的 URL 编码／fragment／大小写错误不被修正，未声明资源、错误 MIME、缺失资源及 1 MiB 返回文本超限保留明确核心错误。
 
 当前可用的是受限单资源 accepted 文本读取，不是全书全文索引、浏览器可见文本、EPUB 合规验证或编辑授权。本次没有加入 content 的新取消／超时协议，也不声称验证了不合作外部写者的 OS 级隔离。上述已验证的 CLI 接入取代前一阶段“待接入”状态；正文写入、C3 及真实外部 Agent 运行仍未开放。
+
+## 父 orb 组合验收
+
+父线程复核并集成 C1、C2 后，在 Go 1.27.1、真实 Java 17／EPUBCheck 5.3.0 环境执行：
+
+```sh
+go test -count=1 ./...
+go test -race -count=1 ./...
+go vet ./...
+CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o /tmp/kepub-darwin-arm64 ./cmd/kepub
+```
+
+普通／race／vet 全部通过。普通 CLI 85.606s、app 0.035s、publication 0.532s、validation 140.351s、workspace 98.061s；race CLI 81.675s、app 1.071s、publication 4.757s、validation 141.228s、workspace 107.087s。Darwin 产物识别为 Mach-O arm64，未执行，不算 Mac 验收。go.mod／go.sum 哈希与本轮开始相同；未新增根依赖或修改 setup。
+
+父独立生成夹具并执行 35 次真实二进制调用，最终全部通过，stdout 均为单 envelope、stderr 空：
+
+- 中文／空格资源路径、BOM／CRLF／实体／非 BMP；独立预期的六个节点文本、ID、唯一 locator 与原资源 SHA-256 全匹配。`Alpha` 匹配四处，limit=2 只返回前两处并报告 truncated；混合父文本匹配、大小写、无命中及排除内容符合契约。
+- PATH 无工具且 checker 路径缺失仍可查询；非法 UTF-8、重复参数、空／超限 query、limit 边界及不支持参数明确 exit 2。独立 Python 进程持 flock 时返回 exit 4，参数错误仍优先于 busy；释放后可再次读取，整个工作区文件哈希不变。
+- 元数据 apply 后故意在一次性夹具中破坏候选 XHTML／OPF，查询仍返回 accepted 的原始文本与哈希；diff／reject 后可重读。此破坏只是隔离反例，不是绕过 CLI 的使用建议。
+- 另一份合规 ASCII 资源路径夹具走 plan／apply／diff／accept／export，真实检查通过；接受前读取旧 revision，接受后读取新 revision，正文文本／哈希不变。最终 ZIP 的文件集合保持，只有 OPF 中预期标题文本替换，所有其他文件逐字节相同，原书 SHA-256 不变。
+
+首次父驱动错误地要求 ZIP 条目集合完全一致，因打包显式补入 `EPUB/`、`EPUB/Text/`、`META-INF/` 三个原隐式父目录而失败；检查确认这是既有归档语义后，改为分别核对精确文件集合／内容和精确预期目录集合，再从新工作区完整重跑得到上述 35 次通过，不改变产品代码或放宽文件内容断言。C1 的独立安装、version／doctor 亦通过；无标签构建明确 development，doctor 仅发现 Amp 路径，未执行 Amp。
+
+保留一项**既有正式检查兼容限制**：manifest 使用 `Text/%E7%AB%A0%20%E8%8A%82.xhtml` 指向 `EPUB/Text/章 节.xhtml` 的夹具，在本轮前的基线二进制上就返回 `CHECKER_REPORT_INVALID / report inventory mismatch`。因此该夹具用于本轮只读／隔离验证，正式接受／导出采用独立 ASCII 资源路径合规夹具；没有弱化检查器报告校验，也不将 C2 查询成功宣称为该编码 href 的正式导出通过。此兼容问题留待单独修复。
+
+临时二进制、驱动、工作区、书籍和传输 bundle 在完成后清理。以上为本地交付，未推送、发布或调用真实模型；后续 C3 正文写入仍须独立实现与验收。

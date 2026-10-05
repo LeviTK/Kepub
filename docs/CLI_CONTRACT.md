@@ -14,15 +14,17 @@ Obsidian CLI 的参考取舍见 [开发方案 §9.1／§9.2](DEVELOPMENT_PLAN.md
 
 ## 2. 命令分组与实施次序
 
-下表 M0～M6 是技术工作包编号，不再表示执行先后。当前按 [开发方案 v0.7 §11.3](DEVELOPMENT_PLAN.md#113-v07-开发批次与依赖) 先完成 CLI + 外部 Amp 协作，再实现 MyGo UI，最后在 UI 内集成 Amp；受管 Agent 不是 UI 前置。C1 补齐发现／诊断；C2/C3 拟增加有界内容读取、定位及单个 XHTML 简单文本的确定性修改，其命令／操作 schema 尚未冻结，边界见 [§11.4](DEVELOPMENT_PLAN.md#114-首个正文读写版本的边界)，不表示下表已经开放正文编辑。
+下表 M0～M6 是技术工作包编号，不再表示执行先后。当前按 [开发方案 v0.7 §11.3](DEVELOPMENT_PLAN.md#113-v07-开发批次与依赖) 先完成 CLI + 外部 Amp 协作，再实现 MyGo UI，最后在 UI 内集成 Amp；受管 Agent 不是 UI 前置。C1 发现／诊断及 C2 有界内容读取／定位已本地实现。C3 的单个 XHTML 简单文本确定性修改仍未实现，其操作 schema 尚未冻结，边界见 [§11.4](DEVELOPMENT_PLAN.md#114-首个正文读写版本的边界)。
 
 | 命令形态 | 语义 | 阶段 |
 |---|---|---|
-| `kepub doctor --json` | 环境/架构/外部工具发现，不调用模型、不修改书籍 | M1 |
+| `kepub version --json` | 实际构建版本／Go／平台／可用 VCS 信息，不联网推测版本 | C1 本地已实现 |
+| `kepub doctor --json` | 环境/架构/外部工具发现，不调用模型、不修改书籍 | C1 本地已实现 |
 | `kepub capabilities --json` | 版本化能力和可用性；区别 planned/available/unavailable/unsupported | M1 |
 | `kepub info BOOK --json` | 出版信息摘要，含规范/渲染能力警告 | M1 |
 | `kepub toc BOOK --json` | 读取导航，不改变 spine | M1 |
 | `kepub inspect BOOK --section manifest --json` | 指定范围的只读结构查询 | M1 |
+| `kepub content --workspace DIR --resource BOOK_PATH [--query TEXT] [--limit N] --json` | 只读 accepted revision 的单个 manifest XHTML，返回有界文本／结构定位／资源哈希 | C2 本地已实现 |
 | `kepub unpack BOOK --output DIR` | 解到新目录，安全检查，不覆盖 | M1 |
 | `kepub pack DIR --output OUT.epub` | 清单式归档及正式检查，不是convert | M1 |
 | `kepub validate BOOK_OR_DIR --json` | 分层诊断及覆盖报告 | M1 |
@@ -49,13 +51,14 @@ Obsidian CLI 的参考取舍见 [开发方案 §9.1／§9.2](DEVELOPMENT_PLAN.md
 
 ### 2.1 C1/C2 本批实施契约
 
-本节是已进入开发的接口约束，不代表当前二进制已经实现。C1 保留现有参数语法、envelope、退出码和编辑行为，在现有 app/CLI 中建立命令描述来源，用于帮助、参数校验和能力描述；不更换解析框架、不新增运行时。
+本节记录本批接口约束。C1 与 C2 的读核心、app/CLI 已本地集成，尚未发布。C1 保留现有参数语法、envelope、退出码和编辑行为，在现有 app/CLI 中建立命令描述来源，用于帮助、参数校验和能力描述；不更换解析框架、不新增运行时。
 
 - `kepub version --json` 返回构建版本、Go 版本、平台与可用的构建修订信息；没有发行版本时明确为开发构建，不运行 Git 或网络查询来猜测版本。
 - `kepub doctor --json` 检查核心运行环境及 Java／固定 EPUBCheck 的就绪状态，单独报告可选 Amp 的发现状态，不验证登录、不调用模型、不安装依赖、不输出完整环境。诊断成功收集可返回 `ok:true`，依赖缺失体现在报告和正式检查能力中，不能冒充检查器就绪；执行故障和取消明确报告。对外部版本探测设置时间／输出上限并回收受管进程，复用现有 checker 完整性规则。
 - 帮助支持总览和明确命令的说明，JSON 帮助仍是单 envelope；未知命令或选项不得因加 `--help` 就成为有效命令。capabilities 的已有数组形状和 operation ID 保留，新字段可增量添加；未实现能力仍为 planned。
+- capabilities 增量 `commandSchemas` 描述实际 CLI 命令，与操作的 `inputSchema` 区分；例如 `metadata.set` 是计划文件内的操作，不是顶层命令。命令描述从已有能力来源生成帮助和允许／必填参数，不能将 planned 项当成可执行能力，也不宣称所有结果的细粒度 schema 已完成。
 
-C2 首版命令形态为 `kepub content --workspace DIR --resource BOOK_PATH [--query TEXT] [--limit N] --json`，只读，不接受 BOOK、rootfile 覆盖或任务参数。先在 publication 读核心实现，再在 C1 交接 app/CLI 后接入：
+C2 首版命令为 `kepub content --workspace DIR --resource BOOK_PATH [--query TEXT] [--limit N] --json`，只读，不接受 BOOK、rootfile 覆盖或任务参数；注册为 `publication.content` v1 / `available` / `read_only`。publication 读核心经 app 的现有工作区快照接口接入 CLI：
 
 - 工作区使用已有 `AcceptedSnapshot` 冻结当前 accepted；返回真实 workspaceId、revisionId、rootfile、精确 bookPath、resourceSha256 和 locatorVersion。查询期间保持现有协作锁，关闭快照和工作区；不从内部目录猜当前版本，不修改出版内容。
 - 仅支持所选 publication manifest 声明的 `application/xhtml+xml`，路径必须为精确 BookPath，不是 href／fragment／本机路径。沿用 UTF-8 XML、8 MiB、深度／token／索引限制；不支持的资源类型明确失败，CSS 查询留到后续，不为本批增加第二套语法。

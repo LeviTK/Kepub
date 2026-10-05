@@ -2,9 +2,9 @@
 
 > 文档版本：0.7（开发计划；新接口暂定）· 更新日期：2026-10-05
 >
-> 路线：CLI + 外部 Amp 协作 → MyGo UI → UI 内集成 Amp。CLI 与 UI 共用 Go EPUB 核心；受管 Amp 不是 UI 前置条件。现进入 C0/C1/C2 开发，不自动启动真实模型调用或发布。
+> 路线：CLI + 外部 Amp 协作 → MyGo UI → UI 内集成 Amp。CLI 与 UI 共用 Go EPUB 核心；受管 Amp 不是 UI 前置条件。C0/C1/C2 已本地集成，下一批为 C3 受限正文修改，不自动启动真实模型调用或发布。
 >
-> 状态：只读核心与 CLI、工作区库及 Amp 对照实验已发布到默认分支；validate/pack、单字段元数据编辑、候选审阅、接受／拒绝与工作区导出已本地集成，尚未发布。GUI、生产 Agent、安装包和 Mac 实机验收未完成。实际支持范围以 README、capabilities 和验证记录为准。
+> 状态：只读核心与 CLI、工作区库及 Amp 对照实验已发布到默认分支；validate/pack、单字段元数据编辑、候选审阅、接受／拒绝与工作区导出，以及 C1 命令框架与 C2 正文查询已本地集成，尚未发布。正文写入、GUI、生产 Agent、安装包和 Mac 实机验收未完成。实际支持范围以 README、capabilities 和验证记录为准。
 >
 > 目标平台：Apple Silicon Mac；Linux orb 用于开发验证。MyGo 与系统 WebView 已确认，当前接口基线为 MyGo 0.2.0，macOS 使用 WKWebView，不捆绑 Chromium。React + TypeScript + Vite 仍是前端计划。UI 暂缓不取消选型，也不让 WebView 验收阻塞纯 CLI 开发。
 
@@ -70,8 +70,8 @@ CLI 不登录 Amp 也能查询、检查和执行已实现的确定性操作；�
 ### 1.1 CLI 优先的首批交付
 
 - 整理并交付现有查询、安全解包、validate/pack、workspace、plan/apply、diff、accept/reject 和 export，不从头重写 CLI。
-- 当前仅能修改一个现有 `dc:title` 或 `dc:creator` 简单文本；新 C2/C3 批次拟增加绑定版本的内容读取与已有 XHTML 的简单文本修改。正文编辑未实现，不能把当前元数据演示当成该目标完成。
-- 稳定 JSON envelope、错误码、非交互行为、能力描述和依赖诊断；补齐 `doctor`、安装使用说明及对应测试。这些补齐项仍未实现。
+- 当前仅能修改一个现有 `dc:title` 或 `dc:creator` 简单文本。C2 已本地实现绑定 accepted revision 的单资源 XHTML 内容读取；C3 下一批增加已有 XHTML 的简单文本修改。正文编辑未实现，不能把当前元数据演示当成该目标完成。
+- C1 已本地补齐命令帮助／schema 同源、构建版本、只检查不安装的 `doctor`、源码构建／安装说明及测试；保留 JSON envelope、错误码与非交互行为。发行安装包和 Mac 安装验收仍未完成。
 - 先用现有元数据闭环做 Amp 小样本联调，再在 C3 通过后验证正文编辑；所有写入走 CLI 注册操作，用户明确决定 accept/reject/export。不依赖 SDK、MCP、常驻会话服务或桌面窗口。
 - CSS 可纳入受限只读内容查询；CSS 写入、跨节点排版修改、资源新增／删除／改名、批量操作及任意候选文件写入不进入首个正文编辑版本，另行冻结支持子集并验收。
 - Linux 验证可先进行；面向 Apple Silicon 的 CLI 正式发布仍须实机安装和运行验证。Darwin 交叉编译不算 Mac 验收，CLI 检查也不替代视觉排版审核。
@@ -522,12 +522,12 @@ Kepub 自己的 schema 吸收外部差异，不把私有函数名作为公开 AB
 
 ### 9.2 在现有 Go CLI 上增量构建并供 Amp 使用
 
-当前 `cmd/kepub/main.go` 是自有参数解析、分派和 envelope 输出；工作区命令调用 `internal/app/workspace.go` 的共享用例。`internal/app/app.go` 提供 capabilities 和初步 schema，但 help 文本另行维护，尚未成为完整的生成式注册表。根模块没有 Cobra 等第三方 CLI 框架。先解决现有契约一致性，不为借鉴 Obsidian 重写解析器或加入 Node；若以后更换解析库，单独评估现有语法和错误优先级的兼容性。
+当前 `cmd/kepub/main.go` 保留自有参数解析、分派和 envelope 输出；工作区命令调用 `internal/app/workspace.go` 的共享用例。C1 已在既有能力 schema 上统一命令帮助、`commandSchemas`、允许／必填参数来源，并提供构建版本与 `doctor`；细粒度操作结果 schema 仍可增量完善。根模块没有 Cobra 等第三方 CLI 框架，不为借鉴 Obsidian 重写解析器或加入 Node；若以后更换解析库，单独评估现有语法和错误优先级的兼容性。
 
 第一阶段 CLI + 外部 Amp 的增量顺序见 C1～C4，构建原则为：
 
 1. **命令与能力描述一致。** 在既有来源中补齐命令参数、结果、风险和已实现状态，让 help、capabilities 与实际验证规则可相互校验；不额外造另一份 Agent 专用能力表。版本化 JSON，错误路径同样能被机器读取。
-2. **独立运行可诊断。** 补齐构建版本／安装说明及只检查不安装的 `doctor`；分清核心、Java／EPUBCheck 与可选 Amp。没有 Amp 登录不妨碍离线 EPUB 操作，缺 Java 不伪装正式检查通过；这些补齐项仍未实现。
+2. **独立运行可诊断。** C1 已本地实现构建版本、源码安装说明及只检查不安装的 `doctor`；分清核心、Java／EPUBCheck 与可选 Amp。没有 Amp 登录不妨碍离线 EPUB 操作；缺 Java 可正常返回诊断，但必须报告正式检查不可用，不能伪装检查通过。Amp 仅做路径发现，不执行或验证登录。
 3. **先交付一条可复现的 Amp 操作流程。** 复用 README 已有单字段闭环：`capabilities → inspect → workspace open → plan → apply → task diff`，展示真实 task ID 和差异后等待明确接受／拒绝／导出授权。JSON 请求文件放在工作区之外，正文不拼进 shell 参数；不循环盲重试写入，不读写内部 state 代替命令。可信使用说明以后可封装成 skill，但本次不创建 skill/MCP/插件，也不从书内加载指令。
 4. **用反例验收自动化。** 不起 GUI；覆盖含空格／中文／短横线路径、缺检查器、无模型配置、过期计划、未知参数、并发 busy 和断流。真实 Amp 首测只用合成 EPUB，核对原书 hash、候选差异、接受决定及导出字节，不把模型回答“完成”当成通过。
 5. **补正文操作，再做 UI，最后集成 Amp。** C2/C3 扩展读取与确定性文本修改；第二阶段 U 批次交付复用 Go 用例的 MyGo UI，第三阶段 A1 才在应用内管理 Amp。外部 Amp 在 GUI 打开期间调用 CLI 仍须服从 §5.3 的锁与状态刷新规则，不能借用当前窗口上下文绕过锁。
@@ -622,7 +622,7 @@ P2 只依赖本轮冻结的 M1-A 读 API，不等待 P1 的新接口；P3/P4 使
 
 ### 11.3 v0.7 开发批次与依赖
 
-截至本版：第一轮代码已在默认分支，第二轮闭环与环境更新已本地验证但未发布；MyGo 边界实验已在 Linux 验证，不是 Mac GUI 验收。2026-10-05 用户授权开始 CLI 框架及后续开发，当前进入 C0/C1/C2；具体接口见 CLI 契约 §2.1。其余批次按依赖推进，不重做已完成轮次，不把开始开发视为真实模型调用或发布授权。
+截至本版：第一轮代码已在默认分支，第二轮闭环与环境更新已本地验证但未发布；MyGo 边界实验已在 Linux 验证，不是 Mac GUI 验收。2026-10-05 用户授权开始 CLI 框架及后续开发，C0/C1/C2 已本地集成：命令描述／帮助同源、version／doctor、accepted-only 的有界 XHTML 查询。接口见 CLI 契约 §2.1，证据见 [C1](verification/C1_CLI.md)／[C2](verification/C2_CONTENT.md)。C2 未扩展 CSS 查询或正文写入；下一批为 C3。其余批次按依赖推进，不重做已完成轮次，不把开始开发视为真实模型调用或发布授权。
 
 三阶段产品终点分别为：**C：外部 Amp 可经 CLI 提交受限 EPUB 正文修改；U：用户不登录 Amp 也能阅读、修改、审阅和导出；A：用户可在 UI 中发起并控制 Amp 任务。** 发布各自有安装验收，不必等所有阶段完成才交付 CLI。
 
