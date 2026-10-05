@@ -177,6 +177,12 @@ func editArgumentError(code string, err error) error {
 	if errors.As(mapped, &f) {
 		return mapped
 	}
+	var pathError *os.PathError
+	var linkError *os.LinkError
+	var syscallError *os.SyscallError
+	if errors.As(mapped, &pathError) || errors.As(mapped, &linkError) || errors.As(mapped, &syscallError) {
+		return fault.New(6, "IO_ERROR", "%v", mapped)
+	}
 	return fault.New(2, code, "%v", err)
 }
 func WorkspaceError(err error) error {

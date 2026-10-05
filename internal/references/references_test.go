@@ -232,6 +232,7 @@ func TestUnimplementedSyntaxNeverLooksLikeNoReferences(t *testing.T) {
 		{`<svg xmlns="http://www.w3.org/2000/svg"><animate attributeName="href" values="hidden.xhtml"/></svg>`, "svg.animation", "blocked"},
 		{`<img src="data:image/svg+xml,hidden"/>`, "embedded-data", "partial"},
 		{`<video poster="hidden.png"/>`, "other-url-attribute", "blocked"},
+		{`<object classid="payload.bin" type="application/x-test"/>`, "other-url-attribute", "blocked"},
 		{`<blockquote cite="hidden.xhtml#quote">Quote</blockquote>`, "other-url-attribute", "blocked"},
 		{`<img usemap="#map"/>`, "other-url-attribute", "blocked"},
 		{`<html manifest="hidden.appcache"/>`, "other-url-attribute", "blocked"},

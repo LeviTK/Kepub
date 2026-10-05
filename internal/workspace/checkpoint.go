@@ -25,13 +25,17 @@ func (w *Workspace) Checkpoint() (_ Snapshot, err error) {
 }
 
 func (w *Workspace) checkpoint() (_ Snapshot, err error) {
+	return w.checkpointFrom(candidate)
+}
+
+func (w *Workspace) checkpointFrom(source string) (_ Snapshot, err error) {
 	if err := w.ready(); err != nil {
 		return Snapshot{}, err
 	}
 	if err := w.verifyTask(); err != nil {
 		return Snapshot{}, err
 	}
-	before, err := hashAt(w.root, candidate)
+	before, err := hashAt(w.root, source)
 	if err != nil {
 		return Snapshot{}, err
 	}
@@ -41,11 +45,11 @@ func (w *Workspace) checkpoint() (_ Snapshot, err error) {
 		return Snapshot{}, err
 	}
 	defer func() { err = errors.Join(err, w.root.RemoveAll(stage)) }()
-	tree, err := copyTree(w.root, candidate, stage+"/pub")
+	tree, err := copyTree(w.root, source, stage+"/pub")
 	if err != nil {
 		return Snapshot{}, err
 	}
-	after, err := hashAt(w.root, candidate)
+	after, err := hashAt(w.root, source)
 	if err != nil {
 		return Snapshot{}, err
 	}

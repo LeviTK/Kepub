@@ -689,18 +689,14 @@ func (w *Workspace) execution() (Execution, error) {
 	if err != nil {
 		return e, err
 	}
-	if !exists(w.root, "tasks/active/edit-start.json") {
+	unstarted := !exists(w.root, "tasks/active/edit-start.json")
+	if unstarted {
 		if exists(w.root, "tasks/active/edit-result.json") {
 			return e, fmt.Errorf("execution result without start")
 		}
-		tree, err := hashAt(w.root, candidate)
-		if err != nil {
-			return e, err
-		}
-		if tree.SHA256 != w.base.SHA256 {
-			return e, fmt.Errorf("interrupted apply without baseline candidate")
-		}
-		s, err := w.checkpoint()
+		// No registered mutation can precede edit-start. Capture the verified
+		// baseline as provenance; preserve any outside writer's candidate drift.
+		s, err := w.checkpointFrom(revisionPath(w.current))
 		if err != nil {
 			return e, err
 		}
@@ -733,8 +729,10 @@ func (w *Workspace) execution() (Execution, error) {
 		}
 		e = start
 		e.Diff = compareTrees(w.base, actual)
-		if err := w.restore(start.Checkpoint); err != nil {
-			return e, err
+		if !unstarted {
+			if err := w.restore(start.Checkpoint); err != nil {
+				return e, err
+			}
 		}
 		e.Status = "failed"
 		e.Failure = "interrupted apply"
@@ -769,8 +767,11 @@ func (w *Workspace) execution() (Execution, error) {
 	}
 	switch e.Status {
 	case "failed":
-		if e.ReviewRequired || e.Failure == "" || tree.SHA256 != s.Tree.SHA256 {
-			return e, fmt.Errorf("failed execution not restored")
+		if e.ReviewRequired || e.Failure == "" {
+			return e, fmt.Errorf("invalid failed execution")
+		}
+		if tree.SHA256 != s.Tree.SHA256 {
+			return e, ErrCandidateDrift
 		}
 	case "review_required":
 		if !e.ReviewRequired || e.Failure != "" {

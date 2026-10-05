@@ -419,7 +419,7 @@ func (b *builder) walkXML(bp bookpath.BookPath, e *publication.Element, inNav bo
 			}
 		} else if a.Name.Local == "href" || a.Name.Local == "src" {
 			b.cover(bp, "unknown-url-attribute", "blocked", "href/src in an unsupported namespace or vocabulary")
-		} else if a.Name.Space == "" && slices.Contains([]string{"poster", "data", "action", "formaction", "ping", "longdesc", "srcdoc", "archive", "codebase", "background", "profile", "cite", "usemap", "manifest", "itemid", "itemtype"}, a.Name.Local) {
+		} else if a.Name.Space == "" && slices.Contains([]string{"poster", "data", "action", "formaction", "ping", "longdesc", "srcdoc", "archive", "codebase", "background", "profile", "cite", "usemap", "manifest", "itemid", "itemtype", "classid"}, a.Name.Local) {
 			b.cover(bp, "other-url-attribute", "blocked", "unsupported URL-bearing attribute: "+a.Name.Local)
 		}
 	}

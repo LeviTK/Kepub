@@ -755,3 +755,90 @@ func TestTaskDiffInvalidCandidateMimetype(t *testing.T) {
 		}
 	}
 }
+
+func TestFailedCandidateDriftRemainsReviewable(t *testing.T) {
+	for _, content := range []bool{false, true} {
+		for _, phase := range []string{"failed", "intent"} {
+			t.Run(fmt.Sprintf("content=%v/%s", content, phase), func(t *testing.T) {
+				w, dir, _ := legalWorkspace(t, "3.0")
+				p := fieldPlan(t, w, "title", "title", "Title", "New")
+				if content {
+					p = contentPlan(t, w, "Reviewed")
+				}
+				if phase == "intent" {
+					if _, err := w.createCandidate(&p); err != nil {
+						t.Fatal(err)
+					}
+				} else {
+					_, out := prepareExecution(t, w, p)
+					put(t, filepath.Join(dir, candidate, p.WriteSet[0]), out)
+					w.Close()
+					var err error
+					w, err = Open(dir) // Interrupted mutation restores its checkpoint.
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+				id, err := w.TaskID()
+				if err != nil {
+					t.Fatal(err)
+				}
+				w.Close()
+				put(t, filepath.Join(dir, candidate, "external.txt"), []byte("external drift"))
+				w, err = Open(dir)
+				if err != nil {
+					t.Fatal("drift locked failed/interrupted task", err)
+				}
+				defer w.Close()
+				r, err := w.TaskDiff(id)
+				if err != nil {
+					t.Fatal("drift not reviewable", err)
+				}
+				if len(r.Diff.Changes) != 1 || r.Diff.Changes[0].Path != "external.txt" || r.MatchesExecution {
+					t.Fatal("failed drift not reflected in actual diff", r)
+				}
+				if _, err := w.Accept(context.Background(), id, validation.Options{}); err == nil {
+					t.Fatal("failed/interrupted task accepted")
+				}
+				if _, err := w.Reject(id); err != nil {
+					t.Fatal("failed/interrupted drift not rejectable", err)
+				}
+			})
+		}
+	}
+}
+
+func TestFailedRecordTamperRemainsFatal(t *testing.T) {
+	w, dir, _ := legalWorkspace(t, "3.0")
+	p := contentPlan(t, w, "Reviewed")
+	prepareExecution(t, w, p)
+	w.Close()
+	w, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, err := w.Execution()
+	if err != nil || e.Status != "failed" {
+		t.Fatal(e, err)
+	}
+	w.Close()
+	put(t, filepath.Join(dir, candidate, "external.txt"), []byte("drift"))
+	for _, mutate := range []func(*Execution){
+		func(e *Execution) { e.Version = 1 },
+		func(e *Execution) { e.TaskID = randomID() },
+		func(e *Execution) { e.ReviewRequired = true },
+		func(e *Execution) { e.Failure = "" },
+		func(e *Execution) { e.Plan.WorkspaceID = randomID() },
+	} {
+		bad := e
+		mutate(&bad)
+		put(t, filepath.Join(dir, "tasks/active/edit-result.json"), editJSON(t, bad))
+		opened, err := Open(dir)
+		if err == nil || errors.Is(err, ErrCandidateDrift) {
+			if opened != nil {
+				opened.Close()
+			}
+			t.Fatal("tampered failed record treated as ordinary drift", err)
+		}
+	}
+}
