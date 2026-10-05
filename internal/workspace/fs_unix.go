@@ -18,7 +18,7 @@ func openRegular(r *os.Root, name string) (*os.File, error) {
 		return nil, err
 	}
 	if !before.Mode().IsRegular() {
-		return nil, fmt.Errorf("not a regular file: %q", name)
+		return nil, fmt.Errorf("%w: %q", errUnsafeRegular, name)
 	}
 	f, err := r.OpenFile(name, os.O_RDONLY|unix.O_NOFOLLOW|unix.O_NONBLOCK, 0)
 	if err != nil {
@@ -26,7 +26,7 @@ func openRegular(r *os.Root, name string) (*os.File, error) {
 	}
 	after, err := f.Stat()
 	if err == nil && (!after.Mode().IsRegular() || !os.SameFile(before, after) || after.Sys().(*syscall.Stat_t).Nlink != 1) {
-		err = fmt.Errorf("changed or hard-linked file: %q", name)
+		err = fmt.Errorf("%w: %q", errUnsafeRegular, name)
 	}
 	if err != nil {
 		f.Close()

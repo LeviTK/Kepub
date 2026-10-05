@@ -156,7 +156,12 @@ func (n *Navigation) problem(p bookpath.BookPath, location, code, message string
 func (n *Navigation) link(a *archive.Archive, node *NavigationNode, href string) {
 	h := bookpath.Href(href)
 	node.Href = &h
-	r, err := bookpath.ResolveReference(n.Source, h)
+	resolvedHref := h
+	if n.Format == "epub3-nav" {
+		// Preserve the attribute while applying HTML's peripheral ASCII space rule.
+		resolvedHref = bookpath.Href(strings.Trim(href, " \t\n\r\f"))
+	}
+	r, err := bookpath.ResolveReference(n.Source, resolvedHref)
 	if err != nil {
 		n.problem(n.Source, node.Location, "INVALID_NAVIGATION_HREF", err.Error())
 		return

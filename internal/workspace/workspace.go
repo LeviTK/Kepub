@@ -21,14 +21,16 @@ import (
 	"sync"
 
 	"github.com/LeviTK/Kepub/internal/archive"
+	"github.com/LeviTK/Kepub/internal/fault"
 	"github.com/LeviTK/Kepub/internal/publication"
 )
 
 var (
-	ErrBusy     = errors.New("workspace already has an owner")
-	ErrClosed   = errors.New("workspace is closed")
-	ErrReadOnly = errors.New("workspace input is restricted to read-only")
-	ErrRecovery = errors.New("workspace requires reopening for recovery")
+	ErrBusy          = errors.New("workspace already has an owner")
+	ErrClosed        = errors.New("workspace is closed")
+	ErrReadOnly      = errors.New("workspace input is restricted to read-only")
+	ErrRecovery      = errors.New("workspace requires reopening for recovery")
+	errUnsafeRegular = errors.New("not an unchanged single-link regular file")
 )
 
 const revision = "revisions/initial/pub"
@@ -83,7 +85,7 @@ func Create(dir, source string, opts Options) (_ *Workspace, err error) {
 	}
 	defer parent.Close()
 	if _, err := parent.Lstat(filepath.Base(abs)); err == nil {
-		return nil, os.ErrExist
+		return nil, errors.Join(fault.New(2, "OUTPUT_EXISTS", "workspace output already exists"), os.ErrExist)
 	} else if !os.IsNotExist(err) {
 		return nil, err
 	}
@@ -118,6 +120,9 @@ func Create(dir, source string, opts Options) (_ *Workspace, err error) {
 	}
 	originalHash, err := copyOriginal(r, source)
 	if err != nil {
+		if errors.Is(err, errUnsafeRegular) {
+			return nil, fault.New(2, "INVALID_ARGUMENT", "workspace source: %v", err)
+		}
 		return nil, err
 	}
 	stagePath := filepath.Join(filepath.Dir(abs), stage)
@@ -167,6 +172,9 @@ func Create(dir, source string, opts Options) (_ *Workspace, err error) {
 		return nil, err
 	}
 	if err := publish(parent, stage, filepath.Base(abs)); err != nil {
+		if errors.Is(err, os.ErrExist) {
+			return nil, errors.Join(fault.New(2, "OUTPUT_EXISTS", "workspace output already exists"), err)
+		}
 		return nil, err
 	}
 	published = true

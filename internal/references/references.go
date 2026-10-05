@@ -216,10 +216,16 @@ func (b *builder) diagnostic(bp bookpath.BookPath, location, code, message strin
 }
 
 func (b *builder) add(bp bookpath.BookPath, location, syntax, href string) {
-	if strings.HasPrefix(strings.ToLower(href), "data:") {
+	resolvedHref := href
+	if syntax == "xhtml.href" || syntax == "xhtml.src" || syntax == "nav.href" {
+		// HTML URLs permit peripheral ASCII whitespace; retain the original
+		// attribute for byte-faithful inspection, not Unicode-trimmed text.
+		resolvedHref = strings.Trim(href, " \t\n\r\f")
+	}
+	if strings.HasPrefix(strings.ToLower(resolvedHref), "data:") {
 		b.cover(bp, "embedded-data", "partial", "data URL payloads are not recursively analyzed")
 	}
-	r, err := bookpath.ResolveReference(bp, bookpath.Href(href))
+	r, err := bookpath.ResolveReference(bp, bookpath.Href(resolvedHref))
 	if err != nil {
 		b.g.Edges = append(b.g.Edges, Edge{Source: bp, Location: location, Syntax: syntax, Href: bookpath.Href(href), Status: "invalid", FragmentStatus: "blocked", ParserVersion: ParserVersion})
 		b.diagnostic(bp, location, "INVALID_REFERENCE", err.Error())
