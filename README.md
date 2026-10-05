@@ -2,7 +2,7 @@
 
 面向 Amp 的 EPUB 阅读、制作预览与编辑工作台。
 
-**当前状态：开发方案 v0.7，路线为 CLI + 外部 Amp 协作 → MyGo UI → UI 内集成 Amp，后续接口仍暂定。第一轮已发布只读 Go 核心与 CLI、工作区库及两种独立 Amp 接入实验。第二轮编辑／审核／导出闭环，以及 Medium 实现的 C1 命令框架、C2 正文查询、C3 单节点简单文本修改已本地集成，尚未发布。下一批 C4 验证外部 Amp 经 CLI 协作，真实模型调用另获授权；当前没有 GUI、生产 Agent、安装包或已完成的 Mac 实机测试。**
+**当前状态：开发方案 v0.7，路线为 CLI + 外部 Amp 协作 → MyGo UI → UI 内集成 Amp，后续接口仍暂定。只读 Go 核心与 CLI、工作区库、两种独立 Amp 接入实验，以及第二轮编辑／审核／导出闭环、C1 命令框架、C2 正文查询、C3 单节点简单文本修改和独立审查修复，均已作为源码发布到默认分支 main。下一批 C4 验证外部 Amp 经 CLI 协作，真实模型调用另获授权；当前没有 GUI、生产 Agent、版本化安装包或已完成的 Mac 实机测试。文档 v0.7 不是软件发行版本。**
 
 ## 已实现：M1-A / M1-B1 只读 CLI
 
@@ -139,7 +139,7 @@ EPUBCheck 报告的完整 ZIP 库存仍按原始文件名、显式大小和校�
 
 来源复验会遍历 accepted 历史及完整内容树，历史增长会增加读取成本；大型书籍与长历史的目标平台性能尚未验收，当前不缓存跳过这些校验。
 
-本次未发布代码经真实 Factory Droid CLI 0.233.0／Claude Opus 5.5／medium 的 12 轮审查与修复；最后一轮独立重读全部生产 Go 和当前契约，正常 completion／exit 0，未发现剩余可复现实质缺陷。稳定产品的全仓普通／race／vet、真实 EPUB2/3 接受／导出及 Darwin 交叉构建通过。各轮失败、修复反例、准确覆盖范围和未验证限制保留在 [完整审查记录](docs/verification/DROID_REVIEW.md)；这不是绝对无 bug 或 Mac 实机、断电耐久性保证。全部仅本地提交，尚未推送／发布。
+本批代码在源码发布前经真实 Factory Droid CLI 0.233.0／Claude Opus 5.5／medium 的 12 轮审查与修复；最后一轮独立重读全部生产 Go 和当前契约，正常 completion／exit 0，未发现剩余可复现实质缺陷。稳定产品的全仓普通／race／vet、真实 EPUB2/3 接受／导出及 Darwin 交叉构建通过。各轮失败、修复反例、准确覆盖范围和未验证限制保留在 [完整审查记录](docs/verification/DROID_REVIEW.md)；这不是绝对无 bug 或 Mac 实机、断电耐久性保证。代码已推送到 main；审查记录保留当时尚未推送的交付状态，不改写历史验证结论。
 
 ## Orb 启动
 
@@ -147,7 +147,7 @@ EPUBCheck 报告的完整 ZIP 库存仍按原始文件名、显式大小和校�
 
 第二轮 setup 另准备 Java 17+ 与官方 EPUBCheck 5.3.0：验证完整下载包，保留全部依赖 JAR，暖运行核对精确文件集合和内容，并持久提供 `KEPUB_EPUBCHECK_JAR`。这只是开发/正式检查依赖，不使只读 CLI 依赖 Java。缺失时才安装 Debian JRE；其安全更新版本不伪称为固定 patch。
 
-`.agents/resume` 只修复 Go 链接与快速检查工具/依赖，不安装、不认证、不启动服务。已有 Go/SDK 的父 orb 补装 Java/checker 为 10.92s；最新暖 setup 3.14s、resume 0.44s，锁文件未变。额外 JAR 被 resume 拒绝，setup 重装修复 4.73s，干净 login shell 验证通过。证据见 [EPUBCheck 环境验证](docs/verification/ORB_EPUBCHECK.md)，此前 Go/SDK 的空 HOME 测试见 [原 setup 验证](docs/verification/M2_A.md#独立后续sdk-实验的-orb-setup-验证)。不预装 Calibre/GUI，不是 Mac 安装器；第二轮 setup 仍待推送默认分支后才影响未来 orbs，尚未证明新服务端快照。
+`.agents/resume` 只修复 Go 链接与快速检查工具/依赖，不安装、不认证、不启动服务。已有 Go/SDK 的父 orb 补装 Java/checker 为 10.92s；最新暖 setup 3.14s、resume 0.44s，锁文件未变。额外 JAR 被 resume 拒绝，setup 重装修复 4.73s，干净 login shell 验证通过。证据见 [EPUBCheck 环境验证](docs/verification/ORB_EPUBCHECK.md)，此前 Go/SDK 的空 HOME 测试见 [原 setup 验证](docs/verification/M2_A.md#独立后续sdk-实验的-orb-setup-验证)。不预装 Calibre/GUI，不是 Mac 安装器；第二轮 setup 已随源码推送默认分支，但新服务端快照尚未单独验收。
 
 ## 文档
 

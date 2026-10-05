@@ -4,7 +4,7 @@
 >
 > 路线：CLI + 外部 Amp 协作 → MyGo UI → UI 内集成 Amp。CLI 与 UI 共用 Go EPUB 核心；受管 Amp 不是 UI 前置条件。C0/C1/C2/C3 已本地集成，下一批为 C4 外部 Amp 经 CLI 协作验证，不自动启动真实模型调用或发布。
 >
-> 状态：只读核心与 CLI、工作区库及 Amp 对照实验已发布到默认分支；validate/pack、单字段元数据编辑、候选审阅、接受／拒绝与工作区导出，以及 C1 命令框架、C2 正文查询、C3 单节点简单文本修改已本地集成，尚未发布。GUI、生产 Agent、真实 Amp 编辑联调、安装包和 Mac 实机验收未完成。实际支持范围以 README、capabilities 和验证记录为准。
+> 状态：只读核心与 CLI、工作区库及 Amp 对照实验，以及 validate/pack、单字段元数据编辑、候选审阅、接受／拒绝与工作区导出、C1 命令框架、C2 正文查询、C3 单节点简单文本修改和独立审查修复，均已作为源码发布到默认分支 main。GUI、生产 Agent、真实 Amp 编辑联调、版本化安装包和 Mac 实机验收未完成。实际支持范围以 README、capabilities 和验证记录为准；文档版本不是软件发行版本。
 >
 > 目标平台：Apple Silicon Mac；Linux orb 用于开发验证。MyGo 与系统 WebView 已确认，当前接口基线为 MyGo 0.2.0，macOS 使用 WKWebView，不捆绑 Chromium。React + TypeScript + Vite 仍是前端计划。UI 暂缓不取消选型，也不让 WebView 验收阻塞纯 CLI 开发。
 
@@ -606,7 +606,7 @@ P2 只依赖本轮冻结的 M1-A 读 API，不等待 P1 的新接口；P3/P4 使
 
 先完成两条线可独立验证的库和命令，再将精确代码基线交给 Medium 接入工作区 CLI、检查、审核接受和导出。第一批 Q2 到 `review_required` 为止，不通过调用者提供的 `passed:true` 伪造接受门槛。集成阶段才开放相应 capabilities；共享 app/CLI 同一时间只有一个所有者。父线程负责方案、范围、差异复核和组合验收，不把前一批推送授权沿用为本批发布授权。
 
-本轮库、validate/pack、环境脚本和公共编辑闭环均已本地集成，尚未发布。Q1 收尾后将 app/CLI 所有权移交给原 Q2 Medium orb，由其完成 accepted revision、公开命令与审核导出。父另用独立 EPUB3 样本执行 27 次真实 CLI 调用，通过连续接受、旧计划拒绝、候选隔离、缺依赖、外部改动后审阅／拒绝、no-op、FIFO 与输出边界检查；导出符合独立预期字节，原书未变。详细执行证据见 README 与各工作线验证记录。
+本轮库、validate/pack、环境脚本和公共编辑闭环均已集成并作为源码发布到 main。Q1 收尾后将 app/CLI 所有权移交给原 Q2 Medium orb，由其完成 accepted revision、公开命令与审核导出。父另用独立 EPUB3 样本执行 27 次真实 CLI 调用，通过连续接受、旧计划拒绝、候选隔离、缺依赖、外部改动后审阅／拒绝、no-op、FIFO 与输出边界检查；导出符合独立预期字节，原书未变。详细执行证据见 README 与各工作线验证记录。
 
 集成首版用显式目录定位工作区，不加入全局注册表：`workspace open BOOK --output DIR` 创建新工作区，后续 `plan/apply/task` 使用 `--workspace DIR`，`task diff/accept/reject` 另需明确 task ID。报告与 EPUB 输出必须在工作区根之外且目标不存在；`workspace list`、历史任务浏览仍未纳入。首次导入的 initial 可作为基线，但不带合规通过状态；后续计划以当前 accepted revision 为基线，接受前真实检查，导出时重新检查最终归档。本轮不提供既有错误豁免或草稿接受，草稿仅是用户明确请求的导出选项。
 
@@ -622,7 +622,7 @@ P2 只依赖本轮冻结的 M1-A 读 API，不等待 P1 的新接口；P3/P4 使
 
 ### 11.3 v0.7 开发批次与依赖
 
-截至本版：第一轮代码已在默认分支，第二轮闭环与环境更新已本地验证但未发布；MyGo 边界实验已在 Linux 验证，不是 Mac GUI 验收。2026-10-05 用户授权开始 CLI 框架及后续开发，并授权执行 C3；C0/C1/C2/C3 已本地集成：命令描述／帮助同源、version／doctor、accepted-only 的有界 XHTML 查询、绑定读取版本的单节点简单正文修改。接口见 CLI 契约 §2.1／§2.2，证据见 [C1](verification/C1_CLI.md)／[C2](verification/C2_CONTENT.md)／[C3](verification/C3_CONTENT_EDIT.md)。下一批 C4 需另获真实模型授权；CSS 查询／写入、结构修改与批量操作仍未开放。其余批次按依赖推进，不重做已完成轮次，不把本地实现视为模型联调或发布通过。
+截至本版：第一轮代码、第二轮闭环与环境更新、C0/C1/C2/C3 及独立审查修复均已验证并作为源码发布到默认分支 main；MyGo 边界实验已在 Linux 验证，不是 Mac GUI 验收。已实现命令描述／帮助同源、version／doctor、accepted-only 的有界 XHTML 查询、绑定读取版本的单节点简单正文修改。接口见 CLI 契约 §2.1／§2.2，证据见 [C1](verification/C1_CLI.md)／[C2](verification/C2_CONTENT.md)／[C3](verification/C3_CONTENT_EDIT.md)及[完整审查记录](verification/DROID_REVIEW.md)。下一批 C4 需另获真实模型授权；CSS 查询／写入、结构修改与批量操作仍未开放。其余批次按依赖推进，不重做已完成轮次；源码推送不等于真实模型联调、Mac 安装验收或版本化安装包发布。
 
 三阶段产品终点分别为：**C：外部 Amp 可经 CLI 提交受限 EPUB 正文修改；U：用户不登录 Amp 也能阅读、修改、审阅和导出；A：用户可在 UI 中发起并控制 Amp 任务。** 发布各自有安装验收，不必等所有阶段完成才交付 CLI。
 

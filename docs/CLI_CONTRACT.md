@@ -14,7 +14,7 @@ Obsidian CLI 的参考取舍见 [开发方案 §9.1／§9.2](DEVELOPMENT_PLAN.md
 
 ## 2. 命令分组与实施次序
 
-下表 M0～M6 是技术工作包编号，不再表示执行先后。当前按 [开发方案 v0.7 §11.3](DEVELOPMENT_PLAN.md#113-v07-开发批次与依赖) 先完成 CLI + 外部 Amp 协作，再实现 MyGo UI，最后在 UI 内集成 Amp；受管 Agent 不是 UI 前置。C1 发现／诊断、C2 有界内容读取／定位、C3 单个 XHTML 简单文本确定性修改已本地实现，尚未发布。C3 操作 schema 在 §2.2 冻结；支持边界见 [§11.4](DEVELOPMENT_PLAN.md#114-首个正文读写版本的边界)。
+下表 M0～M6 是技术工作包编号，不再表示执行先后。当前按 [开发方案 v0.7 §11.3](DEVELOPMENT_PLAN.md#113-v07-开发批次与依赖) 先完成 CLI + 外部 Amp 协作，再实现 MyGo UI，最后在 UI 内集成 Amp；受管 Agent 不是 UI 前置。C1 发现／诊断、C2 有界内容读取／定位、C3 单个 XHTML 简单文本确定性修改已实现并作为源码发布到 main，尚无版本化安装包。C3 操作 schema 在 §2.2 冻结；支持边界见 [§11.4](DEVELOPMENT_PLAN.md#114-首个正文读写版本的边界)。
 
 | 命令形态 | 语义 | 阶段 |
 |---|---|---|
@@ -73,7 +73,7 @@ XHTML 的 href／src（含 EPUB3 nav）在解析目标前，仅去掉属性值�
 
 ### 2.1 C1/C2 本批实施契约
 
-本节记录本批接口约束。C1 与 C2 的读核心、app/CLI 已本地集成，尚未发布。C1 保留现有参数语法、envelope、退出码和编辑行为，在现有 app/CLI 中建立命令描述来源，用于帮助、参数校验和能力描述；不更换解析框架、不新增运行时。
+本节记录本批接口约束。C1 与 C2 的读核心、app/CLI 已集成并作为源码发布到 main。C1 保留现有参数语法、envelope、退出码和编辑行为，在现有 app/CLI 中建立命令描述来源，用于帮助、参数校验和能力描述；不更换解析框架、不新增运行时。
 
 - `kepub version --json` 返回构建版本、Go 版本、平台与可用的构建修订信息；没有发行版本时明确为开发构建，不运行 Git 或网络查询来猜测版本。
 - `kepub doctor --json` 检查核心运行环境及 Java／固定 EPUBCheck 的就绪状态，单独报告可选 Amp 的发现状态，不验证登录、不调用模型、不安装依赖、不输出完整环境。诊断成功收集可返回 `ok:true`，依赖缺失体现在报告和正式检查能力中，不能冒充检查器就绪；执行故障和取消明确报告。对外部版本探测设置时间／输出上限并回收受管进程，复用现有 checker 完整性规则。
@@ -91,7 +91,7 @@ C2 首版命令为 `kepub content --workspace DIR --resource BOOK_PATH [--query 
 
 ### 2.2 C3 受限正文修改实施契约
 
-2026-10-05 用户授权实施；本节接口已冻结并本地集成，`content.text.set` v1 为 available，尚未发布。验证记录见 [C3](verification/C3_CONTENT_EDIT.md)。复用 `plan → apply → task diff → task accept/reject → workspace export`，不新增直接写文件命令。
+2026-10-05 用户授权实施并随后授权源码发布；本节接口已冻结并集成至 main，`content.text.set` v1 为 available。验证记录见 [C3](verification/C3_CONTENT_EDIT.md)。复用 `plan → apply → task diff → task accept/reject → workspace export`，不新增直接写文件命令。
 
 新增 `content.text.set` v1。请求使用 `schemaVersion:2`，恰好一个操作；params 必须完整提供 `bookPath`、`revisionId`、`resourceSha256`、`locatorVersion`、`locator`、`expectedOldValue`、`newValue`，不接受 null、重复／未知字段或字节偏移。这些字段的 JSON 顺序作为正文操作的规范编码顺序。前五项及旧文本取自同一次 `content` 返回，不能只按相似文本重找首个匹配。
 
