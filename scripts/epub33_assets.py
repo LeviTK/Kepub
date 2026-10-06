@@ -558,6 +558,10 @@ def verify_mapping(root, gate=False, matrix=None):
                 c["excerpt"] not in normalized(node) or sha(c["excerpt"].encode()) != c["excerptSHA256"] or
                 c["featureId"] in candidates):
             raise ValueError("manual constraint provenance/identity mismatch")
+        canonical = candidate(entry, node, node, c["kind"], c["occurrence"], c["normativeLevel"])
+        if any(c[k] != canonical[k] for k in
+               ("featureId", "document", "specVersion", "sourceHash", "specSection", "domPath")):
+            raise ValueError("manual constraint provenance/identity differs from archived source")
         candidates[c["featureId"]] = c
     rows = {r["featureId"]: r for r in matrix["rows"]}
     if len(rows) != len(matrix["rows"]) or set(rows) != set(candidates):
@@ -570,7 +574,16 @@ def verify_mapping(root, gate=False, matrix=None):
             raise ValueError(f"invalid capability dimension: {key}")
         if row["decision"] not in ("mapped", "excluded", "pending") or not row["reason"]:
             raise ValueError(f"invalid decision/reason: {key}")
-        if row["decision"] == "mapped" and (row["phase"] == "not-assigned" or
+        if row["decision"] == "mapped":
+            document = row["document"]
+            if document not in source_nodes:
+                dom = DOM((root / source_entries[document]["path"]).read_text(encoding="utf-8")).root
+                source_nodes[document] = {n.path(): n for n in dom.walk()}
+            node = source_nodes[document][row["domPath"]]
+            if any(set(n.attrs.get("class", "").split()) & {"informative", "note", "example"}
+                   for n in node.ancestors()):
+                raise ValueError(f"mapped constraint inherits non-normative source scope: {key}")
+        if row["decision"] == "mapped" and (row["phase"] in ("not-assigned", "S0-excluded") or
                 row["applicability"] == "not-reviewed" or not (row["gap"] or row["evidence"])):
             raise ValueError(f"mapped constraint without stage/applicability/gap: {key}")
         if "supported" in [row[k] for k in ("preserve", "parse", "edit", "render", "validate")] and not row["evidence"]:
@@ -624,7 +637,7 @@ def import_reviews(root, paths, amendments=()):
             if "excerpt" in rule:
                 c.update(excerpt=rule["excerpt"], excerptSHA256=sha(rule["excerpt"].encode()))
             row = {**c, **{k: rule[k] for k in ("reason", "applicability", "phase")},
-                   "decision": "mapped", "platform": "not-tested", "testIds": [], "evidence": [],
+                   "decision": rule.get("decision", "mapped"), "platform": "not-tested", "testIds": [], "evidence": [],
                    "gap": "No clause-specific executed evidence; source analysis is not implementation support",
                    **{k: "not-tested" for k in ("preserve", "parse", "edit", "render", "validate")}}
             for key, value in (("manualConstraints", c), ("rows", row)):

@@ -16,6 +16,7 @@ CLI contract are unchanged.
 - [Upstream research identities and actual licenses](specs/epub-3.3/upstreams/index.json)
 - [Checkpoint verification and remaining work](verification/S0_ASSETS_CHECKPOINT.md)
 - [Stable semantic increment and actual checks](verification/S0_ASSETS_SEMANTICS.md)
+- [P6/P7 scope and provenance corrections](verification/S0_ASSETS_SCOPE_PROVENANCE.md)
 - [Parent's actual 2026 checker evidence](verification/S0_EPUBCHECK_2026.md)
 
 The mechanical inventory contains 749 instances: EPUB publication
@@ -23,10 +24,13 @@ The mechanical inventory contains 749 instances: EPUB publication
 It preserves repeated keywords, NOT forms, enclosing text, DOM identity, fixed
 document hashes and excerpt hashes. This is **not the final number of normative
 constraints**. The source review currently adds 725 manual instances, for 1474
-total rows: 1430 mapped + 44 reasoned exclusions. All five capability dimensions
+total rows: 1420 mapped + 54 reasoned exclusions. All five capability dimensions
 remain `not-tested`; all 500 core section records have source-review notes.
 The bounded Amp research drafts were corrected against the parent's independent
-attribute/default/landmarks tests and coding-Orb source review. These are not
+attribute/default/landmarks tests and coding-Orb source review. P6 additionally
+retains ten informative-source observations as exclusions, not requirements;
+P7 binds manual version/section/identity fields directly to the fixed archive.
+The corresponding actual normative constraints remain mapped. These are not
 independent acceptance or Factory Droid results. `semanticComplete` stays false
 and the offline `gate` deliberately fails until the remaining S0 review gates
 are closed. Counts never establish normative completeness by themselves.

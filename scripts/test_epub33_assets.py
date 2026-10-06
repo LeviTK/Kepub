@@ -115,6 +115,60 @@ class Integrity(unittest.TestCase):
             assets.import_reviews(self.root, [], [self.root / "amendment.json"])
         self.assertEqual((self.root / "matrix.json").read_bytes(), before)
 
+    def test_mapped_review_inherits_informative_ancestor_and_is_atomic(self):
+        body = BODY.replace(b'<section id="one">', b'<section id="one" class="informative"><section id="nested">')
+        body = body.replace(b'</section></body>', b'</section></section></body>')
+        self.root = self.root / "informative-archive"
+        self.capture(body)
+        before = (self.root / "matrix.json").read_bytes()
+        self.save("review.json", self.review_packet())
+        with self.assertRaisesRegex(ValueError, "inherits non-normative source scope"):
+            assets.import_reviews(self.root, [self.root / "review.json"])
+        self.assertEqual((self.root / "matrix.json").read_bytes(), before)
+
+    def test_informative_amendment_requires_explicit_exclusion(self):
+        body = BODY.replace(b'<p>The publication', b'<p class="informative">The publication')
+        self.root = self.root / "informative-archive"
+        self.capture(body)
+        amendment = self.amendment()
+        amendment["sourceHash"] = assets.sha(body)
+        self.save("amendment.json", amendment)
+        before = (self.root / "matrix.json").read_bytes()
+        with self.assertRaisesRegex(ValueError, "inherits non-normative source scope"):
+            assets.import_reviews(self.root, [], [self.root / "amendment.json"])
+        self.assertEqual((self.root / "matrix.json").read_bytes(), before)
+        amendment["constraints"][0].update(decision="excluded", phase="S0-excluded",
+                                            reason="Fixture source is explicitly informative")
+        self.save("amendment.json", amendment)
+        counts = assets.import_reviews(self.root, [], [self.root / "amendment.json"])
+        self.assertEqual(counts["excluded"], 1)
+        self.assertEqual(counts["candidates"], 4)
+        self.assertEqual(self.read("matrix.json")["rows"][-1]["decision"], "excluded")
+
+    def test_mapped_excluded_phase_is_rejected(self):
+        packet = self.review_packet()
+        packet["rows"][0]["phase"] = "S0-excluded"
+        self.save("review.json", packet)
+        with self.assertRaisesRegex(ValueError, "without stage/applicability"):
+            assets.import_reviews(self.root, [self.root / "review.json"])
+
+    def test_self_consistent_manual_source_relabelling_is_rejected(self):
+        self.save("amendment.json", self.amendment())
+        assets.import_reviews(self.root, [], [self.root / "amendment.json"])
+        original = self.read("matrix.json")
+        # Reconstruct independently for each mutant, so a previous rejection
+        # cannot accidentally make the next adversarial case pass.
+        for field, value in (("specVersion", "https://example.test/2027/REC-fake/"),
+                             ("specSection", "unrelated-section"),
+                             ("featureId", "epub:manual-amendment:/html[1]/body[1]/section[1]/p[1]:2")):
+            with self.subTest(field=field):
+                changed = json.loads(json.dumps(original))
+                manual = changed["manualConstraints"][0]
+                row = next(r for r in changed["rows"] if r["featureId"] == manual["featureId"])
+                manual[field] = row[field] = value
+                with self.assertRaisesRegex(ValueError, "differs from archived source"):
+                    assets.verify_mapping(self.root, matrix=changed)
+
     def test_missing_file(self):
         (self.root / "original/epub.html").unlink()
         with self.assertRaises(FileNotFoundError):

@@ -1,5 +1,9 @@
 # S0 source semantics — stable increment for independent acceptance
 
+Historical checkpoint at f1f85fd, before the parent's P6/P7 findings. Its
+1430/44 classification and 59-test results describe that tree, not the
+corrected current matrix. See [the correction record](S0_ASSETS_SCOPE_PROVENANCE.md).
+
 This increment completes the coding Orb's bounded source-mapping proposal. It
 does **not** complete S0, start T1, execute the official reading-system cases,
 or replace the required fixed-tree Factory Droid demo/review. The three main
