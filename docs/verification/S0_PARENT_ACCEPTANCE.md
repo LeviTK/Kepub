@@ -152,6 +152,8 @@ R1 在固定 fixture `be198c651be1197ae62109dd76e6d4d083cb1b23` 上运行，其�
 - 阅读限制：R1 全读四份主要脚本；未覆盖块中的 RS／a11y 逐条读，EPUB 409 个未覆盖块仅约前 220 个细读、其余粗看，Notes／CSS／测试源码抽样。不能把本轮称为全部 S0 原文、代码和测试全文审查，也没有执行全部官方阅读系统用例或 Mac 验收。
 - 工具失败保留：准备时 fetch bundle 的不存在 `HEAD` 引用失败，改用真实命名 ref 后成功；Droid 临时统计脚本把 list 用作 `Counter` 键，实际 `TypeError`／exit 1，非仓库测试失败。其最终文字说无法自证模型，与父保存的实际 init 可以并存，不据此声称更换了模型。
 
+父随后在本地 `e0976e5` 的一次性资产副本中重跑原 `mutants.py` 的 `pos / gate / support / exec / upstream` 五组，仅重新绑定仓库路径，未改主树数据。正控四类 verify 均 exit 0、gate exit 1；翻转 `semanticComplete` 后 gate 错误 exit 0；不存在证据的 supported、伪造官方 executed/PASS 均未被 verify 拒绝；删除许可缺口并伪造已测试状态后 upstream verify 仍 exit 0、`gaps:0`。因此 F1／F2／F5 在父环境亦复现，不只是转述 Droid。探测器进程 PID 514333 实际 exit 0 仅表示五组探测运行结束，不是上述反例通过；原日志 SHA-256 `dbfd1d78ecc794819a9222adc8c64d457cf7d11d64bb3f8ae82b290b35b8201e`。
+
 ### F3／F4：父原文对照确认遗漏，也排除探测器误报
 
 父只改 import 路径重跑 Droid 原 `lists.py`，确实检出 26 处引导句。但裸 `dt` 标签并不自动等于漏条款：Dublin Core 字段名、MathML 标题和 viewport 的 name／content 标题已有相应 `dd` 约束；RS 的 “Some uses … include” 是例示。真正缺失的允许／禁止列表须分别保留其 MUST、SHOULD、MAY、排除条件及 one-of／any-of 关系，不把每个允许值误写为必须同时使用。
