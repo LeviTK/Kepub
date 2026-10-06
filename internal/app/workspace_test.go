@@ -70,7 +70,7 @@ func TestPlanAndAcceptRefusalsAreNotIOErrors(t *testing.T) {
 				if err := os.WriteFile(filepath.Join(ws, "tasks/active/task.json"), []byte(`{"version":1,"baseRevision":"initial"}`), 0600); err != nil {
 					t.Fatal(err)
 				}
-				_, err = WorkspaceTask(context.Background(), ws, "active", "accept", validation.Options{})
+				_, err = WorkspaceTask(context.Background(), ws, "active", "accept", validation.Options{}, false)
 			} else {
 				var e workspace.Execution
 				e, err = ApplyWorkspace(ws, plan)
@@ -91,7 +91,7 @@ func TestPlanAndAcceptRefusalsAreNotIOErrors(t *testing.T) {
 				if scenario == "draft" || scenario == "rootfile" {
 					wantExit, wantCode = 2, "INVALID_ARGUMENT"
 				}
-				_, err = WorkspaceTask(context.Background(), ws, e.TaskID, "accept", o)
+				_, err = WorkspaceTask(context.Background(), ws, e.TaskID, "accept", o, false)
 			}
 			var f *fault.Error
 			if !errors.As(err, &f) || f.Exit != wantExit || f.Code != wantCode {

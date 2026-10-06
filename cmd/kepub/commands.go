@@ -62,6 +62,9 @@ func validateCommand(o options) (string, error) {
 		}
 		if !o.help {
 			values := map[string]string{"book": o.book, "task": o.book, "workspace": o.workspace, "operations": o.operations, "plan": o.plan, "output": o.output, "section": o.section, "resource": o.resource}
+			if o.content.Query != nil {
+				values["query"] = *o.content.Query
+			}
 			if c.Positional == "workspace" {
 				values["workspace"] = o.book
 			}
@@ -76,7 +79,7 @@ func validateCommand(o options) (string, error) {
 				return name, err
 			}
 		}
-		if name == "content" {
+		if name == "content" || name == "search" {
 			if err := o.content.Validate(); err != nil {
 				return name, err
 			}

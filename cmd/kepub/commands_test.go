@@ -20,11 +20,12 @@ func TestCommandOptionMatrix(t *testing.T) {
 		"capabilities": "", "version": "", "doctor": "",
 		"info": "rootfile", "toc": "rootfile",
 		"content": "workspace resource query limit",
+		"search":  "workspace query limit",
 		"inspect": "rootfile section resource direction",
 		"unpack":  "rootfile output", "validate": "rootfile strict timeout", "pack": "rootfile output strict draft timeout",
 		"workspace open": "rootfile output", "workspace export": "output strict draft timeout",
 		"plan": "workspace operations output", "apply": "workspace plan",
-		"task diff": "workspace", "task accept": "workspace strict timeout", "task reject": "workspace",
+		"task status": "workspace", "task diff": "workspace", "task accept": "workspace strict timeout", "task reject": "workspace",
 		"workspace list": "", "preview": "", "serve": "", "amp": "", "task run": "",
 	}
 	samples := map[string]string{"rootfile": "EPUB/package.opf", "section": "references", "resource": "EPUB/chapter.xhtml", "direction": "incoming", "output": "out", "strict": "", "draft": "", "timeout": "2", "workspace": "ws", "operations": "ops.json", "plan": "plan.json", "query": "needle", "limit": "7"}

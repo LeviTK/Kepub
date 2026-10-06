@@ -172,12 +172,12 @@ func TestContentExactManifestAndStructure(t *testing.T) {
 	for _, tc := range []struct{ data, code string }{
 		{`<html><body><p>wrong namespace</p></body></html>`, "CONTENT_STRUCTURE"},
 		{contentHTML(`<p>&unknown;</p>`), "XML_NOT_WELL_FORMED"},
-		{`<!DOCTYPE html>` + contentHTML(`<p/>`), "XML_DTD_FORBIDDEN"},
+		{`<!DOCTYPE html SYSTEM "https://example.invalid/external.dtd">` + contentHTML(`<p/>`), "UNSUPPORTED_XML_DTD"},
 		{contentHTML(`<p xml:base="x">x</p>`), "UNSUPPORTED_XML_BASE"},
 		{contentHTML(strings.Repeat("<div>", 129) + strings.Repeat("</div>", 129)), "XML_LIMIT"},
 		{contentHTML(strings.Repeat(`<p/>`, 100001)), "XML_LIMIT"},
 		{contentHTML(strings.Repeat("<div>", 40) + strings.Repeat("a", 1<<20) + strings.Repeat("</div>", 40)), "XML_LIMIT"},
-		{string([]byte{0xff}), "UNSUPPORTED_XML_ENCODING"},
+		{string([]byte{0xff}), "XML_NOT_WELL_FORMED"},
 		{strings.Repeat("x", (8<<20)+1), "RESOURCE_LIMIT"},
 	} {
 		a, p := contentFixture(t, tc.data)

@@ -197,6 +197,9 @@ func execute(ctx context.Context, o options) (any, error) {
 	if o.command == "content" {
 		return app.ContentWorkspace(o.workspace, o.resource, o.content)
 	}
+	if o.command == "search" {
+		return app.SearchWorkspace(o.workspace, o.content)
+	}
 	if o.command == "workspace" || o.command == "task" || o.command == "plan" || o.command == "apply" {
 		data, err := executeWorkspace(ctx, o)
 		if err != nil && errors.Is(ctx.Err(), context.Canceled) {
@@ -306,11 +309,14 @@ func run(args []string, stdout, stderr io.Writer) int {
 	} else if err != nil {
 		fmt.Fprintf(stderr, "%s: %s\n", fe.Code, fe.Message)
 	} else {
-		b, e := json.MarshalIndent(data, "", "  ")
+		b, e := humanSummary(strings.TrimSpace(o.command+" "+o.action), data)
 		if e != nil {
 			return 6
 		}
-		fmt.Fprintln(stdout, string(b))
+		if _, e := io.WriteString(stdout, b); e != nil {
+			fmt.Fprintln(stderr, "output:", e)
+			return 6
+		}
 	}
 	return code
 }

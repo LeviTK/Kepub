@@ -1,12 +1,9 @@
 package publication
 
 import (
-	"bytes"
 	"encoding/xml"
-	"fmt"
-	"io"
+	"errors"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/LeviTK/Kepub/internal/archive"
 	"github.com/LeviTK/Kepub/internal/bookpath"
@@ -71,104 +68,27 @@ func ReadXML(a *archive.Archive, p bookpath.BookPath) (*Element, error) {
 	return parseXML(b)
 }
 
-// Only UTF-8 and XML's built-in entities are accepted. No CharsetReader,
-// custom entity map, DTD, resolver or network client is installed.
+// Read indexes and local edits share strict lexical/encoding validation.
+// Preserve direct text in the old summary and aggregate text for content.
 func parseXML(b []byte) (*Element, error) {
-	if len(b) > XMLLimit {
-		return nil, fault.New(1, "XML_LIMIT", "XML input exceeds parsing limit")
-	}
-	if !utf8.Valid(b) {
-		return nil, fault.New(3, "UNSUPPORTED_XML_ENCODING", "M1-A supports UTF-8 XML only")
-	}
-	b = bytes.TrimPrefix(b, []byte{0xef, 0xbb, 0xbf})
-	d := xml.NewDecoder(bytes.NewReader(b))
-	type frame struct {
-		e       *Element
-		counts  map[string]int
-		text    strings.Builder
-		content strings.Builder
-	}
-	stack := []*frame{}
-	var root *Element
-	instructions := []string{}
-	tokens := 0
-	indexedBytes := 0
-	for {
-		t, err := d.Token()
-		if err == io.EOF {
-			break
+	doc, err := xmltext.Parse(b)
+	if err != nil {
+		var f *fault.Error
+		if errors.As(err, &f) {
+			return nil, err
 		}
-		if err != nil {
-			return nil, fault.New(1, "XML_NOT_WELL_FORMED", "XML: %v", err)
-		}
-		tokens++
-		if tokens > 200000 {
-			return nil, fault.New(1, "XML_LIMIT", "too many XML tokens")
-		}
-		switch t := t.(type) {
-		case xml.Directive:
-			return nil, fault.New(1, "XML_DTD_FORBIDDEN", "DTD/directives are not supported")
-		case xml.ProcInst:
-			if t.Target != "xml" {
-				instructions = append(instructions, t.Target)
-			}
-		case xml.StartElement:
-			if len(stack) >= 128 {
-				return nil, fault.New(1, "XML_LIMIT", "XML depth exceeds 128")
-			}
-			seen := map[xml.Name]bool{}
-			for _, a := range t.Attr {
-				if seen[a.Name] {
-					return nil, fault.New(1, "XML_NOT_WELL_FORMED", "duplicate attribute")
-				}
-				seen[a.Name] = true
-				if a.Name.Space == "http://www.w3.org/XML/1998/namespace" && a.Name.Local == "base" {
-					return nil, fault.New(3, "UNSUPPORTED_XML_BASE", "xml:base is not supported in M1-A")
-				}
-			}
-			e := &Element{Name: t.Name, Attributes: t.Attr, Children: []*Element{}, Location: "/" + t.Name.Local + "[1]"}
-			if len(stack) == 0 {
-				if root != nil {
-					return nil, fault.New(1, "XML_NOT_WELL_FORMED", "multiple XML roots")
-				}
-				root = e
-			} else {
-				p := stack[len(stack)-1]
-				p.counts[e.Name.Local]++
-				e.Location = fmt.Sprintf("%s/%s[%d]", p.e.Location, e.Name.Local, p.counts[e.Name.Local])
-				p.e.Children = append(p.e.Children, e)
-			}
-			indexedBytes += len(e.Location)
-			stack = append(stack, &frame{e: e, counts: map[string]int{}})
-		case xml.EndElement:
-			current := stack[len(stack)-1]
-			current.e.Text = current.text.String()
-			current.e.Content = current.content.String()
-			if len(stack) > 1 {
-				parent := stack[len(stack)-2]
-				indexedBytes += len(current.e.Content)
-				parent.content.WriteString(current.e.Content)
-			}
-			stack = stack[:len(stack)-1]
-		case xml.CharData:
-			if len(stack) == 0 {
-				if strings.TrimSpace(string(t)) != "" {
-					return nil, fault.New(1, "XML_NOT_WELL_FORMED", "text outside XML root")
-				}
-			} else {
-				indexedBytes += 2 * len(t)
-				stack[len(stack)-1].text.Write(t)
-				stack[len(stack)-1].content.Write(t)
-			}
-		}
-		if indexedBytes > 32<<20 {
-			return nil, fault.New(1, "XML_LIMIT", "XML text/location index exceeds 32 MiB")
-		}
+		return nil, fault.New(1, "XML_NOT_WELL_FORMED", "XML: %v", err)
 	}
-	if root == nil || len(stack) != 0 {
-		return nil, fault.New(1, "XML_NOT_WELL_FORMED", "missing/unfinished XML root")
+	var convert func(*xmltext.Element) *Element
+	convert = func(e *xmltext.Element) *Element {
+		out := &Element{Name: e.Name, Attributes: e.Attributes, Text: e.DirectText, Content: e.Text, Location: e.Location, Children: []*Element{}}
+		for _, c := range e.Children {
+			out.Children = append(out.Children, convert(c))
+		}
+		return out
 	}
-	root.ProcessingInstructions = instructions
+	root := convert(doc.Root)
+	root.ProcessingInstructions = doc.ProcessingInstructions
 	return root, nil
 }
 

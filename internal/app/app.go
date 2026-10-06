@@ -45,7 +45,7 @@ func Capabilities() []Capability {
 		out[i].Status = "available"
 		out[i].Risk = "read_only"
 		out[i].Reason = "M1 read-only queries; success is not EPUB conformance validation; inspect references reports per-syntax coverage"
-		out[i].SupportedFeatures = []string{"EPUB2/3 ZIP", "UTF-8 XML", "metadata/manifest/spine", "EPUB3 nav / EPUB2 NCX", "read-only references with per-syntax coverage", "original resource bytes"}
+		out[i].SupportedFeatures = []string{"EPUB2/3 ZIP", "UTF-8/UTF-16 XML; native HTML DOCTYPE; T1b DTD/entities pending", "metadata/manifest/spine", "EPUB3 nav / EPUB2 NCX", "read-only references with per-syntax coverage", "original resource bytes"}
 		out[i].Preconditions = []string{"safe bounded archive", "explicit rootfile if ambiguous"}
 		out[i].PostChecks = []string{}
 		out[i].Idempotency = "read only; unpack retries reject an existing destination"
@@ -81,6 +81,18 @@ func Capabilities() []Capability {
 		Preconditions:     []string{"explicit workspace directory and resource", "cooperative exclusive workspace lock", "same frozen accepted input for publication, hash and text"},
 		PostChecks:        []string{"resource hash from original bytes", "matched/returned counts and explicit truncation"}, Idempotency: "read only; no publication changes",
 	})
+	out = append(out, Capability{
+		ID: "publication.search", Version: 1, Status: "available", Commands: []string{"search"}, Risk: "read_only",
+		Reason: "T1a accepted-only manifest-order literal XHTML search; not browser visibility, conformance or editing permission",
+		InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "query"}, "properties": map[string]any{
+			"workspace": stringSchema,
+			"query":     map[string]any{"type": "string", "minLength": 1, "maxLength": 4096, "x-maxUtf8Bytes": 4096},
+			"limit":     map[string]any{"type": "integer", "minimum": 1, "maximum": 200, "default": 50},
+		}},
+		OutputSchema:      map[string]any{"type": "object", "required": []string{"workspaceId", "revisionId", "rootfile", "matchedCount", "returnedCount", "truncated", "results"}},
+		SupportedFeatures: []string{"content node/exclusion semantics; no cross-resource matching", "all selected manifest XHTML counted after return limit", "8 MiB raw/resource; 16 MiB decoded/resource; 32 MiB index/resource; 128 MiB raw scan; 1 MiB returned text"},
+		Preconditions:     []string{"explicit workspace; exclusive cooperative lock; verified accepted source"}, PostChecks: []string{"original resource hashes and exact identities"}, Idempotency: "read only",
+	})
 	metadataSchema := map[string]any{"type": "object", "additionalProperties": false, "required": []string{"namespace", "localName", "expectedOldValue", "newValue"}, "properties": map[string]any{"namespace": map[string]any{"const": "http://purl.org/dc/elements/1.1/"}, "localName": map[string]any{"enum": []string{"title", "creator"}}, "id": stringSchema, "expectedOldValue": map[string]any{"type": "string"}, "newValue": map[string]any{"type": "string"}}}
 	contentSchema := map[string]any{"type": "object", "additionalProperties": false, "required": []string{"bookPath", "revisionId", "resourceSha256", "locatorVersion", "locator", "expectedOldValue", "newValue"}, "properties": map[string]any{
 		"bookPath": stringSchema, "revisionId": stringSchema,
@@ -94,7 +106,7 @@ func Capabilities() []Capability {
 		{ID: "workspace.open", Commands: []string{"workspace open"}, InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"book", "output"}, "properties": map[string]any{"book": stringSchema, "output": stringSchema, "rootfile": stringSchema}}},
 		{ID: "plan", Commands: []string{"plan"}, InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "operations", "output"}, "properties": map[string]any{"workspace": stringSchema, "operations": stringSchema, "output": stringSchema}}},
 		{ID: "apply", Commands: []string{"apply"}, Mutates: true, Risk: "bounded_edit", InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "plan"}, "properties": map[string]any{"workspace": stringSchema, "plan": stringSchema}}},
-		{ID: "task.diff", Commands: []string{"task diff"}}, {ID: "task.accept", Commands: []string{"task accept"}, Mutates: true, Risk: "external"}, {ID: "task.reject", Commands: []string{"task reject"}},
+		{ID: "task.status", Commands: []string{"task status"}}, {ID: "task.diff", Commands: []string{"task diff"}}, {ID: "task.accept", Commands: []string{"task accept"}, Mutates: true, Risk: "external"}, {ID: "task.reject", Commands: []string{"task reject"}},
 		{ID: "workspace.export", Commands: []string{"workspace export"}, Risk: "external"},
 	} {
 		c.Version, c.Status = 1, "available"

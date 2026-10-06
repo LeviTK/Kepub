@@ -96,13 +96,13 @@ func TestXMLSafety(t *testing.T) {
 	for _, tc := range []struct{ xml, code string }{
 		{`<x><y></x>`, "XML_NOT_WELL_FORMED"},
 		{`<x>&external;</x>`, "XML_NOT_WELL_FORMED"},
-		{`<!DOCTYPE x SYSTEM "https://example.com/evil.dtd"><x/>`, "XML_DTD_FORBIDDEN"},
-		{`<!DOCTYPE x [<!ENTITY x "expanded">]><x>&x;</x>`, "XML_DTD_FORBIDDEN"},
+		{`<!DOCTYPE x SYSTEM "https://example.com/evil.dtd"><x/>`, "UNSUPPORTED_XML_DTD"},
+		{`<!DOCTYPE x [<!ENTITY x "expanded">]><x>&x;</x>`, "UNSUPPORTED_XML_DTD"},
 		{`<x/><y/>`, "XML_NOT_WELL_FORMED"},
 		{`<x a="1" a="2"/>`, "XML_NOT_WELL_FORMED"},
 		{`<x xml:base="../"/>`, "UNSUPPORTED_XML_BASE"},
 		{strings.Repeat("<x>", 129) + strings.Repeat("</x>", 129), "XML_LIMIT"},
-		{string([]byte{0xff, 0xfe, '<', 0, 'x', 0}), "UNSUPPORTED_XML_ENCODING"},
+		{string([]byte{0xff, 0xfe, '<', 0, 'x', 0}), "XML_NOT_WELL_FORMED"},
 	} {
 		t.Run(tc.code, func(t *testing.T) {
 			_, e := parseXML([]byte(tc.xml))

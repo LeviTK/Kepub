@@ -4,14 +4,20 @@ package xmltext
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/xml"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/LeviTK/Kepub/internal/fault"
 )
 
 const Limit = 8 << 20
+
+var htmlDoctype = regexp.MustCompile(`^DOCTYPE[\x20\x09\x0d\x0a]+html[\x20\x09\x0d\x0a]*$`)
 
 type Element struct {
 	Name       xml.Name
@@ -19,34 +25,42 @@ type Element struct {
 	ID         string
 	Start, End int
 	Text       string
+	DirectText string
 	Complex    bool
 	Location   string
 	Parent     *Element
 	Children   []*Element
 	rawName    xml.Name
 	text       strings.Builder
+	direct     strings.Builder
+	order      binary.ByteOrder
 	ns         map[string]string
 	counts     map[string]int
 }
 
 type Document struct {
-	Root     *Element
-	Elements []*Element // document order
+	Root                   *Element
+	Elements               []*Element // document order
+	ProcessingInstructions []string
 }
 
 // Parse is the former metadata RawToken index: lexical namespace validation,
 // byte intervals, simple-text classification and aggregate budgets are shared.
 func Parse(input []byte) (*Document, error) {
-	if len(input) > Limit || !utf8.Valid(input) {
-		return nil, fmt.Errorf("XML size/UTF-8 limit")
+	s, err := decode(input)
+	if err != nil {
+		return nil, err
 	}
-	bom := len(input) - len(bytes.TrimPrefix(input, []byte{239, 187, 191}))
-	d := xml.NewDecoder(bytes.NewReader(input[bom:]))
+	d := xml.NewDecoder(bytes.NewReader(s.text))
+	// Physical encoding and declaration have already been checked. RawToken
+	// must not decode the transcoded UTF-8 a second time.
+	d.CharsetReader = func(_ string, r io.Reader) (io.Reader, error) { return r, nil }
 	stack := []*Element{}
 	doc := &Document{}
+	doctype := false
 	tokens, indexed := 0, 0
 	for {
-		before := int(d.InputOffset()) + bom
+		before := int(d.InputOffset())
 		t, err := d.RawToken()
 		if err == io.EOF {
 			break
@@ -56,14 +70,20 @@ func Parse(input []byte) (*Document, error) {
 		}
 		tokens++
 		if tokens > 200000 {
-			return nil, fmt.Errorf("XML token limit")
+			return nil, fault.New(1, "XML_LIMIT", "XML token limit")
 		}
 		switch t := t.(type) {
 		case xml.Directive:
-			return nil, fmt.Errorf("XML directives/DTD forbidden")
+			if !htmlDoctype.Match(t) {
+				return nil, fault.New(3, "UNSUPPORTED_XML_DTD", "DTD is outside the T1a offline subset")
+			}
+			if doctype || doc.Root != nil {
+				return nil, fmt.Errorf("duplicate or misplaced DOCTYPE")
+			}
+			doctype = true
 		case xml.StartElement:
 			if len(stack) >= 128 {
-				return nil, fmt.Errorf("XML depth limit")
+				return nil, fault.New(1, "XML_LIMIT", "XML depth limit")
 			}
 			ns := map[string]string{"xml": "http://www.w3.org/XML/1998/namespace"}
 			var parent *Element
@@ -85,14 +105,14 @@ func Parse(input []byte) (*Document, error) {
 					ns[""] = a.Value
 				}
 			}
-			e := &Element{rawName: t.Name, Start: int(d.InputOffset()) + bom, ns: ns, counts: map[string]int{}, Parent: parent}
+			e := &Element{rawName: t.Name, Start: s.offset(int(d.InputOffset())), ns: ns, counts: map[string]int{}, Parent: parent, order: s.order}
 			var resolveErr error
 			t.Name, resolveErr = resolveName(t.Name, e, true)
 			if resolveErr != nil {
 				return nil, resolveErr
 			}
 			e.Name = t.Name
-			if bytes.HasSuffix(input[before:e.Start], []byte("/>")) {
+			if bytes.HasSuffix(s.text[before:int(d.InputOffset())], []byte("/>")) {
 				e.Complex = true
 			}
 			seen := map[xml.Name]bool{}
@@ -109,7 +129,7 @@ func Parse(input []byte) (*Document, error) {
 				}
 				seen[a.Name] = true
 				if a.Name.Space == "http://www.w3.org/XML/1998/namespace" && a.Name.Local == "base" {
-					return nil, fmt.Errorf("xml:base unsupported")
+					return nil, fault.New(3, "UNSUPPORTED_XML_BASE", "xml:base unsupported")
 				}
 				if a.Name.Space == "" && a.Name.Local == "id" {
 					e.ID = a.Value
@@ -135,7 +155,7 @@ func Parse(input []byte) (*Document, error) {
 				return nil, fmt.Errorf("unexpected XML end element")
 			}
 			e := stack[len(stack)-1]
-			e.End = before
+			e.End = s.offset(before)
 			name, err := resolveName(t.Name, e, true)
 			if err != nil || name != e.Name || t.Name != e.rawName {
 				return nil, fmt.Errorf("mismatched XML end element")
@@ -144,6 +164,7 @@ func Parse(input []byte) (*Document, error) {
 				e.Complex = true
 			}
 			e.Text = e.text.String()
+			e.DirectText = e.direct.String()
 			if len(stack) > 1 {
 				indexed += len(e.Text)
 				stack[len(stack)-2].text.WriteString(e.Text)
@@ -158,13 +179,17 @@ func Parse(input []byte) (*Document, error) {
 				indexed += 2 * len(t)
 				e := stack[len(stack)-1]
 				e.text.Write(t)
-				if bytes.HasPrefix(input[before:], []byte("<![CDATA[")) {
+				e.direct.Write(t)
+				if bytes.HasPrefix(s.text[before:], []byte("<![CDATA[")) {
 					e.Complex = true
 				}
 			}
 		case xml.ProcInst:
-			if strings.EqualFold(t.Target, "xml") && (t.Target != "xml" || before != bom) {
+			if strings.EqualFold(t.Target, "xml") && (t.Target != "xml" || before != 0 || !declaration.Match(s.text)) {
 				return nil, fmt.Errorf("misplaced XML declaration")
+			}
+			if t.Target != "xml" {
+				doc.ProcessingInstructions = append(doc.ProcessingInstructions, t.Target)
 			}
 			if len(stack) > 0 {
 				stack[len(stack)-1].Complex = true
@@ -175,7 +200,7 @@ func Parse(input []byte) (*Document, error) {
 			}
 		}
 		if indexed > 32<<20 {
-			return nil, fmt.Errorf("XML text/location limit")
+			return nil, fault.New(1, "XML_LIMIT", "XML text/location limit")
 		}
 	}
 	if doc.Root == nil || len(stack) != 0 {
@@ -219,9 +244,10 @@ func Replace(input []byte, e *Element, old, new string) ([]byte, bool, error) {
 	if err := xml.EscapeText(&escaped, []byte(new)); err != nil {
 		return nil, false, err
 	}
+	replacement := encode(escaped.Bytes(), e.order)
 	out := make([]byte, 0, len(input)+escaped.Len())
 	out = append(out, input[:e.Start]...)
-	out = append(out, escaped.Bytes()...)
+	out = append(out, replacement...)
 	out = append(out, input[e.End:]...)
 	check, err := Parse(out)
 	if err != nil {

@@ -80,6 +80,45 @@ func ContentWorkspace(dir, resource string, o publication.ContentOptions) (Works
 	return WorkspaceContent{id, revision.ID, revision.Rootfile, text}, nil
 }
 
+type WorkspaceSearch struct {
+	WorkspaceID string `json:"workspaceId"`
+	RevisionID  string `json:"revisionId"`
+	Rootfile    string `json:"rootfile"`
+	publication.Search
+}
+
+func SearchWorkspace(dir string, o publication.ContentOptions) (WorkspaceSearch, error) {
+	if err := o.Validate(); err != nil {
+		return WorkspaceSearch{}, err
+	}
+	if o.Query == nil {
+		return WorkspaceSearch{}, fault.New(2, "INVALID_CONTENT_QUERY", "search requires query")
+	}
+	w, err := workspace.Open(dir)
+	if err != nil {
+		return WorkspaceSearch{}, WorkspaceError(err)
+	}
+	defer w.Close()
+	id, err := w.ID()
+	if err != nil {
+		return WorkspaceSearch{}, WorkspaceError(err)
+	}
+	a, _, revision, err := w.AcceptedSnapshot()
+	if err != nil {
+		return WorkspaceSearch{}, WorkspaceError(err)
+	}
+	defer a.Close()
+	p, err := publication.Load(a, revision.Rootfile)
+	if err != nil {
+		return WorkspaceSearch{}, err
+	}
+	result, err := publication.SearchContent(a, p, o)
+	if err != nil {
+		return WorkspaceSearch{}, err
+	}
+	return WorkspaceSearch{id, revision.ID, revision.Rootfile, result}, nil
+}
+
 func readEditFile(file string) ([]byte, error) {
 	b, err := workspace.ReadEditFile(file)
 	var pathError *os.PathError
@@ -124,7 +163,7 @@ func ApplyWorkspace(dir, plan string) (workspace.Execution, error) {
 	return e, WorkspaceError(err)
 }
 
-func WorkspaceTask(ctx context.Context, dir, id, action string, o validation.Options) (any, error) {
+func WorkspaceTask(ctx context.Context, dir, id, action string, o validation.Options, human bool) (any, error) {
 	w, err := workspace.Open(dir)
 	if err != nil {
 		return nil, WorkspaceError(err)
@@ -132,8 +171,14 @@ func WorkspaceTask(ctx context.Context, dir, id, action string, o validation.Opt
 	defer w.Close()
 	var result any
 	switch action {
+	case "status":
+		result, err = w.TaskStatus(id)
 	case "diff":
-		result, err = w.TaskDiff(id)
+		if human {
+			result, err = w.TaskDiffText(id)
+		} else {
+			result, err = w.TaskDiff(id)
+		}
 	case "accept":
 		result, err = w.Accept(ctx, id, o)
 	case "reject":

@@ -58,6 +58,15 @@ func ReadContent(a *archive.Archive, p *Publication, resource bookpath.BookPath,
 	if err := o.Validate(); err != nil {
 		return Content{}, err
 	}
+	limit := 50
+	if o.Limit != nil {
+		limit = *o.Limit
+	}
+	return readContent(a, p, resource, o.Query, limit)
+}
+
+// A zero return limit still parses and counts the entire resource for search.
+func readContent(a *archive.Archive, p *Publication, resource bookpath.BookPath, query *string, limit int) (Content, error) {
 	if _, err := bookpath.Parse(string(resource)); err != nil {
 		return Content{}, err
 	}
@@ -99,10 +108,6 @@ func ReadContent(a *archive.Archive, p *Publication, resource bookpath.BookPath,
 	if len(bodies) != 1 || bodyCount != 1 {
 		return Content{}, fault.New(1, "CONTENT_STRUCTURE", "expected one direct XHTML body and no nested or duplicate body")
 	}
-	limit := 50
-	if o.Limit != nil {
-		limit = *o.Limit
-	}
 	hash := sha256.Sum256(data)
 	result := Content{BookPath: resource, ResourceSHA256: hex.EncodeToString(hash[:]), LocatorVersion: ContentLocatorVersion, Nodes: []ContentNode{}}
 	// Mark ancestors too: their Content contains excluded descendants. Continue
@@ -128,7 +133,7 @@ func ReadContent(a *archive.Archive, p *Publication, resource bookpath.BookPath,
 		if e.Name.Space != XHTMLNamespace || e.Name.Local == "script" || e.Name.Local == "style" || e.Name.Local == "head" {
 			return nil
 		}
-		if e.Name.Local != "body" && !blocked[e] && (len(e.Children) == 0 || strings.TrimSpace(e.Text) != "") && (o.Query == nil || strings.Contains(e.Content, *o.Query)) {
+		if e.Name.Local != "body" && !blocked[e] && (len(e.Children) == 0 || strings.TrimSpace(e.Text) != "") && (query == nil || strings.Contains(e.Content, *query)) {
 			result.MatchedCount++
 			if len(result.Nodes) < limit {
 				textBytes += len(e.Content)
@@ -155,4 +160,62 @@ func ReadContent(a *archive.Archive, p *Publication, resource bookpath.BookPath,
 	result.ReturnedCount = len(result.Nodes)
 	result.Truncated = result.ReturnedCount < result.MatchedCount
 	return result, nil
+}
+
+const SearchScanLimit = 128 << 20
+
+type SearchResult struct {
+	BookPath       bookpath.BookPath `json:"bookPath"`
+	ResourceSHA256 string            `json:"resourceSha256"`
+	LocatorVersion int               `json:"locatorVersion"`
+	ContentNode
+}
+
+type Search struct {
+	MatchedCount  int            `json:"matchedCount"`
+	ReturnedCount int            `json:"returnedCount"`
+	Truncated     bool           `json:"truncated"`
+	Results       []SearchResult `json:"results"`
+}
+
+// SearchContent observes every selected manifest XHTML, even after the return
+// limit. A bad later resource cannot produce a successful incomplete count.
+func SearchContent(a *archive.Archive, p *Publication, o ContentOptions) (Search, error) {
+	if err := o.Validate(); err != nil {
+		return Search{}, err
+	}
+	if o.Query == nil {
+		return Search{}, fault.New(2, "INVALID_CONTENT_QUERY", "search requires query")
+	}
+	limit := 50
+	if o.Limit != nil {
+		limit = *o.Limit
+	}
+	out := Search{Results: []SearchResult{}}
+	var scanned int64
+	returnedBytes := 0
+	for _, item := range p.Manifest {
+		if item.MediaType != "application/xhtml+xml" {
+			continue
+		}
+		scanned += a.Files[item.Path]
+		if scanned > SearchScanLimit {
+			return Search{}, fault.New(1, "CONTENT_LIMIT", "XHTML raw scan exceeds 128 MiB")
+		}
+		c, err := readContent(a, p, item.Path, o.Query, limit-len(out.Results))
+		if err != nil {
+			return Search{}, err
+		}
+		out.MatchedCount += c.MatchedCount
+		for _, n := range c.Nodes {
+			returnedBytes += len(n.Text)
+			if returnedBytes > ContentTextLimit {
+				return Search{}, fault.New(1, "CONTENT_LIMIT", "search returned text exceeds 1 MiB")
+			}
+			out.Results = append(out.Results, SearchResult{item.Path, c.ResourceSHA256, c.LocatorVersion, n})
+		}
+	}
+	out.ReturnedCount = len(out.Results)
+	out.Truncated = out.ReturnedCount < out.MatchedCount
+	return out, nil
 }
