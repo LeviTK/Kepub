@@ -81,3 +81,15 @@ P4 已交编码 Orb 补齐配对工件并增加缺失／伪造配对来源的验
 父逐项比较原 169 条 case 数据，去掉新增 `pairedFixtures` 后与修复前完全相同；原源码／成品／生成物均未替换。验证结果现在区分 **169 cases／170 reportRows／170 publications**。父集成本地 `main` 后再跑完整集合，**32/32 PASS，0.425s**，verify 同样通过；受审树与集成树的脚本、资产、产品和三主文档无差异。
 
 [子 Orb 的 38 项记录](S0_ASSETS_PAIRS.md) 属于其当时还叠有未提交语义测试的工作树；这里固定 P4 提交实际只有 32 项，不能把 38 项归给此提交。此次修复不改变产品 Go 代码，无新增 Go 执行结论。P4 关闭，S0 的完整语义整合、父语义验收与真实 Droid 审查仍未通过；未 push／发布，T1 保持暂停。
+
+## P5：非规范性参考资料被抽取成规范性引用
+
+父将 227 个直接引用的阶段归属作为独立只读研究交给有界 subagent，自己复核输入身份、全部排除项、版本／条件差异及 XML／URL／Unicode／字体／旧版样本。该研究不是 Droid，也不是全部引用已独立通过父语义验收。
+
+研究发现 CSS Snapshot 的 33 条非规范性引用被误标为 normative。父实际复读 `original/css.html` 第 7584 行起的 `<h3 id="informative">Non-Normative References` 及其书目，确认该观察；`source_inventory` 先做 `"normative references" in heading` 子串匹配，因此把 `Non-Normative References` 也归为规范性引用。原文不需要修改，需修复抽取和重新生成派生清单。
+
+父新增 `.agents/kepub-s0-parent-reference-tests.py`（SHA-256 `f4f42e2899aa246b7db97e0e45cc70d88ff7873f6b3fdc6b9bf0209d55ca67ab`）：一个规范→非规范→规范的合成控制，以及真实 CSS 八条书目断言。在当前修复前父树实际运行 **2 tests／FAIL，9 个含 subtest 失败，0.012s，exit 1**；日志 SHA-256 `fed8ce678b76ac71adc2727a52021ae519ddaa7b80bcb5b88fb3eb355bf6026d`。代码和测试已交脚本所有者修复，尚未父复验关闭。
+
+研究草案实际输出 `.agents/kepub-s0-parent-dependencies-review.json`，412,716 bytes，SHA-256 `75897ba88561782c39bc93600b57d7d900844157377bd1ff45e5106ac6a012e7`，绑定原外依赖输入 SHA-256 `6a2f061df2e22df6d9b14caba93534a4d38c7dec62547a3c80b6a6f4aa966090`。父程序逐项检查 227/227 的 URL、citations、下载状态、hash 和版本字段保持原样；197 项 mapped、30 项有理由 excluded，后者均为资料性引用。草案保留 P5 错误标记，未升级任何下载状态。修复后须显式修订并重新绑定新输入，不能篡改原稿 hash 伪称早已基于正确清单。
+
+另确认 336 条原文书目中只有 332 条附带 URL：`epub/bib-us-ascii` 及 `aria/bib-dpub-aria`、`aria/bib-epub-3`、`aria/bib-wai-aria` 原文确无 URL。父要求单独记录这些书目，按 document＋entry＋原文 hash／DOM 绑定，URL／未下载内容 hash 保持 null，不凭题名合并到可能不同的版本。引用页面的取得时间也不能被标成目标外文的下载时间。T3 的额外 DTD／NCX／DTBook 清单只登记后续资产前置；付费 ISO 继续披露后续缺口，不购买、不把目录页当全文。这些决定不放松 S0 对实际必需归档范围的要求。
