@@ -16,6 +16,7 @@ import re
 import subprocess
 import tempfile
 from urllib.parse import urldefrag, urljoin, urlparse
+import xml.etree.ElementTree as ET
 
 
 ROOT = Path(__file__).resolve().parents[1] / "docs/specs/epub-3.3"
@@ -146,7 +147,7 @@ def normalized(node):
     return " ".join(node.text().split())
 
 
-def html_ok(data, url, minimum=300):
+def html_ok(data, url, minimum=300, requested_url=None):
     text = data.decode("utf-8")
     root = DOM(text).root
     visible = normalized(root)
@@ -157,9 +158,21 @@ def html_ok(data, url, minimum=300):
         raise ValueError(f"empty/dynamic shell or non-document: {url}")
     if any(s in visible.lower() for s in ("verify you are human", "just a moment...", "access denied")):
         raise ValueError(f"challenge/error page: {url}")
-    if url.endswith("/") and ("/REC-" in url or "/NOTE-" in url):
-        if url not in text:
-            raise ValueError(f"fixed version identity missing: {url}")
+    expected = requested_url or url
+    if re.fullmatch(r"https?://[^/]+/(?:TR/)?\d{4}/(?:REC|NOTE)-[^/]+/", expected):
+        # Older W3C RECs publish http self-links but are served over https.
+        canonical = lambda value: re.sub(r"^http:", "https:", urldefrag(value)[0])
+        versions = []
+        for node in root.walk():
+            if node.tag != "dt" or normalized(node).rstrip(":").lower() != "this version":
+                continue
+            siblings = node.parent.children[node.parent.children.index(node) + 1:]
+            dd = next((n for n in siblings if isinstance(n, Node)), None)
+            if dd and dd.tag == "dd":
+                versions += [canonical(urljoin(url, n.attrs["href"])) for n in dd.walk()
+                             if n.tag == "a" and n.attrs.get("href")]
+        if canonical(url) != canonical(expected) or set(versions) != {canonical(expected)}:
+            raise ValueError(f"fixed version identity missing/mismatched: {expected}")
     return root
 
 
@@ -208,8 +221,49 @@ def download(url):
         return file.read_bytes(), final, content_type
 
 
+def schema_dependencies(data, base):
+    suffix = Path(urlparse(base).path).suffix.lower()
+    relative = []
+    if suffix == ".rnc":
+        tokens = re.findall(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|#[^\n]*|\b(?:include|external)\b|\S', data.decode("utf-8"))
+        tokens = [t for t in tokens if not t.startswith("#")]
+        for i, token in enumerate(tokens[:-1]):
+            if token in ("include", "external") and tokens[i + 1][:1] in ("'", '"'):
+                literal = tokens[i + 1][1:-1]
+                if "\\" in literal:
+                    raise ValueError("escaped schema URI needs explicit closure review")
+                relative.append((base, literal))
+    elif suffix in (".rng", ".xsd"):
+        try:
+            document = ET.fromstring(data)
+        except ET.ParseError as exc:
+            raise ValueError(f"invalid schema XML: {base}") from exc
+        def walk(node, inherited):
+            context = urljoin(inherited, node.get("{http://www.w3.org/XML/1998/namespace}base", ""))
+            if node.tag in ("{http://relaxng.org/ns/structure/1.0}include", "{http://relaxng.org/ns/structure/1.0}externalRef"):
+                if not node.get("href"):
+                    raise ValueError("schema reference missing href")
+                relative.append((context, node.get("href")))
+            elif node.tag in {"{http://www.w3.org/2001/XMLSchema}" + tag for tag in ("include", "import", "redefine", "override")}:
+                if node.get("schemaLocation"):
+                    relative.append((context, node.get("schemaLocation")))
+                elif node.tag != "{http://www.w3.org/2001/XMLSchema}import":
+                    raise ValueError("schema reference missing schemaLocation")
+            for child in node:
+                walk(child, context)
+        walk(document, base)
+    elif suffix in (".dtd", ".ent"):
+        text = re.sub(r"<!--.*?-->", "", data.decode("utf-8"), flags=re.S)
+        pattern = r'<!ENTITY\s+(?:%\s+)?[^\s]+\s+(?:SYSTEM\s+["\']([^"\']+)["\']|PUBLIC\s+["\'][^"\']*["\']\s+["\']([^"\']+)["\'])'
+        relative += [(base, system or public_system) for system, public_system in re.findall(pattern, text)]
+    deps = sorted({urldefrag(urljoin(context, uri))[0] for context, uri in relative})
+    if any(urlparse(uri).scheme not in ("http", "https") for uri in deps):
+        raise ValueError("non-HTTP schema dependency requires explicit archive review")
+    return deps
+
+
 def extra_dependencies(data, final, kind):
-    deps = []
+    deps = schema_dependencies(data, final)
     if "css" in kind:
         css = data.decode("utf-8")
         deps += [urldefrag(urljoin(final, s))[0] for s in re.findall(r"url\(\s*['\"]?([^)'\"\s]+)", css) if not s.startswith("data:")]
@@ -227,10 +281,10 @@ def extra_dependencies(data, final, kind):
     return deps
 
 
-def fetch(root, bootstrap=False):
+def fetch(root, bootstrap=False, complete_schemas=False):
     """First freeze creates a lock; later fetch checks it, never refreshes it."""
     manifest_path = root / "manifest.json"
-    if manifest_path.exists():
+    if manifest_path.exists() and not complete_schemas:
         lock = json.loads(manifest_path.read_text())
         failures = []
         for entry in lock["assets"]:
@@ -248,11 +302,35 @@ def fetch(root, bootstrap=False):
         if failures:
             raise ValueError("\n".join(failures))
         return
-    if not bootstrap:
+    if complete_schemas:
+        lock = json.loads(manifest_path.read_text())
+        if lock["baseline"] != "EPUB3.3-REC2026-01-13" or lock["failures"]:
+            raise ValueError("cannot extend invalid archive baseline")
+        entries = lock["assets"]
+        seen = {e["requestUrl"]: e for e in entries}
+        queue = []
+        for entry in entries:
+            path = Path(entry["path"])
+            if path.is_absolute() or ".." in path.parts:
+                raise ValueError("unsafe archived path")
+            data = (root / path).read_bytes()
+            if sha(data) != entry["sha256"] or len(data) != entry["bytes"]:
+                raise ValueError("cannot extend modified source")
+            if "html" in entry["contentType"]:
+                html_ok(data, entry["finalUrl"], requested_url=entry["requestUrl"])
+            deps = schema_dependencies(data, entry["finalUrl"])
+            if Path(urlparse(entry["requestUrl"]).path).suffix.lower() in (".rnc", ".rng", ".xsd", ".dtd", ".ent"):
+                entry["version"] = entry["requestUrl"]
+            entry["dependencies"] = sorted(set(entry["dependencies"] + deps))
+            queue += [(url, sha(url.encode())[:24], "external-dependency", "schema", [entry["id"]]) for url in deps]
+        total = sum(e["bytes"] for e in entries)
+        failures = []
+    elif not bootstrap:
         raise ValueError("no manifest: initial capture requires --bootstrap; review before committing")
-    queue = [(url, name, category, level, []) for name, category, level, url in SEEDS]
-    entries, seen, failures = [], {}, []
-    total = 0
+    else:
+        queue = [(url, name, category, level, []) for name, category, level, url in SEEDS]
+        entries, seen, failures = [], {}, []
+        total = 0
     while queue:
         url, name, category, level, parents = queue.pop(0)
         if url in seen:
@@ -266,11 +344,12 @@ def fetch(root, bootstrap=False):
             if total > 128 << 20:
                 raise ValueError("archive exceeds finite 128MiB budget")
             is_html = "text/html" in kind or "application/xhtml" in kind
-            dom = html_ok(data, final) if is_html else None
+            dom = html_ok(data, final, requested_url=url) if is_html else None
             extension = "json" if "json" in kind else "html"
             path = f"original/{name}.{extension}" if not parents else f"assets/{sha(url.encode())[:24]}"
             entry = {"id": name, "category": category, "normativeLevel": level,
-                     "requestUrl": url, "finalUrl": final, "version": url if not parents else "display/dependency asset",
+                     "requestUrl": url, "finalUrl": final,
+                     "version": url if not parents or Path(urlparse(url).path).suffix.lower() in (".rnc", ".rng", ".xsd", ".dtd", ".ent") else "display/dependency asset",
                      "downloadedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                      "path": path, "bytes": len(data), "sha256": sha(data), "contentType": kind,
                      "requiredBy": parents, "dependencies": []}
@@ -316,7 +395,7 @@ def verify(root):
         if any(d not in e["dependencies"] for d in extra_dependencies(data, e["finalUrl"], e["contentType"])):
             raise ValueError(f"omitted asset dependency: {p}")
         if "html" in e["contentType"]:
-            dom = html_ok(data, e["finalUrl"])
+            dom = html_ok(data, e["finalUrl"], requested_url=e["requestUrl"])
             discovered = resources(dom, e["finalUrl"])
             if any(d not in e["dependencies"] for d in discovered):
                 raise ValueError(f"omitted asset dependency: {p}")
@@ -521,10 +600,11 @@ def main():
     p.add_argument("command", choices=("fetch", "verify", "index", "gate"))
     p.add_argument("--root", type=Path, default=ROOT)
     p.add_argument("--bootstrap", action="store_true")
+    p.add_argument("--complete-schemas", action="store_true", help="extend a frozen archive only with missing schema dependencies")
     args = p.parse_args()
     try:
         if args.command == "fetch":
-            fetch(args.root, args.bootstrap)
+            fetch(args.root, args.bootstrap, args.complete_schemas)
         elif args.command == "index":
             inventory(args.root)
         else:

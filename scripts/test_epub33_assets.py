@@ -157,6 +157,47 @@ class Integrity(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "omitted asset dependency"):
             assets.verify(self.root)
 
+    def test_version_link_not_incidental_old_url(self):
+        body = BODY.replace(URL.encode(), b"https://example.test/2027/REC-demo-20270113/")
+        body += b"<!-- incidental old request " + URL.encode() + b" -->"
+        with self.assertRaisesRegex(ValueError, "fixed version identity"):
+            assets.html_ok(body, URL)
+
+    def test_old_http_version_link_is_same_frozen_document(self):
+        body = BODY.replace(URL.encode(), URL.replace("https:", "http:").encode())
+        assets.html_ok(body, URL)
+
+
+class SchemaClosure(unittest.TestCase):
+    def test_rnc_inline_external_comments_and_quoted_keywords(self):
+        body = b'include "../base.rnc"\nstart = external "inline.rnc"\n# include "fake.rnc"\nlabel = "external \'fake.rnc\'"'
+        self.assertEqual(assets.schema_dependencies(body, "https://example.test/schema/root.rnc"),
+                         ["https://example.test/base.rnc", "https://example.test/schema/inline.rnc"])
+
+    def test_rng_inherited_xml_base_and_xsd_import(self):
+        rng = b'<grammar xmlns="http://relaxng.org/ns/structure/1.0" xml:base="mod/"><include href="base.rng"/><start xml:base="../"><externalRef href="other.rng"/></start></grammar>'
+        self.assertEqual(assets.schema_dependencies(rng, "https://example.test/root.rng"),
+                         ["https://example.test/mod/base.rng", "https://example.test/other.rng"])
+        xsd = b'<schema xmlns="http://www.w3.org/2001/XMLSchema"><import namespace="urn:no-location"/><include schemaLocation="one.xsd"/><import namespace="urn:test" schemaLocation="two.xsd"/></schema>'
+        self.assertEqual(assets.schema_dependencies(xsd, "https://example.test/root.xsd"),
+                         ["https://example.test/one.xsd", "https://example.test/two.xsd"])
+
+    def test_transitive_cycle_is_bounded_and_omission_fails(self):
+        url = URL + "a.rnc"
+        body = BODY.replace(b"</head>", b'</head><a href="a.rnc">schema</a>')
+        responses = {URL: (body, URL, "text/html"), url: (b'include "b.rnc"', url, "text/plain"),
+                     URL + "b.rnc": (b'include "a.rnc"', URL + "b.rnc", "text/plain")}
+        with tempfile.TemporaryDirectory() as tmp, patch.object(assets, "SEEDS", [("epub", "normative", "REC", URL)]), patch.object(assets, "download", side_effect=lambda target: responses[target]):
+            root = Path(tmp)
+            assets.fetch(root, bootstrap=True)
+            self.assertEqual(len(assets.verify(root)["assets"]), 3)
+            manifest = json.loads((root / "manifest.json").read_text())
+            manifest["assets"] = [e for e in manifest["assets"] if e["requestUrl"] != URL + "b.rnc"]
+            next(e for e in manifest["assets"] if e["requestUrl"] == url)["dependencies"] = []
+            assets.write_json(root / "manifest.json", manifest)
+            with self.assertRaisesRegex(ValueError, "omitted asset dependency"):
+                assets.verify(root)
+
 
 class OfficialArtifacts(unittest.TestCase):
     def test_zip_generation_is_reproducible_and_stores_mimetype_first(self):
@@ -200,10 +241,13 @@ class OfficialArtifacts(unittest.TestCase):
             row = {"id": "one", **official.report_cases(root)["one"],
                    "reportSHA256": assets.sha(report), "sourceCommit": None,
                    "websiteArtifactPath": None, "sourceArchivePath": None, "generatedArtifactPath": None}
-            assets.write_json(dest / "index.json", {"cases": [row], "failures": [],
-                 "licenseSHA256": assets.sha(b"license"), "upstreamGeneratorSHA256": assets.sha(b"generator")})
-            with self.assertRaisesRegex(ValueError, "unresolved official source"):
-                official.verify(root)
+            for commit in (None, "a" * 40):
+                with self.subTest(commitPresent=bool(commit)):
+                    row["sourceCommit"] = commit
+                    assets.write_json(dest / "index.json", {"cases": [row], "failures": [],
+                         "licenseSHA256": assets.sha(b"license"), "upstreamGeneratorSHA256": assets.sha(b"generator")})
+                    with self.assertRaisesRegex(ValueError, "unresolved official source|incomplete official source evidence"):
+                        official.verify(root)
 
 
 if __name__ == "__main__":

@@ -730,7 +730,7 @@
       "normativeLevel": "display/schema",
       "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/container.rnc",
       "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/container.rnc",
-      "version": "display/dependency asset",
+      "version": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/container.rnc",
       "downloadedAt": "2026-10-05T23:10:47.844245+00:00",
       "path": "assets/59ff3d003b7a94ec8c406f88",
       "bytes": 749,
@@ -747,7 +747,7 @@
       "normativeLevel": "display/schema",
       "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/mapping.rnc",
       "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/mapping.rnc",
-      "version": "display/dependency asset",
+      "version": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/mapping.rnc",
       "downloadedAt": "2026-10-05T23:10:47.893809+00:00",
       "path": "assets/f013e4ef1d2a6d82681a1ece",
       "bytes": 819,
@@ -756,7 +756,9 @@
       "requiredBy": [
         "multi-rend"
       ],
-      "dependencies": []
+      "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/datatypes.rnc"
+      ]
     },
     {
       "id": "c11241fd1fad599a0e68441c",
@@ -764,7 +766,7 @@
       "normativeLevel": "display/schema",
       "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/ocf-metadata-30.rnc",
       "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/ocf-metadata-30.rnc",
-      "version": "display/dependency asset",
+      "version": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/ocf-metadata-30.rnc",
       "downloadedAt": "2026-10-05T23:10:47.943139+00:00",
       "path": "assets/c11241fd1fad599a0e68441c",
       "bytes": 1229,
@@ -773,7 +775,9 @@
       "requiredBy": [
         "multi-rend"
       ],
-      "dependencies": []
+      "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/package-30.rnc"
+      ]
     },
     {
       "id": "582b832e5ca0dbbdde276930",
@@ -781,7 +785,7 @@
       "normativeLevel": "display/schema",
       "requestUrl": "https://www.w3.org/TR/2008/REC-pronunciation-lexicon-20081014/pls.rng",
       "finalUrl": "https://www.w3.org/TR/2008/REC-pronunciation-lexicon-20081014/pls.rng",
-      "version": "display/dependency asset",
+      "version": "https://www.w3.org/TR/2008/REC-pronunciation-lexicon-20081014/pls.rng",
       "downloadedAt": "2026-10-05T23:10:48.010114+00:00",
       "path": "assets/582b832e5ca0dbbdde276930",
       "bytes": 6852,
@@ -798,7 +802,7 @@
       "normativeLevel": "display/schema",
       "requestUrl": "https://www.w3.org/2002/xmlspec/dtd/2.10/xmlspec.dtd",
       "finalUrl": "https://www.w3.org/2002/xmlspec/dtd/2.10/xmlspec.dtd",
-      "version": "display/dependency asset",
+      "version": "https://www.w3.org/2002/xmlspec/dtd/2.10/xmlspec.dtd",
       "downloadedAt": "2026-10-05T23:10:48.101633+00:00",
       "path": "assets/eb38747a9be980621f65c764",
       "bytes": 80745,
@@ -1957,6 +1961,61 @@
       "contentType": "image/svg+xml; qs=0.85",
       "requiredBy": [
         "28d35c6b4a06908a1bf43279"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "ddfba09b70bc2ff727d61202",
+      "category": "external-dependency",
+      "normativeLevel": "schema",
+      "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/datatypes.rnc",
+      "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/datatypes.rnc",
+      "version": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/datatypes.rnc",
+      "downloadedAt": "2026-10-05T23:51:22.571909+00:00",
+      "path": "assets/ddfba09b70bc2ff727d61202",
+      "bytes": 7966,
+      "sha256": "4ecd6dfc146993af602145983b860dc971158aa0ddcdc7062028f385d653787c",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": [
+        "4dd44247c45ce2470dd288d1",
+        "f013e4ef1d2a6d82681a1ece"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "4dd44247c45ce2470dd288d1",
+      "category": "external-dependency",
+      "normativeLevel": "schema",
+      "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/package-30.rnc",
+      "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/package-30.rnc",
+      "version": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/package-30.rnc",
+      "downloadedAt": "2026-10-05T23:51:22.735058+00:00",
+      "path": "assets/4dd44247c45ce2470dd288d1",
+      "bytes": 6997,
+      "sha256": "557d1c4443acf7f2587c11a3dfee9841470ed7c65db2b49ce4ff3d22aa0ca9f0",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": [
+        "c11241fd1fad599a0e68441c"
+      ],
+      "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/datatypes.rnc",
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/epub-prefix-attr.rnc"
+      ]
+    },
+    {
+      "id": "768e2e545a6b0ebbe0e68169",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/epub-prefix-attr.rnc",
+      "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/epub-prefix-attr.rnc",
+      "version": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/epub-prefix-attr.rnc",
+      "downloadedAt": "2026-10-05T23:51:22.914600+00:00",
+      "path": "assets/768e2e545a6b0ebbe0e68169",
+      "bytes": 455,
+      "sha256": "d1a3a8872e7013e4f25f46d898f6b520ce4ea06156612e93036cfd726842df71",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": [
+        "4dd44247c45ce2470dd288d1"
       ],
       "dependencies": []
     }

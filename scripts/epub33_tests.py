@@ -238,7 +238,7 @@ def verify(root):
     expected = report_cases(root)
     if len(index["cases"]) != len(expected) or {r["id"] for r in index["cases"]} != set(expected):
         raise ValueError("missing/duplicate/extra official report mapping")
-    if index["failures"] or any(not r["sourceCommit"] for r in index["cases"]):
+    if index["failures"] or any(not r.get("sourceCommit") for r in index["cases"]):
         raise ValueError("unresolved official source gaps")
     report_hash = sha((root / "original/test-index.html").read_bytes())
     dest = root / "official-tests"
@@ -248,6 +248,15 @@ def verify(root):
     for row in index["cases"]:
         if row["reportSHA256"] != report_hash or any(row[k] != v for k, v in expected[row["id"]].items()):
             raise ValueError("official report provenance drift")
+        required = ("sourcePath", "sourceArchivePath", "sourceArchiveSHA256", "generatedArtifactPath", "generatedSHA256")
+        if any(not row.get(k) for k in required):
+            raise ValueError(f"incomplete official source evidence: {row['id']}")
+        if not ((row.get("websiteArtifactPath") and row.get("websiteSHA256")) or
+                (row.get("historicalArtifactPath") and row.get("historicalArtifactSHA256"))):
+            raise ValueError(f"missing official original artifact: {row['id']}")
+        for path_key, hash_key in (("websiteArtifactPath", "websiteSHA256"), ("historicalArtifactPath", "historicalArtifactSHA256")):
+            if bool(row.get(path_key)) != bool(row.get(hash_key)):
+                raise ValueError(f"incomplete official artifact evidence: {row['id']}")
         for prefix in ("websiteArtifact", "sourceArchive", "generatedArtifact"):
             path_key = prefix + "Path"
             hash_key = {"websiteArtifact": "websiteSHA256", "sourceArchive": "sourceArchiveSHA256", "generatedArtifact": "generatedSHA256"}[prefix]
