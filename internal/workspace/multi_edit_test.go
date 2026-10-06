@@ -445,7 +445,17 @@ func TestMultiOperationRollbackInterruptedByIOIsRetryable(t *testing.T) {
 	w, dir, _ := multiWorkspace(t)
 	p := multiWritePlan(t, w)
 	e, outputs := prepareExecution(t, w, p)
-	parent := filepath.Dir(p.WriteSet[1])
+	// All planned resources of this fixture share one parent directory, so the
+	// blocked directory fails the first planned write before any file is
+	// replaced. This exercises a permission-induced write failure plus a
+	// rollback whose cleanup itself needs a retry; the hard-link test above
+	// covers failure at the second resource after the first was replaced.
+	parent := filepath.Dir(p.WriteSet[0])
+	for _, target := range p.WriteSet {
+		if filepath.Dir(target) != parent {
+			t.Fatalf("fixture targets no longer share a parent: %v", p.WriteSet)
+		}
+	}
 	blocked := filepath.Join(dir, candidate, parent)
 	if err := os.Chmod(blocked, 0500); err != nil {
 		t.Fatal(err)
@@ -462,12 +472,16 @@ func TestMultiOperationRollbackInterruptedByIOIsRetryable(t *testing.T) {
 	})
 	failed, err := w.execute(e, outputs, nil)
 	if err == nil || failed.Status != "failed" || failed.ReviewRequired {
-		t.Fatalf("second-resource I/O failure: %+v %v", failed, err)
+		t.Fatalf("permission-induced write failure: %+v %v", failed, err)
 	}
-	// The first resource was written before the second failed. The visible tree
-	// is already rolled back even though the backup cleanup needs a retry.
+	if !strings.Contains(failed.Failure, "permission") {
+		t.Fatalf("expected a permission failure, got %q", failed.Failure)
+	}
+	// The blocked parent prevents the first planned write, so no resource was
+	// replaced. The visible candidate is already the exact baseline even though
+	// removing the read-only backup needs a retry.
 	if treeAt(t, filepath.Join(dir, candidate)).SHA256 != p.InputTreeSHA256 {
-		t.Fatal("half book visible after interrupted rollback")
+		t.Fatal("candidate is not the exact baseline after interrupted rollback")
 	}
 	restoreOldParent := filepath.Join(dir, "staging/restore-old", parent)
 	if _, err := os.Lstat(restoreOldParent); err == nil {
