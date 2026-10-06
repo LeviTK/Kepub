@@ -22,14 +22,15 @@ T1 requires current-input parent and actual Droid approval through the offline
 - [R1 gate, repository evidence and source-only status repairs](verification/S0_ASSETS_R1_GATE_EVIDENCE.md)
 - [R2 source reconciliation and algorithm-scope correction](verification/S0_ASSETS_R2_CORRECTIONS.md)
 - [R3 conditional definitions and advisory scope corrections](verification/S0_ASSETS_R3_CORRECTIONS.md)
+- [R5 contributor inheritance and conditional advisory corrections](verification/S0_REVIEW_R5_FIXES.md)
 - [Parent's actual 2026 checker evidence](verification/S0_EPUBCHECK_2026.md)
 
 The mechanical inventory contains 749 instances: EPUB publication
 408 BCP14 + 48 definition slots, reading systems 252 + 1, accessibility 40 + 0.
 It preserves repeated keywords, NOT forms, enclosing text, DOM identity, fixed
 document hashes and excerpt hashes. This is **not the final number of normative
-constraints**. The source review currently adds 849 manual instances, for 1598
-total rows: 1535 mapped + 63 reasoned exclusions. All five capability dimensions
+constraints**. The source review currently adds 857 manual instances, for 1606
+total rows: 1543 mapped + 63 reasoned exclusions. All five capability dimensions
 remain `not-tested`; all 500 core section records have source-review notes.
 The bounded Amp research drafts were corrected against the parent's independent
 attribute/default/landmarks tests and coding-Orb source review. P6 additionally
@@ -76,7 +77,9 @@ python3 scripts/epub33_assets.py index \
   --amendment docs/specs/epub-3.3/reviews/r1-accessibility-amendments.json \
   --amendment docs/specs/epub-3.3/reviews/r2-publication-amendments.json \
   --amendment docs/specs/epub-3.3/reviews/r2-rs-amendments.json \
-  --amendment docs/specs/epub-3.3/reviews/r3-publication-amendments.json
+  --amendment docs/specs/epub-3.3/reviews/r3-publication-amendments.json \
+  --amendment docs/specs/epub-3.3/reviews/r5-publication-amendments.json \
+  --amendment docs/specs/epub-3.3/reviews/r5-rs-amendments.json
 python3 scripts/epub33_semantics.py index
 python3 scripts/epub33_assets.py verify
 python3 scripts/epub33_semantics.py verify
@@ -90,7 +93,7 @@ their UTF-8 excerpt hashes. They never fabricate behavioral evidence.
 After all reviews and amendments are merged, import must retain every existing
 feature identity; mistaken observations remain as reasoned exclusions, not
 silent deletions. For sections marked complete, independent frozen-DOM checks
-reconcile formal algorithm steps/branches and 46 explicitly reviewed list/value/
+reconcile formal algorithm steps/branches and 53 explicitly reviewed list/value/
 definition families. A wider ancestor, another sibling or an Explanation cannot
 replace a missing member; multiple statement paragraphs remain distinct.
 These bounded structural checks do not classify all natural-language obligations
@@ -137,6 +140,19 @@ notes correct 25 existing section records without adding section identities or
 changing review status; they explicitly describe bounded reading, not full
 independent approval. The parent's exact-source and deletion regressions pass,
 but another fixed-input complete review is still required after R3's rejection.
+
+The R5 amendments add eight direct source records, retaining all prior 1598
+rows and 849 manual records unchanged. Contributor inheritance preserves the
+secondary-role boundary and the creator family's original conditions and
+optional refinements. Seven lowercase advisories retain their conditions and
+are not promoted to BCP14 MUST/SHOULD; the reading-system CSS advice belongs to
+S2-S4, not T1 support. Eight section notes are corrected, without changing
+section identities or review status. Finite member checks reject deleted,
+ancestor-substituted or sibling-substituted sources; they do not prove that
+all remaining prose is mapped. R5 was rejected; these corrections alone do not
+replace a fresh complete-S0 review and parent acceptance. The fixed 3.3 caution
+and Explanation scope observations remain in the parent record, not rewritten
+using later 3.4 wording or promoted to new implementation obligations.
 
 The three fixed RECs' raw `data-tests` attributes are independently reconstructed:
 237 fragment references / 162 IDs, 158 known official cases; four unresolved

@@ -2,7 +2,7 @@
 
 ## 当前结论：阶段资产未通过总验收
 
-首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P8、Droid R1 F1～F6 的阶段修复复验。后续 R2／P9 及 R3 的来源修复已独立复验并集成本地 `main`，固定修复树与父最终组合均 115 项通过。R4 被子 Orb 重启中断，没有 completion、实际退出码或决定；恢复后新完整 **R5 已实际 completion／exit 0，但决定为 rejected**。父已独立确认 contributor 继承遗漏及七处普通建议登记缺口，原样红测试交编码 Orb 修复。旧失败、阅读限制和错误验收记录保留，不充当当前批准。计划本身复审已完成，S0 实现仍待修复验收、新完整审查及实际门禁通过；T1 继续暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
+首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P8、Droid R1 F1～F6 的阶段修复复验。后续 R2／P9 及 R3 的来源修复已独立复验并集成本地 `main`，固定修复树与父最终组合均 115 项通过。R4 被子 Orb 重启中断，没有 completion、实际退出码或决定；恢复后新完整 **R5 已实际 completion／exit 0，但决定为 rejected**。其 contributor 继承遗漏及七处普通建议缺口现已修复、父独立复验并集成本地；固定修复树完整 121 项及后续 test-only 加强的六项定向测试通过，详见末节。旧失败、阅读限制和错误验收记录保留，不充当当前批准。计划本身复审已完成，S0 仍待新固定输入完整审查和实际门禁通过；T1 继续暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
 
 首次受审阶段提交为编码 Orb 的 `b92e1903d831d48ae9df13c8592024e69dac0ed2`；父在独立 worktree `/tmp/kepub-s0-parent-review` 检查，当时没有把阶段资产合入父本地 `main`。以下首次失败记录予以保留；后续修复结果单独记录，不覆盖原结果。检查未修改产品或三份冻结主文档。
 
@@ -333,3 +333,17 @@ R4 冻结目录 `/tmp/kepub-s0-droid-review-r4`；唯一启动外层 PID **20605
 **M1：摘录上下文与批准输入是两件事。** 算法 li[1] 的来源摘录包含 Explanation 上下文，确实比规范步骤宽；具名 Explanation 本身仍被排除，不能将其解释文字提升为独立义务。父进度记录不纳入其自身受审输入是既定设计：规范、矩阵、代码和契约已绑定，实际父／Droid 决定另由 report hash、原始 completion 与输入身份校验。本记录的追加不是批准或认证机制，不为此扩大或放松 gate。本批不改旧来源摘录或悄悄移除这些观察。
 
 四次原始 isError 保留：提前查看未完成流程的输出、零匹配 grep、许可资料缺失时探针 `None.replace` 抛出 `AttributeError` 等；不是产品测试失败。早期 hash 探针误判和已撤回的 C2 定义遗漏也保留。只有来源／验证最小修复已授权，**修复尚未验收，R6 未启动，S0 未批准，T1 暂停，未 push／发布**。
+
+### R5 F1／C5 修复已独立复验并集成本地，仍待新完整审查
+
+父实际核对修复包 **15,274 bytes**、SHA-256 `ed1d066565810d56d0fa28235c1d59fe665e2cd7be548183ef4846bd30ae0172`，前置 `4bb5cc4`，verify／fetch 成功。在原隔离 worktree 固定 `58a0247c6f4436206829a2a4d326ab032afbead4`，阅读全部增量、八个原文来源及 contributor／creator、date、subject、RS CSS 上下文。修复保留继承限定、条件和建议等级，不把可选 role、DRM 或 CSS 渲染变成本轮必做功能。
+
+- 父首次完整三 review／八 amendment、两个 index、四 verify、official reproduce 均成功；tracked／staged diff 均无漂移。完整 Python **121/121 PASS，575.903s**，组合实际 **exit 0／`S0_PARENT_R5_FIXED_CHECKS_PASS`**。正常 gate 仍实际 **exit 1：independent acceptance records missing**，不是实际批准。父完整日志 SHA-256 `d1eccb2456c774e86e81d5915f78700e7c315c161f12b91dad7135541a2ac98f`。
+- 原父反例在仓库内逐字保留，SHA 与原 `682ab958…502df608b` 相同。逐身份／逐字段比较确认 **1598 旧 rows、849 旧 manual 全不变**；新增八条后为 **1606＝1543 mapped＋63 excluded，857 manual**。500 section 身份／状态保留，仅八条 notes、其中七条 reviewer 变化；其余顶层字段未变，五维全 `not-tested`。118 原资产、官方及 upstream 工件、产品 Go、依赖和三主文档未改。父矩阵说明更新为 53 个有限来源家族及八 amendment 重建命令，不把这些计数当作完整性证明。
+- 子完整原日志经父读取核对：同一 `58a0247` 上 **121/121 PASS，594.080s**；首次 replay、四 verify、reproduce 及前后 diff 均 exit 0，gate 预期 exit 1，HEAD／tree 前后不变。证据包 **10,107 bytes**、SHA-256 `c503294c86725b679667f9e2bb429e2e671b99f2531fc3597be8363995dbd57d`。父／子执行结果分开，不相互冒充。
+
+父检查发现新增原子性测试的首 packet 已导入、无净变化，因此不足以捕获“先写首包、再因坏包失败”。没有观察到生产导入器实际部分写入；这是回归测试不足。后续仅测试提交 `bfc93e7ca109a84682d356773fce2678bdab9077` 令临时首包实质改变 contributor note，先以单包正控证明只改预期字段，再恢复基线并验证首包＋错误 hash 第二包不会写入任何字节。bundle **1,066 bytes**、SHA-256 `4fca961e74ca1c493e686bfe8a2684d5fb7af490d74c368a0b2eb4fa8a96b8d7`，父 verify／fetch 并读 diff；只有一个测试文件变化。
+
+新固定 test-only 树父定向 **6/6 PASS，37.493s**，无 tracked／staged 漂移；日志 SHA-256 `244b5951da34eafc7f052fe815581ae165002f475726379dd5f454993110b94a`。子定向 **6/6 PASS，38.515s**，故意先写首包的内存 mutant 被检出为 **1 failure／0 errors，18.870s**；其 harness exit 0 表示预期失败已观察到，不把 mutant 说成通过。证据包 **2,062 bytes**、SHA-256 `1da525182e0a0293d8b942b06e814393baed06759c025e744d1fe78fbbaaa8ce`。旧 121 项组合不冒称覆盖这一后加测试修改。
+
+父本地集成为 `a0935ce`／`ce7d659`；脚本、资产、产品及依赖与最后受验子树逐项相同。保留子先前误用 paragraph 的 list-only contextDOM 失败、选中原语句充当 sibling 的测试错误以及全部原红结果，详见 [本批记录](S0_REVIEW_R5_FIXES.md)。C3／M1 的版本和解释边界未改，没有放宽门禁、改写原始文档、运行新 Go 大组合或恢复 T1。修复本身关闭这些已确认问题，但 **S0 未批准，R6 尚未启动，未 push／发布**。
