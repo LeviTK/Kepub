@@ -2,7 +2,7 @@
 
 ## 当前结论：阶段资产未通过总验收
 
-首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P8、Droid R1 F1～F6 的阶段修复复验。后续 S0 实现 Droid R2 实际结束并拒绝批准，发现新的规范映射遗漏和验证器缺口；父进一步发现 P8 修复错误排除两个字体算法定义段落，已按 P9 更正。R2／P9 修复现已父独立复验并集成本地 `main`，最终组合 105 项测试也通过，新的固定输入 Droid R3 已真实启动但尚无终局结论；旧失败和错误验收记录保留，不充当当前批准。计划本身复审已完成，S0 实现仍待完整 R3 审查及实际门禁通过；T1 继续暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
+首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P8、Droid R1 F1～F6 的阶段修复复验。后续 S0 实现 Droid R2 实际结束并拒绝批准，发现新的规范映射遗漏和验证器缺口；父进一步发现 P8 修复错误排除两个字体算法定义段落，已按 P9 更正。R2／P9 修复已父独立复验并集成本地 `main`，最终组合 105 项测试通过；固定输入 Droid R3 也已实际结束，但决定为 **rejected，readingComplete=false**。父复核后以独立反例确认 41 个具体定义遗漏及四组对账缺口，已交原编码 Orb 修复，尚未验收修复或启动 R4。旧失败和错误验收记录保留，不充当当前批准。计划本身复审已完成，S0 实现仍待修复、新固定输入完整审查及实际门禁通过；T1 继续暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
 
 首次受审阶段提交为编码 Orb 的 `b92e1903d831d48ae9df13c8592024e69dac0ed2`；父在独立 worktree `/tmp/kepub-s0-parent-review` 检查，当时没有把阶段资产合入父本地 `main`。以下首次失败记录予以保留；后续修复结果单独记录，不覆盖原结果。检查未修改产品或三份冻结主文档。
 
@@ -255,3 +255,21 @@ F3／F4／F6、P8 及 T3 前置机读登记仍由编码 Orb 修复，尚未父�
 真实 R3 目录 `/tmp/kepub-s0-droid-review-r3`，外层原 PID **163961**；CLI **0.233.0**，父实际下载 init 核对 **claude-opus-5-5／reasoning_effort medium**，新会话 **`c2941b54-5e19-4699-b9f1-e65f32f8658a`**。不是续 R2 或只审修复片段；要求完整治理文档、实现／测试及未截断的规范正文，包含语法和 WebIDL。当前只有启动和 running 证据，没有 completion／实际 exit／批准结论。
 
 准备时子 Orb 一次 fetch 在非仓库的 `/tmp` 执行失败，改到正确隔离目录后核验成功；父首次长启动消息遇连接异常，先查证仍 idle 且未收到指令，再重新发送，避免重复启动。两项工具失败保留，不算产品失败，也不把成功传文件当审查完成。继续跟随唯一原进程；T1 暂停，未 push／发布。
+
+## S0 实现 Droid R3 已实际结束并拒绝；父确认新的有限遗漏
+
+同一 R3 会话实际 **completion＋exit 0，72 turns、1,142,164ms**，250 stream events、零 error 事件。最终决定 **rejected，readingComplete=false**；正常退出不是审核批准。父下载完整 stream、报告、evidence、exit 及探针包，并核对报告等于实际 completion 的 `finalText`。固定 tree 和 828 输入身份保持原值；没有 `acceptance.json`。
+
+- 原报告 **9,563 bytes**，SHA-256 `1bea493d32a70316a843c370a9760088846bf82bd7ea308b741c79079aebbf2b`；stream **828,201 bytes**，SHA-256 `994979a30fa17f0832bb471bdd0110077d5a736af2d8e95b8b831194d2df364d`；探针包 **107,142 bytes**，SHA-256 `5b50165094cfd2334488aea26986cf02d629cf4140c724714c985494fe05f32b`。实际 exit 文件仍为 `0\n`。
+- Droid 的完整 Python **105/105 PASS，298.633s**；真实 EPUBCheck 5.3.0 的 `TestRealREC2026` 12 子例通过；首次离线回放、四类 verify、reproduce 和 no-drift 通过。正常 gate 因缺少独立批准 exit 1。一次性副本中的合成一致批准正控通过、21 个反例均拒绝，只说明凭据／输入一致性检查有效；**不能据此认定真实批准被绕过，也不能用机械检查证明自然语言规范完整**。
+- 阅读边界：R3 阅读实现和多数治理文档，但开发计划仅部分、多数测试未逐行读；主要核对三个 REC 的未映射残余，未通读完整 REC。部分原 Read 输出被截断，不能把随后局部重读补成全文阅读。其 `readingComplete=false` 如实保留。
+
+父逐项读冻结原文后确认：**F-R3-1** 的通用豁免必须同时满足“不被 spine 引用”和“不直接嵌入”两个条件；**F-R3-2** 的 SVG reference／inclusion 分别关联 SVG 文档和 §6.2.3 共用限制。这些定义没有映射，不是声称当前 CLI 的 SVG 或资源行为已实际失败。
+
+**F-R3-3** 的元数据文本／空白、主标题／作者顺序、数据块例外、脚本上下文、meta 两表达形式、linear、路径／URL、默认词汇表、属性命名空间、role 顺序及媒体类型编码／安全定义也需补。父特别复核三个易误判边界：`dc:subject` 仅在指定 scheme 要求时区分大小写；role 的小写 should 不提成 BCP14 MUST；包媒体类型的 UTF-16 binary 是 MIME content-transfer-encoding，不是改变 EPUB ZIP 算法。脚本语义登记不是授权本轮增加脚本执行功能。
+
+XHTML 的两段近似原文须区分：`sec-overview-relations-html p[3]` 继承 `sec-intro-relations class=informative`，不能提升为要求；真正应补的是 **`sec-xhtml-req p[2]`**，保留 “Unless specified otherwise” 的覆盖条件。父初次精确搜 “inherits” 只找到前者，随后读 §6.1.2 才确认后者；不能据最初搜索把报告中这一类遗漏整体判为误报。
+
+父新增独立 `kepub-s0-parent-r3-definitions.py`，在未修父树实际 **4 tests／45 failures，27.131s，exit 1**：41 个固定原文定义无直接映射，四组全部移除仍 verify 成功；原有效矩阵和 informative／normative 两段区别正控通过。脚本 **6,957 bytes**、SHA-256 `26f6a9f35b9539545a234fed0dc9636771fa425843ece110e841db7041b52d9e`；原红日志 **41,834 bytes**、SHA-256 `6f7856ed98cea2178e9783fb47cd3408bd11e73a7c88bb5f558713d13d892077`，均已实际传给编码 Orb。有限反例不能替代其他未读条款的审查。
+
+现仅授权原编码 Orb 修复 S0 来源数据、有限来源对账及测试，维护原身份、资产字节和五维 `not-tested`。相关章节须记录实际语义而非用模板充当全文证据。父继续拥有主文档和最终验收；**修复未验收，R4 未启动，S0 未批准，T1 暂停，未 push／发布**。
