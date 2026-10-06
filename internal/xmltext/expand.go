@@ -3,6 +3,7 @@ package xmltext
 import (
 	"bytes"
 	"encoding/xml"
+	"io"
 	"sort"
 	"strconv"
 	"strings"
@@ -113,6 +114,38 @@ func (s source) restoreCDATA(value []byte, before int) []byte {
 func (s source) uncertain(start, end int) bool {
 	i := sort.Search(len(s.uncertainties), func(i int) bool { return s.uncertainties[i].end > start })
 	return i < len(s.uncertainties) && s.uncertainties[i].start < end
+}
+
+// Inspect only known lexical pieces of one CharData token. Unknown replacement
+// placeholders are not evidence of bare text; known text beside them still is.
+// Decode pieces separately so removing a placeholder cannot create new syntax.
+func (s source) knownText(start, end int) (bool, error) {
+	check := func(lo, hi int) (bool, error) {
+		d := xml.NewDecoder(bytes.NewReader(s.text[lo:hi]))
+		for {
+			t, err := d.RawToken()
+			if err == io.EOF {
+				return false, nil
+			}
+			if err != nil {
+				return false, err
+			}
+			if text, ok := t.(xml.CharData); ok && strings.TrimSpace(string(text)) != "" {
+				return true, nil
+			}
+		}
+	}
+	i := sort.Search(len(s.uncertainties), func(i int) bool { return s.uncertainties[i].end > start })
+	for ; i < len(s.uncertainties) && s.uncertainties[i].start < end; i++ {
+		span := s.uncertainties[i]
+		if start < span.start {
+			if known, err := check(start, span.start); known || err != nil {
+				return known, err
+			}
+		}
+		start = min(end, span.end)
+	}
+	return check(start, end)
 }
 
 func (x *expansion) unknown(name, kind string, from, to, depth int, declared bool) error {

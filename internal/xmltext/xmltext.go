@@ -23,6 +23,9 @@ type Element struct {
 	Start, End          int
 	Text                string
 	DirectText          string
+	ContentUnknown      bool // Descendant content contains an unread entity.
+	ChildrenUnknown     bool // Direct content may introduce unknown child nodes.
+	KnownDirectText     bool // Known direct character data includes non-whitespace.
 	Complex             bool
 	Uncertain           bool // An attribute depends on an unread entity.
 	Location            string
@@ -237,6 +240,7 @@ func Parse(input []byte) (*Document, error) {
 			if len(stack) > 1 {
 				indexed += len(e.Text)
 				stack[len(stack)-2].text.WriteString(e.Text)
+				stack[len(stack)-2].ContentUnknown = stack[len(stack)-2].ContentUnknown || e.ContentUnknown
 			}
 			stack = stack[:len(stack)-1]
 		case xml.CharData:
@@ -252,6 +256,17 @@ func Parse(input []byte) (*Document, error) {
 				e := stack[len(stack)-1]
 				e.text.Write(t)
 				e.direct.Write(t)
+				end := int(d.InputOffset())
+				if s.uncertain(before, end) {
+					e.ContentUnknown, e.ChildrenUnknown = true, true
+					known, err := s.knownText(before, end)
+					if err != nil {
+						return nil, err
+					}
+					e.KnownDirectText = e.KnownDirectText || known
+				} else {
+					e.KnownDirectText = e.KnownDirectText || strings.TrimSpace(string(t)) != ""
+				}
 				if bytes.HasPrefix(s.text[before:], []byte("<![CDATA[")) {
 					e.Complex = true
 				}

@@ -116,12 +116,18 @@ func LoadNavigation(a *archive.Archive, p *Publication) Navigation {
 		}
 		var tocs []*Element
 		base := false
+		unknownTOC := false
 		var walk func(*Element)
 		walk = func(e *Element) {
 			types, _ := e.Attribute("http://www.idpf.org/2007/ops", "type")
+			unknownTOC = unknownTOC || e.source.ChildrenUnknown
 			if e.Name.Space == XHTMLNamespace {
-				if e.Name.Local == "nav" && slices.Contains(strings.Fields(types), "toc") {
-					tocs = append(tocs, e)
+				if e.Name.Local == "nav" {
+					if !e.source.AttributeKnown(xml.Name{Space: "http://www.idpf.org/2007/ops", Local: "type"}) {
+						unknownTOC = true
+					} else if slices.Contains(strings.Fields(types), "toc") {
+						tocs = append(tocs, e)
+					}
 				}
 				if e.Name.Local == "base" {
 					base = true
@@ -133,20 +139,26 @@ func LoadNavigation(a *archive.Archive, p *Publication) Navigation {
 		}
 		walk(root)
 		if base || len(tocs) != 1 {
-			n.problem(n.Source, root.Location, "NAVIGATION_STRUCTURE", "expected one epub:type=toc nav and no unsupported HTML base element")
+			if base || len(tocs) > 1 || !unknownTOC {
+				n.problem(n.Source, root.Location, "NAVIGATION_STRUCTURE", "expected one epub:type=toc nav and no unsupported HTML base element")
+			}
 			n.Status = "blocked"
 			return n
 		}
 		lists := tocs[0].children(XHTMLNamespace, "ol")
 		if len(lists) != 1 {
-			n.problem(n.Source, tocs[0].Location, "NAVIGATION_STRUCTURE", "TOC must contain one ordered list")
+			if len(lists) > 1 || !tocs[0].source.ChildrenUnknown {
+				n.problem(n.Source, tocs[0].Location, "NAVIGATION_STRUCTURE", "TOC must contain one ordered list")
+			}
 			n.Status = "blocked"
 			return n
 		}
 		n.Entries = n.navList(a, lists[0])
 	} else {
 		if root.Name != (xml.Name{Space: NCXNamespace, Local: "ncx"}) || len(root.children(NCXNamespace, "navMap")) != 1 {
-			n.problem(n.Source, root.Location, "NAVIGATION_STRUCTURE", "expected NCX root with one navMap")
+			if root.Name != (xml.Name{Space: NCXNamespace, Local: "ncx"}) || len(root.children(NCXNamespace, "navMap")) > 1 || !root.source.ChildrenUnknown {
+				n.problem(n.Source, root.Location, "NAVIGATION_STRUCTURE", "expected NCX root with one navMap")
+			}
 			n.Status = "blocked"
 			return n
 		}
@@ -185,7 +197,7 @@ func (n *Navigation) link(a *archive.Archive, node *NavigationNode, href string)
 
 func (n *Navigation) navList(a *archive.Archive, ol *Element) []NavigationNode {
 	nodes := []NavigationNode{}
-	if len(ol.Children) == 0 || strings.TrimSpace(ol.Text) != "" {
+	if len(ol.Children) == 0 && !ol.source.ChildrenUnknown || ol.source.KnownDirectText {
 		n.problem(n.Source, ol.Location, "NAVIGATION_STRUCTURE", "TOC list must contain items, not bare text")
 	}
 	for _, li := range ol.Children {
@@ -197,11 +209,13 @@ func (n *Navigation) navList(a *archive.Archive, ol *Element) []NavigationNode {
 		labels := 0
 		lists := 0
 		unknownTarget := false
+		unknownLabel := false
 		for _, c := range li.Children {
 			if c.Name.Space == XHTMLNamespace && (c.Name.Local == "a" || c.Name.Local == "span") {
 				labels++
 				if labels == 1 {
 					node.Label = strings.Join(strings.Fields(c.Content), " ")
+					unknownLabel = c.source.ContentUnknown
 					if c.Name.Local == "a" {
 						h, ok := c.Attribute("", "href")
 						unknownTarget = !c.source.AttributeKnown(xml.Name{Local: "href"})
@@ -223,7 +237,10 @@ func (n *Navigation) navList(a *archive.Archive, ol *Element) []NavigationNode {
 				n.problem(n.Source, c.Location, "NAVIGATION_STRUCTURE", "unsupported child in TOC item")
 			}
 		}
-		if labels != 1 || lists > 1 || node.Label == "" || strings.TrimSpace(li.Text) != "" || (node.Href == nil && lists == 0 && !unknownTarget) {
+		if labels > 1 || lists > 1 || li.source.KnownDirectText ||
+			labels == 0 && !li.source.ChildrenUnknown ||
+			labels == 1 && node.Label == "" && !unknownLabel ||
+			node.Href == nil && lists == 0 && !unknownTarget && !li.source.ChildrenUnknown {
 			n.problem(n.Source, li.Location, "NAVIGATION_STRUCTURE", "TOC item requires one nonempty label and at most one nested list")
 		}
 		nodes = append(nodes, node)
@@ -238,17 +255,23 @@ func (n *Navigation) ncxPoints(a *archive.Archive, parent *Element) []Navigation
 			n.problem(n.Source, child.Location, "NAVIGATION_STRUCTURE", "unsupported child in NCX navigation")
 		}
 	}
-	if parent.Name.Local == "navMap" && len(parent.children(NCXNamespace, "navPoint")) == 0 {
+	if parent.Name.Local == "navMap" && len(parent.children(NCXNamespace, "navPoint")) == 0 && !parent.source.ChildrenUnknown {
 		n.problem(n.Source, parent.Location, "NAVIGATION_STRUCTURE", "NCX navMap has no navPoint")
 	}
 	for _, point := range parent.children(NCXNamespace, "navPoint") {
 		node := NavigationNode{Location: point.Location, Children: n.ncxPoints(a, point)}
 		labels := point.children(NCXNamespace, "navLabel")
 		links := point.children(NCXNamespace, "content")
-		if len(labels) == 1 && len(labels[0].children(NCXNamespace, "text")) == 1 {
-			node.Label = strings.Join(strings.Fields(labels[0].children(NCXNamespace, "text")[0].Content), " ")
+		badLabel := len(labels) > 1 || len(labels) == 0 && !point.source.ChildrenUnknown
+		if len(labels) == 1 {
+			texts := labels[0].children(NCXNamespace, "text")
+			badLabel = len(texts) > 1 || len(texts) == 0 && !labels[0].source.ChildrenUnknown
+			if len(texts) == 1 {
+				node.Label = strings.Join(strings.Fields(texts[0].Content), " ")
+				badLabel = node.Label == "" && !texts[0].source.ContentUnknown
+			}
 		}
-		if node.Label == "" || len(links) != 1 {
+		if badLabel || len(links) > 1 || len(links) == 0 && !point.source.ChildrenUnknown {
 			n.problem(n.Source, point.Location, "NAVIGATION_STRUCTURE", "NCX navPoint requires one text label and content target")
 		}
 		if len(links) == 1 {
