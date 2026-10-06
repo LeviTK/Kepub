@@ -5,11 +5,11 @@
   "files": [
     {
       "path": "inventory.json",
-      "sha256": "2c4e92adede53105e73aa9e4a264607dfa3a12bc05f05d392457ae9b7896a9cf"
+      "sha256": "2ff89966198b028d48404bc620e65be6fd93beea9372539b0373d3f7e4434554"
     },
     {
       "path": "external-dependencies.json",
-      "sha256": "6a2f061df2e22df6d9b14caba93534a4d38c7dec62547a3c80b6a6f4aa966090"
+      "sha256": "764a400496929be751f1189018ce2f18780caedb7a2e89ea60b856b95d34ba95"
     },
     {
       "path": "INDEX.md",

@@ -418,10 +418,14 @@ def source_inventory(root, manifest):
         nodes = list(dom.walk())
         reference_kind = "informative"
         for n in nodes:
-            if n.tag in ("h2", "h3") and "normative references" in normalized(n).lower():
-                reference_kind = "normative"
-            elif n.tag in ("h2", "h3") and "informative references" in normalized(n).lower():
-                reference_kind = "informative"
+            if n.tag in ("h2", "h3"):
+                heading = normalized(n).lower()
+                # Non-Normative contains the normative substring: classify the
+                # explicit negative first, including both source conventions.
+                if "non-normative references" in heading or "informative references" in heading:
+                    reference_kind = "informative"
+                elif "normative references" in heading:
+                    reference_kind = "normative"
             if n.tag in ("section",) and n.attrs.get("id"):
                 heading = next((normalized(c) for c in n.walk() if c.tag in ("h1", "h2", "h3", "h4", "h5", "h6")), "")
                 sections.append({"document": e["id"], "anchor": n.attrs["id"], "heading": heading,

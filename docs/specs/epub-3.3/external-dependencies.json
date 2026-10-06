@@ -66,7 +66,7 @@
         {
           "document": "css",
           "entry": "biblio-css-text-3",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -85,7 +85,7 @@
         {
           "document": "css",
           "entry": "biblio-css-text-decor-3",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2646,7 +2646,7 @@
         {
           "document": "css",
           "entry": "biblio-css-align-3",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2660,7 +2660,7 @@
         {
           "document": "css",
           "entry": "biblio-css-animations-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2674,7 +2674,7 @@
         {
           "document": "css",
           "entry": "biblio-css-break-3",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2688,7 +2688,7 @@
         {
           "document": "css",
           "entry": "biblio-css-cascade-3",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2702,7 +2702,7 @@
         {
           "document": "css",
           "entry": "biblio-css-cascade-5",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2716,7 +2716,7 @@
         {
           "document": "css",
           "entry": "biblio-css-color-3",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2730,7 +2730,7 @@
         {
           "document": "css",
           "entry": "biblio-css-color-adjust-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2744,7 +2744,7 @@
         {
           "document": "css",
           "entry": "biblio-css-conditional-4",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2758,7 +2758,7 @@
         {
           "document": "css",
           "entry": "biblio-css-font-loading-3",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2772,7 +2772,7 @@
         {
           "document": "css",
           "entry": "biblio-css-grid-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2786,7 +2786,7 @@
         {
           "document": "css",
           "entry": "biblio-css-grid-2",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2800,7 +2800,7 @@
         {
           "document": "css",
           "entry": "biblio-css-lists-3",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2814,7 +2814,7 @@
         {
           "document": "css",
           "entry": "biblio-css-logical-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2828,7 +2828,7 @@
         {
           "document": "css",
           "entry": "biblio-css-masking-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2842,7 +2842,7 @@
         {
           "document": "css",
           "entry": "biblio-css-nesting-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2856,7 +2856,7 @@
         {
           "document": "css",
           "entry": "biblio-css-scroll-anchoring-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2870,7 +2870,7 @@
         {
           "document": "css",
           "entry": "biblio-css-scroll-snap-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2884,7 +2884,7 @@
         {
           "document": "css",
           "entry": "biblio-css-scrollbars-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2898,7 +2898,7 @@
         {
           "document": "css",
           "entry": "biblio-css-shapes-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2912,7 +2912,7 @@
         {
           "document": "css",
           "entry": "biblio-css-speech-1",
-          "kind": "normative"
+          "kind": "informative"
         },
         {
           "document": "tts",
@@ -2931,7 +2931,7 @@
         {
           "document": "css",
           "entry": "biblio-css-transitions-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2945,7 +2945,7 @@
         {
           "document": "css",
           "entry": "biblio-css-view-transitions-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2959,7 +2959,7 @@
         {
           "document": "css",
           "entry": "biblio-css-writing-modes-4",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2973,7 +2973,7 @@
         {
           "document": "css",
           "entry": "biblio-cssom-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -2987,7 +2987,7 @@
         {
           "document": "css",
           "entry": "biblio-cssom-view-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -3001,7 +3001,7 @@
         {
           "document": "css",
           "entry": "biblio-filter-effects-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -3015,7 +3015,7 @@
         {
           "document": "css",
           "entry": "biblio-geometry-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -3029,7 +3029,7 @@
         {
           "document": "css",
           "entry": "biblio-mediaqueries-4",
-          "kind": "normative"
+          "kind": "informative"
         },
         {
           "document": "multi-rend",
@@ -3048,7 +3048,7 @@
         {
           "document": "css",
           "entry": "biblio-motion-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -3062,7 +3062,7 @@
         {
           "document": "css",
           "entry": "biblio-resize-observer-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
@@ -3076,7 +3076,7 @@
         {
           "document": "css",
           "entry": "biblio-web-animations-1",
-          "kind": "normative"
+          "kind": "informative"
         }
       ],
       "phase": "pending-applicability-review",
