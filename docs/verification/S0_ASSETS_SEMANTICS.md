@@ -72,7 +72,7 @@ passed attempts. The final index is rebuilt from the corrected fixed inputs.
 
 ## Executed checks on this proposal
 
-- `python3 -m unittest discover -s scripts -p 'test_*.py'`: **59/59**, 92.494s,
+- `python3 -m unittest discover -s scripts -p 'test_*.py'`: **59/59**, 91.319s,
   exit 0. Includes unchanged independent parent semantic/reference/pair
   controls, atomic incomplete-import rejection, missing CSS module/chapter,
   fabricated excerpts/execution/support, missing obsolete-anchor review,
@@ -106,6 +106,14 @@ Imports verify provenance before writing; generated index verification
 recomputes source bindings instead of trusting stored counts. The parent's
 latest acceptance record is present in the isolated tree for the eventual
 combined review, but is not duplicated in this bundle.
+
+The first documented import replay changed only row/section ordering. Keyed
+comparisons proved all 1474 rows, 725 manual records, 500 section records and
+metadata identical. The documented packet order is now the committed order;
+a second complete replay preserved the exact SHA-256 of matrix.json, MATRIX.md,
+derived.json and semantic-index.json. The previous 59-test run (92.494s) is
+retained separately; the final replayed tree's 59-test run is the 91.319s result
+above. The earlier checkpoint bundle is retained, not overwritten.
 
 The parent must independently examine the stable semantics and applicable
 exclusions/gaps, integrate its acceptance evidence, and authorize the fixed
