@@ -1,6 +1,6 @@
 # Kepub 开发方案
 
-> 文档版本：0.10（开发计划；新接口暂定）· 更新日期：2026-10-05
+> 文档版本：0.10（开发计划；新接口暂定）· 更新日期：2026-10-06
 >
 > 当前路线：先补 Issue #3 的规范资产与差距矩阵 S0，再按 §11.7 完成独立 CLI 的 T1～T6，默认 EPUB3、显式 EPUB2 → EPUB3 转换，不新增嵌入字体。近期不集成外部编辑器、UI 或 Amp；真实预览、完整排版和无障碍验收保留在后续 S2～S4，不从最终目标删除。T6 完成不等于 Issue #3 关闭，阶段映射和关闭门槛见 §11.8。
 >
@@ -15,6 +15,8 @@ v0.10 根据 [Issue #4：EPUB CLI 生态借鉴、安全修复与分层校验](ht
 用户随后授权先由真实 Droid 审核计划，无阻塞问题后按 S0 → T1～T6 开发并循环 review。前三轮全文计划审核依次提出 9 项、6 项及 1 项问题，修订了 S0 退出清单、XML 语义与预算、字体混淆、EPUB2 资产、checker 覆盖和 CSS 阶段分工。R4 定向复核关闭索引问题并要求补明测试措辞，R5 已确认该补句关闭剩余问题；当前满足开始 S0 的计划门槛，不表示实现或规范归档已完成。
 
 各轮真实模型、输入 hash、发现、失败、completion 和未测范围见 [v0.10 计划审核](verification/V010_PLAN_REVIEW.md)。R4／R5 是增量确认，不冒称全量复审；实现仍须逐批通过测试、真实 CLI／EPUBCheck、Droid review 和父独立验收。此前“暂停”记述是历史状态，S0 通过前仍不恢复 T1 产品实现。
+
+S0 已本地建立原文归档、官方用例来源／工件索引、上游版本与许可记录，以及离线矩阵生成和校验脚本。资产修复 P1～P5 已独立复验；完整语义增量仍在父验收和修复中，随后还需固定树的真实 Droid 审查。进度与历史失败见 [S0 父验收](verification/S0_PARENT_ACCEPTANCE.md)，实际 checker 增量见 [S0 EPUBCheck 核验](verification/S0_EPUBCHECK_2026.md)。归档／生成不算官方用例执行，不提升 CLI 功能状态，不表示 S0 已通过或已经推送／发布。
 
 v0.9 对齐 [Issue #3：EPUB 3.3 全规范兼容与 XHTML／CSS 全面排版](https://github.com/LeviTK/Kepub/issues/3) 的完整正文（2026-10-05 核对，当前无评论）。该 issue 是跨 CLI、核心、预览和验收的总目标；本版补齐规范归档、五维能力证据、阶段映射和关闭条件，不把它误缩为六批终端功能，也不把后续 GUI 强行放进当前 CLI 批次。编码 Orb 报告的 T1 初稿尚未编译／测试／集成，仍待 S0 验收后恢复；旧基线普通／race／vet 通过不是新功能证据。
 
@@ -580,7 +582,7 @@ S0 建立单一机读来源，生成供人阅读的矩阵；后续 capabilities�
 
 五维分别使用 `supported | partial | unsupported | policy-disabled | not-tested`；条款不适用另写理由。规范 BCP 14 完整关键字集（MUST／MUST NOT／REQUIRED／SHALL／SHALL NOT／SHOULD／SHOULD NOT／RECOMMENDED／NOT RECOMMENDED／MAY／OPTIONAL）、无关键字的定义约束、deprecated 与产品预算／安全策略分别记录，条款清点单位按 §11.8 第 3 项。条件要求在启用对应功能时纳入，不通过选择低能力 profile 隐藏适用 MUST。实现状态 `planned/available/unavailable` 和单次检查 `passed/failed/not_run` 是不同维度，保留既有 schema，不替换旧枚举。
 
-诊断区分非法输入、产品预算、未实现能力和策略禁用，携带规范来源、精确 BookPath／位置、处理阶段及 revision／snapshot。publication conformance、引用覆盖、rendering 和人工 accessibility 独立出结果；缺工具、超时、未测、部分覆盖都不能提升成 supported。矩阵、机读字段和自动生成尚未实现，本次只完善其设计。
+诊断区分非法输入、产品预算、未实现能力和策略禁用，携带规范来源、精确 BookPath／位置、处理阶段及 revision／snapshot。publication conformance、引用覆盖、rendering 和人工 accessibility 独立出结果；缺工具、超时、未测、部分覆盖都不能提升成 supported。S0 离线矩阵与生成脚本已建立、正在验收；CLI 机读字段和上述增量诊断仍是设计，不因资产存在而报告 available。
 
 ### 7.5 ValidationDelta：诊断身份、来源映射与检查覆盖
 
@@ -968,7 +970,7 @@ S 编号对应总目标，T 编号对应近期 CLI 的实现批次；不是两�
 
 **S0 完整性验收：** 保留完整原文、章节、附录、示例、图示、schema、必要静态资源及版权／许可；生成 manifest，包含文档名、`normative/supporting-note/external-dependency/test/errata` 类别、规范等级、请求与最终 URL、固定版本、下载时间、字节数、SHA-256、依赖与失败项。缺页／缺图、失败下载、占位或验证码页、空动态壳、版本漂移均不能通过完整性检查。下载脚本可重复执行、原文可离线索引；升级有 diff 和审核，不覆盖旧证据。
 
-上述完整性失败针对本阶段必须全文归档的范围；外部依赖清单中明示后续阶段的未下载项不算下载成功，也不隐含阻塞全部 T1。建议落点为 `docs/specs/epub-3.3/`、`docs/EPUB33_SUPPORT_MATRIX.md` 与 `scripts/fetch-epub33-specs.*`；机读矩阵字段见 §7.4，具体存储格式在 S0 冻结。当前未创建这些资产，计划审核用临时规范抓取不是 S0 交付。S0 将条款对应到代码、诊断和测试，不只复制一份规范目录。
+上述完整性失败针对本阶段必须全文归档的范围；外部依赖清单中明示后续阶段的未下载项不算下载成功，也不隐含阻塞全部 T1。实际资产位于 `docs/specs/epub-3.3/`，说明见 [S0 矩阵](EPUB33_SUPPORT_MATRIX.md)，下载／索引／校验入口为 `scripts/epub33_assets.py` 及相关 Python 脚本；机读矩阵字段见 §7.4，具体存储格式在 S0 验收后冻结。计划审核用临时抓取不代替这些交付；资产已创建也不等于完整语义和阶段门槛通过。S0 将条款对应到代码、诊断和测试或明确缺口，不只复制一份规范目录。
 
 **Orb 实现与 Droid 循环：** 原父 Orb 唯一协调，负责三份主文档、文件所有权、精确基线传输、集成与独立验收；现有 Medium 编码子 Orb 保留未提交初稿，收到新基线并核对后按父指令恢复。子 Orb 不能创建子 Orb，所需独立环境由父创建；不以普通 Task 冒称子 Orb。当前无需新增工作线程。
 
@@ -998,7 +1000,7 @@ S 编号对应总目标，T 编号对应近期 CLI 的实现批次；不是两�
 | T6 | 在无 Calibre／Node／浏览器／Rust／Amp 等可选依赖环境完成核心流程；另验缺 Java／EPUBCheck 的失败路径。平台实测、包体与来源分别记录，不引用旧树或上游性能作本版证据 |
 | S2／S3／S4 | 后续参考 Readium 资源服务与 CSS，仍按冻结快照、受限本机访问、作者原样／偏好覆盖及真实 Mac 渲染验收；可选 Ace 自动报告、固定官方用例与人工／VoiceOver 分开，不自动认证，不以研究工具收窄 #3 |
 
-**未来交付物：** 复用 S0 索引登记 repo、commit／release、取得日期、许可／NOTICE、依赖／工具 hash、机器协议、规则及证据强度；跨项目采用决策可另落 `docs/research/EPUB_CLI_ECOSYSTEM_REVIEW.md`，避免复制规范矩阵。对应 fixtures／验证记录在实施时新增，私有书籍和未授权字体不公开。以上文件与机器 schema 当前未新增；可选 adapter 只有在 §8.3 的隔离副本、完整输出、来源及取消测试通过后才启用。
+**交付物与后续增量：** S0 上游研究索引已登记 repo、commit／release、取得日期与许可记录；继续补齐实际采用所需的依赖／工具 hash、机器协议、规则及行为证据。跨项目采用决策可另落 `docs/research/EPUB_CLI_ECOSYSTEM_REVIEW.md`，避免复制规范矩阵。对应 fixtures／验证记录在实施时新增，私有书籍和未授权字体不公开。研究库存不是采用或运行验证；当前仍有一个已披露的许可缺口，阻止相应后置 adapter 的采用。CLI 新机器 schema 尚未实现；可选 adapter 只有在 §8.3 的隔离副本、完整输出、来源及取消测试通过后才启用。
 
 **Issue #4 落实门槛：** 五组角色和取舍可追溯，实际采用的版本／协议／许可及供应链完成核验；T1 的合法输入接纳与 repair 分开，T2 有真实提案／事务／诊断差异／恢复证据，T3／T4b／T5 具备相应对照反例；正式门槛、旧 schema 来源和无新增字体约束不退步；按 §11.6 执行受影响测试和实际 CLI／平台验收。后置或不采用项目明确记录理由，不以“未集成全部工具”阻塞 T6。只改计划不能勾选实现完成或关闭 issue；#4 落实也不等于 #3 的规范、渲染、无障碍目标完成。
 
