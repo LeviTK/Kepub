@@ -24,7 +24,7 @@ func executeWorkspace(ctx context.Context, o options) (any, error) {
 	case "apply":
 		return app.ApplyWorkspace(o.workspace, o.plan)
 	case "task":
-		return app.WorkspaceTask(ctx, o.workspace, o.book, o.action, v)
+		return app.WorkspaceTask(ctx, o.workspace, o.book, o.action, v, !o.json)
 	}
 	return nil, fault.New(2, "INVALID_ARGUMENT", "unknown workspace command")
 }

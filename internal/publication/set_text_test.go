@@ -3,6 +3,7 @@ package publication
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/xml"
 	"fmt"
 	"strings"
 	"testing"
@@ -167,13 +168,17 @@ func FuzzContentSimpleTextReplacement(f *testing.F) {
 		if changed != (value != "Same&😀") || !bytes.HasPrefix(out, []byte(prefix)) || !bytes.HasSuffix(out, []byte(suffix)) {
 			t.Fatal("non-target bytes changed")
 		}
-		// A separate standard decoder-backed C2 parser independently decodes
-		// the returned tree, rather than deriving expected text from Replace.
-		doc, err := parseXML(out)
-		if err != nil {
+		// Publication now shares xmltext's parser. Use the standard decoder
+		// directly for an independent decoded-text expectation instead.
+		var doc struct {
+			Body struct {
+				P []string `xml:"p"`
+			} `xml:"body"`
+		}
+		if err := xml.Unmarshal(out, &doc); err != nil {
 			t.Fatal(err)
 		}
-		if len(doc.Children) != 1 || doc.Children[0].Children[1].Content != value {
+		if len(doc.Body.P) != 3 || doc.Body.P[1] != value {
 			t.Fatal("decoded replacement mismatch")
 		}
 	})

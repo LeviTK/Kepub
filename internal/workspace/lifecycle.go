@@ -278,11 +278,148 @@ func (w *Workspace) TaskID() (string, error) {
 	return w.taskID()
 }
 
+type TaskStatus struct {
+	WorkspaceID      string     `json:"workspaceId"`
+	TaskID           string     `json:"taskId"`
+	BaseRevision     string     `json:"baseRevision"`
+	CurrentRevision  string     `json:"currentRevision"`
+	Status           string     `json:"status"`
+	ExecutionStatus  string     `json:"executionStatus,omitempty"`
+	ReviewRequired   bool       `json:"reviewRequired"`
+	MatchesExecution bool       `json:"matchesExecution"`
+	Decision         *Decision  `json:"decision,omitempty"`
+	Checks           []Decision `json:"checks"`
+}
+
+// Status is exact-ID and source-verified, including settled historical tasks.
+// It cannot confer approval or substitute another (or the latest) task.
+func (w *Workspace) TaskStatus(id string) (TaskStatus, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if err := w.ready(); err != nil {
+		return TaskStatus{}, err
+	}
+	if err := w.verifyBaseline(); err != nil {
+		return TaskStatus{}, err
+	}
+	r := TaskStatus{WorkspaceID: w.id, TaskID: id, CurrentRevision: w.current, Checks: []Decision{}}
+	if exists(w.root, "tasks/active") {
+		active, err := w.taskID()
+		if err != nil {
+			return TaskStatus{}, err
+		}
+		if id == active {
+			r.BaseRevision = w.current
+			r.Status = "pending"
+			if exists(w.root, "tasks/active/edit-intent.json") {
+				e, err := w.execution()
+				if err != nil && !errors.Is(err, ErrCandidateDrift) {
+					return TaskStatus{}, err
+				}
+				r.Status = e.Status
+				r.ExecutionStatus = e.Status
+				r.MatchesExecution = err == nil
+				r.ReviewRequired = e.ReviewRequired && err == nil
+				if err != nil {
+					r.Status = "candidate_drift"
+				}
+			}
+			r.Checks, err = w.taskChecks("tasks/active", id, r.BaseRevision)
+			return r, err
+		}
+	}
+	if !validID(id) || !exists(w.root, "tasks/"+id) {
+		return TaskStatus{}, ErrTaskConflict
+	}
+	dir := "tasks/" + id
+	var d Decision
+	if err := readEditJSON(w.root, dir+"/decision.json", &d); err != nil {
+		return TaskStatus{}, err
+	}
+	if d.Version != 1 || d.TaskID != id || (d.Status != "accepted" && d.Status != "rejected") {
+		return TaskStatus{}, fmt.Errorf("invalid historical decision")
+	}
+	if _, err := w.readRevision(d.BaseRevision); err != nil {
+		return TaskStatus{}, err
+	}
+	if d.Status == "accepted" {
+		rev, err := w.readRevision(d.RevisionID)
+		if err != nil {
+			return TaskStatus{}, err
+		}
+		if rev.TaskID != id {
+			return TaskStatus{}, fmt.Errorf("historical task/revision mismatch")
+		}
+	} else if d.RevisionID != "" || d.Validation != nil {
+		return TaskStatus{}, fmt.Errorf("invalid rejection")
+	}
+	j := settlement{Version: 1, WorkspaceID: w.id, Decision: d}
+	if err := w.taskDigests(dir, &j); err != nil {
+		return TaskStatus{}, err
+	}
+	r.BaseRevision = d.BaseRevision
+	r.Status = d.Status
+	r.Decision = &d
+	if exists(w.root, dir+"/edit-result.json") {
+		var e Execution
+		if err := readEditJSON(w.root, dir+"/edit-result.json", &e); err != nil {
+			return TaskStatus{}, err
+		}
+		var stored Plan
+		var used planUse
+		if err := readEditJSON(w.root, "plans/"+e.Plan.ID+".json", &stored); err != nil {
+			return TaskStatus{}, err
+		}
+		if err := readEditJSON(w.root, "plans/"+e.Plan.ID+".used.json", &used); err != nil {
+			return TaskStatus{}, err
+		}
+		if digest(stored) != digest(e.Plan) || used.Version != 1 || used.TaskID != id || used.PlanSHA256 != digest(e.Plan) {
+			return TaskStatus{}, fmt.Errorf("historical plan consumption mismatch")
+		}
+		r.ExecutionStatus = e.Status
+	}
+	checks, err := w.taskChecks(dir, id, r.BaseRevision)
+	r.Checks = checks
+	return r, err
+}
+
+// Attempts are reported individually, not called latest or mistaken for a
+// settled decision. Random audit filenames do not provide chronological order.
+func (w *Workspace) taskChecks(dir, id, base string) ([]Decision, error) {
+	out := []Decision{}
+	if !exists(w.root, dir+"/checks") {
+		return out, nil
+	}
+	entries, err := fs.ReadDir(w.root.FS(), dir+"/checks")
+	if err != nil {
+		return nil, err
+	}
+	for _, entry := range entries {
+		name := entry.Name()
+		if len(name) != 37 || name[32:] != ".json" || !validID(name[:32]) {
+			return nil, fmt.Errorf("invalid check audit filename")
+		}
+		var d Decision
+		if err := readEditJSON(w.root, dir+"/checks/"+name, &d); err != nil {
+			return nil, err
+		}
+		if d.Version != 1 || d.TaskID != id || d.BaseRevision != base || d.RevisionID != "" || (d.Status != "checks_passed" && d.Status != "checks_failed") || d.Validation == nil || d.Validation.InputTreeSHA256 != d.TreeSHA256 {
+			return nil, fmt.Errorf("invalid check audit provenance")
+		}
+		out = append(out, d)
+	}
+	return out, nil
+}
+
 // TaskDiff always observes actual candidate bytes; tampering does not prevent
 // review/rejection and cannot inherit the execution's review status.
 func (w *Workspace) TaskDiff(id string) (Review, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	return w.taskDiff(id)
+}
+
+func (w *Workspace) taskDiff(id string) (Review, error) {
 	if err := w.requireTask(id); err != nil {
 		return Review{}, err
 	}

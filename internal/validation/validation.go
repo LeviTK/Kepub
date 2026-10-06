@@ -103,7 +103,7 @@ func CheckZIP(ctx context.Context, filename, expectedSHA256 string, o Options) (
 	start := time.Now()
 	p, parseErr := publication.Load(a, o.Rootfile)
 	r.Checks[1].ElapsedMilliseconds = time.Since(start).Milliseconds()
-	r.Checks[1].Coverage = "selected container/OPF structure and supported UTF-8 XML; not EPUB conformance"
+	r.Checks[1].Coverage = "selected container/OPF structure and supported UTF-8/UTF-16 XML; T1b DTD/entities pending; not EPUB conformance"
 	if parseErr != nil {
 		r.Checks[1].Status = "failed"
 		appendDiagnostic(&r, publication.DiagnosticFor(parseErr, "", ""))

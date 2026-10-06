@@ -72,7 +72,7 @@ func TestNavigationDiagnostics(t *testing.T) {
 		{"wrong token", `e:type="toc"`, `e:type="toc-other"`, "blocked", "NAVIGATION_STRUCTURE"},
 		{"base", "<body>", `<head><base href="elsewhere/"/></head><body>`, "blocked", "NAVIGATION_STRUCTURE"},
 		{"bad XML", "</body>", "</broken>", "blocked", "XML_NOT_WELL_FORMED"},
-		{"DTD", "<html", `<!DOCTYPE html SYSTEM "https://example.invalid/remote.dtd"><html`, "blocked", "XML_DTD_FORBIDDEN"},
+		{"DTD", "<html", `<!DOCTYPE html SYSTEM "https://example.invalid/remote.dtd"><html`, "blocked", "UNSUPPORTED_XML_DTD"},
 		{"xml base", "<body>", `<body xml:base="Text/">`, "blocked", "UNSUPPORTED_XML_BASE"},
 		{"empty label", ">Part A</span>", "></span>", "partial", "NAVIGATION_STRUCTURE"},
 	} {
