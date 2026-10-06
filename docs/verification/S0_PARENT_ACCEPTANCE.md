@@ -199,3 +199,11 @@ F3／F4／F6、P8 及 T3 前置机读登记仍由编码 Orb 修复，尚未父�
 子侧首次 91-test 运行的一个新增测试失败保留：测试按相同 XPath 误选了 RS 记录，不是其意图的 EPUB 同节相邻绑定反例；修正选择条件后原异常预期不变。最终子侧 92/92 PASS 229.677s 与父独立结果分开。初次 NVDL 捕获因 namespace 不完整只得 111 文件的错误成功也保留，最终以精确 15-file 闭包和独立字节对照验收；原样上游文件的 whitespace 检查 exit 2 不伪称通过。详细记录见 [第二批修复](S0_ASSETS_R1_SOURCE_CORRECTIONS.md)。
 
 当前已复现的 R1/P8 修复已关闭，但新固定树仍未获 Droid 批准。下一步是冻结最终组合输入并执行真实完整 R2；不拿 R1 的局部阅读、正常进程退出或这批 92 个通过测试替代。T1 暂停，未 push／发布。
+
+### 最终组合已冻结，R2 已真实启动但尚未完成
+
+父集成树完整 Python 再次 **92/92 PASS，270.394s**，日志 SHA-256 `d6e6f59bea54c1f3338d65c4980dadfa7c54a91cca39bfb3dc89ede59c16fea8`。五份文档的相对文件链接及增量空白检查通过；产品和矩阵数据没有再改。固定本地 `main` 为 `c73c43b9c37678746da8b1d94a6169e4008bcfda`，审查 fixture `4bf36edc73cc014581bd991d15ce64cc1d7fb35a` 与其完整 tree **`1f23318d56fc9bfc58bcf5876d158e64d6ed2e87`** 相同；fixture 仅用已有子提交作父节点以传递五份文档，不改变任何受审内容。
+
+实际上传 bundle 为 **20,823 bytes**、SHA-256 `2cd0ad872fad8e06344b5f35263605b52855b8a590f54c66d1aae8738f0aaf94`，前置 `df57cdd`；子实际 verify／fetch 并核对 tree。双方重算 **821 个 acceptance inputs** 逐项相同，canonical SHA-256 **`088c7013ff7420b5b3178e24c9b574edace562d750257824c8cb79dbe4e47788`**。输入清单文件 104,705 bytes、SHA-256 `1d0376ced5c986e403fa61ebb3506ba12e8b1363e90559ca99036ae377679108` 已实际传输。此进度记录不参与该输入身份；报告／批准须独立绑定它，不通过修改原文或布尔状态关闭门禁。
+
+新独立 R2 的实际 CLI **0.233.0**；stream init 确認 **claude-opus-5-5／medium**，会话 `67e3d3fb-70c7-4c48-a091-6e77ecc9c53a`，外层原进程 PID `118306`，固定目录 `/tmp/kepub-s0-droid-review-r2`。目前只有启动与阅读进度证据，**没有 completion、实际 exit 或批准结论**。初次发送启动指令异常后先查证未送达，再重新投递；文件传输成功不误当作任务已启动，没有并发或重复审查。继续跟随原进程，不提前恢复 T1。
