@@ -14,7 +14,7 @@ Obsidian CLI 的参考取舍见 [开发方案 §9.1／§9.2](DEVELOPMENT_PLAN.md
 
 ## 2. 命令分组与实施次序
 
-下表 M0～M6 是技术工作包编号，不再表示执行先后。当前先完成 [S0 规范资产与差距矩阵](DEVELOPMENT_PLAN.md#118-issue-3-阶段映射规范资产与关闭门槛)，再按 [开发方案 v0.10 §11.7](DEVELOPMENT_PLAN.md#117-v010-独立-cli-批次与完成标准) 完成独立终端制书：默认 EPUB3、EPUB2 → EPUB3 转换、完整 EPUB3 XHTML、样式和系统字体发现；本阶段不接入 UI、Amp 或外部编辑器。C1 发现／诊断、C2 有界内容读取／定位、C3 单个 XHTML 简单文本确定性修改已实现并作为源码发布到 main，尚无版本化安装包。C3 操作 schema 在 §2.2 冻结；支持边界见 [§11.4](DEVELOPMENT_PLAN.md#114-首个正文读写版本的边界)。T1a 已本地验收并集成（未推送），编码／search／status／终端输出见 §2.4；T1b 与 §2.3、§2.5～§2.6 的其余能力仍待实施。CLI 完成不等于 Issue #3 的真实排版／无障碍目标完成。
+下表 M0～M6 是技术工作包编号，不再表示执行先后。当前先完成 [S0 规范资产与差距矩阵](DEVELOPMENT_PLAN.md#118-issue-3-阶段映射规范资产与关闭门槛)，再按 [开发方案 v0.10 §11.7](DEVELOPMENT_PLAN.md#117-v010-独立-cli-批次与完成标准) 完成独立终端制书：默认 EPUB3、EPUB2 → EPUB3 转换、完整 EPUB3 XHTML、样式和系统字体发现；本阶段不接入 UI、Amp 或外部编辑器。C1 发现／诊断、C2 有界内容读取／定位、C3 单个 XHTML 简单文本确定性修改已实现并作为源码发布到 main，尚无版本化安装包。C3 操作 schema 在 §2.2 冻结；支持边界见 [§11.4](DEVELOPMENT_PLAN.md#114-首个正文读写版本的边界)。T1a／T1b 已本地验收并集成（未推送），编码／内部子集／来源及 search／status／终端输出见 §2.4；§2.3、§2.5～§2.6 的其余能力仍待实施。CLI 完成不等于 Issue #3 的真实排版／无障碍目标完成。
 
 | 命令形态 | 语义 | 阶段 |
 |---|---|---|
@@ -124,9 +124,9 @@ Apply、Open 恢复和 Accept 都须重新推导相同的单资源写集合及�
 
 以上通过实现与独立验收后才进入 capabilities 的可用项；已交付的 T1a 编码／终端增量见下一节，不扩大 §2.2 的简单文本写权限，也不使下文历史设计示例立即可执行。
 
-### 2.4 T1 终端增量实施契约（T1a 已验收，T1b 待实现）
+### 2.4 T1 终端增量实施契约（已本地验收）
 
-本节的 T1a 入口、原生 HTML DOCTYPE 与编码增量已本地集成并通过父验收及 DeepSeek V4.1 Flash 的代码／demo 审计，未推送或发行，证据见 [T1a 验证](verification/T1A_ENCODING_TERMINAL.md)。下文明确属于 T1b 的 DTD／实体／默认属性语义仍待实现，不以 T1a 通过替代完整 T1。既有 JSON envelope、单资源 `content`、操作／计划／执行版本和正式检查门槛不变。
+本节 T1a 入口、原生 HTML DOCTYPE／编码增量及 T1b 内部 DTD／实体／默认属性／来源均已本地集成，分别通过父验收及 DeepSeek V4.1 Flash 的代码／demo 审计，未推送或发行。证据见 [T1a 验证](verification/T1A_ENCODING_TERMINAL.md)与 [T1b 验证](verification/T1B_XML_SUBSET.md)。两批通过仅完成规定的 T1 范围，不代表完整编辑器或全产品复审。既有 JSON envelope、单资源 `content`、操作／计划／执行版本和正式检查门槛不变。
 
 - `kepub search --workspace DIR --query TEXT [--limit N] --json`：持锁读取所选 rootfile 的 accepted revision，按 manifest 顺序检索其中所有 XHTML，不读取活动候选、不选另一个 rootfile。沿用 `content` 的区分大小写字面子串及节点／排除规则；命中数是匹配结果元素数，不是短语出现次数，不跨资源拼接匹配，也不是浏览器可见文本。
 - query 必填，范围为 1～4096 UTF-8 字节；limit 默认 50、范围 1～200。返回工作区／revision／rootfile 身份、完整匹配数、返回数和 truncated；每个结果包含精确 bookPath、原资源 SHA-256、locatorVersion、locator 和解码文本。达到返回数限制仍须扫描剩余资源才能声称完整匹配数。不同资源出现同一 locator 不合并。
@@ -141,7 +141,7 @@ Apply、Open 恢复和 Accept 都须重新推导相同的单资源写集合及�
 
 T1a 验收 raw／decoded／扫描／返回限额，DTD 声明数、实体展开／工作预算及下述未展开实体语义由 T1b 验收，不以“本节全部限额”把两个批次合并。
 
-EPUB3 依据固定 [§3.9](https://www.w3.org/TR/2026/REC-epub-33-20260113/#sec-xml-constraints)／附录 B 按 manifest 媒体类型检查 external identifier，接受允许的 NCX／SVG／MathML 元组但不读取任何外部 DTD 子集，包括离线 catalog；不接受 XHTML 外部标识符、内部子集中的外部 ENTITY 声明或 XInclude。内部子集按非验证 XML 语义处理，未知能力与非法输入分开；未声明实体不得静默从外部补齐。实体生成节点或默认属性无原始可写区间时明确拒绝直接局部写，不伪造 locator／offset，读取和原字节保留仍须正确。T3 显式 EPUB2 迁移模式才启用版本／hash／许可冻结的有限离线 DTD／实体；不读取书籍指定的任意 URL／本机路径，迁移结果和来源进入 diff。
+EPUB3 依据固定 [§3.9](https://www.w3.org/TR/2026/REC-epub-33-20260113/#sec-xml-constraints)／附录 B 按 manifest 媒体类型检查 external identifier，接受允许的 NCX／SVG／MathML 元组但不读取任何外部 DTD 子集，包括离线 catalog；不接受 XHTML 外部标识符、内部子集中的外部 ENTITY 声明或 XInclude。PUBLIC 仅在匹配键中按 XML §4.2.2 折叠合法 space／CR／LF 并去首尾空白；SYSTEM 精确匹配，存储标识符、NOTATION 输出和原资源字节不改。内部子集按非验证 XML 语义处理，未知能力与非法输入分开；未声明实体不得静默从外部补齐。实体生成节点或默认属性无原始可写区间时明确拒绝直接局部写，不伪造 locator／offset，读取和原字节保留仍须正确。物理独立起止标签内的已知纯文本实体可按 §2.2 整段替换原始内部区间；no-op 保留实体引用，声明及目标外字节不改。生成边界、子元素／注释／CDATA／PI、未知内容仍不满足简单文本写条件。T3 显式 EPUB2 迁移模式才启用版本／hash／许可冻结的有限离线 DTD／实体；不读取书籍指定的任意 URL／本机路径，迁移结果和来源进入 diff。
 
 XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场景，可能存在良构但未取得声明的实体引用。T1b 必须记录未展开实体名、原字节位置和 partial 来源，保留原文，不以空串代替，不把后续可能被覆盖的声明／默认值当确定事实。使用独立能力诊断 `XML_ENTITY_UNRESOLVED`，禁止对依赖该未知内容的元素直接局部写；违反 Entity Declared WFC（如 standalone=yes）的输入仍报非良构。可表达 coverage 的读取／inspect 显式 partial；`content/search` 对应读取范围内的不完整文本明确 exit 3，不返回成功的残缺文本、完整匹配数或静默跳过资源。此实现是必需的可判定处理，不是允许必需解析项笼统报 unsupported。
 
@@ -149,7 +149,7 @@ XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场�
 
 限额与兼容验收包含 UTF-16 ASCII／CJK／代理对在原始 8 MiB 两侧，读取／写入／重算／历史一致。转码后跨 8 MiB 的成功样本用大段 CJK 注释与小段可编辑正文，确保索引未超限；LE／BE 各一份，均须验证读取／定位／局部编辑／来源重算／历史重开一致，不能仅验证解析。正文为主的 CJK 和不同嵌套深度另测索引超限拒绝，不以注释样本代表大正文容量。旧二进制不支持新增输入语法时允许安全拒绝，不能丢记录后“兼容”；旧输入及已发布摘要含义保持。语法错误／能力不足诊断变化在实现批次发布兼容说明，不冒称旧错误码含义未变。
 
-#### T1b 的 XML 来源输出（实施契约，尚待实现与验收）
+#### T1b 的 XML 来源输出（已本地验收）
 
 合法内部 `NOTATION` 的 SYSTEM／PUBLIC 标识符依据 XML §4.7 描述 notation，不是外部 ENTITY 声明或 DOCTYPE 外部子集。按 XML 语法解析并保留，向应用提供被引用的 notation 名称及标识符，绝不据此解析外部资源或启动程序。EPUB §3.9／附录 B 的 DOCTYPE 约束不扩大到所有 notation 标识符；内部子集中的外部 ENTITY 声明仍按 EPUB3 规则拒绝。此判定不豁免其他适用规范约束，也不将 parser 接受当作正式 checker 通过。
 
@@ -180,6 +180,7 @@ XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场�
 - `kind` 为 `general | parameter`；`startByte/endByte` 是含 BOM 的原始资源内 0-based 半开区间，不是解码流偏移。`origin:reference` 指实体引用自身的原字节；从实体展开间接产生、没有独立原始区间时，`origin:expansion` 指向导致该内容的原始引用区间，不冒充未知实体自身逐字节位置或可写区间。同一区间可关联多个展开来源，必须保留必要的不同实体记录；范围与资源 hash 绑定。
 - `notations` 元素为 `{name, publicId, systemId}`，未提供的标识符用空字符串；至少包括 XML §4.7 所述在属性值、属性定义或实体声明中被引用且本次已解析声明的 notation，允许同时报告已解析但未引用的声明。未知声明不得伪造标识符；外部 ENTITY 禁令仍适用，不因它引用 notation 而放行。它们是声明数据，不是可跟随 URL 或读取授权。资源内列表按声明／引用处理顺序确定；重复 notation 采用首个已解析声明作为本实现的确定性非验证策略，不靠 map 随机顺序决定语义。唯一名称是有效性约束（VC），不是良构约束（WFC）；此流程不声明 DTD 有效。后续同名声明仍完整保留在原资源字节中，本批不另加重复声明输出字段。
 - navigation／references 沿用已有 coverage、status 与 diagnostics。未知 XML 信息使结果至少为 partial；不足以建立导航／引用结构时仍可为 blocked，不把 blocked 降为 partial。两种状态独立：可表达的未展开 XML 来源仍报告 `xmlCoverage.status:partial`，纯业务结构阻断不把已完整解析的 XML 改为 partial；XML 非良构／限额等硬失败不为该资源生成 xmlCoverage 记录，而沿用 blocked／diagnostics 或相应命令失败，不能将失败伪装成 complete。不得从未知默认属性／实体文本生成肯定的引用或“无引用”结论。`content/search` 仍只返回完整文本，应读取范围不完整时 exit 3／`XML_ENTITY_UNRESOLVED`，不返回成功的残缺匹配数；不得靠 query 或 limit 跳过未知内容。依赖未知值的写入、实体生成节点或其他无独立原始可写区间的目标拒绝直接局部写。
+- 导航结构诊断使用相关元素的局部确定性，不因整书 partial 一律隐藏错误。未知实体可能生成所需子节点／标签时，不断言其缺失；已知重复、非法子节点、非空白裸文本及已知缺失仍诊断。未知 href/src 的 target／exists 保持 null，已知链接不被未知标签抹掉；未知标签可保留字面引用，但 partial 结果不保证未知部分展开后的全书导航语义。
 
 这些增量只表达本次 XML 来源与不确定性，不提前实现 §2.5 的全规范五维能力模型。验收须检查 UTF-16 原字节区间、直接／嵌套实体来源、NOTATION、缺失 PE 后默认属性、standalone=yes 非良构反例、无外部读取，以及旧无 DTD 输出的兼容性。
 
