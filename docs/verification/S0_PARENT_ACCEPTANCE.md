@@ -2,7 +2,7 @@
 
 ## 当前结论：阶段资产未通过总验收
 
-首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P8、Droid R1 F1～F6 的阶段修复复验并集成本地 `main`，但后续 S0 实现 Droid R2 已实际结束并拒绝批准。R2 发现新的规范映射遗漏和验证器缺口；父进一步发现之前 P8 修复把两个字体算法定义段落错误排除，须按下述 P9 更正。旧测试通过不能证明该解释正确，旧验收记录保留而不充当当前批准。计划本身复审已完成，S0 实现仍待修复、独立复验、新固定输入的真实 Droid 审查及实际门禁通过；T1 继续暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
+首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P8、Droid R1 F1～F6 的阶段修复复验。后续 S0 实现 Droid R2 实际结束并拒绝批准，发现新的规范映射遗漏和验证器缺口；父进一步发现 P8 修复错误排除两个字体算法定义段落，已按 P9 更正。R2／P9 修复现已父独立复验并集成本地 `main`，详见末节；旧失败和错误验收记录保留，不充当当前批准。计划本身复审已完成，S0 实现仍待最终组合检查、新固定输入的真实 Droid 审查及实际门禁通过；T1 继续暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
 
 首次受审阶段提交为编码 Orb 的 `b92e1903d831d48ae9df13c8592024e69dac0ed2`；父在独立 worktree `/tmp/kepub-s0-parent-review` 检查，当时没有把阶段资产合入父本地 `main`。以下首次失败记录予以保留；后续修复结果单独记录，不覆盖原结果。检查未修改产品或三份冻结主文档。
 
@@ -231,3 +231,17 @@ F3／F4／F6、P8 及 T3 前置机读登记仍由编码 Orb 修复，尚未父�
 父独立新增 `.agents/kepub-s0-parent-algorithm-scope-correction.py`，SHA-256 `d1d8ce4749e5fec5932684fdaea5e962cd8e97e671fb67ba30d7b13cbb4aad4a`，在未修复父树实际 **4 tests／5 failures＋1 error，23.542s，exit 1**。有效矩阵和九条伪代码排除正控通过；三定义映射失败，恢复原身份被错误拒绝，而 EPUB／RS 的具名 Explanation 反而允许伪造 mapped。红日志 SHA-256 `d54b373db1a1b8dc12e9b721537abb115d885c721e5eee108d6175e375e2c239`。脚本及两份官方 patch 均已实际上传编码 Orb，要求原样保留父反例并公开纠正旧测试，不删掉失败记录。
 
 当前授权修复仅限 S0 来源数据／导入／验证及相应测试。导入完成所有 review 和 amendment 合并后、写文件前检查既有身份不得丢失；正式 algorithm 步骤／分支和明确审核的列表／定义家族须从冻结 DOM 独立枚举，不能让宽祖先、幸存 sibling、重复项或 Explanation 代替成员。该有限核对不等于增加通用的每段落义务台账，也不取代当前输入的父与 Droid 独立批准。父仍须验收实际修复和选择范围；**R3 未启动，S0 未批准，T1 暂停，未 push／发布**。
+
+## R2／P9 修复已独立复验并集成本地，尚待新审查
+
+父下载固定修复 `4fed666666a2c16380d19b4f18c4e69384afc0f4` 的 bundle，**27,322 bytes**、SHA-256 `cf334f3a710baf0b7a3734f89f03d9a872f1d959a82c352c9d96ac2c76b9dd9b`，前置 `df57cdd`。verify／实际 fetch 成功。初次 fetch 使用 `refs/heads/*` 通配，但该包仅导出 `HEAD`，没有取得对象，后续引用查询／checkout 失败；改用包内真实 `HEAD` 后成功。这个交接命令错误不是修复代码失败，原工作树也未被错误 checkout 改动。
+
+- 父在原独立 worktree 固定修复提交，逐项阅读三实现文件、新测试、14 个新增来源及修复记录。完整 Python **105/105 PASS，412.481s，exit 0**，日志 SHA-256 `e38887dbaa084d535ddbce7d74b480c47ad8f631f0a8ad4a337ad45dbc1c8948`；新增 P9 脚本与父原 SHA 完全一致，原九条伪代码控制也保留。不是只依据子侧 105/105、307.891s 的通过声明集成。
+- 首次按更新文档导入三 review／五 amendment、重建两个 index、四类 verify、official reproduce，全部 exit 0；随后 `git diff --exit-code` 和 staged diff 为零。正常 gate 实际 **exit 1：independent acceptance records missing**，不是来源错误造成的偶然拒绝。组合输出 `S0_PARENT_R2_FIXED_TREE_REPLAY_PASS`，日志 SHA-256 `92b823b3eedbb3c6a90611c390925f3ff40babe80a33105b9072d95addd3bcc6`。
+- 逐身份对照：**1533 个原身份全保留，14 新增；1547＝1484 mapped＋63 excluded，798 manual**。恰好原字体 p1／p3 两条的决定／理由／适用性／阶段改变，原来源字段不变；500 section records 原样保留，五维仍全部 `not-tested`。118 原资产、全部官方来源／工件／上游原始数据、产品 Go、module/setup 和三主文档无变化。两个新增官方历史 patch 与父独立取得的字节／hash 相同。
+- 新增来源分别保留 URL 两成功分支的 OR／AND 区别、空 property 限制、alternate 的两种条件语义及免除超链接义务、nav 的 a／span 含义、文件路径循环条件和 RS 的条件分支。多段步骤的后置判定／返回已有独立原记录，新验证器要求它们继续存在；不能以首段代替。27 个有限列表／定义家族来自固定 DOM，不靠幸存 sibling 触发，也没有扩为自动判断所有自然语言段落。
+- 真实反例覆盖删整族／整算法、宽祖先／重复兄弟／Explanation 替代、删后置段落、导入失败后矩阵字节不变、伪 reportCommit／上游角色，以及合法 pending 正控与 gate 负控。旧诊断测试与父原预期未被放宽；F-D 仍不被描述为绕过真实当前输入批准。
+- 子侧首次完整 **105 tests／2 FAIL／281.886s** 保留：坏输入实际被拒绝，但新增检查改变旧诊断顺序；修正诊断／顺序后，15 项定向和完整 105 项复跑通过。先前非法 HTML 夹具和文本抽取诊断失败同样保留，详见 [修复记录](S0_ASSETS_R2_CORRECTIONS.md)。本批未改变产品，未把旧 Go 组合重标为本批新产品验证。
+- 全增量 `git diff --check` 因原样历史 patch 中的空格／tab 返回 **2**；排除原始 patch 后源码、派生数据和文档范围的检查为 **0**。不格式化官方原始证据来制造全绿。父本地集成提交为 `5c8ad7e`，脚本、资产、产品、Go/module/setup 与受审树逐项相同；父另统一矩阵说明的计数与 P9 更正，不改规范或产品契约。
+
+这批已复现问题关闭不等于 S0 获准。最终父组合及新固定输入的完整 Droid 审查仍须实际结束并通过，再建立真实批准记录；当前无 `acceptance.json`，不恢复 T1，未 push／发布。

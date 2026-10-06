@@ -20,23 +20,25 @@ T1 requires current-input parent and actual Droid approval through the offline
 - [Stable semantic increment and actual checks](verification/S0_ASSETS_SEMANTICS.md)
 - [P6/P7 scope and provenance corrections](verification/S0_ASSETS_SCOPE_PROVENANCE.md)
 - [R1 gate, repository evidence and source-only status repairs](verification/S0_ASSETS_R1_GATE_EVIDENCE.md)
+- [R2 source reconciliation and algorithm-scope correction](verification/S0_ASSETS_R2_CORRECTIONS.md)
 - [Parent's actual 2026 checker evidence](verification/S0_EPUBCHECK_2026.md)
 
 The mechanical inventory contains 749 instances: EPUB publication
 408 BCP14 + 48 definition slots, reading systems 252 + 1, accessibility 40 + 0.
 It preserves repeated keywords, NOT forms, enclosing text, DOM identity, fixed
 document hashes and excerpt hashes. This is **not the final number of normative
-constraints**. The source review currently adds 784 manual instances, for 1533
-total rows: 1468 mapped + 65 reasoned exclusions. All five capability dimensions
+constraints**. The source review currently adds 798 manual instances, for 1547
+total rows: 1484 mapped + 63 reasoned exclusions. All five capability dimensions
 remain `not-tested`; all 500 core section records have source-review notes.
 The bounded Amp research drafts were corrected against the parent's independent
 attribute/default/landmarks tests and coding-Orb source review. P6 additionally
 retains ten informative-source observations as exclusions, not requirements;
 P7 binds manual version/section/identity fields directly to the fixed archive.
 The corresponding actual normative constraints remain mapped. Source-review
-notes alone are not independent acceptance or a successful Factory Droid review. R1
-completed with findings and explicitly incomplete detailed reading. Its raw
-evidence is retained, not promoted to approval. `semanticComplete` stays false;
+notes alone are not independent acceptance or a successful Factory Droid review.
+R1 and R2 completed with findings; their raw evidence and reading limitations
+are retained, not promoted to approval. Subsequent decisions belong in the
+parent acceptance record. `semanticComplete` stays false;
 the offline `gate` aggregates source, derivative, semantic, official-fixture
 and upstream validators and requires current-input parent and actual Droid
 approval records. Editing that boolean cannot close S0. Counts never establish
@@ -83,6 +85,14 @@ identities and section coverage before writing matrix bytes. Missing mappings
 or invented excerpts cannot partially replace the matrix. Amendment selectors
 retain independent value/default/alias/list-property instances and recompute
 their UTF-8 excerpt hashes. They never fabricate behavioral evidence.
+After all reviews and amendments are merged, import must retain every existing
+feature identity; mistaken observations remain as reasoned exclusions, not
+silent deletions. For sections marked complete, independent frozen-DOM checks
+reconcile formal algorithm steps/branches and 27 explicitly reviewed list/value/
+definition families. A wider ancestor, another sibling or an Explanation cannot
+replace a missing member; multiple statement paragraphs remain distinct.
+These bounded structural checks do not classify all natural-language obligations
+or prove semantic completeness. Pending sections still block the aggregate gate.
 
 The semantic index includes 169 official cases / 170 required publications,
 explicit source correspondences for 12 obsolete report anchors, 283 supporting
@@ -99,9 +109,19 @@ exact introductory context. AND ordering, any-of page-navigation triggers,
 one-of fallback alternatives, OPTIONAL objectives, namespace exclusions and
 iframe exceptions are distinct; none is a blanket mandatory feature. Value
 definitions bind their actual preceding `dt` to the mapped `dd`, without
-creating obligations from labels. Eleven old algorithm observations (nine
-pseudo-code identities and two explanatory paragraphs) are retained as
-exclusions under REC §1.5; compression-order/key/specifying MUSTs remain mapped.
+creating obligations from labels. Nine explicitly exemplary pseudo-code
+identities remain excluded. P9 corrects R1's overbroad exclusion of two font
+definition paragraphs: their original identities are restored to mapped, with
+the third XOR definition added. REC §1.5's named `details/summary Explanation`
+blocks are distinct from normative algorithm definitions and cannot be mapped
+as requirements. Compression-order/key/specifying MUSTs remain mapped.
+The R2 amendments add 14 source identities, including both OCF URL success
+branches, the filename/path loop condition, empty-property and alternate/nav
+definitions, and conditional RS algorithm grouping/branch statements. All 1533
+previous identities remain. Neither equivalent-result algorithms nor optional
+reading-system behavior requires literal example-code execution or new CLI/UI
+features. Historical review notes and superseded amendments remain visible;
+the final amendment order above supplies the corrected current mapping.
 
 The three fixed RECs' raw `data-tests` attributes are independently reconstructed:
 237 fragment references / 162 IDs, 158 known official cases; four unresolved
