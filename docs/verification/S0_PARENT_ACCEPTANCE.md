@@ -171,3 +171,15 @@ R1 在固定 fixture `be198c651be1197ae62109dd76e6d4d083cb1b23` 上运行，其�
 父独立脚本 `kepub-s0-parent-algorithm-tests.py` 实际 **2 tests／10 failures，10.114s，exit 1**：九条状态错误，另一个验证器反例表明重新强制 mapped 也不被拒绝。原有效矩阵 verify、原身份完整性及两个真实 MUST 正控通过。脚本 SHA-256 `d29d51d3b109c1e4a33dd3a00d25dd5fbfe618c32f04df73d7800a2c60b9e7a2`，红日志 SHA-256 `481a11e826c6090cebd92ad2e4df12ecf400cc6d144ab5dd3bc90d382a0d80bc`，均已实际传输。父一次只读探查误用不存在的 section 名称导致 `StopIteration`，改读真实 `obfus-algorithm` 后获得上述原文；不将该工具错误当产品失败。
 
 当前只完成发现复核与原始反例交接，修复包尚待父验收。三主文档仅同步事实状态，不收窄 S0 清单或产品规范承诺；R2 未启动，T1 暂停，没有 push／发布。
+
+## F1／F2／F5 首批修复已独立复验并集成，其余问题仍阻断
+
+父实际下载 `294cc8d7c342c99e36335412c6db6f48f0125d02` 的首批 bundle，**18,518 bytes**、SHA-256 `778735fe8976ead1bcd9c42df91abf5c914b34856b7120d1963a580e0e2b1564`，前置 `dbf8263`；verify／fetch 成功。在原独立 worktree 固定新提交，完整 Python **79/79 PASS，185.517s**；源码／测试与 [批次记录](S0_ASSETS_R1_GATE_EVIDENCE.md) 已逐项检查。不是根据子线程的 79 项通过声明直接合入。
+
+- 按更新后的文档首次执行完整 review import、两个 index、四类 verify 和 official reproduce，全部 exit 0；`git diff --exit-code` 与增量空白检查通过。正常 `gate` 实际 exit 1，明确为 `independent acceptance records missing`，不是无效来源造成的偶然拒绝。组合最终输出 `S0_PARENT_R1_VALIDATION_FIXED_REPLAY_PASS`。
+- 同样的五组原 `mutants.py` 探测在新固定树重跑：有效正控保持；bool 翻转不再放行；不存在 evidence 的支持声明、伪官方 executed/PASS、伪上游行为／采用均被所属 validator 和 aggregate gate 拒绝。其他无关 validator 的成功不能代替所属检查。固定树探测日志 SHA-256 `bd135c2e4c07d33b177ea6c384ed3526682e0edaab1a89e38154897679f48054`。
+- 父另跑真实 aggregate 集成对照，**1/1 PASS，108.314s**：在一次性完整副本中，仅重新绑定仓库根，不 mock 任何底层 validator；缺少凭据先拒绝，明确标注 synthetic 的一致凭据可通过，再分别修改 Go 代码、验证脚本和契约，使旧凭据因输入身份变化拒绝，恢复原字节后又可通过。临时目录自动清除，真实主树没有 `acceptance.json`，也没有真实 Droid 或父批准。该测试不是 S0 语义通过，只防止“门禁永远失败”制造假绿。脚本／日志 SHA-256 分别为 `1e3bc4df0a6a1ff79aa09fee208f70b6e29082e2b735d09365c2c3f813a96b38`／`f91de9b41411771c453f0e516f337bbff5f21fcf0b302b57df11b28893634834`。
+- 独立逐身份比较确认：1474 个 row、725 个手工来源、500 个章节记录身份保留；仅 13 行的 `evidence/testIds/gap` 改动，五维未提升。107 原始资产、170 必需测试书、上游原始文件、产品 Go、module 和本批三主文档没有改动。引用存在不等于执行通过，viewport／SVG 样本仍只代表既有窄范围。
+- 父本地集成为 `de53b5704799ac4885cf8bafe10a88c19c864ae5`，资产／脚本／产品与受审树完全一致；集成后完整 Python 再次 **79/79 PASS，181.240s**。固定／集成日志 SHA-256 分别为 `0a8e2b3fa879ef76f3ff11d94c9d19ee995d416296427022fc198de84e64eaec`／`9e78eeeb2b0f0872628471b891856b2e36a23fb7b4a6e621ce1d55ff0423c5f4`。本批不重新标注旧 Go 大组合为新结果。
+
+F3／F4／F6、P8 及 T3 前置机读登记仍由编码 Orb 修复，尚未父验收；新完整 Droid R2 未启动，S0 不通过，T1 仍暂停。以上仅是首批局部问题关闭，不是当前所有问题清零；未 push／发布。
