@@ -2,7 +2,7 @@
 
 ## 当前结论：阶段资产未通过总验收
 
-首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P8、Droid R1 F1～F6 的阶段修复复验。后续 S0 实现 Droid R2 实际结束并拒绝批准，发现新的规范映射遗漏和验证器缺口；父进一步发现 P8 修复错误排除两个字体算法定义段落，已按 P9 更正。R2／P9 修复已独立复验；固定输入 Droid R3 也已实际结束，但决定为 **rejected，readingComplete=false**。R3 的 41 项定义遗漏、父同组补查 10 项及相应对账修复已独立复验并集成本地 `main`，固定修复树与父最终组合均 115 项通过。新完整 Droid R4 已在精确冻结输入上真实启动，但随后被子 Orb 重启中断，**没有 completion、实际退出码或终局决定**。旧失败和错误验收记录保留，不充当当前批准。计划本身复审已完成，S0 实现仍待新完整审查及实际门禁通过；T1 继续暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
+首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P8、Droid R1 F1～F6 的阶段修复复验。后续 R2／P9 及 R3 的来源修复已独立复验并集成本地 `main`，固定修复树与父最终组合均 115 项通过。R4 被子 Orb 重启中断，没有 completion、实际退出码或决定；恢复后新完整 **R5 已实际 completion／exit 0，但决定为 rejected**。父已独立确认 contributor 继承遗漏及七处普通建议登记缺口，原样红测试交编码 Orb 修复。旧失败、阅读限制和错误验收记录保留，不充当当前批准。计划本身复审已完成，S0 实现仍待修复验收、新完整审查及实际门禁通过；T1 继续暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
 
 首次受审阶段提交为编码 Orb 的 `b92e1903d831d48ae9df13c8592024e69dac0ed2`；父在独立 worktree `/tmp/kepub-s0-parent-review` 检查，当时没有把阶段资产合入父本地 `main`。以下首次失败记录予以保留；后续修复结果单独记录，不覆盖原结果。检查未修改产品或三份冻结主文档。
 
@@ -314,3 +314,22 @@ R4 冻结目录 `/tmp/kepub-s0-droid-review-r4`；唯一启动外层 PID **20605
 原编码 Orb 从实际保留的 bundles 恢复固定 fixture 到 `/home/user/kepub-s0-durable/review-r5`，实现及 scratch／探针也使用独立持久目录，未覆盖原 T1 初稿。双方重算 **832 项输入及 canonical identity** 与 R4 启动前清单完全相同；父本地只追加本验收记录，不改受审输入。Go／Java／固定 EPUBCheck 版本已实测恢复，准备阶段的空测试仅证明编译就绪，不冒称执行 12 个 checker witness。
 
 父核验准备后单独授权唯一新 R5。实际下载的 init **1,389 bytes**、SHA-256 `5a35feceaadf6bc85bee508586927df9b475bc88376ab6149e4443701bb90656` 确认新会话 **`d29068a1-ec74-47ef-8999-e60bd42e71d4`**、上述持久 cwd、**claude-opus-5-5／medium**；CLI 实际 **0.233.0**。冻结 fixture／tree／输入身份仍为前述 R4 的同一内容，完整 S0 范围不缩为增量审核。当前仅确认启动，尚无 completion／actual child exit／最终决定；继续跟随唯一受监督会话，**S0 未批准，T1 暂停，未 push／发布**。
+
+## R5 实际结束并拒绝；父独立确认继承及建议登记遗漏
+
+同一会话实际 **completion／child exit 0，124 turns、1,840,968ms**，原始决定 **rejected，readingComplete=true**。父实际下载报告、完整 stream、退出文件和证据包，核对报告等于 completion 的原始 `finalText`。报告 SHA-256 `cb8d9f8b1b600154b6e2cba55265aaecfeebd46aa467d29625fd3b4bf20f9708`；stream **1,804,821 bytes**、SHA-256 `ed94ec64c4d946ec63aa9eb139e8a6285de2a0667fe123adf92869a4b31bfa4f`；完整证据包 **1,349,900 bytes**、SHA-256 `66a65d2a970383ccbcaac4a8c83b6e4482a0028ae8770db7629a8df1a4e90b41`。原始冻结 HEAD／tree／832 项身份前后相同，没有真实批准。服务自动重启只进入 guard 停车，未重复发模型请求，随后停车服务已停止。
+
+- Droid 独立 Python **115/115 PASS，551.780s**；真实 EPUBCheck **2 tests／12 subtests PASS，51.711s**，无 skip。首次完整 replay、四 verify、official reproduce 及三次 tracked／staged diff 检查通过。正常 gate 仍 exit 1：缺少独立批准。**14 个合成门禁对照＝1 个正控＋13 个负控**，全部符合预期；不代表官方阅读系统用例已执行或真实批准已产生。
+- R5 声明全文读完 EPUB **5784 单元**、RS **1948 单元**、A11y **799 单元**，以及治理文档、四生产脚本和 19 份测试／1932 行。父查看实际分段 Read／批量读取命令和 reading ledger，不把计数或映射前缀本身作为语义完整证明，也不声称父重新全文读了一遍三个 REC。原报告把 B.1 WebIDL 归于 EPUB 的措辞有误；实际 `EpubReadingSystem`／`Navigator` 声明位于 **RS B.1**，ledger 和原读取内容保留正确位置。
+- **F1**：`sec-opf-dccontributor p[2]` 明文继承 `dc:creator` 的其余要求，但整节无矩阵行，section review 仍 complete。父直接读冻结原文及所有相关行复现该遗漏。修复须保留 p1 的 secondary-role 区别及 “in all other respects”，不把 contributor 改成 primary creator，也不把可选 refinement 变成强制功能。合成正控接受带此语义缺口的数据，说明机械检查不能证明自然语言完整；**不是绕过已有真实批准**。
+- **C5**：父逐条确认七个普通建议来源：identifier 持久性、额外日期、subject 标签／条件性 code 许可、修改日期更新、多个媒体类型中首项优先、使用 DRM 时的隐私偏好、RS 的 CSS 支持／用户代理样式说明。应与既有 title／creator 普通建议一致登记，不将小写 should／条件 must 提升为 BCP14 MUST／SHOULD，不授权开发 DRM、CSS 渲染或新 CLI 功能。
+
+父独立反例 `.agents/kepub-s0-parent-r5-inheritance.py` **4870 bytes**、SHA-256 `682ab95860030d86de36c18e26910466556614c1e7c828f05d4aebc502df608b`，在未修树实跑 **3 tests／11 failures，22.466s，exit 1**：8 处缺直接来源记录，3 处完整来源族在成员不存在时仍验证通过。原有效矩阵和既有 title advisory 正控通过。原红日志 **10,862 bytes**、SHA-256 `a9375cff0c1181a1c5a195142ad62b3964cd1a1d6d8101bb74e77adfa842ce30`；两者均已真实上传原编码 Orb，要求保留原预期并做最小来源／有限对账修复。
+
+### R5 次要观察保留，不混同已确认缺陷
+
+**C3：Caution 的解释有版本边界。** 父逐一读取固定 3.3 的九个 caution 内容，并经外部仓库研究后直接读取 [EPUB 自定义标题脚本](https://github.com/w3c/epub-specs/blob/43a28160b7d4014a115db93a18d848b24588cd88/epub33/common/js/add-caution-hd.js)：它仅加 ID／标题／ARIA heading，不把 caution 变成 note 或 informative。后来的 [2026-03-27 EPUB 3.4 变更](https://github.com/w3c/epub-specs/commit/176ee09517386fde30ad67b5d4902262d61764a4) 才显式加入 “All caution boxes … are also non-normative”；父实际下载并核对相关 authoring／RS hunks。不能把后续 3.4 文本倒写成 2026-01-13 的明文规则，或称 ReSpec 自动赋予这种语义。本批保留说明性警示及边界观察，不因 Caution 标题或小写 should 新造 MUST，也不泛化修改 `non_normative` 来绕过真实约束。
+
+**M1：摘录上下文与批准输入是两件事。** 算法 li[1] 的来源摘录包含 Explanation 上下文，确实比规范步骤宽；具名 Explanation 本身仍被排除，不能将其解释文字提升为独立义务。父进度记录不纳入其自身受审输入是既定设计：规范、矩阵、代码和契约已绑定，实际父／Droid 决定另由 report hash、原始 completion 与输入身份校验。本记录的追加不是批准或认证机制，不为此扩大或放松 gate。本批不改旧来源摘录或悄悄移除这些观察。
+
+四次原始 isError 保留：提前查看未完成流程的输出、零匹配 grep、许可资料缺失时探针 `None.replace` 抛出 `AttributeError` 等；不是产品测试失败。早期 hash 探针误判和已撤回的 C2 定义遗漏也保留。只有来源／验证最小修复已授权，**修复尚未验收，R6 未启动，S0 未批准，T1 暂停，未 push／发布**。
