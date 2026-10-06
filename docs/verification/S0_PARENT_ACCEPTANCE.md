@@ -422,3 +422,17 @@ D2 随后补读 1–790，父核对实际返回后确认计划 **1065/1065 行**
 真实收据已按两份实际报告及私有导出 hash 生成，`python3 -B scripts/epub33_assets.py gate` 实际 **exit 0**，输出 `archiveFiles:118` 与 `mapping:{candidates:1606,excluded:63,mapped:1543,semanticComplete:true}`。这里的 true 是聚合检查结果；没有编辑矩阵中的 `semanticComplete:false` 或五维状态来通过。收据与私有导出不提交，完整批准基线及所需证据须实际传给后续编码 Orb，在无初稿污染的固定 checkout 重验后恢复 T1a；不能只传提交名或复用旧树批准。
 
 原始导出含私有线程内容，只在授权 Orb 内保存／传输，不公开；收据不属于其自身批准输入。本地可读批准记录与独立最终报告纳入版本控制，GitHub 上的源码尚未包含这些新工作。此批准是固定基线的 S0 退出，不是 T1a／T1b 完成、169 个阅读系统用例已执行、渲染／Mac／人工无障碍通过或 Issue #3／#4 关闭。后续输入变化不能复用旧批准；独立审查继续使用用户指定的 DeepSeek，Droid 不自动重试或监控额度。当前仍无 push／发布。
+
+## S0 固定快照保留；T1a 编码契约增量另经独立审计
+
+父将批准快照固定于独立 checkout `/home/user/kepub-s0-approved`，HEAD `40640722f5504f686fd08511d768d353ca7df0b6`，连同原收据与私有执行证据保留。恢复编码 Orb 前实际传输完整 bundle（62,122,434 bytes，SHA-256 `2108afb273644c0f5ef3bcc5041ca8ff8a1422851d936ef44a027467ca41654a`），子逐项核对 836 输入并真实 gate exit 0 后，才从独立实现工作树继续 T1a。父随后在保留快照再次执行 gate，仍 **exit 0、semanticComplete:true**；未动旧 T1 草稿或把后续文档冒充原批准输入。
+
+父独立真实 checker 对照发现必须区分 UTF-16 的解析能力与正式 XHTML 资格。固定 EPUBCheck 5.3.0 对 UTF-16 XHTML 报 **HTM_058 error**，对 UTF-16 OPF／container 报 **RSC-027 warning**；匹配 BOM 与声明并不消除前者。父七组控制保留旧二进制的 DTD／编码拒绝和实际 Java 后端结果，日志 SHA-256 `8bbfa8ee974d1e70f63be25612128eb92f9fedc7cceda82d0ee41e540f1a1eba`，不将 Java 通过等同于旧 Kepub 通过。最初把 UTF-16 XHTML 当正式成功正控的探针与失败原样保留。
+
+仅两文档的补正提交 `d8788d4b41893ac120551c619ae5bd1d85789bad`（tree `8b4898f92f105de92b04de9109ae67a737fdcbd9`）保留解析／原字节编辑／来源重算／重开和预算要求，明确正式拒绝、显式 draft、禁止隐式转码，以及 UTF-16 OPF `metadata.set` 的正常接受与 strict 拒绝正反控。两份新 SHA-256：CLI `1b2c516372eefb8e7b45a33515e4bc07961896aabda2321b495b4fadfb20d801`；计划 `a4ecf838476ba603c982cf891c852c86589781652bbbfbf67daae75c1f084879`。这改变了 S0 输入，父实际确认当前树旧 receipt 被 **approval input identity changed** 拒绝；没有重签或放宽 gate。
+
+同一 [DeepSeek D2](https://ampcode.com/threads/T-01a110c5-dd31-748d-83f3-1c398f01c097) 在另一个干净持久 checkout 独立审计这个固定增量，scope 为 **t1a-encoding-contract**，实际结论 **补正成立（通过）**，不是新的 complete-S0 或产品批准。父核对原始导出 agent definition、全部 assistant usage 与真实末条 `complete/end_turn`；实际 final **5,802 bytes**、SHA-256 `e7d0cbdfabaf8278b51d8d8d7e4d0292ceaa448588cf906ffe89f3adb8f5caa6`，私有执行导出 SHA-256 `ea5ba0b2f988523112aa3e0eed885076835e989ce2e0cbf080db29fdb1b4e214`。六份证据文件逐项 hash 全吻合，清单自身 SHA-256 `7aeba95c86efc759f48c76b6cfc3a90764a267c8c95d8553cdb97ab888a57b67`。
+
+独立实际 checker **9 个控制**包括 UTF-8 正控，UTF-16 LE／BE XHTML 拒绝，OPF／container 分离的四个 LE／BE 正控，raw 6,000,650 bytes／decoded 9,000,650 bytes 的大注释拒绝，以及 EPUB2 UTF-16 XHTML 同样 HTM_058。独立首版 BOM／声明不匹配 fixture 的 RSC-016 fatal 单独保留，不与匹配声明的 XHTML 规范拒绝混淆。源码分支与 `src/test/resources/epub3/06-content-document/content-document-xhtml.feature` 相符；此前父消息所引 feature 的 schema 路径错误，以实际路径更正。规范依据须区分 EPUB3 §3.9 的一般 XML 编码与 §6.1.2 继承的 HTML UTF-8 要求。
+
+本轮未重跑完整 S0 Python／gate，没有测试新 T1a 产品、Mac、渲染或官方阅读系统用例。原批准只保留在固定快照；T1a 的编码、search／status／终端 diff 实现仍须代码审查及独立 CLI 验收，T1b 和 T2 尚未解锁。当前无 push／发布，Droid 继续停用。
