@@ -61,3 +61,15 @@ P2 两个遗漏 URL 均位于 [EPUBCheck 固定源码](https://github.com/w3c/ep
 集成后再次实际执行 `python3 scripts/epub33_assets.py gate`，仍 **exit 1**：`S0 semantic gate blocked: pending clause/section review (not an asset PASS)`。749 个候选、500 个核心章节仍待语义审查，能力五维仍为 `not-tested`；336 条直接引用／227 个不同 URL 的适用性、阶段归属及 169 个官方用例的固定条款映射尚未完成。官方用例仍为 `executed:false`，不把工件重建当作功能执行。
 
 P1／P2／P3 已关闭，但完整语义矩阵、父语义复验及固定全 S0 树的真实 Droid 审查尚未完成；不得把本阶段记录当作 S0 PASS、T1 实现或发行声明。
+
+## P4：报告 ID 去重遗漏同一用例必需的第二本书
+
+2026-10-06 后续独立抽查发现，`pkg-unique-id` 不只是报告中同一行意外重复。已归档第一本书的 XHTML 要求阅读系统把 *Unique identifier not unique* 与 *Unique identifier reused* 分别显示；这是两本书共同完成的用例。当前索引只有 `tests/pkg-unique-id` 的一套源码／工件，却仍由 `tests verify` 返回 `169 / sourceGaps:0`。该输出不能证明完整配对工件已经归档。
+
+父直接读取固定报告提交的 Git tree，确认还存在 [tests/pkg-unique-id_duplicate](https://github.com/w3c/epub-tests/tree/54092b4233253e9aac80e93ec4782b380b4b3403/tests/pkg-unique-id_duplicate)，包含五个普通文件，tree 为 `1bb88991c92b28e1cbfc49e85eb91070ff864965`。它的正文给出相反方向的配对显示要求，`dc:identifier` 同为 `pkg-unique-id`，而 `dc:title` 为 `pkg-unique-id_duplicate`；不能根据相同出版物标识符去掉第二份工件。
+
+父实际下载 [官网第二本 EPUB](https://w3c.github.io/epub-tests/tests/pkg-unique-id_duplicate.epub)，**1,976 bytes**，SHA-256 `2f1b1967d196d94ed6e330bfe037e7eff44447d5802fbe2158de30c829cb09b7`；逐一下载固定提交中的五个源码文件，与 ZIP 的完整普通文件集合逐字节比对，全部一致。另保留一次查证失败：外部研究最初误称该源码提交中也有二进制，父直接请求该固定提交下的 `.epub` 得到 HTTP 404，Git tree 也确认没有二进制。之后确认的是官网成品与固定源码的内容一致，不是凭构造的 GitHub 链接认定二进制存在。
+
+新增独立验收脚本 `.agents/kepub-s0-parent-paired-fixture-test.py`（SHA-256 `fd4eb99969063dc293cf7973f29425ac75d2a1107428ec88ecfa082fdfcb1379`），要求第二本的源码、官方成品和本地生成物均匹配父独立取得的五个文件 hash。在当前父树运行 **1 test／FAIL，0.006s，exit 1**，原因是索引没有该配对来源。失败日志 SHA-256 `4bc92781eeae6e59dd438b1f184b7bd0f0c73b93ce42a9aa22238b3a01c1ad12`。这不是更改原资产后制造的反例。
+
+P4 已交编码 Orb 补齐配对工件并增加缺失／伪造配对来源的验证反例。仍分别统计 169 个用例 ID、170 个报告行和实际工件数，不把第二本伪称新的规范用例；修复与父复验未完成前，此项继续阻断 S0。没有执行该阅读系统行为测试，也没有发现或宣称对应 CLI 产品缺陷。
