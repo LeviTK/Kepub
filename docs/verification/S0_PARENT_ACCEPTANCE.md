@@ -2,7 +2,7 @@
 
 ## 当前结论：阶段资产未通过总验收
 
-首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P8、Droid R1 F1～F6 修复复验、完整语义增量的资产／来源校验和语义抽查，并集成本地 `main`。计划复审已完成；S0 实现 R1 正常结束但未批准，其已复现问题的两批修复均已父验收，仍待固定最终输入后的新完整 Droid 审查及实际门禁通过。T1 继续暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
+首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P8、Droid R1 F1～F6 的阶段修复复验并集成本地 `main`，但后续 S0 实现 Droid R2 已实际结束并拒绝批准。R2 发现新的规范映射遗漏和验证器缺口；父进一步发现之前 P8 修复把两个字体算法定义段落错误排除，须按下述 P9 更正。旧测试通过不能证明该解释正确，旧验收记录保留而不充当当前批准。计划本身复审已完成，S0 实现仍待修复、独立复验、新固定输入的真实 Droid 审查及实际门禁通过；T1 继续暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
 
 首次受审阶段提交为编码 Orb 的 `b92e1903d831d48ae9df13c8592024e69dac0ed2`；父在独立 worktree `/tmp/kepub-s0-parent-review` 检查，当时没有把阶段资产合入父本地 `main`。以下首次失败记录予以保留；后续修复结果单独记录，不覆盖原结果。检查未修改产品或三份冻结主文档。
 
@@ -207,3 +207,27 @@ F3／F4／F6、P8 及 T3 前置机读登记仍由编码 Orb 修复，尚未父�
 实际上传 bundle 为 **20,823 bytes**、SHA-256 `2cd0ad872fad8e06344b5f35263605b52855b8a590f54c66d1aae8738f0aaf94`，前置 `df57cdd`；子实际 verify／fetch 并核对 tree。双方重算 **821 个 acceptance inputs** 逐项相同，canonical SHA-256 **`088c7013ff7420b5b3178e24c9b574edace562d750257824c8cb79dbe4e47788`**。输入清单文件 104,705 bytes、SHA-256 `1d0376ced5c986e403fa61ebb3506ba12e8b1363e90559ca99036ae377679108` 已实际传输。此进度记录不参与该输入身份；报告／批准须独立绑定它，不通过修改原文或布尔状态关闭门禁。
 
 新独立 R2 的实际 CLI **0.233.0**；stream init 确認 **claude-opus-5-5／medium**，会话 `67e3d3fb-70c7-4c48-a091-6e77ecc9c53a`，外层原进程 PID `118306`，固定目录 `/tmp/kepub-s0-droid-review-r2`。目前只有启动与阅读进度证据，**没有 completion、实际 exit 或批准结论**。初次发送启动指令异常后先查证未送达，再重新投递；文件传输成功不误当作任务已启动，没有并发或重复审查。继续跟随原进程，不提前恢复 T1。
+
+## S0 实现 Droid R2 已实际结束并拒绝批准
+
+上述同一 R2 会话正常 **completion、exit 0，98 turns、1,330,527ms**，最终决定为 **rejected**。父下载实际完整 stream、最终报告和退出文件，并核对报告与 completion 的 `finalText` 相同。固定 HEAD／tree 及 821 输入身份未变；进程退出成功不是审查通过。
+
+- 原报告 **9,203 bytes**、SHA-256 `e10b5836ea28059b131b1cbbe17559f1733decc391e7b68c76b446366b80d9e6`；stream **1,303,653 bytes**、SHA-256 `af1898224e9230e16c3556cf7ee85dc540286e7b3271070ad8dfcceb136b948c`；实际退出文件为 `0\n`，SHA-256 `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa`。另下载的 evidence JSON 仍是较早 running 快照，不能据其认定终局状态。
+- Droid 独立完整 Python **92/92 PASS，225.096s**；真实固定 JAR 的 `TestRealREC2026` **PASS，62.8s**；离线重建无漂移。正常 gate 因缺少独立批准而 exit 1，一条组合命令的非零退出由这个预期门禁失败造成，不是前述测试失败。测试成功仍未发现以下规范遗漏。
+- **F-A**：`sec-container-iri` 正式 URL 算法的 `ol[1]/li[9]`、`li[10]` 两个返回 true 分支未映射。**F-B**：`sec-property-datatype/ul[1]/li[2]` 的空字符串无效约束未映射。**F-C**：`sec-alternate` 表内 `li[2..4]` 的三项 alternate 语义，以及 `sec-nav-def-model/ul[1]/li[1..2]` 的导航列表语义未映射。相关章节却仍声明 complete。它们是来源矩阵遗漏，不能写成 CLI 运行该算法失败。
+- **F-D**：从 review 的 rows 和 manualConstraints 同时删除既有 URL 算法 `li[8]` 后重建，assets／semantics／tests verify 仍通过，计数 1533→1532，section review 仍 complete。该变异改变受审输入身份，旧批准会失效；**未证明能够绕过真实且绑定原输入的 approval**。所需修复是阻止既有身份静默消失，并独立于剩余 rows 核对已审核的有界结构家族，不是声称程序能证明全部自然语言规范已完整理解。
+- **O-1**：伪造 official index 顶层 `reportCommit` 或 upstream `role`，各自 verifier 仍接受。这是验证器反例，不是收到的固定资产已经伪造，也不证明绕过受审输入绑定。
+
+阅读声明须保留边界：R2 自报 `readingComplete:true`，但实际 reader 把**全部** `pre` 块截断为前 160 字符；父直接读取 RS `app-ers-idl` 的规范 WebIDL，规范化正文共 245 字符，含 `Navigator.epubReadingSystem` 声明，不能把这类块一律当示例免读。治理文档的完整阅读也未由父独立确认。`cov` 文件只是给同一正文加覆盖标记，`¶` 嵌套块另行输出，因此不能仅凭换成 `cov` 或出现 `¶` 就断言遗漏正文。下一轮须读未截断的规范性内容，不以这个自报布尔值证明全文已审。
+
+父另实际下载原探针包 **498,346 bytes**、SHA-256 `880ea853337520835450747901b280af8364f7743fddd009dae79db8b0780e1e`，检查 reader／cover 与原日志。原报告声称探针目录全删除，但编码 Orb 发现保留目录并据此归档；此文字错误保留。部分早期探针打印的 rc 是管道末端状态，不能据其单独判定 validator 成败。编码 Orb 的独立最终 helper 复现 F-A～D／O-1，exit 0 仅表示观察脚本完成；早期 helper `KeyError`／exit 1 也不抹去。
+
+## P9：纠正 P8 对字体算法定义的过度排除
+
+父重新核对官方历史后确认：§1.5 的 “All algorithm explanations are non-normative” 指算法中具名的 `details/summary Explanation`，不把算法所有描述段落都排除。官方 [core 变更](https://github.com/w3c/epub-specs/commit/642a45d0cd81df784ff852d32a55a0f28f87d083) 同时加入该句并移除具名 URL Explanation 内的 `p.note`；[RS 变更](https://github.com/w3c/epub-specs/commit/271f0d7f7c05652ee0fcf77fafe6ac89dc9b08e4) 同样加入说明和具名 Explanation。父实际下载并阅读两份 patch，不只依据研究摘要。
+
+`obfus-algorithm` 的 **p1／p2／p3 是规范算法定义**，分别规定前 1040 bytes、XOR、20-byte key 循环与尾部复制；应恢复 p1／p3 原身份为 mapped，并补 p2。此前父接受把 p1／p3 与九条示例伪代码一同排除是错误，前文“11 个算法解释观察”的结论不再适用。九条明确由 “exemplifies” 引出的示例伪代码仍排除；真正的 Explanation 后代也不能被提升成规范条款。现矩阵未观察到后一种误映射，但变异反例表明验证器尚未拦截。
+
+父独立新增 `.agents/kepub-s0-parent-algorithm-scope-correction.py`，SHA-256 `d1d8ce4749e5fec5932684fdaea5e962cd8e97e671fb67ba30d7b13cbb4aad4a`，在未修复父树实际 **4 tests／5 failures＋1 error，23.542s，exit 1**。有效矩阵和九条伪代码排除正控通过；三定义映射失败，恢复原身份被错误拒绝，而 EPUB／RS 的具名 Explanation 反而允许伪造 mapped。红日志 SHA-256 `d54b373db1a1b8dc12e9b721537abb115d885c721e5eee108d6175e375e2c239`。脚本及两份官方 patch 均已实际上传编码 Orb，要求原样保留父反例并公开纠正旧测试，不删掉失败记录。
+
+当前授权修复仅限 S0 来源数据／导入／验证及相应测试。导入完成所有 review 和 amendment 合并后、写文件前检查既有身份不得丢失；正式 algorithm 步骤／分支和明确审核的列表／定义家族须从冻结 DOM 独立枚举，不能让宽祖先、幸存 sibling、重复项或 Explanation 代替成员。该有限核对不等于增加通用的每段落义务台账，也不取代当前输入的父与 Droid 独立批准。父仍须验收实际修复和选择范围；**R3 未启动，S0 未批准，T1 暂停，未 push／发布**。
