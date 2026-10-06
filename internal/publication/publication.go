@@ -26,6 +26,7 @@ type Element struct {
 	XMLDocument            *xmltext.Document `json:"-"`
 	XMLCoverage            *XMLCoverage      `json:"-"`
 	Uncertain              bool              `json:"-"`
+	source                 *xmltext.Element
 }
 
 func (e *Element) Attribute(ns, name string) (string, bool) {
@@ -95,7 +96,7 @@ func parseXML(b []byte) (*Element, error) {
 	}
 	var convert func(*xmltext.Element) *Element
 	convert = func(e *xmltext.Element) *Element {
-		out := &Element{Name: e.Name, Attributes: e.Attributes, Text: e.DirectText, Content: e.Text, Location: e.Location, Children: []*Element{}, XMLDocument: doc, Uncertain: e.Uncertain}
+		out := &Element{Name: e.Name, Attributes: e.Attributes, Text: e.DirectText, Content: e.Text, Location: e.Location, Children: []*Element{}, XMLDocument: doc, Uncertain: e.Uncertain, source: e}
 		for _, c := range e.Children {
 			out.Children = append(out.Children, convert(c))
 		}

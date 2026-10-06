@@ -58,7 +58,13 @@ func lexicalNames(text string, start int, visit func(int, int)) (int, error) {
 	}
 	name := func() error {
 		from := l.pos
-		if _, err := l.name(false); err != nil {
+		var err error
+		if pi {
+			_, err = l.ncName()
+		} else {
+			_, err = l.name(false)
+		}
+		if err != nil {
 			return err
 		}
 		visit(from, l.pos)

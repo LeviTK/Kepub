@@ -137,16 +137,18 @@ func TestT1BCLIPartialSearchAndZeroExternalHTTP(t *testing.T) {
 	}
 }
 
-func TestT1BFormalDefaultProfileAndLiteralEditLifecycle(t *testing.T) {
+func TestT1BFormalDefaultProfileAndEntityTextEditLifecycle(t *testing.T) {
 	if os.Getenv("KEPUB_EPUBCHECK_JAR") == "" {
 		t.Skip("actual pinned EPUBCheck required; skip is not formal acceptance")
 	}
 	_, files := legalCLI(t, "3.0")
 	opf := strings.TrimPrefix(string(files["EPUB/package.opf"]), `<?xml version="1.0"?>`)
 	opf = strings.Replace(opf, ` xmlns="http://www.idpf.org/2007/opf" version="3.0"`, "", 1)
-	files["EPUB/package.opf"] = []byte(`<!DOCTYPE package [<!ATTLIST package xmlns CDATA "http://www.idpf.org/2007/opf" version CDATA "3.0">]>` + opf)
-	chapter := strings.Replace(string(files["EPUB/chapter.xhtml"]), "</body>", `<div>&markup;</div></body>`, 1)
-	files["EPUB/chapter.xhtml"] = []byte(`<!DOCTYPE html [<!ENTITY markup "&#60;em>Generated&#60;/em>"><!ENTITY % attrs '<!ATTLIST p id CDATA "paragraph">'>%attrs;]>` + chapter)
+	opf = strings.Replace(opf, ">Title</dc:title>", ">&title;</dc:title>", 1)
+	files["EPUB/package.opf"] = []byte(`<!DOCTYPE package [<!ATTLIST package xmlns CDATA "http://www.idpf.org/2007/opf" version CDATA "3.0"><!ENTITY title "Title">]>` + opf)
+	chapter := strings.Replace(string(files["EPUB/chapter.xhtml"]), "</body>", `<div>&markup;</div><div>&word;</div></body>`, 1)
+	chapter = strings.Replace(chapter, ">Original &amp; precise.</p>", ">&empty;&word;&empty;</p>", 1)
+	files["EPUB/chapter.xhtml"] = []byte(`<!DOCTYPE html [<!ENTITY empty ""><!ENTITY markup "&#60;em>Generated&#60;/em>"><!ENTITY % attrs '<!ATTLIST p id CDATA "paragraph"><!ENTITY word "Original &amp; precise.">'>%attrs;]>` + chapter)
 	book := t1bBook(t, files)
 	invoke(t, []string{"validate", book, "--json"}, 0)
 	ws, ops, plan := filepath.Join(t.TempDir(), "ws"), filepath.Join(t.TempDir(), "ops.json"), filepath.Join(t.TempDir(), "plan.json")
@@ -169,7 +171,7 @@ func TestT1BFormalDefaultProfileAndLiteralEditLifecycle(t *testing.T) {
 	invoke(t, []string{"task", "accept", task, "--workspace", ws, "--json"}, 0)
 	output := filepath.Join(t.TempDir(), "formal.epub")
 	invoke(t, []string{"workspace", "export", ws, "--output", output, "--json"}, 0)
-	files["EPUB/chapter.xhtml"] = bytes.Replace(files["EPUB/chapter.xhtml"], []byte(">Original &amp; precise.</p>"), []byte(">Reviewed &amp; literal.</p>"), 1)
+	files["EPUB/chapter.xhtml"] = bytes.Replace(files["EPUB/chapter.xhtml"], []byte(">&empty;&word;&empty;</p>"), []byte(">Reviewed &amp; literal.</p>"), 1)
 	assertExportFiles(t, output, files)
 	// metadata.Apply must bootstrap the actual defaulted OPF version itself,
 	// including persisted source reconstruction, not trust a ReadXML caller.
@@ -183,7 +185,7 @@ func TestT1BFormalDefaultProfileAndLiteralEditLifecycle(t *testing.T) {
 	invoke(t, []string{"task", "accept", task, "--workspace", ws, "--json"}, 0)
 	output = filepath.Join(t.TempDir(), "metadata-formal.epub")
 	invoke(t, []string{"workspace", "export", ws, "--output", output, "--json"}, 0)
-	files["EPUB/package.opf"] = bytes.Replace(files["EPUB/package.opf"], []byte(">Title</dc:title>"), []byte(">Reviewed metadata</dc:title>"), 1)
+	files["EPUB/package.opf"] = bytes.Replace(files["EPUB/package.opf"], []byte(">&title;</dc:title>"), []byte(">Reviewed metadata</dc:title>"), 1)
 	assertExportFiles(t, output, files)
 }
 

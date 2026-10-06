@@ -176,8 +176,8 @@ func TestT1BExactEntityWorkDepthAndReplacementBudgets(t *testing.T) {
 	for _, count := range []int{100000, 100001} {
 		d, err := Parse([]byte(`<!DOCTYPE r [<!ENTITY empty "">]><r>` + strings.Repeat("&empty;", count) + `</r>`))
 		if count == 100000 {
-			if err != nil || d.Root.Text != "" || !d.Root.Complex {
-				t.Fatal("empty substitutions count and retain virtual provenance", err)
+			if err != nil || d.Root.Text != "" || d.Root.Complex {
+				t.Fatal("empty substitutions count but do not make physical tags virtual", err)
 			}
 		} else {
 			var f *fault.Error
@@ -378,9 +378,15 @@ func FuzzT1BEntitySourceAndLocalReplacement(f *testing.F) {
 				quoted.WriteRune(r)
 			}
 		}
-		prefix := `<!DOCTYPE r [<!ENTITY e "` + quoted.String() + `">]><r><p>&e;</p><p>`
-		input := []byte(prefix + "literal" + `</p></r>`)
-		want := []byte(prefix + "changed" + `</p></r>`)
+		subset := `<!DOCTYPE r [<!ENTITY e "` + quoted.String() + `"><!ENTITY node "<p>virtual</p>">]>`
+		prefix := subset + `<r><p>&e;</p><p>`
+		input := []byte(prefix + "literal" + `</p>&node;</r>`)
+		want := []byte(prefix + "changed" + `</p>&node;</r>`)
+		replacement := "changed"
+		if text == replacement {
+			replacement = "different"
+		}
+		firstWant := []byte(subset + `<r><p>` + replacement + `</p><p>literal</p>&node;</r>`)
 		if encoding%3 != 0 {
 			var order binary.ByteOrder = binary.LittleEndian
 			if encoding%3 == 2 {
@@ -389,17 +395,114 @@ func FuzzT1BEntitySourceAndLocalReplacement(f *testing.F) {
 			decl := `<?xml version="1.0" encoding="UTF-16"?>`
 			input = testUTF16(decl+string(input), order, true)
 			want = testUTF16(decl+string(want), order, true)
+			firstWant = testUTF16(decl+string(firstWant), order, true)
 		}
 		d, err := Parse(input)
 		if err != nil || d.Root.Children[0].Text != text {
 			t.Fatal("entity inclusion lost text", err)
 		}
-		if _, _, err := Replace(input, d.Root.Children[0], text, "changed"); err == nil {
-			t.Fatal("generated text became writable")
+		out, changed, err := Replace(input, d.Root.Children[0], text, replacement)
+		if err != nil || !changed || !bytes.Equal(out, firstWant) {
+			t.Fatal("physical entity-text range changed unrelated source or was denied", err)
 		}
-		out, changed, err := Replace(input, d.Root.Children[1], "literal", "changed")
+		if _, _, err := Replace(input, d.Root.Children[2], "virtual", "changed"); err == nil {
+			t.Fatal("entity-generated node became writable")
+		}
+		out, changed, err = Replace(input, d.Root.Children[1], "literal", "changed")
 		if err != nil || !changed || !bytes.Equal(out, want) {
 			t.Fatal("unrelated original sibling changed bytes or lost write permission", err)
 		}
 	})
+}
+
+func TestT1BNamespaceNamesInDeclarationsAndProcessingInstructions(t *testing.T) {
+	for _, raw := range []string{
+		`<!DOCTYPE r [<!ENTITY p:e "text">]><r/>`,
+		`<!DOCTYPE r [<!ENTITY % p:e "">%p:e;]><r/>`,
+		`<!DOCTYPE r [%p:e;]><r/>`,
+		`<!DOCTYPE r [<!NOTATION p:n SYSTEM "urn:never-read">]><r/>`,
+		`<!DOCTYPE r [<!ENTITY e SYSTEM "urn:never-read" NDATA p:n>]><r/>`,
+		`<!DOCTYPE r [<!ATTLIST r kind NOTATION (p:n) #IMPLIED>]><r/>`,
+		`<?p:target data?><r/>`,
+		`<!DOCTYPE r [<?p:target data?>]><r/>`,
+		`<!DOCTYPE r [<!ENTITY e "<?p:target data?>">]><r>&e;</r>`,
+		`<!DOCTYPE r [%unread;]><r>&p:e;</r>`,
+		`<!DOCTYPE r [<!ELEMENT p:a:b EMPTY>]><r/>`,
+		`<!DOCTYPE r [<!ATTLIST r p:a:b CDATA #IMPLIED>]><r/>`,
+	} {
+		if _, err := Parse([]byte(raw)); err == nil {
+			t.Errorf("accepted invalid namespace name: %s", raw)
+		}
+	}
+	// QName element/attribute names and colons in identifiers or NMTOKEN
+	// values are not NCName violations. DTD validity is not being enforced.
+	for _, raw := range []string{
+		`<!DOCTYPE r [<!ELEMENT p:e EMPTY><!ATTLIST p:e p:a NMTOKEN "a:b"><!NOTATION n SYSTEM "urn:opaque:id">]><r xmlns:p="urn:p"><p:e/></r>`,
+		`<!DOCTYPE r [<!ENTITY 🧪 "<?target data?>text"><!NOTATION 🧪 PUBLIC "notation:id">]><r>&🧪;</r>`,
+	} {
+		if _, err := Parse([]byte(raw)); err != nil {
+			t.Errorf("rejected valid namespace-name control: %v: %s", err, raw)
+		}
+	}
+}
+
+func TestT1BPhysicalEntityTextLocalReplacement(t *testing.T) {
+	subset := `<!DOCTYPE r [<!ENTITY empty ""><!ENTITY word "PE text"><!ENTITY nested "&word; + 中😀"><!ATTLIST p mode CDATA "default">]>`
+	parameter := `<!DOCTYPE r [<!ENTITY % defs '<!ENTITY word "PE text"><!ENTITY nested "&word; + raw">'>%defs;]>`
+	for _, tc := range []struct{ name, subset, body, old string }{
+		{"entity-only", subset, "&word;", "PE text"},
+		{"empty-only", subset, "&empty;", ""},
+		{"empty-ends", subset, "&empty;前&nested;后&empty;", "前PE text + 中😀后"},
+		{"parameter", parameter, "&nested; + raw", "PE text + raw + raw"},
+	} {
+		for _, encoding := range []uint8{0, 1, 2} {
+			t.Run(fmt.Sprintf("%s/%d", tc.name, encoding), func(t *testing.T) {
+				prefix := tc.subset + `<r><p id="physical">`
+				suffix := `</p><p>&word;</p></r>`
+				input, want := []byte(prefix+tc.body+suffix), []byte(prefix+"changed &amp; exact"+suffix)
+				if encoding != 0 {
+					var order binary.ByteOrder = binary.LittleEndian
+					if encoding == 2 {
+						order = binary.BigEndian
+					}
+					decl := `<?xml version="1.0" encoding="UTF-16"?>`
+					input = testUTF16(decl+string(input), order, true)
+					want = testUTF16(decl+string(want), order, true)
+				}
+				d, err := Parse(input)
+				if err != nil {
+					t.Fatal(err)
+				}
+				e := d.Root.Children[0]
+				unchanged, changed, err := Replace(input, e, tc.old, tc.old)
+				if err != nil || changed || !bytes.Equal(unchanged, input) {
+					t.Fatal("no-op did not retain the exact references/defaults/BOM", err)
+				}
+				out, changed, err := Replace(input, e, tc.old, "changed & exact")
+				if err != nil || !changed || !bytes.Equal(out, want) {
+					t.Fatal("physical text range was denied or changed declarations/another reference", err)
+				}
+			})
+		}
+	}
+}
+
+func TestT1BVirtualOrNonSimpleEntityTargetsRemainUnwritable(t *testing.T) {
+	for _, raw := range []string{
+		`<!DOCTYPE r [<!ENTITY e "<p>virtual</p>">]><r>&e;</r>`,
+		`<!DOCTYPE r [<!ENTITY e "<b>child</b>">]><r><p>&e;</p></r>`,
+		`<!DOCTYPE r [<!ENTITY e "<!--comment-->">]><r><p>&e;</p></r>`,
+		`<!DOCTYPE r [<!ENTITY e "<![CDATA[ ]]>">]><r><p>&e;</p></r>`,
+		`<!DOCTYPE r [<!ENTITY e "<?target data?>">]><r><p>&e;</p></r>`,
+		`<!DOCTYPE r [%unread;]><r><p>&unknown;</p></r>`,
+	} {
+		d, err := Parse([]byte(raw))
+		if err != nil {
+			t.Fatal(err)
+		}
+		e := d.Root.Children[0]
+		if _, _, err := Replace([]byte(raw), e, e.Text, "changed"); err == nil {
+			t.Fatalf("virtual/unknown/non-simple target became writable: %s", raw)
+		}
+	}
 }

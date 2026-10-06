@@ -41,6 +41,17 @@ type Element struct {
 	unknownDefaults     bool
 }
 
+// AttributeKnown distinguishes an explicit known value from an unread entity
+// or an absent attribute whose default declaration may not have been read.
+func (e *Element) AttributeKnown(name xml.Name) bool {
+	for _, a := range e.Attributes {
+		if a.Name == name {
+			return !e.uncertainAttributes[name]
+		}
+	}
+	return !e.unknownDefaults
+}
+
 type Document struct {
 	Root                   *Element
 	Elements               []*Element // document order
@@ -140,8 +151,13 @@ func Parse(input []byte) (*Document, error) {
 				}
 			}
 			// Generated attributes have no writable interval, but do not make an
-			// original literal text interval virtual. Entity-generated tag tails do.
-			e := &Element{rawName: t.Name, Start: s.offset(int(d.InputOffset())), ns: ns, counts: map[string]int{}, Parent: parent, order: s.order, streamStart: int(d.InputOffset()), Complex: s.generated(int(d.InputOffset())-1, int(d.InputOffset()))}
+			// original literal text interval virtual. Prove both literal tag ends.
+			_, _, physicalOpen := s.literalRange(before, before+1)
+			_, start, physicalTail := s.literalRange(int(d.InputOffset())-1, int(d.InputOffset()))
+			e := &Element{rawName: t.Name, Start: s.offset(int(d.InputOffset())), ns: ns, counts: map[string]int{}, Parent: parent, order: s.order, streamStart: int(d.InputOffset()), Complex: !physicalOpen || !physicalTail}
+			if physicalTail {
+				e.Start = start
+			}
 			e.uncertainNS, e.uncertainAttributes = uncertainNS, map[xml.Name]bool{}
 			e.Uncertain = s.uncertain(before, int(d.InputOffset()))
 			e.unknownDefaults = doc.UnknownDefaults
@@ -196,7 +212,11 @@ func Parse(input []byte) (*Document, error) {
 			}
 			e := stack[len(stack)-1]
 			e.End = s.offset(before)
-			e.Complex = e.Complex || s.generated(e.streamStart, before)
+			end, _, physicalClose := s.literalRange(before, int(d.InputOffset()))
+			if physicalClose {
+				e.End = end
+			}
+			e.Complex = e.Complex || !physicalClose || s.uncertain(e.streamStart, before)
 			t.Name = e.rawName // RawToken's synthetic end for an empty-element tag.
 			if int(d.InputOffset()) > before {
 				names, err := lexicalTokenNames(s.text[before:int(d.InputOffset())])

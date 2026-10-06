@@ -78,15 +78,19 @@ func (x *expansion) append(text string, from, to int, linear, generated bool, si
 	return nil
 }
 
-func (s source) generated(start, end int) bool {
-	i := sort.Search(len(s.spans), func(i int) bool { return s.spans[i].end >= start })
-	for ; i < len(s.spans) && s.spans[i].start <= end; i++ {
-		span := s.spans[i]
-		if span.generated && (span.start == span.end || span.start < end && span.end > start) {
-			return true
-		}
+// A writable boundary must come from literal source syntax, not an entity
+// anchor or a synthesized default. Ignore zero-length replacement markers:
+// they may be adjacent to a real tag but cannot establish its provenance.
+func (s source) literalRange(start, end int) (int, int, bool) {
+	i := sort.Search(len(s.spans), func(i int) bool { return s.spans[i].end > start })
+	if end <= start || i == len(s.spans) {
+		return 0, 0, false
 	}
-	return false
+	span := s.spans[i]
+	if span.start > start || span.end < end || !span.linear || span.generated {
+		return 0, 0, false
+	}
+	return s.original.offset(span.from + start - span.start), s.original.offset(span.from + end - span.start), true
 }
 
 // Character references are interpreted when constructing EntityValue. A CR
@@ -442,9 +446,11 @@ func (x *expansion) content(text string, base, anchorStart, anchorEnd, depth int
 				if err := x.unknown(name, "general", lo, hi, depth, ok); err != nil {
 					return err
 				}
+				outputStart := len(x.text)
 				if err := appendPiece("&#38;"+name+";", base+i, base+end, true, end-i); err != nil {
 					return err
 				}
+				x.uncertainties = append(x.uncertainties, sourceSpan{start: outputStart, end: len(x.text)})
 			} else {
 				if x.dtd.standalone && e.inParameter {
 					return malformed("standalone general entity must be declared outside parameter entities")

@@ -166,3 +166,81 @@ func TestT1BNavigationPartialDoesNotEraseRawLabelsOrUnblockStructure(t *testing.
 		}
 	}
 }
+
+func TestT1BNavigationUnknownTargetsDoNotBecomeReferences(t *testing.T) {
+	for _, version := range []string{"3.0", "2.0"} {
+		for _, mode := range []string{"link", "missing-default", "label", "unrelated-attribute", "known-missing", "blocked"} {
+			t.Run(version+"/"+mode, func(t *testing.T) {
+				entries := testfixture.NavigationEPUB(version)
+				path, rootName, attr := "书/nav.xhtml", "html", "href"
+				if version == "2.0" {
+					path, rootName, attr = "书/toc.ncx", "ncx", "src"
+				}
+				for i := range entries {
+					if entries[i].Name != path {
+						continue
+					}
+					raw := string(entries[i].Data)
+					needle := attr + `="Text/-first.xhtml#start"`
+					switch mode {
+					case "link":
+						raw = strings.ReplaceAll(raw, needle, attr+`="&target;"`)
+					case "missing-default":
+						raw = strings.ReplaceAll(raw, needle, "")
+					case "label":
+						raw = strings.ReplaceAll(raw, ">First<", ">&unknown;<")
+					case "unrelated-attribute":
+						raw = strings.ReplaceAll(raw, needle, needle+` title="&unknown;"`)
+					case "known-missing":
+						raw = strings.ReplaceAll(raw, needle, attr+`="absent.xhtml"`)
+					case "blocked":
+						if version == "3.0" {
+							raw = strings.Replace(raw, `e:type="toc"`, `e:type="other"`, 1)
+						} else {
+							raw = strings.ReplaceAll(raw, "navMap", "notMap")
+						}
+					}
+					entries[i].Data = []byte("<!DOCTYPE " + rootName + " [%unread;]>" + raw)
+				}
+				n := navigationFixture(t, entries)
+				if n.XMLCoverage == nil || n.XMLCoverage.Resources[0].Status != "partial" {
+					t.Fatal("uncertainty was hidden", n)
+				}
+				if mode == "blocked" {
+					if n.Status != "blocked" || len(n.Entries) != 0 {
+						t.Fatal("XML partial downgraded a known structural block", n)
+					}
+					return
+				}
+				if n.Status != "partial" || len(n.Entries) != 2 {
+					t.Fatal("lost partial navigation", n)
+				}
+				last := n.Entries[1]
+				if mode == "link" || mode == "missing-default" {
+					if last.Label != "First" || last.Href != nil || last.Target != nil || last.Exists != nil {
+						t.Fatal("unknown link became a definite reference", last)
+					}
+				} else if mode == "label" || mode == "unrelated-attribute" {
+					if last.Target == nil || last.Target.Path != "书/Text/-first.xhtml" || last.Exists == nil || !*last.Exists {
+						t.Fatal("unrelated uncertainty suppressed a known target", last)
+					}
+					if mode == "label" && last.Label != "&unknown;" {
+						t.Fatal("unknown label was erased", last)
+					}
+				}
+				missing := false
+				for _, d := range n.Diagnostics {
+					if d.Code == "MISSING_NAVIGATION_TARGET" {
+						missing = true
+					}
+					if (mode == "link" || mode == "missing-default") && d.Code != "XML_ENTITY_UNRESOLVED" {
+						t.Fatal("unknown link produced a definitive structural error", d)
+					}
+				}
+				if missing != (mode == "known-missing") {
+					t.Fatal("known missing-target diagnostic was fabricated or swallowed", n.Diagnostics)
+				}
+			})
+		}
+	}
+}

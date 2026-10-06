@@ -73,3 +73,41 @@ Full root normal/race/vet, live fuzz and authorized-original regression results
 are pending at this checkpoint. Their raw terminal completion/exit evidence,
 not this checkpoint's targeted pass, determines their eventual status. Parent
 CLI acceptance and fixed-tree independent product audit also remain pending.
+
+## Post-checkpoint corrections
+
+The original `2d62ad0` tree subsequently completed root normal/race/vet and
+both live fuzz runs with actual exit 0 and no tracked drift (entity-source:
+177005 executions/46.014 s; encoding: 24139 executions/31.016 s). These results
+do **not** cover the following product changes.
+
+The parent's navigation counterexample is reproduced and corrected: an unknown
+href/src or unread default cannot establish a target, existence, or a missing
+link diagnostic. Attribute-specific certainty preserves known links despite
+unknown labels or unrelated attributes; known missing targets and structural
+blocks remain diagnosed. Twelve EPUB3/EPUB2 asymmetric controls pass, and the
+parent's exact synthetic EPUB now returns a null unknown target/existence while
+retaining its known sibling and original coverage identity.
+
+The initial blanket generated-text write guard was an overrestriction, not a
+contract limitation. Following the parent's explicit ruling, local replacement
+now proves literal opening-tag boundaries and the entire literal closing tag
+through source spans, independently of decoded body text. Known entity text in
+a physical simple-text element can be replaced as one original inner interval;
+no-op preserves references, and declarations/other references stay unchanged.
+Virtual nodes, unknown content and non-simple content remain unwritable. Twelve
+UTF-8/UTF-16 LE/BE controls cover empty-only/empty-ends, nesting, PE declarations
+and defaults; the former fuzz assertion and empty-entity budget assertion are
+corrected with independent byte expectations and genuine virtual-node controls.
+All initial red and intermediate failure logs are retained.
+
+Fixed Namespaces §7 also requires NCNames for entity/notation names and PI
+targets, and QNames for DTD element/attribute names. Twelve independent initial
+red controls are now rejected; qualified element/attribute names, colons in
+identifiers/NMTOKEN values and Fifth-Edition names remain positive controls.
+
+This increment passes complete normal xmltext/publication/metadata/references
+suites and all four T1b CLI tests (38.895 s, real pinned checker), including
+entity-text content and metadata history/accept/export with exact ZIP bytes.
+New-tree root/race/vet/live-fuzz results and independent acceptance remain pending
+until their own actual completion evidence is available.

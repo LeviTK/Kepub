@@ -120,7 +120,30 @@ func (l *dtdLex) name(token bool) (string, error) {
 	if l.pos == start {
 		return "", malformed("expected XML name")
 	}
-	return l.text[start:l.pos], nil
+	name := l.text[start:l.pos]
+	if !token {
+		parts := strings.Split(name, ":")
+		if len(parts) > 2 {
+			return "", malformed("invalid XML qualified name")
+		}
+		for _, part := range parts {
+			r, _ := utf8.DecodeRuneInString(part)
+			if part == "" || !nameStart(r) || r == ':' {
+				return "", malformed("invalid XML qualified name")
+			}
+		}
+	}
+	return name, nil
+}
+
+// Namespaces §7 requires entity, notation and PI names to be NCNames;
+// element/attribute names remain QNames and NMTOKEN values may contain colons.
+func (l *dtdLex) ncName() (string, error) {
+	name, err := l.name(false)
+	if err == nil && strings.Contains(name, ":") {
+		err = malformed("colon in XML NCName")
+	}
+	return name, err
 }
 
 func (l *dtdLex) literal() (string, error) {
@@ -215,7 +238,7 @@ func reference(text string, pos int, parameter bool) (name string, end int, err 
 		}
 		return text[pos+1 : l.pos-1], l.pos, nil
 	}
-	name, err = l.name(false)
+	name, err = l.ncName()
 	if err != nil || !l.take(";") {
 		return "", 0, malformed("invalid XML entity reference")
 	}
@@ -331,7 +354,13 @@ func (l *dtdLex) enumeration(names bool) error {
 	}
 	for {
 		l.space()
-		if _, err := l.name(!names); err != nil {
+		var err error
+		if names {
+			_, err = l.ncName()
+		} else {
+			_, err = l.name(true)
+		}
+		if err != nil {
 			return err
 		}
 		l.space()
@@ -473,7 +502,7 @@ func (d *internalSubset) declaration(l *dtdLex, base, anchorStart, anchorEnd, de
 				return err
 			}
 		}
-		name, err := l.name(false)
+		name, err := l.ncName()
 		if err != nil {
 			return err
 		}
@@ -504,7 +533,7 @@ func (d *internalSubset) declaration(l *dtdLex, base, anchorStart, anchorEnd, de
 				if err := l.requireSpace(); err != nil {
 					return err
 				}
-				e.notation, err = l.name(false)
+				e.notation, err = l.ncName()
 				if err != nil {
 					return err
 				}
@@ -523,7 +552,7 @@ func (d *internalSubset) declaration(l *dtdLex, base, anchorStart, anchorEnd, de
 		if err := l.requireSpace(); err != nil {
 			return err
 		}
-		name, err := l.name(false)
+		name, err := l.ncName()
 		if err != nil {
 			return err
 		}
@@ -583,7 +612,7 @@ func (d *internalSubset) subset(text string, base, anchorStart, anchorEnd, depth
 			}
 			l.pos += end + 3
 		case l.take("<?"):
-			target, err := l.name(false)
+			target, err := l.ncName()
 			if err != nil || strings.EqualFold(target, "xml") {
 				return malformed("invalid DTD processing instruction")
 			}

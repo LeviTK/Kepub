@@ -196,6 +196,7 @@ func (n *Navigation) navList(a *archive.Archive, ol *Element) []NavigationNode {
 		node := NavigationNode{Location: li.Location, Children: []NavigationNode{}}
 		labels := 0
 		lists := 0
+		unknownTarget := false
 		for _, c := range li.Children {
 			if c.Name.Space == XHTMLNamespace && (c.Name.Local == "a" || c.Name.Local == "span") {
 				labels++
@@ -203,10 +204,15 @@ func (n *Navigation) navList(a *archive.Archive, ol *Element) []NavigationNode {
 					node.Label = strings.Join(strings.Fields(c.Content), " ")
 					if c.Name.Local == "a" {
 						h, ok := c.Attribute("", "href")
-						if ok {
-							n.link(a, &node, h)
-						} else {
-							n.problem(n.Source, c.Location, "NAVIGATION_STRUCTURE", "navigation anchor has no href")
+						unknownTarget = !c.source.AttributeKnown(xml.Name{Local: "href"})
+						// Coverage records unknown targets; neither a definite URL
+						// nor a missing-link error can be derived from them.
+						if !unknownTarget {
+							if ok {
+								n.link(a, &node, h)
+							} else {
+								n.problem(n.Source, c.Location, "NAVIGATION_STRUCTURE", "navigation anchor has no href")
+							}
 						}
 					}
 				}
@@ -217,7 +223,7 @@ func (n *Navigation) navList(a *archive.Archive, ol *Element) []NavigationNode {
 				n.problem(n.Source, c.Location, "NAVIGATION_STRUCTURE", "unsupported child in TOC item")
 			}
 		}
-		if labels != 1 || lists > 1 || node.Label == "" || strings.TrimSpace(li.Text) != "" || (node.Href == nil && lists == 0) {
+		if labels != 1 || lists > 1 || node.Label == "" || strings.TrimSpace(li.Text) != "" || (node.Href == nil && lists == 0 && !unknownTarget) {
 			n.problem(n.Source, li.Location, "NAVIGATION_STRUCTURE", "TOC item requires one nonempty label and at most one nested list")
 		}
 		nodes = append(nodes, node)
@@ -246,10 +252,12 @@ func (n *Navigation) ncxPoints(a *archive.Archive, parent *Element) []Navigation
 			n.problem(n.Source, point.Location, "NAVIGATION_STRUCTURE", "NCX navPoint requires one text label and content target")
 		}
 		if len(links) == 1 {
-			if h, ok := links[0].Attribute("", "src"); ok {
-				n.link(a, &node, h)
-			} else {
-				n.problem(n.Source, links[0].Location, "NAVIGATION_STRUCTURE", "NCX content has no src")
+			if links[0].source.AttributeKnown(xml.Name{Local: "src"}) {
+				if h, ok := links[0].Attribute("", "src"); ok {
+					n.link(a, &node, h)
+				} else {
+					n.problem(n.Source, links[0].Location, "NAVIGATION_STRUCTURE", "NCX content has no src")
+				}
 			}
 		}
 		nodes = append(nodes, node)
