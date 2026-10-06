@@ -306,3 +306,11 @@ R4 冻结目录 `/tmp/kepub-s0-droid-review-r4`；唯一启动外层 PID **20605
 启动前固定 tree／832 输入身份已核验；原目录丢失后无法核验其结束状态，重新恢复相同提交不能反向证明原会话没有改动。R4 只记为**环境中断**，既非批准也非拒绝，不代替新完整审核。
 
 恢复仍使用原编码 Orb 和同一冻结内容。后续审核／scratch／证据改置持久 `/home/user/` 路径，先无模型测试受监督服务、日志和原子 launch-once guard，避免服务重启重复发出模型请求，再单独授权新轮次。受监督服务也不保证跨整机重建保留运行进程。**S0 未批准，T1 暂停，未 push／发布**。
+
+### 持久恢复与防重复启动已核验，新完整 R5 已真实启动
+
+父实际核对准备包 **52,352 bytes**、SHA-256 `6878af2fb452fe1c3ed0914f7b2d2269b70844749cceb20152f046ba88901dfe`，全文读取启动脚本、完整审核 prompt 及三份 dummy 原日志。真实受监督服务的三种控制分别为正常 child exit 0、故意 child exit 7、运行中停止而 child 结果未知；服务自动／显式再次启动均被原子 `mkdir` guard 抑制，没有重跑 body，也没有覆盖原退出值或伪造中断 child 的结果。真实模式缺授权先返回 64，不发模型请求。上述是启动防护验证，不是产品测试或 S0 批准。
+
+原编码 Orb 从实际保留的 bundles 恢复固定 fixture 到 `/home/user/kepub-s0-durable/review-r5`，实现及 scratch／探针也使用独立持久目录，未覆盖原 T1 初稿。双方重算 **832 项输入及 canonical identity** 与 R4 启动前清单完全相同；父本地只追加本验收记录，不改受审输入。Go／Java／固定 EPUBCheck 版本已实测恢复，准备阶段的空测试仅证明编译就绪，不冒称执行 12 个 checker witness。
+
+父核验准备后单独授权唯一新 R5。实际下载的 init **1,389 bytes**、SHA-256 `5a35feceaadf6bc85bee508586927df9b475bc88376ab6149e4443701bb90656` 确认新会话 **`d29068a1-ec74-47ef-8999-e60bd42e71d4`**、上述持久 cwd、**claude-opus-5-5／medium**；CLI 实际 **0.233.0**。冻结 fixture／tree／输入身份仍为前述 R4 的同一内容，完整 S0 范围不缩为增量审核。当前仅确认启动，尚无 completion／actual child exit／最终决定；继续跟随唯一受监督会话，**S0 未批准，T1 暂停，未 push／发布**。
