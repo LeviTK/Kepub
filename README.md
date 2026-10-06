@@ -2,7 +2,7 @@
 
 独立终端 EPUB 创建、修改与维护工具；后续扩展阅读／制作 UI 和 Amp 协作。
 
-**当前状态：开发方案 v0.10，按 Issue #3 先补规范原文资产与差距矩阵 S0，再推进独立 CLI 的 T1～T6；Issue #4 补原生修复提案、诊断差异及生态工具取舍，不增加默认运行依赖。默认 EPUB3，计划补 EPUB2 → EPUB3 转换、完整 EPUB3 XHTML 编辑、样式、系统字体发现和基础图片；近期不集成外部编辑器、UI 或 Amp，不新增嵌入字体。现有只读核心、工作区、校验／审核／导出、C1 命令框架、C2 正文查询、C3 简单文本修改及独立审查修复已作为源码发布到 main；新增能力仍待实施和验收。Linux 先功能测试，再打包和实测 Apple Silicon Mac。当前没有 GUI、生产 Agent、版本化安装包或已完成的 Mac 实机测试；文档 v0.10 不是软件发行版本。用户已授权计划经 Droid 审核无阻塞问题后开发；三轮全文计划审核与两轮定向复核已关闭已知问题，实施按 S0 门禁逐批推进，实际验收状态见下述记录。**
+**当前状态：开发方案 v0.10，S0 固定规范与差距矩阵已通过独立审计和父验收；T1a 编码兼容、全书字面搜索、精确任务状态与终端 diff 已本地集成并验收，尚未推送。T1b 的内部 DTD／实体／默认属性仍待实施，两批均通过才进入 T2；不代表完整 EPUB3 编辑器已经完成。** 后续按 Issue #3／#4 推进独立 CLI 的 T1～T6：默认 EPUB3，补 EPUB2 → EPUB3 转换、完整 EPUB3 XHTML 编辑、样式、系统字体发现和基础图片，不新增嵌入字体；UI、外部编辑器和 Amp 集成后置。既有 M1／M2／C1～C3 已作为源码发布到 main，新增交付状态分别记录。Linux 先功能测试，再打包和实测 Apple Silicon Mac；当前没有版本化安装包或 Mac 实机验收，文档 v0.10 不是软件发行版本。
 
 S0 归档与门禁：规范原文、官方用例来源与上游研究索引已本地建立。首轮实现 Droid 审查曾发现门禁、证据关联及条款／schema 遗漏；各项修复、复审和实际放行结论以 [父验收记录](docs/verification/S0_PARENT_ACCEPTANCE.md)为准，不能用审查进程 exit 0 代替批准。当前固定资产含 118 项规范／关联文件和 169 个用例 ID／170 本必需测试书；归档验证不等于语义完整性、用例执行或 CLI 全规范兼容。S0 放行必须同时具备绑定同一输入的父验收与真实独立审计批准，离线 `gate` 核验其证据。依用户最新指令，当前审计使用 Amp 的 DeepSeek V4.1 Flash，Droid 待用量恢复后使用；两种执行证据分别核验，不改写历史审查结果，也不降低放行标准。EPUBCheck 5.3.0 对三项 2026 REC 修订的 12 个正反样本已实际核验，不能外推为全规范覆盖。范围与历史限制见 [S0 矩阵](docs/EPUB33_SUPPORT_MATRIX.md)和[检查器核验](docs/verification/S0_EPUBCHECK_2026.md)；这些新增工作尚未推送或发布。
 
@@ -24,7 +24,7 @@ go build -o kepub ./cmd/kepub
 - `inspect` 支持 `metadata`、`manifest`、`spine`、`navigation`、`references`、`capabilities`。`toc` 与 navigation 共用读取用例，按声明选择 EPUB3 nav / EPUB2 NCX，不从 spine 合成目录。多 rootfile 必须传 `--rootfile '书/Deep/package.opf'`，值是精确 BookPath，不是 URL。
 - 引用边保留源位置、原 href、精确目标路径、query/fragment 和解析器版本；`--resource` / `--direction incoming|outgoing` 只过滤边，保留全局 coverage 与诊断。CSS 仅提取 literal url/import 子集，完整 CSS grammar 为 partial；脚本、SMIL、srcset 等明确不完整。**complete 只表示相应语法的提取覆盖，不是 EPUB 合规或编辑授权。**
 - XHTML href/src（含 nav）解析目标时去掉两端 ASCII 空白，报告仍保留 XML 解析后的原属性值；不会删除 NBSP 或百分号编码的文件名空格，也不会把这条规则全局用于 OPF、NCX、SVG、CSS 或磁盘路径。
-- 仅支持 EPUB2/3 ZIP 与 UTF-8 XML（含 BOM、内建/数字实体）；目录输入、UTF-16、DTD、自定义实体、`xml:base`、远程 manifest href 不支持，明确失败而非容错改写。
+- 支持 EPUB2/3 ZIP 与严格 UTF-8／UTF-16 LE／BE XML（含 BOM、内建／数字实体），T1a 接纳并保留原生 `<!DOCTYPE html>`。其他 DTD／自定义实体暂报 `UNSUPPORTED_XML_DTD`（exit 3，T1b 待实现）；目录输入的只读查询、`xml:base`、远程 manifest href 仍不支持，明确失败而非容错改写。
 - 拒绝穿越、绝对路径、特殊/符号链接/加密 ZIP 条目、重复和大小写/Unicode 碰撞（包括隐式父目录）。实际解压限制：20,000 条目、256MiB/文件、2GiB 总量；路径 4096 字节/128 层；解析 XML 8MiB/128 层/200,000 tokens、累计文本/位置索引 32MiB。这些是初始产品策略，不是 EPUB 标准。
 - 原书只读，所有资源（含非 manifest 文件与空目录）保留；unpack 完整 staging 后原子发布，不覆盖已有路径。输出父目录必须已存在。Linux 和 macOS 支持原子不覆盖发布；macOS **只做交叉编译，尚未实机验证**。突然终止可能留下私有临时 staging，但不会发布半成品目录；不宣称断电耐久性。
 - `--json` 成功/失败 stdout 都是一个统一 envelope；失败用稳定 code，退出码 1 内容/安全问题、2 参数、3 未实现能力、6 I/O。`--output/-o`、`--rootfile`、`--section` 可置于 BOOK 前后，`--` 结束选项，JSON 和 `--no-input` 不问答。其他契约中的选项尚未实现，会拒绝，不忽略。
@@ -75,6 +75,22 @@ query 区分大小写、按单个结果元素的文本做字面子串匹配；�
 正文 plan 和 execution 为 v2，已有 `metadata.set` 请求、计划、执行记录与摘要仍保持 v1。diff 的 `content.newValue` 是实际候选文本，不是计划新值；安全普通文件树的候选字节漂移可审阅／拒绝，不能接受。`content` 仍只读 accepted，accept 与正式 export 仍须真实 EPUBCheck。正文之外的结构、CSS、批量修改和真实 Amp 联调不在 C3 范围。
 
 父 orb 独立执行 67 次真实 CLI 调用：旧二进制生成的 v1 计划／待审任务兼容、v2 操作／策略摘要、同文第二节点的精确修改、正文接受／正式导出／拒绝、空值／no-op、陈旧读取绑定和候选漂移均通过。导出仅替换预期节点文本，其他字节与原书 SHA-256 保持。证据见 [C3 正文修改验证](docs/verification/C3_CONTENT_EDIT.md)。C2／C3 当时保留的编码 href 报告兼容问题已在后续独立审查中修复；历史报告保留当时的失败结论，当前绑定规则见下节。
+
+## 本地已验收：T1a 编码与终端基础
+
+```sh
+./kepub search --workspace 'work' --query '目标短语' --limit 20 --json
+./kepub task status '实际 taskId' --workspace 'work' --json
+./kepub task diff '实际活动 taskId' --workspace 'work'
+```
+
+`search` 按所选 manifest 顺序扫描 accepted 的全部 XHTML，达到返回条数后仍完成扫描和计数；不读取候选、不跳过坏资源。`task status` 区分指定活动任务与已结算历史，不用 latest 替代。历史任务的 `matchesExecution:false` 表示该活动候选字段不适用，不表示历史损坏；历史 `task diff` 仍拒绝（exit 4）。非 JSON 输出为可读摘要，diff 展示实际候选的分文件差异；二进制／超预算内容明确省略并保留大小与哈希，显示文本不是可应用 patch。
+
+原生 HTML DOCTYPE 与 UTF-16 的读取、定位、简单文本局部替换、来源重算和重开保持原编码及目标外字节。原始 XML 8 MiB、解码 UTF-8 16 MiB、索引 32 MiB 分别限额；全书搜索扫描 128 MiB、返回文本 1 MiB，不因编码扩展放宽预算或 v1 写权限。其他内部声明／实体／默认属性留在必需的 T1b，并非已支持。
+
+**解析成功不等于正式校验通过：** 固定 EPUBCheck 5.3.0 拒绝 UTF-16 XHTML（`HTM_058`），正式 accept/export 保留失败；UTF-16 OPF／container 搭配 UTF-8 XHTML 可在非 strict 下通过，strict 仍拒绝 `RSC-027` warning。`workspace export --draft` 只导出 accepted，绝不夹带待审候选。
+
+父侧 208 次独立 CLI 调用、未经预处理的授权原书（53 个 ZIP 条目逐字节对照）、旧二进制 v1／v2 兼容、root 普通／race／vet及 Darwin 交叉构建均通过；DeepSeek V4.1 Flash 批准本 T1a code/demo 范围，无阻塞问题。具体范围、失败记录与未测项见 [T1a 验证及父验收](docs/verification/T1A_ENCODING_TERMINAL.md)。这不是全产品复审、T1b 完成、Mac 实机测试或发行。
 
 ## 本地已集成：M1-B2 校验与打包
 
@@ -212,14 +228,14 @@ v0.2 的 Calibre 优化继续保留：转换、整理、结构编辑和只读查
 | 阶段 | 开发批次与终点 |
 |---|---|
 | S0．规范资产与差距矩阵 | 按 §11.8 有限清单归档固定规范，三份 REC 按来源逐条清点、映射与对账；3.3 测试报告和用例源码分别锁定，核对 checker 的 2026 增量；外部规范直接引用清单不递归归档整个 Web |
-| T1a／T1b．标准兼容与终端基础 | T1a 独立验收原生 DOCTYPE／UTF-16 全链路与可读输出、diff、status、search；T1b 必须完成 §3.4 允许的内部声明／实体／默认属性及来源矩阵；两者都通过才进入 T2，不以 unsupported 代替必需项 |
+| T1a／T1b．标准兼容与终端基础 | T1a 已本地验收原生 DOCTYPE／UTF-16 全链路与可读输出、diff、status、search；T1b 待完成 §3.4 允许的内部声明／实体／默认属性及来源矩阵；两者都通过才进入 T2，不以 unsupported 代替必需项 |
 | T2．内置编辑、多文件事务与修复提案 | 先完成事务／来源重算／恢复，再增加混合内容、结构修改、批量替换及原生 FixProposal、ValidationDelta 和依赖回滚 |
 | T3．EPUB2 → EPUB3 首批 | 先冻结 EPUB 2.0.1 及受信离线 DTD／实体资产，再显式迁移 OPF、NCX／nav、封面、必要 XHTML；首批 CSS 原字节保留，需改 CSS 的迁移由 T5 扩展；正式验证且保留原书 |
 | T4．新建与维护 | T4a 默认新建 EPUB3，元数据、章节／目录／资源与历史；T4b 网络小说按标题自动拆章，预览切点并同步阅读顺序和链接 |
 | T5．样式、系统字体与基础图片 | CSS 管理、字体族发现与回退声明；不嵌入字体；基础图片与简单排列；完成 CSS 迁移及 T4b 引用扩展验收，T6 回归正式 ZIP。T4a 后可开工，通过须有 T4b 首版联调 |
 | T6．CLI 验收与发行 | 无可选第三方工具的新建／转换／修复终端流程，Linux 功能测试与构建，再做 Mac 打包及实机验收；正式检查仍需 Java／固定 EPUBCheck |
 
-以上通过后才称为普通 EPUB3 的创建、修改与维护闭环。近期不做完整 EPUB2 编辑器、新建 EPUB2 或 EPUB3 降级；高级排版／媒体、UI、外部编辑器和 Amp 集成后置。T1 新入口的语义见 [契约 §2.4](docs/CLI_CONTRACT.md#24-t1-终端增量实施契约已冻结语义尚待实现与验收)，其余新增命令与操作 schema 仍待冻结；当前不可执行这些计划能力，编码子 Orb 的初稿尚未测试或集成。
+以上通过后才称为普通 EPUB3 的创建、修改与维护闭环。近期不做完整 EPUB2 编辑器、新建 EPUB2 或 EPUB3 降级；高级排版／媒体、UI、外部编辑器和 Amp 集成后置。T1 新入口的语义见 [契约 §2.4](docs/CLI_CONTRACT.md#24-t1-终端增量实施契约t1a-已验收t1b-待实现)；除已验收的 T1a 外，其余新增命令与操作仍按批次冻结、实现和验收，不能将计划能力当可执行功能。
 
 计划中的 EPUB3 核心接受规范允许的声明，但不读取任何外部 DTD 子集；仅显式 EPUB2 迁移使用冻结的有限离线资源。EPUB2 合法但暂不支持的声明报能力限制，不误套 EPUB3 非法规则。良构但无法展开的实体保留并明确 partial；`content/search` 不能提供完整文本时失败，不把未知内容当空串。T1 的 XML 8 MiB 按原始资源含 BOM 计量，另设每资源解码／展开预算，读取、编辑和来源重算一致；实体生成节点／默认属性不能伪造为原字节可写位置。
 

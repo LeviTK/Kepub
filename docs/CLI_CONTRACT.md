@@ -14,7 +14,7 @@ Obsidian CLI 的参考取舍见 [开发方案 §9.1／§9.2](DEVELOPMENT_PLAN.md
 
 ## 2. 命令分组与实施次序
 
-下表 M0～M6 是技术工作包编号，不再表示执行先后。当前先完成 [S0 规范资产与差距矩阵](DEVELOPMENT_PLAN.md#118-issue-3-阶段映射规范资产与关闭门槛)，再按 [开发方案 v0.10 §11.7](DEVELOPMENT_PLAN.md#117-v010-独立-cli-批次与完成标准) 完成独立终端制书：默认 EPUB3、EPUB2 → EPUB3 转换、完整 EPUB3 XHTML、样式和系统字体发现；本阶段不接入 UI、Amp 或外部编辑器。C1 发现／诊断、C2 有界内容读取／定位、C3 单个 XHTML 简单文本确定性修改已实现并作为源码发布到 main，尚无版本化安装包。C3 操作 schema 在 §2.2 冻结；支持边界见 [§11.4](DEVELOPMENT_PLAN.md#114-首个正文读写版本的边界)。新增能力仍为计划，见 §2.3～§2.6；CLI 完成不等于 Issue #3 的真实排版／无障碍目标完成。
+下表 M0～M6 是技术工作包编号，不再表示执行先后。当前先完成 [S0 规范资产与差距矩阵](DEVELOPMENT_PLAN.md#118-issue-3-阶段映射规范资产与关闭门槛)，再按 [开发方案 v0.10 §11.7](DEVELOPMENT_PLAN.md#117-v010-独立-cli-批次与完成标准) 完成独立终端制书：默认 EPUB3、EPUB2 → EPUB3 转换、完整 EPUB3 XHTML、样式和系统字体发现；本阶段不接入 UI、Amp 或外部编辑器。C1 发现／诊断、C2 有界内容读取／定位、C3 单个 XHTML 简单文本确定性修改已实现并作为源码发布到 main，尚无版本化安装包。C3 操作 schema 在 §2.2 冻结；支持边界见 [§11.4](DEVELOPMENT_PLAN.md#114-首个正文读写版本的边界)。T1a 已本地验收并集成（未推送），编码／search／status／终端输出见 §2.4；T1b 与 §2.3、§2.5～§2.6 的其余能力仍待实施。CLI 完成不等于 Issue #3 的真实排版／无障碍目标完成。
 
 | 命令形态 | 语义 | 阶段 |
 |---|---|---|
@@ -25,6 +25,7 @@ Obsidian CLI 的参考取舍见 [开发方案 §9.1／§9.2](DEVELOPMENT_PLAN.md
 | `kepub toc BOOK --json` | 读取导航，不改变 spine | M1 |
 | `kepub inspect BOOK --section manifest --json` | 指定范围的只读结构查询 | M1 |
 | `kepub content --workspace DIR --resource BOOK_PATH [--query TEXT] [--limit N] --json` | 只读 accepted revision 的单个 manifest XHTML，返回有界文本／结构定位／资源哈希 | C2 本地已实现 |
+| `kepub search --workspace DIR --query TEXT [--limit N] --json` | 按 manifest 顺序检索 accepted 的全部 XHTML，返回完整匹配元素数 | T1a 本地已验收 |
 | `kepub unpack BOOK --output DIR` | 解到新目录，安全检查，不覆盖 | M1 |
 | `kepub pack DIR --output OUT.epub` | 清单式归档及正式检查，不是convert | M1 |
 | `kepub validate BOOK_OR_DIR --json` | 分层诊断及覆盖报告 | M1 |
@@ -33,6 +34,7 @@ Obsidian CLI 的参考取舍见 [开发方案 §9.1／§9.2](DEVELOPMENT_PLAN.md
 | `kepub plan --workspace DIR --operations FILE --output PLAN.json` | 从当前accepted基线生成单字段操作计划，不写出版内容 | M2 已实现 |
 | `kepub apply --workspace DIR --plan PLAN.json --json` | 核对计划，创建候选任务；不接受/不导出 | M2 已实现 |
 | `kepub task diff TASK --workspace DIR --json` | 实际完整文件增删改及元数据／正文目标的old/new文本 | M2／C3 已实现 |
+| `kepub task status TASK --workspace DIR --json` | 精确活动或已结算 taskId 的执行、检查尝试与决定；不产生批准 | T1a 本地已验收 |
 | `kepub task accept TASK --workspace DIR [--strict --timeout SECONDS]` | 冻结候选，真实正式检查，显式接受新revision | M2 已实现 |
 | `kepub task reject TASK --workspace DIR` | 保留审计，不删除原书或revision；随后可再编辑 | M2 已实现 |
 | `kepub workspace export DIR --output OUT.epub [--draft --strict --timeout SECONDS]` | 仅从当前accepted导出，重新检查最终ZIP | M2 已实现 |
@@ -83,7 +85,7 @@ XHTML 的 href／src（含 EPUB3 nav）在解析目标前，仅去掉属性值�
 C2 首版命令为 `kepub content --workspace DIR --resource BOOK_PATH [--query TEXT] [--limit N] --json`，只读，不接受 BOOK、rootfile 覆盖或任务参数；注册为 `publication.content` v1 / `available` / `read_only`。publication 读核心经 app 的现有工作区快照接口接入 CLI：
 
 - 工作区使用已有 `AcceptedSnapshot` 冻结当前 accepted；返回真实 workspaceId、revisionId、rootfile、精确 bookPath、resourceSha256 和 locatorVersion。查询期间保持现有协作锁，关闭快照和工作区；不从内部目录猜当前版本，不修改出版内容。
-- 仅支持所选 publication manifest 声明的 `application/xhtml+xml`，路径必须为精确 BookPath，不是 href／fragment／本机路径。沿用 UTF-8 XML、8 MiB、深度／token／索引限制；不支持的资源类型明确失败，CSS 查询留到后续，不为本批增加第二套语法。
+- 仅支持所选 publication manifest 声明的 `application/xhtml+xml`，路径必须为精确 BookPath，不是 href／fragment／本机路径。C2 首版采用 UTF-8 XML；T1a 已扩展严格 UTF-16 LE／BE 与原生 HTML DOCTYPE，原始 8 MiB、深度／token／索引限制不变，新增解码预算见 §2.4。不支持的资源类型明确失败，CSS 查询留到后续，不另建语法路径。
 - 结果节点取 XHTML body 内的 XHTML 元素：叶元素，或有非空白直接文本的非叶元素；不包括 body 容器、head、script/style 子树和外来命名空间子树。含被排除子树的祖先元素也不作为结果，仍遍历其受支持子元素，避免经祖先 text 返回被排除内容；这不是全书全文索引。`text` 为 XML 解码后的后代文本原顺序，不 trim、不做 Unicode／空白归一化；同时返回元素 namespace/localName、可选 id、结构 locator 和 `hasChildElements`。混合内容仅供读取，不能由这个布尔值推导已允许编辑；locator 不是 XPath 执行器或可写偏移。
 - query 缺省表示全部上述节点；显式 query 必须非空且不超过 4096 UTF-8 字节，以区分大小写的字面子串匹配解码后的 text，不支持正则，不将不同返回元素拼接搜索。一个混合元素自身的后代文本已按原顺序合并，因此可匹配跨内联标签的短语。每个匹配元素返回一次，不默认选择首个；重叠父子节点可分别返回且 locator 不同。
 - limit 缺省 50，范围 1～200；按文档顺序返回。报告匹配元素总数、返回数量和 truncated；无命中是成功的空数组。返回文本累计上限 1 MiB，超限明确 `CONTENT_LIMIT`，不裁剪单节点文本或悄悄遗漏。所有上限校验在访问工作区前尽可能完成。
@@ -120,22 +122,22 @@ Apply、Open 恢复和 Accept 都须重新推导相同的单资源写集合及�
 - **混淆资源引用：** 资格核验必须包含 encryption.xml 的 CipherReference，按 OCF URI 基准映射；T4a 改名须原子同步声明，否则拒绝，本阶段拒绝删除被混淆字体。签名引用不得忽略，但签名书仍只读，不通过改写／删除签名放行。字节／密钥未变不是路径改动安全的充分依据。
 - **终端与平台：** 人类可读输出、文本 diff、任务状态及发行说明；JSON 仍保持机器契约。Linux 先验收，随后 Mac 打包／实机测试；不以 GUI、Amp 或外部编辑器作为前置。
 
-以上通过实现与独立验收后才进入 capabilities 的可用项，不改变 §2.1／§2.2 的当前限制，也不使下文历史设计示例立即可执行。
+以上通过实现与独立验收后才进入 capabilities 的可用项；已交付的 T1a 编码／终端增量见下一节，不扩大 §2.2 的简单文本写权限，也不使下文历史设计示例立即可执行。
 
-### 2.4 T1 终端增量实施契约（已冻结语义，尚待实现与验收）
+### 2.4 T1 终端增量实施契约（T1a 已验收，T1b 待实现）
 
-本节冻结 T1 新入口的语义，不声明当前二进制已可执行；通过独立验收后再更新命令表与可用状态。既有 JSON envelope、单资源 `content`、操作／计划／执行版本和正式检查门槛不变。
+本节的 T1a 入口、原生 HTML DOCTYPE 与编码增量已本地集成并通过父验收及 DeepSeek V4.1 Flash 的代码／demo 审计，未推送或发行，证据见 [T1a 验证](verification/T1A_ENCODING_TERMINAL.md)。下文明确属于 T1b 的 DTD／实体／默认属性语义仍待实现，不以 T1a 通过替代完整 T1。既有 JSON envelope、单资源 `content`、操作／计划／执行版本和正式检查门槛不变。
 
 - `kepub search --workspace DIR --query TEXT [--limit N] --json`：持锁读取所选 rootfile 的 accepted revision，按 manifest 顺序检索其中所有 XHTML，不读取活动候选、不选另一个 rootfile。沿用 `content` 的区分大小写字面子串及节点／排除规则；命中数是匹配结果元素数，不是短语出现次数，不跨资源拼接匹配，也不是浏览器可见文本。
 - query 必填，范围为 1～4096 UTF-8 字节；limit 默认 50、范围 1～200。返回工作区／revision／rootfile 身份、完整匹配数、返回数和 truncated；每个结果包含精确 bookPath、原资源 SHA-256、locatorVersion、locator 和解码文本。达到返回数限制仍须扫描剩余资源才能声称完整匹配数。不同资源出现同一 locator 不合并。
 - 每资源 XML 8 MiB 统一按**原始资源字节、含 BOM**计量，读入和修改后的序列化结果均适用；每资源解码后的 UTF-8 流及实体展开后的 UTF-8 流分别最多 16 MiB，包括标记／属性／文本／保留声明，两份表示不相加、不按祖先重复计文本，也不跨资源累计。另将每次实体替换产生的字节累计到每资源 16 MiB 展开工作预算，限制中间开销；不把转码结果重新按 raw 8 MiB 截断。沿用元素深度 128／200,000 tokens／32 MiB 索引限制，展开生成内容也计数；T1b 的 DTD 声明最多 4096、实体嵌套最多 16、替换次数最多 100,000。全书 XHTML 原始扫描字节累计上限 128 MiB，返回文本累计上限 1 MiB UTF-8 字节。超限或任一应扫描资源不可读取／解析时明确失败，不把未扫描部分当零匹配，不静默跳过坏资源；truncated 仅表示返回条数限制。
 - 32 MiB 索引独立保留既有计量：字符数据 UTF-8 字节先计两次，每向上一层祖先汇入子树文本再计一次，另加各元素 location 的 UTF-8 字节。单段 `html > body > p` 文本约计四倍，有效文本上限略低于 8 MiB，深层嵌套更早触限。原始／解码／展开流、索引等限额须同时满足；16 MiB 流上限不是正文可索引容量承诺，也不是实际驻留内存上限。
-- `kepub task status TASK --workspace DIR --json`：查询精确任务的执行与结算状态，返回身份、基线及当前审核／接受／拒绝信息；未知任务明确失败，不以 latest 或其他任务替代。只读持锁，沿用 Open 的来源、恢复与安全树核验，不为状态查询绕过损坏记录。status 不产生批准或导出。
-- 非 JSON 输出使用面向终端的可读摘要；任务 diff 按资源展示实际文本差异，不能把计划文本当候选事实。二进制、不可解码或超显示预算的资源显示路径、变化类型与字节／哈希摘要并明确未展示文本；不伪称没有变化。机器输出既有字段与含义不因终端排版而改变。
+- `kepub task status TASK --workspace DIR --json`：查询精确任务的执行与结算状态，返回身份、基线及当前审核／接受／拒绝信息；未知任务明确失败（exit 4／`TASK_CONFLICT`），不以 latest 或其他任务替代。只读持锁，沿用 Open 的来源、恢复与安全树核验，不为状态查询绕过损坏记录。`matchesExecution` 只比较活动候选；历史任务当前返回 false 表示不适用，不能解释为历史损坏，历史仍验证决定／revision／计划消费。`checks` 列举检查尝试，随机文件名不构成时间排序或 latest。status 不产生批准或导出；`task diff` 仍只针对精确活动任务，已结算任务返回 exit 4／`TASK_CONFLICT`。
+- 非 JSON 输出使用面向终端的可读摘要；任务 diff 按资源展示实际文本差异，不能把计划文本当候选事实。单资源 256 KiB、累计解码显示文本 1 MiB；二进制、不可解码或超显示预算的资源显示路径、变化类型与字节／哈希摘要并明确未展示文本，不伪称没有变化。控制字符／换行转义，显示不是可应用 patch；机器输出既有字段与含义不因终端排版而改变。
 
 标准语法接纳不扩大 `content.text.set` v1 的结构权限。T1 编码支持须覆盖读取、定位、局部写入、来源重算与历史重开：未改资源保持原字节，已改资源保持原编码、BOM／声明和目标外字节。T1a 独立验收原生 HTML DOCTYPE／UTF-16 LE／BE 全链路、本节 search／status／diff、授权原书与公共合成样本，不宣称完整 T1。T1b 须完成开发方案 §3.4 的必需解析／保留矩阵：内部实体（含标记及参数实体）、ATTLIST 默认／固定属性及规范化、允许的声明与命名空间；预算内必需项不得仅标 unsupported。T1a 与 T1b 都通过才进入 T2。
 
-**编码可解析不等于正式检查通过。** 固定 EPUBCheck 5.3.0 对 UTF-16 `application/xhtml+xml` 报 `HTM_058` error，对 UTF-16 OPF／container 报 `RSC-027` warning；其[编码分支](https://github.com/w3c/epubcheck/blob/029831b8f477e4519e9734c984ee24357547a698/src/main/java/com/adobe/epubcheck/xml/XMLParser.java#L129-L181)不按 EPUB2／3 区分。UTF-16 XHTML 的读取／局部编辑／来源重算／重开仍保真，但正式接受和正式导出必须保留这个失败、accepted 不推进且不生成正式产物；显式 draft 保留原字节并标记未验证。不得隐式转码、过滤该诊断或降低 checker 门槛，也不把检查器拒绝等同于 XML 非良构。正式成功正控使用原生 UTF-8 XHTML，以及 UTF-16 LE／BE OPF／container 配合 UTF-8 XHTML；后者须用 `metadata.set` 修改 UTF-16 OPF，验证接受后历史来源和导出字节，`--strict` 仍阻止 warning。大段 UTF-16 CJK 注释跨解码 8 MiB 的样本验证解析／编辑／重开与正式拒绝，不伪称其通过正式检查。
+**编码可解析不等于正式检查通过。** 固定 EPUBCheck 5.3.0 对 UTF-16 `application/xhtml+xml` 报 `HTM_058` error，对 UTF-16 OPF／container 报 `RSC-027` warning；其[编码分支](https://github.com/w3c/epubcheck/blob/029831b8f477e4519e9734c984ee24357547a698/src/main/java/com/adobe/epubcheck/xml/XMLParser.java#L129-L181)不按 EPUB2／3 区分。UTF-16 XHTML 的读取／局部编辑／来源重算／重开仍保真，但正式接受和正式导出必须保留这个失败、accepted 不推进且不生成正式产物；显式 `workspace export --draft` 保留当前 accepted 的原字节并标记未验证，不导出候选。不得隐式转码、过滤该诊断或降低 checker 门槛，也不把检查器拒绝等同于 XML 非良构。正式成功正控使用原生 UTF-8 XHTML，以及 UTF-16 LE／BE OPF／container 配合 UTF-8 XHTML；后者须用 `metadata.set` 修改 UTF-16 OPF，验证接受后历史来源和导出字节，`--strict` 仍阻止 warning。大段 UTF-16 CJK 注释跨解码 8 MiB 的样本验证解析／编辑／重开与正式拒绝，不伪称其通过正式检查。
 
 T1a 验收 raw／decoded／扫描／返回限额，DTD 声明数、实体展开／工作预算及下述未展开实体语义由 T1b 验收，不以“本节全部限额”把两个批次合并。
 

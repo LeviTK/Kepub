@@ -59,3 +59,55 @@
 - 文档 bundle 初次省略 ref 的 fetch 失败，显式 ref 成功；从持久目录直接 upload 被工具的 workspace 限制拒绝，复制新证据到 root .agents 后真实上传成功，未改 root 初稿。
 - 首次证据 tar 将输出置于被归档目录，虽排除自身文件，仍出现 `file changed as we read it` 的目录 mtime 警告；没有记录该次 tar 独立 exit，不把外层命令的 exit 0 充作 tar 通过。改为目录外生成独立 v2 包，检查其实际 exit／解包清单；原首包与警告记录保留。这只是包装修正，产品和检查日志未改变。
 - T1b 内部子集、实体、默认／固定属性及媒体绑定外部标识符仍待下一批；T1a 不等于完整 T1。T2、UI／阅读系统／Mac 实机测试未执行。没有 Droid、合成批准、push、发布或自动接受。
+
+## 父独立验收与本地集成（后续追加，2026-10-06）
+
+**批准 T1a 增量并本地集成，不等于完整 T1 或完整产品树复审通过。** 上文“仍待”保留为编码交付时点的记录。父在 detached 产品 checkout `f620a53fbe0e69d37bc26f213b2a4d578d1ee82e` 独立构建、测试和验收；随后合并原产品及两次 verification 提交到本地 main，集成提交 `f8642f676e9aeae6195efe61ba7e803b73b9efc9`。合并后 `cmd`／`internal`／`go.mod`／`go.sum` 与受审产品逐项无差异；后续本记录与三份主文档仅描述实际交付状态和既有接口语义。未推送、发布或调用 Droid。
+
+### 父实际运行结果
+
+同一包装进程 PID 1450227 顺序执行以下检查，已实际 exit 0，最后输出 `PARENT_T1A_F620_ROOT_NORMAL_RACE_VET_DARWIN_PASS`。所有检查设置固定 checker 及私有原书 opt-in 路径，无需重跑相同产品树来将文档提交冒充新产品验证。
+
+| 命令 | 终局 |
+| --- | --- |
+| `go test -count=1 -timeout=20m ./...` | exit 0；CLI 323.236s、workspace 177.851s、validation 298.758s |
+| `go test -race -count=1 -timeout=30m ./...` | exit 0；CLI 524.333s、workspace 221.264s、validation 289.070s |
+| `go vet ./...` | exit 0，无诊断 |
+| `GOOS=darwin GOARCH=arm64 go build ./...` 及 CLI 单独构建 | exit 0；`file` 确认为 Mach-O 64-bit arm64，未实机运行 |
+
+父用独立 Python ZIP／CLI harness 执行 **205 次 JSON＋3 次 human＝208 次调用**，正例成功、负例按预期拒绝；不包含早期三次失败 harness 的部分调用。完整成功集合为：UTF-8 原生 DOCTYPE 25 次，UTF-16LE／BE metadata 各 17 次，search 7 次，真实旧二进制 v1/v2 计划及任务 22 次，私有原书 11 次，UTF-16LE／BE XHTML 普通及大注释四组各 22 次，实际候选／历史状态／终端显示 21 次。
+
+- UTF-8 样本真实拒绝／接受／历史／正式导出；UTF-16 OPF 正式接受，strict 保留 warning 拒绝，原编码局部替换精确等于独立计算字节。
+- UTF-16 XHTML 四组覆盖 BOM、代理对、解码跨 8 MiB、大注释、局部编辑、失败恢复、历史重开；正式检查保留 HTM_058，accepted 不推进、正式无产物；draft 仅含 accepted 原字节。
+- 旧二进制真实生成 v1 元数据／v2 正文计划及活动任务，新二进制继续接受、重开、正式导出，旧计划哈希未变；不是手造旧 schema 冒充旧版本兼容。
+- 未预处理授权原书直接 search／精确节点修改／真实 accept/export，最终 ZIP 的 **53 个条目**与独立预期逐项比对，只有指定文本变化；原始附件 SHA-256 保持。正文／书籍／完整回复留私有目录，不进入仓库。
+- search 为 literal、大小写敏感和 accepted-only；达到 limit 后的坏资源仍失败，返回预算失败不伪装截断成功。实际候选手动漂移后，终端 diff 显示五个变化文件及真实文本，二进制／超预算省略有说明；状态准确区分旧任务、活动任务和未知 ID，接受漂移仍拒绝。human 输出实际读取检查，非阅读器渲染证据。
+
+父保留的三次 harness 失败分别为：ZIP 显式化原先隐式父目录导致比较预期错误；调用不存在的顶层 `metadata` 命令；将历史 reject 存档中的副本错误计为活动候选。修正预期／调用和查找范围后才计上述成功集合，没有为测试改产品。父证据清单最初记录“root／审计仍进行”，该文件原字节保留，本节追加实际终局，不覆盖历史状态。
+
+### 独立 DeepSeek 结论及边界
+
+[独立审计线程](https://ampcode.com/threads/T-01a110c5-dd31-748d-83f3-1c398f01c097) 使用 `deepseek-v4.1-flash`，实际最后 assistant 为 `complete/end_turn`，唯一决定 `scope:t1a-code-demo`／`decision:approved`；输入 identity 为 `e03797d865001725e8e145997c85a1c8078c5e19631f75dc9c89635c3d43c8b6`。父核验 actual final 与 export 中的模型／终局状态，不以另一线程的口头批准替代证据。
+
+审计完整读取 26 文件 diff 与相关实现，不宣称 navigation／archive／validation 等未改模块全文复审；普通 5 包、race 4 包、定向 18 PASS／1 SKIP 及真实 EPUBCheck CLI demo 通过。私有原书因该 orb 无输入显式 skip，root／vet／fuzz／Darwin／旧二进制由父或编码方另列证据，不冒充审计者执行。审计保留两次自己的断言错误（human XML 转义、误以为 draft 导出候选），修正后 demo 全过。
+
+**无阻塞性实质问题，但 findings 不是空数组：** 非阻塞观察是历史已结算任务 `matchesExecution` 固定 false；它只定义活动候选比较，不代表历史来源失败。历史仍核验 decision／revision／计划消费。父在 CLI §2.4 与 README 明示该语义，以及已结算 `task diff` 为 exit 4、draft 为 accepted-only；不以文档补述扩大执行权限或改变产品。
+
+### 证据指纹与未测范围
+
+父已解包校验编码方清单 31 项与独立审计包清单 32 项，全部 SHA-256 匹配。以下指纹用于定位保留证据；私有 Amp export、授权书籍及完整原书 CLI 回复不提交。
+
+| 证据 | SHA-256 |
+| --- | --- |
+| 产品 bundle（24,114 B） | `d295685b09651faca1e09a6249a82a7bf9dec508ecac81e28da7809d6674c628` |
+| 最终 verification bundle（6,904 B） | `11b6937d63944e5332ef12de4c3d9884c33681b418b78dd1bffbd8e1f278ed74` |
+| 编码方 v2 证据包（26,719 B） | `a79f2d245bc5cfe3bd62ae5ca89763265c4767a41e640a0b681f352be652ac53` |
+| 独立审计包（70,137 B） | `84ab583c6aeb5c49149ca7c17f1bfd83dfd13ce9627a497cefa99c194eb0246d` |
+| 审计实际 final（8,028 B） | `91343a5964806986a9602e26274fada1b2fecc7ebe53151a5a533f31769dd3ae` |
+| 私有审计 export | `e544e360a96ed0c2f09e2440ab09a4d668db929c58e6d824a061db43cf843572` |
+| 父 root 组合日志 | `0ecda53c76902dc137bc8bd1ecd98584c7ddca1a675576372148247a3c1da6b8` |
+| 父 CLI 证据清单 | `dcac381994b909f65457f71a055507f23d1d2497ce0f21000c7a220e9c95c61d` |
+| 父独立 probe.py | `0cb36b8f625974c7c0a3f77168157334230bc7820ebb1bfe8a16d9c0400c9b46` |
+| 父受测 Linux 二进制 | `0670c00cd7182106ebd8a4b9312f084114dd59f51099d2fbb596fd3b90ba18aa` |
+
+T1b、T2～T6、阅读系统渲染、人工无障碍和 Mac 实机仍未验收；S0 原批准保留在原固定 checkout，修改主文档后原 receipt 拒绝新 identity 属预期，不将本次 T1a 审计改称新 complete-S0 批准。新增产品仍限单操作／简单文本，其他 DTD／内部实体暂报能力不足；该临时限制不取消 T1b 必需集。
