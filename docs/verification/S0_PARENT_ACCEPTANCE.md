@@ -2,7 +2,7 @@
 
 ## 当前结论：阶段资产未通过总验收
 
-**最新用户指令（2026-10-06）：当前审计改用 DeepSeek V4.1 Flash，Droid 待用量恢复后再使用。** 使用 Amp 的实际 `deepseek-v4.1-flash` 模式开展新的独立完整 S0 审计，不续写或冒充中止的 Droid R6。保留固定输入、完整阅读、实际测试、反例、失败记录及父独立验收要求；不因更换审计者跳过门槛。原离线 gate 只识别 Droid 协议，父已补充独立的 Amp 执行证据核验并通过定向测试，仍待完整回归和固定新树复审；不能伪造 Droid init／completion 或直接翻转批准字段。当前没有 DeepSeek 审计通过或 T1 放行结论，也不自动充值、监控额度或重启 Droid。下述各轮的 Droid 要求及额度阻塞保留为当时历史。
+**最新用户指令（2026-10-06）：当前审计改用 DeepSeek V4.1 Flash，Droid 待用量恢复后再使用。** 使用 Amp 的实际 `deepseek-v4.1-flash` 模式开展独立完整 S0 审计，不续写或冒充中止的 Droid R6。原快照 D1 已实际结束并给出 approved；父另核出三项报告／阅读记录更正，且该批准不覆盖随后新增的 Amp 验收协议。协议适配固定树已通过父 **124/124** 完整回归与重放，用户随后要求新建独立审计 Orb，D2 已创建，尚无终局决定。固定输入、完整阅读、实际测试、反例和父验收要求不变；当前组合仍未放行，T1 暂停，不自动充值、监控额度或重启 Droid。下述各轮的 Droid 要求及额度阻塞保留为当时历史。
 
 首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P8、Droid R1 F1～F6 的阶段修复复验。后续 R2／P9 及 R3 的来源修复已独立复验并集成本地 `main`，固定修复树与父最终组合均 115 项通过。R4 被子 Orb 重启中断，没有 completion、实际退出码或决定；恢复后完整 R5 实际 completion／exit 0，但决定 rejected。其 contributor 继承及七处普通建议缺口现已修复、父独立复验并集成本地；最后集成树完整 **121/121 PASS，589.402s**。随后 **R6 因 Factory 周额度耗尽（HTTP 402）实际 child exit 1，没有 completion 或批准／拒绝决定**，详见下文。旧失败、阅读限制和错误验收记录保留，不充当当前批准。计划本身复审已完成，S0 仍待最新指定审计者的新完整审查和实际门禁通过；T1 继续暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
 
@@ -373,3 +373,27 @@ R6 fixture `b4e052f590d00665a4d05e02e95f7033bc1bb7f2` 的完整 tree **`7ce11e01
 - **工具错误保留：**两次 `tool_result.isError` 是提前读取尚不存在的结束文件，以及临时 REC 抽取器对字符串调用 `walk`；后者修正后重跑。它们与末尾两个 quota `error` 事件分开统计，不当作产品缺陷或成功执行。
 
 本地修复、测试和证据已保存，但 **S0 仍未批准，T1 暂停，未 push／发布**。当前阻塞需要 Factory 额度恢复；没有自动重试、自动充值或定时续跑。恢复后须单独启动新的完整审查，不将这次中止改写为通过。
+
+## DeepSeek D1 已结束；父核验报告更正，新增协议另待 D2
+
+用户更换审计者后，父新建 [DeepSeek D1 Orb](https://ampcode.com/threads/T-01a1109b-33dc-747c-9e0b-b29aef93f67f)。受审 HEAD `45473b4a5e869f325aab19bb35d833550813d8b7`、tree `a81a3d68ac6c3f45a10fbd4c2fb6875f6180442d`、836 输入 identity `329c917fa55cea90e4c260832310a3f837789b71b1c3e5df9cf3e3723a7c2cd1`。实际导出中的 agent definition 与全部 assistant usage 均为 `deepseek-v4.1-flash`，最终消息确为 `complete/end_turn`，决定为 `approved / complete-S0 / findings=[]`；不是仅按线程标题认定模型或按 idle 推定完成。该决定仅绑定旧树，不是当前适配组合的父批准。
+
+父下载原证据包 **24,116 bytes**，SHA-256 `58aad7b24980f51bce42951e4aeb88ae5b25e8653f4077e0ce2d6b53b365b74d`；原技术报告 SHA-256 `66be1d051dbadaf5bc80c9d600f259d8d5a4195a5d182060a60998aed66cf62c`。实际 final 文本 SHA-256 `6bbab24969d799f4492a54cce186f60b56cc409c7f48f5f21924df249e48f47e`、私有原始导出 SHA-256 `c3f3104cc674221a2ec23e66943fc333481b6486fecb57b1d82e838ae318c7f5`。执行证据保留在 `.agents/`，不公开内部推理内容。独立 Python **121/121 PASS，643.895s**，真实固定 EPUBCheck 的 `TestRealREC2026` **exit 0，67.280s**；首次重放、四 verify、reproduce 通过且零漂移，正常 gate 缺批准仍 exit 1。另有 14 份固定来源重取、3 组官方用例源码对照和明确抽样范围，不冒称阅读系统执行、渲染、全部 1606 行人工重推或后续 CLI 功能通过。
+
+父读取原报告、阅读账、控制结果，并逐条核对真实导出的可见 Read 行与固定源。四生产脚本、21 份测试及已读治理文档的可见范围吻合，但确认下列更正，原报告和包均未改写：
+
+- 原“全文、无未读”遗漏 `epub.txt` **14242–14287** 的 46 行非规范 Change log，以及第 19187 行末尾空白。D1 确认无其他读取证据，于 **10:31:04 UTC** 补读并核对字节；不能将事后补读伪称为原终局前已覆盖。
+- 原“13/13 均拒绝”应为 **13 控制满足各自预期：11 拒绝反例、2 通过正控**。
+- 原“R1–R5 均 rejected”错误；R4 是中断、无决定。R1 结束未批准，R2／R3／R5 rejected，R6 额度中止无决定。
+
+独立更正记录 **4,140 bytes**，SHA-256 `99b5786b1cb7ec1cb8c07a138b90f21dc2822243173636bd9cf5cfcc8777f03a`，已由父下载全文核对。更正没有改写旧 final、决定或资产，亦不批准新组合。D1 探针的 tarball 前缀错误、抽样初筛假阳性与未落盘后重跑等失败仍保留。
+
+### Amp 协议适配已固定并通过父复验，不等于独立批准
+
+父仅在审批入口增加用户授权的 `parent + amp` 证据路径，保留 `parent + droid` 和全部来源／派生／语义校验。Amp 路径核对导出 hash、真实线程、实际模型 usage、最终完成状态和报告全文一致性；两份报告仍须批准同一 `complete-S0` 输入且无未解决 finding，独立报告必须声明完成阅读。没有创建真实 `acceptance.json`，也未翻转 `semanticComplete`。导出是执行记录一致性证据，不是提供商签名；阅读真实性仍须父核对。
+
+旧入口的 Amp 正控先实际失败；定向 **10/10** 随后通过。初稿将 export 的 `v=5` 误当固定格式版本，真实执行导出变成 `589`，父真实对照检出了这个错误，已移除该错误限制并增加变值正控。初轮全套 **124 PASS，638.214s** 在修正前启动，不能充当最终树证据。最终本地固定 `487a806a7b47de108d7a910d11f61a8f57a76790` 在独立 worktree 完整 **124/124 PASS，652.007s，exit 0**；3 reviews＋8 amendments 首次重放、两 index、四 verify、official reproduce、diff 均通过，输出 `AMP_GATE_FIXED_TREE_ALL_CHECKS_PASS`。最终组合日志 SHA-256 `d558ca0dca861b0b012d53ee375fec7ef334a41bbbf706f76c0480485def45cc`。真实 D1 final 导出通过执行一致性正控，真实未完成导出在 completion 检查被拒绝；两者均不替代当前输入批准。
+
+新 tree `99ee292eec23f71a0fb00b09a9de7253217c869f` 的 836 输入 identity 为 **`1e3055f507824e62e58e51380b509347c8bc22bc9413a30a27c072705b0ac1eb`**。恰好两 Python／测试及四治理文档变化；原始 archive、全部产品 Go 与测试字节不变。父进度记录不属于批准输入，新增记录不改这项身份。当前改动仅本地提交，未 push／发布。
+
+用户随后直接在 D1 线程要求新建 DeepSeek 审计 Orb、只替换审计模型而不改开发流程。D1 确认没有自行创建，父据此创建 [独立完整 D2](https://ampcode.com/threads/T-01a110c5-dd31-748d-83f3-1c398f01c097)，实际指定 `deepseek-v4.1-flash`。交付完整基线 bundle **62,147,462 bytes**、SHA-256 `c747ebcb02e724a7e9d9626a4f56711058f1069bc4ae89fadcef1c8fa1a9f58e` 与输入表 **106,855 bytes**、SHA-256 `33fc87135291d39046ac77e52db6441a7d809bada867e21be19495e9abf9cd12`，要求独立完整阅读和实际检查，不继承 D1 的阅读声明或旧树批准。当前仅创建／准备状态，无 D2 完成、批准或 T1 放行结论；继续跟随该线程，不启动重复审计。
