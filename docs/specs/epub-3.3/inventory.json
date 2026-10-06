@@ -16083,6 +16083,8 @@
       "document": "epub",
       "entry": "bib-bcp47",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[1]",
       "citation": "Tags for Identifying Languages. A. Phillips, Ed.; M. Davis, Ed. IETF. September 2009. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc5646",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc5646"
@@ -16095,6 +16097,8 @@
       "document": "epub",
       "entry": "bib-bidi",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[2]",
       "citation": "Unicode Bidirectional Algorithm. Manish Goregaokar मनीष गोरेगांवकर; Robin Leroy. Unicode Consortium. 13 August 2025. Unicode Standard Annex #9. URL: https://www.unicode.org/reports/tr9/tr9-51.html",
       "urls": [
         "https://www.unicode.org/reports/tr9/tr9-51.html"
@@ -16107,6 +16111,8 @@
       "document": "epub",
       "entry": "bib-charmod-norm",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[3]",
       "citation": "Character Model for the World Wide Web: String Matching. Addison Phillips et al. W3C. 11 August 2021. W3C Working Group Note. URL: https://www.w3.org/TR/charmod-norm/",
       "urls": [
         "https://www.w3.org/TR/charmod-norm/"
@@ -16119,6 +16125,8 @@
       "document": "epub",
       "entry": "bib-css-text-3",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[4]",
       "citation": "CSS Text Module Level 3. Elika Etemad; Koji Ishii; Florian Rivoal. W3C. 30 September 2024. CRD. URL: https://www.w3.org/TR/css-text-3/",
       "urls": [
         "https://www.w3.org/TR/css-text-3/"
@@ -16131,6 +16139,8 @@
       "document": "epub",
       "entry": "bib-css-text-decor-3",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[5]",
       "citation": "CSS Text Decoration Module Level 3. Elika Etemad; Koji Ishii. W3C. 5 May 2022. CRD. URL: https://www.w3.org/TR/css-text-decor-3/",
       "urls": [
         "https://www.w3.org/TR/css-text-decor-3/"
@@ -16143,6 +16153,8 @@
       "document": "epub",
       "entry": "bib-css-writing-modes-3",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[6]",
       "citation": "CSS Writing Modes Level 3. Elika Etemad; Koji Ishii. W3C. 10 December 2019. W3C Recommendation. URL: https://www.w3.org/TR/css-writing-modes-3/",
       "urls": [
         "https://www.w3.org/TR/css-writing-modes-3/"
@@ -16155,6 +16167,8 @@
       "document": "epub",
       "entry": "bib-css2",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[7]",
       "citation": "Cascading Style Sheets Level 2 Revision 1 (CSS 2.1) Specification. Bert Bos; Tantek Çelik; Ian Hickson; Håkon Wium Lie. W3C. 7 June 2011. W3C Recommendation. URL: https://www.w3.org/TR/CSS2/",
       "urls": [
         "https://www.w3.org/TR/CSS2/"
@@ -16167,6 +16181,8 @@
       "document": "epub",
       "entry": "bib-csssnapshot",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[8]",
       "citation": "CSS Snapshot. URL: https://www.w3.org/TR/CSS/",
       "urls": [
         "https://www.w3.org/TR/CSS/"
@@ -16179,6 +16195,8 @@
       "document": "epub",
       "entry": "bib-datetime",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[9]",
       "citation": "Date and Time Formats. Misha Wolf. W3C. 27 August 1998. W3C Working Group Note. URL: https://www.w3.org/TR/NOTE-datetime",
       "urls": [
         "https://www.w3.org/TR/NOTE-datetime"
@@ -16191,6 +16209,8 @@
       "document": "epub",
       "entry": "bib-dcterms",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[10]",
       "citation": "DCMI Metadata Terms. DCMI Usage Board. DCMI. 20 January 2020. DCMI Recommendation. URL: https://www.dublincore.org/specifications/dublin-core/dcmi-terms/",
       "urls": [
         "https://www.dublincore.org/specifications/dublin-core/dcmi-terms/"
@@ -16203,6 +16223,8 @@
       "document": "epub",
       "entry": "bib-dom",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[11]",
       "citation": "DOM Standard. Anne van Kesteren. WHATWG. Living Standard. URL: https://dom.spec.whatwg.org/",
       "urls": [
         "https://dom.spec.whatwg.org/"
@@ -16215,6 +16237,8 @@
       "document": "epub",
       "entry": "bib-ecmascript",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[12]",
       "citation": "ECMAScript Language Specification. Ecma International. URL: https://tc39.es/ecma262/multipage/",
       "urls": [
         "https://tc39.es/ecma262/multipage/"
@@ -16227,6 +16251,8 @@
       "document": "epub",
       "entry": "bib-epub-a11y-11",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[13]",
       "citation": "EPUB Accessibility 1.1. George Kerscher; Matt Garrish; Charles LaPierre; Avneesh Singh; Gregorio Pellegrino. W3C. 17 October 2024. W3C Recommendation. URL: https://www.w3.org/TR/epub-a11y-11/",
       "urls": [
         "https://www.w3.org/TR/epub-a11y-11/"
@@ -16239,6 +16265,8 @@
       "document": "epub",
       "entry": "bib-epub-rs-33",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[14]",
       "citation": "EPUB Reading Systems 3.3. Ivan Herman; Matt Garrish; Dave Cramer. W3C. 17 October 2024. W3C Recommendation. URL: https://www.w3.org/TR/epub-rs-33/",
       "urls": [
         "https://www.w3.org/TR/epub-rs-33/"
@@ -16251,6 +16279,8 @@
       "document": "epub",
       "entry": "bib-epub-ssv-11",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[15]",
       "citation": "EPUB 3 Structural Semantics Vocabulary 1.1. Ivan Herman; Matt Garrish. W3C. 28 August 2025. W3C Working Group Note. URL: https://www.w3.org/TR/epub-ssv-11/",
       "urls": [
         "https://www.w3.org/TR/epub-ssv-11/"
@@ -16263,6 +16293,8 @@
       "document": "epub",
       "entry": "bib-epubcontentdocs-301",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[16]",
       "citation": "EPUB Content Documents 3.0.1. Markus Gylling; William McCoy; Elika J. Etimad; Matt Garrish. IDPF. 26 June 2014. URL: https://idpf.org/epub/301/spec/epub-contentdocs-20140626.html",
       "urls": [
         "https://idpf.org/epub/301/spec/epub-contentdocs-20140626.html"
@@ -16275,6 +16307,8 @@
       "document": "epub",
       "entry": "bib-epubpackages-32",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[17]",
       "citation": "EPUB Packages 3.2. Matt Garrish; Dave Cramer. EPUB 3 Community Group. 08 May 2019. URL: https://www.w3.org/publishing/epub32/epub-packages.html",
       "urls": [
         "https://www.w3.org/publishing/epub32/epub-packages.html"
@@ -16287,6 +16321,8 @@
       "document": "epub",
       "entry": "bib-epubpublications-30",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[18]",
       "citation": "EPUB Publications 3.0. Markus Gylling; William McCoy; Matt Garrish. IDPF. 11 October 2011. URL: https://idpf.org/epub/30/spec/epub30-publications-20111011.html",
       "urls": [
         "https://idpf.org/epub/30/spec/epub30-publications-20111011.html"
@@ -16299,6 +16335,8 @@
       "document": "epub",
       "entry": "bib-epubpublications-301",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[19]",
       "citation": "EPUB Publications 3.0.1. Markus Gylling; William McCoy; Matt Garrish. IDPF. 26 June 2014. URL: https://idpf.org/epub/301/spec/epub-publications-20140626.html",
       "urls": [
         "https://idpf.org/epub/301/spec/epub-publications-20140626.html"
@@ -16311,6 +16349,8 @@
       "document": "epub",
       "entry": "bib-fips-180-4",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[20]",
       "citation": "FIPS PUB 180-4: Secure Hash Standard (SHS). U.S. Department of Commerce/National Institute of Standards and Technology. August 2015. National Standard. URL: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf",
       "urls": [
         "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf"
@@ -16323,6 +16363,8 @@
       "document": "epub",
       "entry": "bib-geolocation",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[21]",
       "citation": "Geolocation. Marcos Caceres; Reilly Grant. W3C. 29 October 2025. W3C Recommendation. URL: https://www.w3.org/TR/geolocation/",
       "urls": [
         "https://www.w3.org/TR/geolocation/"
@@ -16335,6 +16377,8 @@
       "document": "epub",
       "entry": "bib-gif",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[22]",
       "citation": "Graphics Interchange Format. CompuServe Incorporated. 31 July 1990. URL: https://www.w3.org/Graphics/GIF/spec-gif89a.txt",
       "urls": [
         "https://www.w3.org/Graphics/GIF/spec-gif89a.txt"
@@ -16347,6 +16391,8 @@
       "document": "epub",
       "entry": "bib-html",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[23]",
       "citation": "HTML Standard. Anne van Kesteren; Domenic Denicola; Dominic Farolino; Ian Hickson; Philip Jägenstedt; Simon Pieters. WHATWG. Living Standard. URL: https://html.spec.whatwg.org/multipage/",
       "urls": [
         "https://html.spec.whatwg.org/multipage/"
@@ -16359,6 +16405,8 @@
       "document": "epub",
       "entry": "bib-html-rdfa",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[24]",
       "citation": "HTML+RDFa 1.1 - Second Edition. Manu Sporny. W3C. 17 March 2015. W3C Recommendation. URL: https://www.w3.org/TR/html-rdfa/",
       "urls": [
         "https://www.w3.org/TR/html-rdfa/"
@@ -16371,6 +16419,8 @@
       "document": "epub",
       "entry": "bib-infra",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[25]",
       "citation": "Infra Standard. Anne van Kesteren; Domenic Denicola. WHATWG. Living Standard. URL: https://infra.spec.whatwg.org/",
       "urls": [
         "https://infra.spec.whatwg.org/"
@@ -16383,6 +16433,8 @@
       "document": "epub",
       "entry": "bib-iso8601-1",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[26]",
       "citation": "Date and time — Representations for information interchange — Part 1: Basic rules. ISO 8601-1:2019.. International Organization for Standardization (ISO). 2019. ISO 8601-1:2019. URL: https://www.iso.org/standard/70907.html",
       "urls": [
         "https://www.iso.org/standard/70907.html"
@@ -16395,6 +16447,8 @@
       "document": "epub",
       "entry": "bib-jpeg",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[27]",
       "citation": "JPEG File Interchange Format. Eric Hamilton. C-Cube Microsystems. Milpitas, CA, USA. September 1992. URL: https://www.w3.org/Graphics/JPEG/jfif3.pdf",
       "urls": [
         "https://www.w3.org/Graphics/JPEG/jfif3.pdf"
@@ -16407,6 +16461,8 @@
       "document": "epub",
       "entry": "bib-mathml3",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[28]",
       "citation": "Mathematical Markup Language (MathML) Version 3.0 2nd Edition. David Carlisle; Patrick D F Ion; Robert R Miner. W3C. 10 April 2014. W3C Recommendation. URL: https://www.w3.org/TR/MathML3/",
       "urls": [
         "https://www.w3.org/TR/MathML3/"
@@ -16419,6 +16475,8 @@
       "document": "epub",
       "entry": "bib-mp3",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[29]",
       "citation": "Information technology — Coding of moving pictures and associated audio for digital storage media at up to about 1,5 Mbit/s — Part 3: Audio. ISO/IEC. August 1993. Published. URL: https://www.iso.org/standard/22412.html",
       "urls": [
         "https://www.iso.org/standard/22412.html"
@@ -16431,6 +16489,8 @@
       "document": "epub",
       "entry": "bib-mp4",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[30]",
       "citation": "Information technology — Coding of audio-visual objects — Part 14: MP4 file format. ISO/IEC. January 2020. Published. URL: https://www.iso.org/standard/79110.html",
       "urls": [
         "https://www.iso.org/standard/79110.html"
@@ -16443,6 +16503,8 @@
       "document": "epub",
       "entry": "bib-mpeg4-audio",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[31]",
       "citation": "Information technology — Coding of audio-visual objects — Part 3: Audio. ISO/IEC. December 2019. Published. URL: https://www.iso.org/standard/76383.html",
       "urls": [
         "https://www.iso.org/standard/76383.html"
@@ -16455,6 +16517,8 @@
       "document": "epub",
       "entry": "bib-onix",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[32]",
       "citation": "ONIX for Books 3.0. URL: https://www.editeur.org/8/ONIX/",
       "urls": [
         "https://www.editeur.org/8/ONIX/"
@@ -16467,6 +16531,8 @@
       "document": "epub",
       "entry": "bib-opentype",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[33]",
       "citation": "OpenType specification. Microsoft. URL: http://www.microsoft.com/typography/otspec/default.htm",
       "urls": [
         "http://www.microsoft.com/typography/otspec/default.htm"
@@ -16479,6 +16545,8 @@
       "document": "epub",
       "entry": "bib-opf-201",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[34]",
       "citation": "Open Packaging Format 2.0.1. IDPF. 04 September 2010. URL: https://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm",
       "urls": [
         "https://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm"
@@ -16491,6 +16559,8 @@
       "document": "epub",
       "entry": "bib-png",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[35]",
       "citation": "Portable Network Graphics (PNG) Specification (Third Edition). Chris Lilley; Leonard Rosenthol; Pierre-Anthony Lemieux; Chris Needham; Simon Thompson; Chris Seeger; Chris Blume; Cosmin Truta. W3C. 24 June 2025. W3C Recommendation. URL: https://www.w3.org/TR/png-3/",
       "urls": [
         "https://www.w3.org/TR/png-3/"
@@ -16503,6 +16573,8 @@
       "document": "epub",
       "entry": "bib-push-api",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[36]",
       "citation": "Push API. Marcos Caceres; Kagami Rosylight. W3C. 1 December 2025. W3C Working Draft. URL: https://www.w3.org/TR/push-api/",
       "urls": [
         "https://www.w3.org/TR/push-api/"
@@ -16515,6 +16587,8 @@
       "document": "epub",
       "entry": "bib-rdfa-core",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[37]",
       "citation": "RDFa Core 1.1 - Third Edition. Ben Adida; Mark Birbeck; Shane McCarron; Ivan Herman et al. W3C. 17 March 2015. W3C Recommendation. URL: https://www.w3.org/TR/rdfa-core/",
       "urls": [
         "https://www.w3.org/TR/rdfa-core/"
@@ -16527,6 +16601,8 @@
       "document": "epub",
       "entry": "bib-rfc2046",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[38]",
       "citation": "Multipurpose Internet Mail Extensions (MIME) Part Two: Media Types. N. Freed; N. Borenstein. IETF. November 1996. Draft Standard. URL: https://www.rfc-editor.org/rfc/rfc2046",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc2046"
@@ -16539,6 +16615,8 @@
       "document": "epub",
       "entry": "bib-rfc2119",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[39]",
       "citation": "Key words for use in RFCs to Indicate Requirement Levels. S. Bradner. IETF. March 1997. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc2119",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc2119"
@@ -16551,6 +16629,8 @@
       "document": "epub",
       "entry": "bib-rfc2397",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[40]",
       "citation": "The \"data\" URL scheme. L. Masinter. IETF. August 1998. Proposed Standard. URL: https://www.rfc-editor.org/rfc/rfc2397",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc2397"
@@ -16563,6 +16643,8 @@
       "document": "epub",
       "entry": "bib-rfc4329",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[41]",
       "citation": "Scripting Media Types. B. Hoehrmann. IETF. April 2006. Informational. URL: https://www.rfc-editor.org/rfc/rfc4329",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc4329"
@@ -16575,6 +16657,8 @@
       "document": "epub",
       "entry": "bib-rfc7303",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[42]",
       "citation": "XML Media Types. H. Thompson; C. Lilley. IETF. July 2014. Proposed Standard. URL: https://www.rfc-editor.org/rfc/rfc7303",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc7303"
@@ -16587,6 +16671,8 @@
       "document": "epub",
       "entry": "bib-rfc7845",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[43]",
       "citation": "Ogg Encapsulation for the Opus Audio Codec. T. Terriberry; R. Lee; R. Giles. IETF. April 2016. Proposed Standard. URL: https://www.rfc-editor.org/rfc/rfc7845",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc7845"
@@ -16599,6 +16685,8 @@
       "document": "epub",
       "entry": "bib-rfc8089",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[44]",
       "citation": "The \"file\" URI Scheme. M. Kerwin. IETF. February 2017. Proposed Standard. URL: https://www.rfc-editor.org/rfc/rfc8089",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc8089"
@@ -16611,6 +16699,8 @@
       "document": "epub",
       "entry": "bib-rfc8174",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[45]",
       "citation": "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words. B. Leiba. IETF. May 2017. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc8174",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc8174"
@@ -16623,6 +16713,8 @@
       "document": "epub",
       "entry": "bib-rfc9110",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[46]",
       "citation": "HTTP Semantics. R. Fielding, Ed.; M. Nottingham, Ed.; J. Reschke, Ed. IETF. June 2022. Internet Standard. URL: https://httpwg.org/specs/rfc9110.html",
       "urls": [
         "https://httpwg.org/specs/rfc9110.html"
@@ -16635,6 +16727,8 @@
       "document": "epub",
       "entry": "bib-rfc9649",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[47]",
       "citation": "WebP Image Format. J. Zern; P. Massimino; J. Alakuijala. IETF. November 2024. Informational. URL: https://www.rfc-editor.org/rfc/rfc9649",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc9649"
@@ -16647,6 +16741,8 @@
       "document": "epub",
       "entry": "bib-smil3",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[48]",
       "citation": "Synchronized Multimedia Integration Language (SMIL 3.0). Dick Bulterman. W3C. 1 December 2008. W3C Recommendation. URL: https://www.w3.org/TR/SMIL3/",
       "urls": [
         "https://www.w3.org/TR/SMIL3/"
@@ -16659,6 +16755,8 @@
       "document": "epub",
       "entry": "bib-svg",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[49]",
       "citation": "SVG. W3C. URL: https://www.w3.org/TR/SVG/",
       "urls": [
         "https://www.w3.org/TR/SVG/"
@@ -16671,6 +16769,8 @@
       "document": "epub",
       "entry": "bib-truetype",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[50]",
       "citation": "TrueType™ Reference Manual. Apple, Inc. URL: https://developer.apple.com/fonts/TrueType-Reference-Manual/",
       "urls": [
         "https://developer.apple.com/fonts/TrueType-Reference-Manual/"
@@ -16683,6 +16783,8 @@
       "document": "epub",
       "entry": "bib-uax15",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[51]",
       "citation": "Unicode Normalization Forms. Ken Whistler. Unicode Consortium. 30 July 2025. Unicode Standard Annex #15. URL: https://www.unicode.org/reports/tr15/tr15-57.html",
       "urls": [
         "https://www.unicode.org/reports/tr15/tr15-57.html"
@@ -16695,6 +16797,8 @@
       "document": "epub",
       "entry": "bib-unicode",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[52]",
       "citation": "The Unicode Standard. Unicode Consortium. URL: https://www.unicode.org/versions/latest/",
       "urls": [
         "https://www.unicode.org/versions/latest/"
@@ -16707,6 +16811,8 @@
       "document": "epub",
       "entry": "bib-url",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[53]",
       "citation": "URL Standard. Anne van Kesteren. WHATWG. Living Standard. URL: https://url.spec.whatwg.org/",
       "urls": [
         "https://url.spec.whatwg.org/"
@@ -16719,6 +16825,8 @@
       "document": "epub",
       "entry": "bib-us-ascii",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[54]",
       "citation": "\"Coded Character Set - 7-bit American Standard Code for Information Interchange\", ANSI X3.4, 1986..",
       "urls": [],
       "status": "not-downloaded",
@@ -16729,6 +16837,8 @@
       "document": "epub",
       "entry": "bib-wai-aria",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[55]",
       "citation": "Accessible Rich Internet Applications (WAI-ARIA). W3C. URL: https://www.w3.org/TR/wai-aria/",
       "urls": [
         "https://www.w3.org/TR/wai-aria/"
@@ -16741,6 +16851,8 @@
       "document": "epub",
       "entry": "bib-woff",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[56]",
       "citation": "WOFF File Format 1.0. Jonathan Kew; Tal Leming; Erik van Blokland. W3C. 13 December 2012. W3C Recommendation. URL: https://www.w3.org/TR/WOFF/",
       "urls": [
         "https://www.w3.org/TR/WOFF/"
@@ -16753,6 +16865,8 @@
       "document": "epub",
       "entry": "bib-woff2",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[57]",
       "citation": "WOFF File Format 2.0. Vladimir Levantovsky. W3C. 8 August 2024. W3C Recommendation. URL: https://www.w3.org/TR/WOFF2/",
       "urls": [
         "https://www.w3.org/TR/WOFF2/"
@@ -16765,6 +16879,8 @@
       "document": "epub",
       "entry": "bib-xinclude",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[58]",
       "citation": "XML Inclusions (XInclude) Version 1.0 (Second Edition). Jonathan Marsh; David Orchard; Daniel Veillard. W3C. 15 November 2006. W3C Recommendation. URL: https://www.w3.org/TR/xinclude/",
       "urls": [
         "https://www.w3.org/TR/xinclude/"
@@ -16777,6 +16893,8 @@
       "document": "epub",
       "entry": "bib-xml",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[59]",
       "citation": "Extensible Markup Language (XML) 1.0 (Fifth Edition). Tim Bray; Jean Paoli; Michael Sperberg-McQueen; Eve Maler; François Yergeau et al. W3C. 26 November 2008. W3C Recommendation. URL: https://www.w3.org/TR/xml/",
       "urls": [
         "https://www.w3.org/TR/xml/"
@@ -16789,6 +16907,8 @@
       "document": "epub",
       "entry": "bib-xml-names",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[60]",
       "citation": "Namespaces in XML 1.0 (Third Edition). Tim Bray; Dave Hollander; Andrew Layman; Richard Tobin; Henry Thompson et al. W3C. 8 December 2009. W3C Recommendation. URL: https://www.w3.org/TR/xml-names/",
       "urls": [
         "https://www.w3.org/TR/xml-names/"
@@ -16801,6 +16921,8 @@
       "document": "epub",
       "entry": "bib-xmldsig-core",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[61]",
       "citation": "XML Signature Syntax and Processing (Second Edition). Donald Eastlake; Joseph Reagle; David Solo; Frederick Hirsch; Thomas Roessler et al. W3C. 10 June 2008. W3C Recommendation. URL: https://www.w3.org/TR/xmldsig-core/",
       "urls": [
         "https://www.w3.org/TR/xmldsig-core/"
@@ -16813,6 +16935,8 @@
       "document": "epub",
       "entry": "bib-xmldsig-core1",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[62]",
       "citation": "XML Signature Syntax and Processing Version 1.1. Donald Eastlake; Joseph Reagle; David Solo; Frederick Hirsch; Magnus Nyström; Thomas Roessler; Kelvin Yiu. W3C. 11 April 2013. W3C Recommendation. URL: https://www.w3.org/TR/xmldsig-core1/",
       "urls": [
         "https://www.w3.org/TR/xmldsig-core1/"
@@ -16825,6 +16949,8 @@
       "document": "epub",
       "entry": "bib-xmlenc-core1",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[63]",
       "citation": "XML Encryption Syntax and Processing Version 1.1. Donald Eastlake; Joseph Reagle; Frederick Hirsch; Thomas Roessler. W3C. 11 April 2013. W3C Recommendation. URL: https://www.w3.org/TR/xmlenc-core1/",
       "urls": [
         "https://www.w3.org/TR/xmlenc-core1/"
@@ -16837,6 +16963,8 @@
       "document": "epub",
       "entry": "bib-xmlenc-decrypt",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[64]",
       "citation": "Decryption Transform for XML Signature. Merlin Hughes; Takeshi Imamura; Hiroshi Maruyama. W3C. 10 December 2002. W3C Recommendation. URL: https://www.w3.org/TR/xmlenc-decrypt/",
       "urls": [
         "https://www.w3.org/TR/xmlenc-decrypt/"
@@ -16849,6 +16977,8 @@
       "document": "epub",
       "entry": "bib-xmlschema-2",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[65]",
       "citation": "XML Schema Part 2: Datatypes Second Edition. Paul V. Biron; Ashok Malhotra. W3C. 28 October 2004. W3C Recommendation. URL: https://www.w3.org/TR/xmlschema-2/",
       "urls": [
         "https://www.w3.org/TR/xmlschema-2/"
@@ -16861,6 +16991,8 @@
       "document": "epub",
       "entry": "bib-zip",
       "kind": "normative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[1]/dl[1]/dd[66]",
       "citation": ".ZIP File Format Specification. 15 July 2020. Final. URL: https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT",
       "urls": [
         "https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT"
@@ -16873,6 +17005,8 @@
       "document": "epub",
       "entry": "bib-audiobooks",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[1]",
       "citation": "Audiobooks. Wendy Reid; Matt Garrish. W3C. 10 November 2020. W3C Recommendation. URL: https://www.w3.org/TR/audiobooks/",
       "urls": [
         "https://www.w3.org/TR/audiobooks/"
@@ -16885,6 +17019,8 @@
       "document": "epub",
       "entry": "bib-css-viewport-1",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[2]",
       "citation": "CSS Viewport Module Level 1. W3C. URL: https://drafts.csswg.org/css-viewport/",
       "urls": [
         "https://drafts.csswg.org/css-viewport/"
@@ -16897,6 +17033,8 @@
       "document": "epub",
       "entry": "bib-dpub-aria",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[3]",
       "citation": "Digital Publishing WAI-ARIA Module. W3C. URL: https://www.w3.org/TR/dpub-aria/",
       "urls": [
         "https://www.w3.org/TR/dpub-aria/"
@@ -16909,6 +17047,8 @@
       "document": "epub",
       "entry": "bib-epub-a11y-tech-11",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[4]",
       "citation": "EPUB Accessibility Techniques 1.1. Matt Garrish; George Kerscher; Charles LaPierre; Gregorio Pellegrino; Avneesh Singh. W3C. 13 March 2025. W3C Working Group Note. URL: https://www.w3.org/TR/epub-a11y-tech-11/",
       "urls": [
         "https://www.w3.org/TR/epub-a11y-tech-11/"
@@ -16921,6 +17061,8 @@
       "document": "epub",
       "entry": "bib-epub-multi-rend-11",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[5]",
       "citation": "EPUB 3 Multiple-Rendition Publications 1.1. Matt Garrish. W3C. 28 August 2025. W3C Working Group Note. URL: https://www.w3.org/TR/epub-multi-rend-11/",
       "urls": [
         "https://www.w3.org/TR/epub-multi-rend-11/"
@@ -16933,6 +17075,8 @@
       "document": "epub",
       "entry": "bib-epub-overview-33",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[6]",
       "citation": "EPUB 3 Overview. Matt Garrish; Ivan Herman. W3C. 13 March 2025. W3C Working Group Note. URL: https://www.w3.org/TR/epub-overview-33/",
       "urls": [
         "https://www.w3.org/TR/epub-overview-33/"
@@ -16945,6 +17089,8 @@
       "document": "epub",
       "entry": "bib-epub-tts-10",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[7]",
       "citation": "EPUB 3 Text-to-Speech Enhancements 1.0. Matt Garrish. W3C. 28 August 2025. W3C Working Group Note. URL: https://www.w3.org/TR/epub-tts-10/",
       "urls": [
         "https://www.w3.org/TR/epub-tts-10/"
@@ -16957,6 +17103,8 @@
       "document": "epub",
       "entry": "bib-fetch",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[8]",
       "citation": "Fetch Standard. Anne van Kesteren. WHATWG. Living Standard. URL: https://fetch.spec.whatwg.org/",
       "urls": [
         "https://fetch.spec.whatwg.org/"
@@ -16969,6 +17117,8 @@
       "document": "epub",
       "entry": "bib-h264",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[9]",
       "citation": "H.264 : Advanced video coding for generic audiovisual services. 2017-04-13. URL: https://www.itu.int/ITU-T/recommendations/rec.aspx?rec=13189",
       "urls": [
         "https://www.itu.int/ITU-T/recommendations/rec.aspx?rec=13189"
@@ -16981,6 +17131,8 @@
       "document": "epub",
       "entry": "bib-international-specs",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[10]",
       "citation": "Internationalization Best Practices for Spec Developers. Richard Ishida; Addison Phillips. W3C. 8 August 2025. W3C Working Group Note. URL: https://www.w3.org/TR/international-specs/",
       "urls": [
         "https://www.w3.org/TR/international-specs/"
@@ -16993,6 +17145,8 @@
       "document": "epub",
       "entry": "bib-iso22424",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[11]",
       "citation": "ISO/IEC TS 22424-1:2020 — Digital publishing — EPUB3 preservation. 2020-01. URL: https://www.iso.org/standard/73163.html",
       "urls": [
         "https://www.iso.org/standard/73163.html"
@@ -17005,6 +17159,8 @@
       "document": "epub",
       "entry": "bib-isoschematron",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[12]",
       "citation": "ISO/IEC 19757-3: Rule-based validation — Schematron. 2006-06-01. URL: http://standards.iso.org/ittf/PubliclyAvailableStandards/c040833_ISO_IEC_19757-3_2006(E).zip",
       "urls": [
         "http://standards.iso.org/ittf/PubliclyAvailableStandards/c040833_ISO_IEC_19757-3_2006(E).zip"
@@ -17017,6 +17173,8 @@
       "document": "epub",
       "entry": "bib-json-ld11",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[13]",
       "citation": "JSON-LD 1.1. Gregg Kellogg; Pierre-Antoine Champin; Dave Longley. W3C. 16 July 2020. W3C Recommendation. URL: https://www.w3.org/TR/json-ld11/",
       "urls": [
         "https://www.w3.org/TR/json-ld11/"
@@ -17029,6 +17187,8 @@
       "document": "epub",
       "entry": "bib-mediaqueries-3",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[14]",
       "citation": "Media Queries Level 3. Florian Rivoal. W3C. 21 May 2024. W3C Recommendation. URL: https://www.w3.org/TR/mediaqueries-3/",
       "urls": [
         "https://www.w3.org/TR/mediaqueries-3/"
@@ -17041,6 +17201,8 @@
       "document": "epub",
       "entry": "bib-nvdl",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[15]",
       "citation": "ISO/IEC 19757-4: NVDL (Namespace-based Validation Dispatching Language). 2006-06-01. URL: http://standards.iso.org/ittf/PubliclyAvailableStandards/c038615_ISO_IEC_19757-4_2006(E).zip",
       "urls": [
         "http://standards.iso.org/ittf/PubliclyAvailableStandards/c038615_ISO_IEC_19757-4_2006(E).zip"
@@ -17053,6 +17215,8 @@
       "document": "epub",
       "entry": "bib-odf",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[16]",
       "citation": "Open Document Format for Office Applications (OpenDocument) v1.0. 1 May 2005. URL: https://www.oasis-open.org/committees/download.php/12572/OpenDocument-v1.0-os.pdf",
       "urls": [
         "https://www.oasis-open.org/committees/download.php/12572/OpenDocument-v1.0-os.pdf"
@@ -17065,6 +17229,8 @@
       "document": "epub",
       "entry": "bib-relaxng-schema",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[17]",
       "citation": "Information technology -- Document Schema Definition Language (DSDL) -- Part 2: Regular-grammar-based validation -- RELAX NG. ISO/IEC. 2008. URL: http://standards.iso.org/ittf/PubliclyAvailableStandards/c052348_ISO_IEC_19757-2_2008(E).zip",
       "urls": [
         "http://standards.iso.org/ittf/PubliclyAvailableStandards/c052348_ISO_IEC_19757-2_2008(E).zip"
@@ -17077,6 +17243,8 @@
       "document": "epub",
       "entry": "bib-rfc3986",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[18]",
       "citation": "Uniform Resource Identifier (URI): Generic Syntax. T. Berners-Lee; R. Fielding; L. Masinter. IETF. January 2005. Internet Standard. URL: https://www.rfc-editor.org/rfc/rfc3986",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc3986"
@@ -17089,6 +17257,8 @@
       "document": "epub",
       "entry": "bib-rfc4839",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[19]",
       "citation": "Media Type Registrations for the Open eBook Publication Structure (OEBPS) Package File (OPF). G. Conboy; J. Rivlin; J. Ferraiolo. IETF. April 2007. Informational. URL: https://www.rfc-editor.org/rfc/rfc4839",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc4839"
@@ -17101,6 +17271,8 @@
       "document": "epub",
       "entry": "bib-rfc6386",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[20]",
       "citation": "VP8 Data Format and Decoding Guide. J. Bankoski; J. Koleszar; L. Quillio; J. Salonen; P. Wilkins; Y. Xu. IETF. November 2011. Informational. URL: https://www.rfc-editor.org/rfc/rfc6386",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc6386"
@@ -17113,6 +17285,8 @@
       "document": "epub",
       "entry": "bib-rfc8141",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[21]",
       "citation": "Uniform Resource Names (URNs). P. Saint-Andre; J. Klensin. IETF. April 2017. Proposed Standard. URL: https://www.rfc-editor.org/rfc/rfc8141",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc8141"
@@ -17125,6 +17299,8 @@
       "document": "epub",
       "entry": "bib-uaag20",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[22]",
       "citation": "User Agent Accessibility Guidelines (UAAG) 2.0. James Allan; Greg Lowney; Kimberly Patch; Jeanne F Spellman. W3C. 15 December 2015. W3C Working Group Note. URL: https://www.w3.org/TR/UAAG20/",
       "urls": [
         "https://www.w3.org/TR/UAAG20/"
@@ -17137,6 +17313,8 @@
       "document": "epub",
       "entry": "bib-uax44",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[23]",
       "citation": "Unicode Character Database. Ken Whistler. Unicode Consortium. 27 August 2025. Unicode Standard Annex #44. URL: https://www.unicode.org/reports/tr44/tr44-36.html",
       "urls": [
         "https://www.unicode.org/reports/tr44/tr44-36.html"
@@ -17149,6 +17327,8 @@
       "document": "epub",
       "entry": "bib-wcag2",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[24]",
       "citation": "Web Content Accessibility Guidelines (WCAG) 2. W3C. URL: https://www.w3.org/TR/WCAG2/",
       "urls": [
         "https://www.w3.org/TR/WCAG2/"
@@ -17161,6 +17341,8 @@
       "document": "epub",
       "entry": "bib-webvtt",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[25]",
       "citation": "WebVTT: The Web Video Text Tracks Format. Silvia Pfeiffer. W3C. 4 April 2019. W3C Candidate Recommendation. URL: https://www.w3.org/TR/webvtt1/",
       "urls": [
         "https://www.w3.org/TR/webvtt1/"
@@ -17173,6 +17355,8 @@
       "document": "epub",
       "entry": "bib-xhr",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[26]",
       "citation": "XMLHttpRequest Standard. Anne van Kesteren. WHATWG. Living Standard. URL: https://xhr.spec.whatwg.org/",
       "urls": [
         "https://xhr.spec.whatwg.org/"
@@ -17185,6 +17369,8 @@
       "document": "epub",
       "entry": "bib-xmlbase",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[27]",
       "citation": "XML Base (Second Edition). Jonathan Marsh; Richard Tobin. W3C. 28 January 2009. W3C Recommendation. URL: https://www.w3.org/TR/xmlbase/",
       "urls": [
         "https://www.w3.org/TR/xmlbase/"
@@ -17197,6 +17383,8 @@
       "document": "epub",
       "entry": "bib-xmlsec-rngschema-20130411",
       "kind": "informative",
+      "sourceHash": "f927cf3182598c552037445837b73faee346f97d4a396059440830e49e737d99",
+      "domPath": "/html[1]/body[1]/section[26]/section[2]/dl[1]/dd[28]",
       "citation": "XML Security RELAX NG Schemas. Murata Makoto; Frederick Hirsch. W3C. 11 April 2013. W3C Working Group Note. URL: https://www.w3.org/TR/2013/NOTE-xmlsec-rngschema-20130411/",
       "urls": [
         "https://www.w3.org/TR/2013/NOTE-xmlsec-rngschema-20130411/"
@@ -17209,6 +17397,8 @@
       "document": "rs",
       "entry": "bib-bidi",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[1]",
       "citation": "Unicode Bidirectional Algorithm. Manish Goregaokar मनीष गोरेगांवकर; Robin Leroy. Unicode Consortium. 2 September 2024. Unicode Standard Annex #9. URL: https://www.unicode.org/reports/tr9/tr9-50.html",
       "urls": [
         "https://www.unicode.org/reports/tr9/tr9-50.html"
@@ -17221,6 +17411,8 @@
       "document": "rs",
       "entry": "bib-css-fonts-4",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[2]",
       "citation": "CSS Fonts Module Level 4. Chris Lilley. W3C. 1 February 2024. W3C Working Draft. URL: https://www.w3.org/TR/css-fonts-4/",
       "urls": [
         "https://www.w3.org/TR/css-fonts-4/"
@@ -17233,6 +17425,8 @@
       "document": "rs",
       "entry": "bib-csssnapshot",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[3]",
       "citation": "CSS Snapshot. URL: https://www.w3.org/TR/CSS/",
       "urls": [
         "https://www.w3.org/TR/CSS/"
@@ -17245,6 +17439,8 @@
       "document": "rs",
       "entry": "bib-dcterms",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[4]",
       "citation": "DCMI Metadata Terms. DCMI Usage Board. DCMI. 20 January 2020. DCMI Recommendation. URL: https://www.dublincore.org/specifications/dublin-core/dcmi-terms/",
       "urls": [
         "https://www.dublincore.org/specifications/dublin-core/dcmi-terms/"
@@ -17257,6 +17453,8 @@
       "document": "rs",
       "entry": "bib-dom",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[5]",
       "citation": "DOM Standard. Anne van Kesteren. WHATWG. Living Standard. URL: https://dom.spec.whatwg.org/",
       "urls": [
         "https://dom.spec.whatwg.org/"
@@ -17269,6 +17467,8 @@
       "document": "rs",
       "entry": "bib-epub-33",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[6]",
       "citation": "EPUB 3.3. Ivan Herman; Matt Garrish; Dave Cramer. W3C. 25 May 2023. W3C Recommendation. URL: https://www.w3.org/TR/epub-33/",
       "urls": [
         "https://www.w3.org/TR/epub-33/"
@@ -17281,6 +17481,8 @@
       "document": "rs",
       "entry": "bib-epubcontentdocs-301",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[7]",
       "citation": "EPUB Content Documents 3.0.1. Markus Gylling; William McCoy; Elika J. Etimad; Matt Garrish. IDPF. 26 June 2014. URL: https://idpf.org/epub/301/spec/epub-contentdocs-20140626.html",
       "urls": [
         "https://idpf.org/epub/301/spec/epub-contentdocs-20140626.html"
@@ -17293,6 +17495,8 @@
       "document": "rs",
       "entry": "bib-epubcontentdocs-32",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[8]",
       "citation": "EPUB Content Documents 3.2. Dave Cramer; Matt Garrish. W3C. 08 May 2019. URL: https://www.w3.org/publishing/epub32/epub-contentdocs.html",
       "urls": [
         "https://www.w3.org/publishing/epub32/epub-contentdocs.html"
@@ -17305,6 +17509,8 @@
       "document": "rs",
       "entry": "bib-epubmediaoverlays-32",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[9]",
       "citation": "EPUB Media Overlays 3.2. Marisa DeMeglio; Daniel Weck. EPUB 3 Community Group. 08 May 2019. URL: https://www.w3.org/publishing/epub32/epub-mediaoverlays.html",
       "urls": [
         "https://www.w3.org/publishing/epub32/epub-mediaoverlays.html"
@@ -17317,6 +17523,8 @@
       "document": "rs",
       "entry": "bib-html",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[10]",
       "citation": "HTML Standard. Anne van Kesteren; Domenic Denicola; Dominic Farolino; Ian Hickson; Philip Jägenstedt; Simon Pieters. WHATWG. Living Standard. URL: https://html.spec.whatwg.org/multipage/",
       "urls": [
         "https://html.spec.whatwg.org/multipage/"
@@ -17329,6 +17537,8 @@
       "document": "rs",
       "entry": "bib-infra",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[11]",
       "citation": "Infra Standard. Anne van Kesteren; Domenic Denicola. WHATWG. Living Standard. URL: https://infra.spec.whatwg.org/",
       "urls": [
         "https://infra.spec.whatwg.org/"
@@ -17341,6 +17551,8 @@
       "document": "rs",
       "entry": "bib-mathml3",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[12]",
       "citation": "Mathematical Markup Language (MathML) Version 3.0 2nd Edition. David Carlisle; Patrick D F Ion; Robert R Miner. W3C. 10 April 2014. W3C Recommendation. URL: https://www.w3.org/TR/MathML3/",
       "urls": [
         "https://www.w3.org/TR/MathML3/"
@@ -17353,6 +17565,8 @@
       "document": "rs",
       "entry": "bib-opentype",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[13]",
       "citation": "OpenType specification. Microsoft. URL: http://www.microsoft.com/typography/otspec/default.htm",
       "urls": [
         "http://www.microsoft.com/typography/otspec/default.htm"
@@ -17365,6 +17579,8 @@
       "document": "rs",
       "entry": "bib-rdfa-core",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[14]",
       "citation": "RDFa Core 1.1 - Third Edition. Ben Adida; Mark Birbeck; Shane McCarron; Ivan Herman et al. W3C. 17 March 2015. W3C Recommendation. URL: https://www.w3.org/TR/rdfa-core/",
       "urls": [
         "https://www.w3.org/TR/rdfa-core/"
@@ -17377,6 +17593,8 @@
       "document": "rs",
       "entry": "bib-rfc1951",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[15]",
       "citation": "DEFLATE Compressed Data Format Specification version 1.3. P. Deutsch. IETF. May 1996. Informational. URL: https://www.rfc-editor.org/rfc/rfc1951",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc1951"
@@ -17389,6 +17607,8 @@
       "document": "rs",
       "entry": "bib-rfc2046",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[16]",
       "citation": "Multipurpose Internet Mail Extensions (MIME) Part Two: Media Types. N. Freed; N. Borenstein. IETF. November 1996. Draft Standard. URL: https://www.rfc-editor.org/rfc/rfc2046",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc2046"
@@ -17401,6 +17621,8 @@
       "document": "rs",
       "entry": "bib-rfc2119",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[17]",
       "citation": "Key words for use in RFCs to Indicate Requirement Levels. S. Bradner. IETF. March 1997. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc2119",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc2119"
@@ -17413,6 +17635,8 @@
       "document": "rs",
       "entry": "bib-rfc2397",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[18]",
       "citation": "The \"data\" URL scheme. L. Masinter. IETF. August 1998. Proposed Standard. URL: https://www.rfc-editor.org/rfc/rfc2397",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc2397"
@@ -17425,6 +17649,8 @@
       "document": "rs",
       "entry": "bib-rfc8089",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[19]",
       "citation": "The \"file\" URI Scheme. M. Kerwin. IETF. February 2017. Proposed Standard. URL: https://www.rfc-editor.org/rfc/rfc8089",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc8089"
@@ -17437,6 +17663,8 @@
       "document": "rs",
       "entry": "bib-rfc8174",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[20]",
       "citation": "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words. B. Leiba. IETF. May 2017. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc8174",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc8174"
@@ -17449,6 +17677,8 @@
       "document": "rs",
       "entry": "bib-rfc9110",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[21]",
       "citation": "HTTP Semantics. R. Fielding, Ed.; M. Nottingham, Ed.; J. Reschke, Ed.. IETF. June 2022. Internet Standard. URL: https://httpwg.org/specs/rfc9110.html",
       "urls": [
         "https://httpwg.org/specs/rfc9110.html"
@@ -17461,6 +17691,8 @@
       "document": "rs",
       "entry": "bib-svg",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[22]",
       "citation": "SVG. W3C. URL: https://www.w3.org/TR/SVG/",
       "urls": [
         "https://www.w3.org/TR/SVG/"
@@ -17473,6 +17705,8 @@
       "document": "rs",
       "entry": "bib-truetype",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[23]",
       "citation": "TrueType™ Reference Manual. Apple, Inc. URL: https://developer.apple.com/fonts/TrueType-Reference-Manual/",
       "urls": [
         "https://developer.apple.com/fonts/TrueType-Reference-Manual/"
@@ -17485,6 +17719,8 @@
       "document": "rs",
       "entry": "bib-url",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[24]",
       "citation": "URL Standard. Anne van Kesteren. WHATWG. Living Standard. URL: https://url.spec.whatwg.org/",
       "urls": [
         "https://url.spec.whatwg.org/"
@@ -17497,6 +17733,8 @@
       "document": "rs",
       "entry": "bib-w3cprocess",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[25]",
       "citation": "W3C Process Document. URL: https://www.w3.org/Consortium/Process/",
       "urls": [
         "https://www.w3.org/Consortium/Process/"
@@ -17509,6 +17747,8 @@
       "document": "rs",
       "entry": "bib-webidl",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[26]",
       "citation": "Web IDL Standard. Edgar Chen; Timothy Gu. WHATWG. Living Standard. URL: https://webidl.spec.whatwg.org/",
       "urls": [
         "https://webidl.spec.whatwg.org/"
@@ -17521,6 +17761,8 @@
       "document": "rs",
       "entry": "bib-woff",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[27]",
       "citation": "WOFF File Format 1.0. Jonathan Kew; Tal Leming; Erik van Blokland. W3C. 13 December 2012. W3C Recommendation. URL: https://www.w3.org/TR/WOFF/",
       "urls": [
         "https://www.w3.org/TR/WOFF/"
@@ -17533,6 +17775,8 @@
       "document": "rs",
       "entry": "bib-woff2",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[28]",
       "citation": "WOFF File Format 2.0. Vladimir Levantovsky. W3C. 8 August 2024. W3C Recommendation. URL: https://www.w3.org/TR/WOFF2/",
       "urls": [
         "https://www.w3.org/TR/WOFF2/"
@@ -17545,6 +17789,8 @@
       "document": "rs",
       "entry": "bib-xml",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[29]",
       "citation": "Extensible Markup Language (XML) 1.0 (Fifth Edition). Tim Bray; Jean Paoli; Michael Sperberg-McQueen; Eve Maler; François Yergeau et al. W3C. 26 November 2008. W3C Recommendation. URL: https://www.w3.org/TR/xml/",
       "urls": [
         "https://www.w3.org/TR/xml/"
@@ -17557,6 +17803,8 @@
       "document": "rs",
       "entry": "bib-xml-names",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[30]",
       "citation": "Namespaces in XML 1.0 (Third Edition). Tim Bray; Dave Hollander; Andrew Layman; Richard Tobin; Henry Thompson et al. W3C. 8 December 2009. W3C Recommendation. URL: https://www.w3.org/TR/xml-names/",
       "urls": [
         "https://www.w3.org/TR/xml-names/"
@@ -17569,6 +17817,8 @@
       "document": "rs",
       "entry": "bib-xmlenc-decrypt",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[31]",
       "citation": "Decryption Transform for XML Signature. Merlin Hughes; Takeshi Imamura; Hiroshi Maruyama. W3C. 10 December 2002. W3C Recommendation. URL: https://www.w3.org/TR/xmlenc-decrypt/",
       "urls": [
         "https://www.w3.org/TR/xmlenc-decrypt/"
@@ -17581,6 +17831,8 @@
       "document": "rs",
       "entry": "bib-zip",
       "kind": "normative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[1]/dl[1]/dd[32]",
       "citation": ".ZIP File Format Specification. 15 July 2020. Final. URL: https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT",
       "urls": [
         "https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT"
@@ -17593,6 +17845,8 @@
       "document": "rs",
       "entry": "bib-css2",
       "kind": "informative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[2]/dl[1]/dd[1]",
       "citation": "Cascading Style Sheets Level 2 Revision 1 (CSS 2.1) Specification. Bert Bos; Tantek Çelik; Ian Hickson; Håkon Wium Lie. W3C. 7 June 2011. W3C Recommendation. URL: https://www.w3.org/TR/CSS21/",
       "urls": [
         "https://www.w3.org/TR/CSS21/"
@@ -17605,6 +17859,8 @@
       "document": "rs",
       "entry": "bib-epub-tts-10",
       "kind": "informative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[2]/dl[1]/dd[2]",
       "citation": "EPUB 3 Text-to-Speech Enhancements 1.0. Matt Garrish. W3C. 21 December 2023. W3C Working Group Note. URL: https://www.w3.org/TR/epub-tts-10/",
       "urls": [
         "https://www.w3.org/TR/epub-tts-10/"
@@ -17617,6 +17873,8 @@
       "document": "rs",
       "entry": "bib-epubpackages-32",
       "kind": "informative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[2]/dl[1]/dd[3]",
       "citation": "EPUB Packages 3.2. Matt Garrish; Dave Cramer. EPUB 3 Community Group. 08 May 2019. URL: https://www.w3.org/publishing/epub32/epub-packages.html",
       "urls": [
         "https://www.w3.org/publishing/epub32/epub-packages.html"
@@ -17629,6 +17887,8 @@
       "document": "rs",
       "entry": "bib-h264",
       "kind": "informative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[2]/dl[1]/dd[4]",
       "citation": "H.264 : Advanced video coding for generic audiovisual services. 2017-04-13. URL: https://www.itu.int/ITU-T/recommendations/rec.aspx?rec=13189",
       "urls": [
         "https://www.itu.int/ITU-T/recommendations/rec.aspx?rec=13189"
@@ -17641,6 +17901,8 @@
       "document": "rs",
       "entry": "bib-indexeddb",
       "kind": "informative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[2]/dl[1]/dd[5]",
       "citation": "Indexed Database API. Nikunj Mehta; Jonas Sicking; Eliot Graff; Andrei Popescu; Jeremy Orlow; Joshua Bell. W3C. 8 January 2015. W3C Recommendation. URL: https://www.w3.org/TR/IndexedDB/",
       "urls": [
         "https://www.w3.org/TR/IndexedDB/"
@@ -17653,6 +17915,8 @@
       "document": "rs",
       "entry": "bib-rfc6386",
       "kind": "informative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[2]/dl[1]/dd[6]",
       "citation": "VP8 Data Format and Decoding Guide. J. Bankoski; J. Koleszar; L. Quillio; J. Salonen; P. Wilkins; Y. Xu. IETF. November 2011. Informational. URL: https://www.rfc-editor.org/rfc/rfc6386",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc6386"
@@ -17665,6 +17929,8 @@
       "document": "rs",
       "entry": "bib-uaag20",
       "kind": "informative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[2]/dl[1]/dd[7]",
       "citation": "User Agent Accessibility Guidelines (UAAG) 2.0. James Allan; Greg Lowney; Kimberly Patch; Jeanne F Spellman. W3C. 15 December 2015. W3C Working Group Note. URL: https://www.w3.org/TR/UAAG20/",
       "urls": [
         "https://www.w3.org/TR/UAAG20/"
@@ -17677,6 +17943,8 @@
       "document": "rs",
       "entry": "bib-wai-aria-11",
       "kind": "informative",
+      "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+      "domPath": "/html[1]/body[1]/section[23]/section[2]/dl[1]/dd[8]",
       "citation": "Accessible Rich Internet Applications (WAI-ARIA) 1.1. Joanmarie Diggs; Shane McCarron; Michael Cooper; Richard Schwerdtfeger; James Craig. W3C. 14 December 2017. W3C Recommendation. URL: https://www.w3.org/TR/wai-aria-1.1/",
       "urls": [
         "https://www.w3.org/TR/wai-aria-1.1/"
@@ -17689,6 +17957,8 @@
       "document": "a11y",
       "entry": "bib-dcterms",
       "kind": "normative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[1]/dl[1]/dd[1]",
       "citation": "DCMI Metadata Terms. DCMI Usage Board. DCMI. 20 January 2020. DCMI Recommendation. URL: https://www.dublincore.org/specifications/dublin-core/dcmi-terms/",
       "urls": [
         "https://www.dublincore.org/specifications/dublin-core/dcmi-terms/"
@@ -17701,6 +17971,8 @@
       "document": "a11y",
       "entry": "bib-dom",
       "kind": "normative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[1]/dl[1]/dd[2]",
       "citation": "DOM Standard. Anne van Kesteren. WHATWG. Living Standard. URL: https://dom.spec.whatwg.org/",
       "urls": [
         "https://dom.spec.whatwg.org/"
@@ -17713,6 +17985,8 @@
       "document": "a11y",
       "entry": "bib-epub-3",
       "kind": "normative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[1]/dl[1]/dd[3]",
       "citation": "EPUB 3. W3C. URL: https://www.w3.org/TR/epub/",
       "urls": [
         "https://www.w3.org/TR/epub/"
@@ -17725,6 +17999,8 @@
       "document": "a11y",
       "entry": "bib-rfc2119",
       "kind": "normative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[1]/dl[1]/dd[4]",
       "citation": "Key words for use in RFCs to Indicate Requirement Levels. S. Bradner. IETF. March 1997. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc2119",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc2119"
@@ -17737,6 +18013,8 @@
       "document": "a11y",
       "entry": "bib-rfc8174",
       "kind": "normative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[1]/dl[1]/dd[5]",
       "citation": "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words. B. Leiba. IETF. May 2017. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc8174",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc8174"
@@ -17749,6 +18027,8 @@
       "document": "a11y",
       "entry": "bib-schema-org",
       "kind": "normative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[1]/dl[1]/dd[6]",
       "citation": "Schema.org. W3C Schema.org Community Group. W3C. 6.0. URL: https://schema.org/",
       "urls": [
         "https://schema.org/"
@@ -17761,6 +18041,8 @@
       "document": "a11y",
       "entry": "bib-wcag2",
       "kind": "normative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[1]/dl[1]/dd[7]",
       "citation": "Web Content Accessibility Guidelines (WCAG) 2. W3C. URL: https://www.w3.org/TR/WCAG2/",
       "urls": [
         "https://www.w3.org/TR/WCAG2/"
@@ -17773,6 +18055,8 @@
       "document": "a11y",
       "entry": "bib-wcag20",
       "kind": "normative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[1]/dl[1]/dd[8]",
       "citation": "Web Content Accessibility Guidelines (WCAG) 2.0. Ben Caldwell; Michael Cooper; Loretta Guarino Reid; Gregg Vanderheiden et al. W3C. 11 December 2008. W3C Recommendation. URL: https://www.w3.org/TR/WCAG20/",
       "urls": [
         "https://www.w3.org/TR/WCAG20/"
@@ -17785,6 +18069,8 @@
       "document": "a11y",
       "entry": "bib-xml",
       "kind": "normative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[1]/dl[1]/dd[9]",
       "citation": "Extensible Markup Language (XML) 1.0 (Fifth Edition). Tim Bray; Jean Paoli; Michael Sperberg-McQueen; Eve Maler; François Yergeau et al. W3C. 26 November 2008. W3C Recommendation. URL: https://www.w3.org/TR/xml/",
       "urls": [
         "https://www.w3.org/TR/xml/"
@@ -17797,6 +18083,8 @@
       "document": "a11y",
       "entry": "bib-a11y-discov-vocab",
       "kind": "informative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[2]/dl[1]/dd[1]",
       "citation": "Schema.org Accessibility Properties for Discoverability Vocabulary. URL: https://www.w3.org/2021/a11y-discov-vocab/latest/",
       "urls": [
         "https://www.w3.org/2021/a11y-discov-vocab/latest/"
@@ -17809,6 +18097,8 @@
       "document": "a11y",
       "entry": "bib-daisyaudio",
       "kind": "informative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[2]/dl[1]/dd[2]",
       "citation": "Navigable audio-only EPUB 3 Guidelines. URL: https://daisy.org/info-help/guidance-training/standards/navigable-audio-only-epub3-guidelines/",
       "urls": [
         "https://daisy.org/info-help/guidance-training/standards/navigable-audio-only-epub3-guidelines/"
@@ -17821,6 +18111,8 @@
       "document": "a11y",
       "entry": "bib-dpub-aria-1.0",
       "kind": "informative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[2]/dl[1]/dd[3]",
       "citation": "Digital Publishing WAI-ARIA Module 1.0. Matt Garrish; Tzviya Siegman; Markus Gylling; Shane McCarron. W3C. 14 December 2017. W3C Recommendation. URL: https://www.w3.org/TR/dpub-aria-1.0/",
       "urls": [
         "https://www.w3.org/TR/dpub-aria-1.0/"
@@ -17833,6 +18125,8 @@
       "document": "a11y",
       "entry": "bib-epub-a11y-exemption",
       "kind": "informative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[2]/dl[1]/dd[4]",
       "citation": "The EPUB Accessibility exemption property. Matt Garrish; Gregorio Pellegrino. W3C. 6 September 2024. W3C Working Group Note. URL: https://www.w3.org/TR/epub-a11y-exemption/",
       "urls": [
         "https://www.w3.org/TR/epub-a11y-exemption/"
@@ -17845,6 +18139,8 @@
       "document": "a11y",
       "entry": "bib-epub-a11y-tech-11",
       "kind": "informative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[2]/dl[1]/dd[5]",
       "citation": "EPUB Accessibility Techniques 1.1. Matt Garrish; George Kerscher; Charles LaPierre; Gregorio Pellegrino; Avneesh Singh. W3C. 4 July 2024. W3C Working Group Note. URL: https://www.w3.org/TR/epub-a11y-tech-11/",
       "urls": [
         "https://www.w3.org/TR/epub-a11y-tech-11/"
@@ -17857,6 +18153,8 @@
       "document": "a11y",
       "entry": "bib-marc21",
       "kind": "informative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[2]/dl[1]/dd[6]",
       "citation": "MARC 21 XML. URL: https://www.loc.gov/standards/marcxml/",
       "urls": [
         "https://www.loc.gov/standards/marcxml/"
@@ -17869,6 +18167,8 @@
       "document": "a11y",
       "entry": "bib-onix",
       "kind": "informative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[2]/dl[1]/dd[7]",
       "citation": "ONIX for Books 3.0. URL: https://www.editeur.org/8/ONIX/",
       "urls": [
         "https://www.editeur.org/8/ONIX/"
@@ -17881,6 +18181,8 @@
       "document": "a11y",
       "entry": "bib-opf-201",
       "kind": "informative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[2]/dl[1]/dd[8]",
       "citation": "Open Packaging Format 2.0.1. IDPF. 04 September 2010. URL: https://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm",
       "urls": [
         "https://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm"
@@ -17893,6 +18195,8 @@
       "document": "a11y",
       "entry": "bib-url",
       "kind": "informative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[2]/dl[1]/dd[9]",
       "citation": "URL Standard. Anne van Kesteren. WHATWG. Living Standard. URL: https://url.spec.whatwg.org/",
       "urls": [
         "https://url.spec.whatwg.org/"
@@ -17905,6 +18209,8 @@
       "document": "a11y",
       "entry": "bib-wai-aria",
       "kind": "informative",
+      "sourceHash": "17f7f869877ed66ed2b793b4700c30a23eb5a3746392cf7c8aace841c730c715",
+      "domPath": "/html[1]/body[1]/section[13]/section[2]/dl[1]/dd[10]",
       "citation": "Accessible Rich Internet Applications (WAI-ARIA) 1.0. James Craig; Michael Cooper et al. W3C. 20 March 2014. W3C Recommendation. URL: https://www.w3.org/TR/wai-aria/",
       "urls": [
         "https://www.w3.org/TR/wai-aria/"
@@ -17917,6 +18223,8 @@
       "document": "css",
       "entry": "biblio-compositing",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[1]",
       "citation": "Chris Harrelson. Compositing and Blending Level 1. 21 March 2024. CRD. URL: https://www.w3.org/TR/compositing-1/",
       "urls": [
         "https://www.w3.org/TR/compositing-1/"
@@ -17929,6 +18237,8 @@
       "document": "css",
       "entry": "biblio-css-backgrounds-3",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[2]",
       "citation": "Elika Etemad; Brad Kemper. CSS Backgrounds and Borders Module Level 3. 11 March 2024. CRD. URL: https://www.w3.org/TR/css-backgrounds-3/",
       "urls": [
         "https://www.w3.org/TR/css-backgrounds-3/"
@@ -17941,6 +18251,8 @@
       "document": "css",
       "entry": "biblio-css-box-3",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[3]",
       "citation": "Elika Etemad. CSS Box Model Module Level 3. 11 April 2024. REC. URL: https://www.w3.org/TR/css-box-3/",
       "urls": [
         "https://www.w3.org/TR/css-box-3/"
@@ -17953,6 +18265,8 @@
       "document": "css",
       "entry": "biblio-css-cascade-4",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[4]",
       "citation": "Elika Etemad; Tab Atkins Jr.. CSS Cascading and Inheritance Level 4. 13 January 2022. CR. URL: https://www.w3.org/TR/css-cascade-4/",
       "urls": [
         "https://www.w3.org/TR/css-cascade-4/"
@@ -17965,6 +18279,8 @@
       "document": "css",
       "entry": "biblio-css-color-4",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[5]",
       "citation": "Tab Atkins Jr.; Chris Lilley; Lea Verou. CSS Color Module Level 4. 2 May 2026. CRD. URL: https://www.w3.org/TR/css-color-4/",
       "urls": [
         "https://www.w3.org/TR/css-color-4/"
@@ -17977,6 +18293,8 @@
       "document": "css",
       "entry": "biblio-css-color-5",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[6]",
       "citation": "Chris Lilley; Una Kravets; Lea Verou. CSS Color Module Level 5. 7 May 2026. WD. URL: https://www.w3.org/TR/css-color-5/",
       "urls": [
         "https://www.w3.org/TR/css-color-5/"
@@ -17989,6 +18307,8 @@
       "document": "css",
       "entry": "biblio-css-conditional-3",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[7]",
       "citation": "Chris Lilley; David Baron; Elika Etemad. CSS Conditional Rules Module Level 3. 15 August 2024. CRD. URL: https://www.w3.org/TR/css-conditional-3/",
       "urls": [
         "https://www.w3.org/TR/css-conditional-3/"
@@ -18001,6 +18321,8 @@
       "document": "css",
       "entry": "biblio-css-conditional-5",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[8]",
       "citation": "Chris Lilley; et al. CSS Conditional Rules Module Level 5. 30 October 2025. WD. URL: https://www.w3.org/TR/css-conditional-5/",
       "urls": [
         "https://www.w3.org/TR/css-conditional-5/"
@@ -18013,6 +18335,8 @@
       "document": "css",
       "entry": "biblio-css-contain-1",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[9]",
       "citation": "Tab Atkins Jr.; Florian Rivoal. CSS Containment Module Level 1. 25 June 2024. REC. URL: https://www.w3.org/TR/css-contain-1/",
       "urls": [
         "https://www.w3.org/TR/css-contain-1/"
@@ -18025,6 +18349,8 @@
       "document": "css",
       "entry": "biblio-css-contain-2",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[10]",
       "citation": "Tab Atkins Jr.; Florian Rivoal; Vladimir Levin. CSS Containment Module Level 2. 17 September 2022. WD. URL: https://www.w3.org/TR/css-contain-2/",
       "urls": [
         "https://www.w3.org/TR/css-contain-2/"
@@ -18037,6 +18363,8 @@
       "document": "css",
       "entry": "biblio-css-counter-styles-3",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[11]",
       "citation": "Tab Atkins Jr.. CSS Counter Styles Level 3. 27 July 2021. CR. URL: https://www.w3.org/TR/css-counter-styles-3/",
       "urls": [
         "https://www.w3.org/TR/css-counter-styles-3/"
@@ -18049,6 +18377,8 @@
       "document": "css",
       "entry": "biblio-css-display-3",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[12]",
       "citation": "Elika Etemad; Tab Atkins Jr.. CSS Display Module Level 3. 30 March 2023. CR. URL: https://www.w3.org/TR/css-display-3/",
       "urls": [
         "https://www.w3.org/TR/css-display-3/"
@@ -18061,6 +18391,8 @@
       "document": "css",
       "entry": "biblio-css-easing-1",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[13]",
       "citation": "Brian Birtles; Dean Jackson; Matt Rakow. CSS Easing Functions Level 1. 13 February 2023. CRD. URL: https://www.w3.org/TR/css-easing-1/",
       "urls": [
         "https://www.w3.org/TR/css-easing-1/"
@@ -18073,6 +18405,8 @@
       "document": "css",
       "entry": "biblio-css-env-1",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[14]",
       "citation": "CSS Environment Variables Module Level 1. 23 September 2025. FPWD. URL: https://www.w3.org/TR/css-env-1/",
       "urls": [
         "https://www.w3.org/TR/css-env-1/"
@@ -18085,6 +18419,8 @@
       "document": "css",
       "entry": "biblio-css-flexbox-1",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[15]",
       "citation": "Elika Etemad; Tab Atkins Jr.; Rossen Atanassov. CSS Flexible Box Layout Module Level 1. 14 October 2025. CRD. URL: https://www.w3.org/TR/css-flexbox-1/",
       "urls": [
         "https://www.w3.org/TR/css-flexbox-1/"
@@ -18097,6 +18433,8 @@
       "document": "css",
       "entry": "biblio-css-fonts-3",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[16]",
       "citation": "John Daggett; Myles Maxfield; Chris Lilley. CSS Fonts Module Level 3. 20 September 2018. REC. URL: https://www.w3.org/TR/css-fonts-3/",
       "urls": [
         "https://www.w3.org/TR/css-fonts-3/"
@@ -18109,6 +18447,8 @@
       "document": "css",
       "entry": "biblio-css-fonts-4",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[17]",
       "citation": "Chris Lilley. CSS Fonts Module Level 4. 22 April 2026. WD. URL: https://www.w3.org/TR/css-fonts-4/",
       "urls": [
         "https://www.w3.org/TR/css-fonts-4/"
@@ -18121,6 +18461,8 @@
       "document": "css",
       "entry": "biblio-css-images-3",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[18]",
       "citation": "Tab Atkins Jr.; Elika Etemad; Lea Verou. CSS Images Module Level 3. 18 December 2023. CRD. URL: https://www.w3.org/TR/css-images-3/",
       "urls": [
         "https://www.w3.org/TR/css-images-3/"
@@ -18133,6 +18475,8 @@
       "document": "css",
       "entry": "biblio-css-images-4",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[19]",
       "citation": "Elika Etemad; Tab Atkins Jr.; Lea Verou. CSS Images Module Level 4. 30 September 2025. WD. URL: https://www.w3.org/TR/css-images-4/",
       "urls": [
         "https://www.w3.org/TR/css-images-4/"
@@ -18145,6 +18489,8 @@
       "document": "css",
       "entry": "biblio-css-inline-3",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[20]",
       "citation": "Elika Etemad. CSS Inline Layout Module Level 3. 18 December 2024. WD. URL: https://www.w3.org/TR/css-inline-3/",
       "urls": [
         "https://www.w3.org/TR/css-inline-3/"
@@ -18157,6 +18503,8 @@
       "document": "css",
       "entry": "biblio-css-multicol-1",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[21]",
       "citation": "Florian Rivoal; Rachel Andrew. CSS Multi-column Layout Module Level 1. 16 May 2024. CR. URL: https://www.w3.org/TR/css-multicol-1/",
       "urls": [
         "https://www.w3.org/TR/css-multicol-1/"
@@ -18169,6 +18517,8 @@
       "document": "css",
       "entry": "biblio-css-position-3",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[22]",
       "citation": "Elika Etemad; Tab Atkins Jr.. CSS Positioned Layout Module Level 3. 7 October 2025. WD. URL: https://www.w3.org/TR/css-position-3/",
       "urls": [
         "https://www.w3.org/TR/css-position-3/"
@@ -18181,6 +18531,8 @@
       "document": "css",
       "entry": "biblio-css-pseudo-4",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[23]",
       "citation": "Elika Etemad; Alan Stearns. CSS Pseudo-Elements Module Level 4. 27 June 2025. WD. URL: https://www.w3.org/TR/css-pseudo-4/",
       "urls": [
         "https://www.w3.org/TR/css-pseudo-4/"
@@ -18193,6 +18545,8 @@
       "document": "css",
       "entry": "biblio-css-sizing-3",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[24]",
       "citation": "Tab Atkins Jr.; Elika Etemad. CSS Box Sizing Module Level 3. 17 December 2021. WD. URL: https://www.w3.org/TR/css-sizing-3/",
       "urls": [
         "https://www.w3.org/TR/css-sizing-3/"
@@ -18205,6 +18559,8 @@
       "document": "css",
       "entry": "biblio-css-sizing-4",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[25]",
       "citation": "Tab Atkins Jr.; Elika Etemad; Jen Simmons. CSS Box Sizing Module Level 4. 20 May 2021. WD. URL: https://www.w3.org/TR/css-sizing-4/",
       "urls": [
         "https://www.w3.org/TR/css-sizing-4/"
@@ -18217,6 +18573,8 @@
       "document": "css",
       "entry": "biblio-css-style-attr",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[26]",
       "citation": "Tantek Çelik; Elika Etemad. CSS Style Attributes. 7 November 2013. REC. URL: https://www.w3.org/TR/css-style-attr/",
       "urls": [
         "https://www.w3.org/TR/css-style-attr/"
@@ -18229,6 +18587,8 @@
       "document": "css",
       "entry": "biblio-css-syntax-3",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[27]",
       "citation": "Tab Atkins Jr.; Simon Sapin. CSS Syntax Module Level 3. 24 December 2021. CRD. URL: https://www.w3.org/TR/css-syntax-3/",
       "urls": [
         "https://www.w3.org/TR/css-syntax-3/"
@@ -18241,6 +18601,8 @@
       "document": "css",
       "entry": "biblio-css-text-4",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[28]",
       "citation": "Elika Etemad; et al. CSS Text Module Level 4. 29 May 2024. WD. URL: https://www.w3.org/TR/css-text-4/",
       "urls": [
         "https://www.w3.org/TR/css-text-4/"
@@ -18253,6 +18615,8 @@
       "document": "css",
       "entry": "biblio-css-text-decor-4",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[29]",
       "citation": "Elika Etemad; Koji Ishii. CSS Text Decoration Module Level 4. 4 May 2022. WD. URL: https://www.w3.org/TR/css-text-decor-4/",
       "urls": [
         "https://www.w3.org/TR/css-text-decor-4/"
@@ -18265,6 +18629,8 @@
       "document": "css",
       "entry": "biblio-css-transforms-1",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[30]",
       "citation": "Simon Fraser; et al. CSS Transforms Module Level 1. 14 February 2019. CR. URL: https://www.w3.org/TR/css-transforms-1/",
       "urls": [
         "https://www.w3.org/TR/css-transforms-1/"
@@ -18277,6 +18643,8 @@
       "document": "css",
       "entry": "biblio-css-transforms-2",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[31]",
       "citation": "Tab Atkins Jr.; et al. CSS Transforms Module Level 2. 9 November 2021. WD. URL: https://www.w3.org/TR/css-transforms-2/",
       "urls": [
         "https://www.w3.org/TR/css-transforms-2/"
@@ -18289,6 +18657,8 @@
       "document": "css",
       "entry": "biblio-css-ui-3",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[32]",
       "citation": "Tantek Çelik; Florian Rivoal. CSS Basic User Interface Module Level 3 (CSS3 UI). 7 April 2026. REC. URL: https://www.w3.org/TR/css-ui-3/",
       "urls": [
         "https://www.w3.org/TR/css-ui-3/"
@@ -18301,6 +18671,8 @@
       "document": "css",
       "entry": "biblio-css-ui-4",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[33]",
       "citation": "Tab Atkins Jr.; Florian Rivoal. CSS Basic User Interface Module Level 4. 20 January 2026. WD. URL: https://www.w3.org/TR/css-ui-4/",
       "urls": [
         "https://www.w3.org/TR/css-ui-4/"
@@ -18313,6 +18685,8 @@
       "document": "css",
       "entry": "biblio-css-values-3",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[34]",
       "citation": "Tab Atkins Jr.; Elika Etemad. CSS Values and Units Module Level 3. 22 March 2024. CRD. URL: https://www.w3.org/TR/css-values-3/",
       "urls": [
         "https://www.w3.org/TR/css-values-3/"
@@ -18325,6 +18699,8 @@
       "document": "css",
       "entry": "biblio-css-values-5",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[35]",
       "citation": "Tab Atkins Jr.; Elika Etemad; Miriam Suzanne. CSS Values and Units Module Level 5. 11 November 2024. WD. URL: https://www.w3.org/TR/css-values-5/",
       "urls": [
         "https://www.w3.org/TR/css-values-5/"
@@ -18337,6 +18713,8 @@
       "document": "css",
       "entry": "biblio-css-variables-1",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[36]",
       "citation": "Tab Atkins Jr.. CSS Custom Properties for Cascading Variables Module Level 1. 16 June 2022. CR. URL: https://www.w3.org/TR/css-variables-1/",
       "urls": [
         "https://www.w3.org/TR/css-variables-1/"
@@ -18349,6 +18727,8 @@
       "document": "css",
       "entry": "biblio-css-will-change-1",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[37]",
       "citation": "Tab Atkins Jr.. CSS Will Change Module Level 1. 5 May 2022. CRD. URL: https://www.w3.org/TR/css-will-change-1/",
       "urls": [
         "https://www.w3.org/TR/css-will-change-1/"
@@ -18361,6 +18741,8 @@
       "document": "css",
       "entry": "biblio-css-writing-modes-3",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[38]",
       "citation": "Elika Etemad; Koji Ishii. CSS Writing Modes Level 3. 10 December 2019. REC. URL: https://www.w3.org/TR/css-writing-modes-3/",
       "urls": [
         "https://www.w3.org/TR/css-writing-modes-3/"
@@ -18373,6 +18755,8 @@
       "document": "css",
       "entry": "biblio-css2",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[39]",
       "citation": "Bert Bos; et al. Cascading Style Sheets Level 2 Revision 1 (CSS 2.1) Specification. 7 June 2011. REC. URL: https://www.w3.org/TR/CSS2/",
       "urls": [
         "https://www.w3.org/TR/CSS2/"
@@ -18385,6 +18769,8 @@
       "document": "css",
       "entry": "biblio-css3-mediaqueries",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[40]",
       "citation": "Florian Rivoal. Media Queries Level 3. 21 May 2024. REC. URL: https://www.w3.org/TR/mediaqueries-3/",
       "urls": [
         "https://www.w3.org/TR/mediaqueries-3/"
@@ -18397,6 +18783,8 @@
       "document": "css",
       "entry": "biblio-css3-namespace",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[41]",
       "citation": "Elika Etemad. CSS Namespaces Module Level 3. 20 March 2014. REC. URL: https://www.w3.org/TR/css-namespaces-3/",
       "urls": [
         "https://www.w3.org/TR/css-namespaces-3/"
@@ -18409,6 +18797,8 @@
       "document": "css",
       "entry": "biblio-mediaqueries-5",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[42]",
       "citation": "Tab Atkins Jr.; et al. Media Queries Level 5. 19 February 2026. WD. URL: https://www.w3.org/TR/mediaqueries-5/",
       "urls": [
         "https://www.w3.org/TR/mediaqueries-5/"
@@ -18421,6 +18811,8 @@
       "document": "css",
       "entry": "biblio-rfc2119",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[43]",
       "citation": "S. Bradner. Key words for use in RFCs to Indicate Requirement Levels. March 1997. Best Current Practice. URL: https://datatracker.ietf.org/doc/html/rfc2119",
       "urls": [
         "https://datatracker.ietf.org/doc/html/rfc2119"
@@ -18433,6 +18825,8 @@
       "document": "css",
       "entry": "biblio-selectors-3",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[44]",
       "citation": "Tantek Çelik; et al. Selectors Level 3. 6 November 2018. REC. URL: https://www.w3.org/TR/selectors-3/",
       "urls": [
         "https://www.w3.org/TR/selectors-3/"
@@ -18445,6 +18839,8 @@
       "document": "css",
       "entry": "biblio-selectors-4",
       "kind": "normative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[2]/dd[45]",
       "citation": "Elika Etemad; Tab Atkins Jr.. Selectors Level 4. 22 January 2026. WD. URL: https://www.w3.org/TR/selectors-4/",
       "urls": [
         "https://www.w3.org/TR/selectors-4/"
@@ -18457,6 +18853,8 @@
       "document": "css",
       "entry": "biblio-css-align-3",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[1]",
       "citation": "Elika Etemad; Tab Atkins Jr.. CSS Box Alignment Module Level 3. 30 January 2026. WD. URL: https://www.w3.org/TR/css-align-3/",
       "urls": [
         "https://www.w3.org/TR/css-align-3/"
@@ -18469,6 +18867,8 @@
       "document": "css",
       "entry": "biblio-css-animations-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[2]",
       "citation": "David Baron; et al. CSS Animations Level 1. 2 March 2023. WD. URL: https://www.w3.org/TR/css-animations-1/",
       "urls": [
         "https://www.w3.org/TR/css-animations-1/"
@@ -18481,6 +18881,8 @@
       "document": "css",
       "entry": "biblio-css-break-3",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[3]",
       "citation": "Rossen Atanassov; Elika Etemad. CSS Fragmentation Module Level 3. 4 December 2018. CR. URL: https://www.w3.org/TR/css-break-3/",
       "urls": [
         "https://www.w3.org/TR/css-break-3/"
@@ -18493,6 +18895,8 @@
       "document": "css",
       "entry": "biblio-css-cascade-3",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[4]",
       "citation": "Elika Etemad; Tab Atkins Jr.. CSS Cascading and Inheritance Level 3. 11 February 2021. REC. URL: https://www.w3.org/TR/css-cascade-3/",
       "urls": [
         "https://www.w3.org/TR/css-cascade-3/"
@@ -18505,6 +18909,8 @@
       "document": "css",
       "entry": "biblio-css-cascade-5",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[5]",
       "citation": "Elika Etemad; Miriam Suzanne; Tab Atkins Jr.. CSS Cascading and Inheritance Level 5. 13 January 2022. CR. URL: https://www.w3.org/TR/css-cascade-5/",
       "urls": [
         "https://www.w3.org/TR/css-cascade-5/"
@@ -18517,6 +18923,8 @@
       "document": "css",
       "entry": "biblio-css-color-3",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[6]",
       "citation": "Tantek Çelik; Chris Lilley; David Baron. CSS Color Module Level 3. 18 January 2022. REC. URL: https://www.w3.org/TR/css-color-3/",
       "urls": [
         "https://www.w3.org/TR/css-color-3/"
@@ -18529,6 +18937,8 @@
       "document": "css",
       "entry": "biblio-css-color-adjust-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[7]",
       "citation": "Elika Etemad; et al. CSS Color Adjustment Module Level 1. 16 December 2025. CR. URL: https://www.w3.org/TR/css-color-adjust-1/",
       "urls": [
         "https://www.w3.org/TR/css-color-adjust-1/"
@@ -18541,6 +18951,8 @@
       "document": "css",
       "entry": "biblio-css-conditional-4",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[8]",
       "citation": "Chris Lilley; David Baron; Elika Etemad. CSS Conditional Rules Module Level 4. 4 September 2025. CRD. URL: https://www.w3.org/TR/css-conditional-4/",
       "urls": [
         "https://www.w3.org/TR/css-conditional-4/"
@@ -18553,6 +18965,8 @@
       "document": "css",
       "entry": "biblio-css-font-loading-3",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[9]",
       "citation": "Tab Atkins Jr.. CSS Font Loading Module Level 3. 6 April 2023. WD. URL: https://www.w3.org/TR/css-font-loading-3/",
       "urls": [
         "https://www.w3.org/TR/css-font-loading-3/"
@@ -18565,6 +18979,8 @@
       "document": "css",
       "entry": "biblio-css-grid-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[10]",
       "citation": "Tab Atkins Jr.; et al. CSS Grid Layout Module Level 1. 26 March 2025. CRD. URL: https://www.w3.org/TR/css-grid-1/",
       "urls": [
         "https://www.w3.org/TR/css-grid-1/"
@@ -18577,6 +18993,8 @@
       "document": "css",
       "entry": "biblio-css-grid-2",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[11]",
       "citation": "Tab Atkins Jr.; et al. CSS Grid Layout Module Level 2. 26 March 2025. CRD. URL: https://www.w3.org/TR/css-grid-2/",
       "urls": [
         "https://www.w3.org/TR/css-grid-2/"
@@ -18589,6 +19007,8 @@
       "document": "css",
       "entry": "biblio-css-lists-3",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[12]",
       "citation": "Elika Etemad; Tab Atkins Jr.. CSS Lists and Counters Module Level 3. 17 November 2020. WD. URL: https://www.w3.org/TR/css-lists-3/",
       "urls": [
         "https://www.w3.org/TR/css-lists-3/"
@@ -18601,6 +19021,8 @@
       "document": "css",
       "entry": "biblio-css-logical-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[13]",
       "citation": "Elika Etemad; Rossen Atanassov. CSS Logical Properties and Values Module Level 1. 4 December 2025. WD. URL: https://www.w3.org/TR/css-logical-1/",
       "urls": [
         "https://www.w3.org/TR/css-logical-1/"
@@ -18613,6 +19035,8 @@
       "document": "css",
       "entry": "biblio-css-masking-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[14]",
       "citation": "Dirk Schulze; Brian Birtles; Tab Atkins Jr.. CSS Masking Module Level 1. 5 August 2021. CRD. URL: https://www.w3.org/TR/css-masking-1/",
       "urls": [
         "https://www.w3.org/TR/css-masking-1/"
@@ -18625,6 +19049,8 @@
       "document": "css",
       "entry": "biblio-css-nesting-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[15]",
       "citation": "Tab Atkins Jr.. CSS Nesting Module Level 1. 22 January 2026. WD. URL: https://www.w3.org/TR/css-nesting-1/",
       "urls": [
         "https://www.w3.org/TR/css-nesting-1/"
@@ -18637,6 +19063,8 @@
       "document": "css",
       "entry": "biblio-css-scroll-anchoring-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[16]",
       "citation": "Tab Atkins Jr.. CSS Scroll Anchoring Module Level 1. 11 November 2020. WD. URL: https://www.w3.org/TR/css-scroll-anchoring-1/",
       "urls": [
         "https://www.w3.org/TR/css-scroll-anchoring-1/"
@@ -18649,6 +19077,8 @@
       "document": "css",
       "entry": "biblio-css-scroll-snap-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[17]",
       "citation": "Matt Rakow; et al. CSS Scroll Snap Module Level 1. 11 March 2021. CR. URL: https://www.w3.org/TR/css-scroll-snap-1/",
       "urls": [
         "https://www.w3.org/TR/css-scroll-snap-1/"
@@ -18661,6 +19091,8 @@
       "document": "css",
       "entry": "biblio-css-scrollbars-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[18]",
       "citation": "Tantek Çelik; Rossen Atanassov; Florian Rivoal. CSS Scrollbars Styling Module Level 1. 9 December 2021. CR. URL: https://www.w3.org/TR/css-scrollbars-1/",
       "urls": [
         "https://www.w3.org/TR/css-scrollbars-1/"
@@ -18673,6 +19105,8 @@
       "document": "css",
       "entry": "biblio-css-shapes-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[19]",
       "citation": "Alan Stearns; Rossen Atanassov; Noam Rosenthal. CSS Shapes Module Level 1. 12 June 2025. CRD. URL: https://www.w3.org/TR/css-shapes-1/",
       "urls": [
         "https://www.w3.org/TR/css-shapes-1/"
@@ -18685,6 +19119,8 @@
       "document": "css",
       "entry": "biblio-css-speech-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[20]",
       "citation": "Léonie Watson; Elika Etemad. CSS Speech Module Level 1. 14 February 2023. CRD. URL: https://www.w3.org/TR/css-speech-1/",
       "urls": [
         "https://www.w3.org/TR/css-speech-1/"
@@ -18697,6 +19133,8 @@
       "document": "css",
       "entry": "biblio-css-text-3",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[21]",
       "citation": "Elika Etemad; Koji Ishii; Florian Rivoal. CSS Text Module Level 3. 30 September 2024. CRD. URL: https://www.w3.org/TR/css-text-3/",
       "urls": [
         "https://www.w3.org/TR/css-text-3/"
@@ -18709,6 +19147,8 @@
       "document": "css",
       "entry": "biblio-css-text-decor-3",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[22]",
       "citation": "Elika Etemad; Koji Ishii. CSS Text Decoration Module Level 3. 5 May 2022. CRD. URL: https://www.w3.org/TR/css-text-decor-3/",
       "urls": [
         "https://www.w3.org/TR/css-text-decor-3/"
@@ -18721,6 +19161,8 @@
       "document": "css",
       "entry": "biblio-css-transitions-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[23]",
       "citation": "Chris Marrin; et al. CSS Transitions Module Level 1. 8 January 2026. WD. URL: https://www.w3.org/TR/css-transitions-1/",
       "urls": [
         "https://www.w3.org/TR/css-transitions-1/"
@@ -18733,6 +19175,8 @@
       "document": "css",
       "entry": "biblio-css-view-transitions-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[24]",
       "citation": "Tab Atkins Jr.; Jake Archibald; Khushal Sagar. CSS View Transitions Module Level 1. 28 March 2024. CRD. URL: https://www.w3.org/TR/css-view-transitions-1/",
       "urls": [
         "https://www.w3.org/TR/css-view-transitions-1/"
@@ -18745,6 +19189,8 @@
       "document": "css",
       "entry": "biblio-css-writing-modes-4",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[25]",
       "citation": "Elika Etemad; Koji Ishii. CSS Writing Modes Level 4. 30 July 2019. CR. URL: https://www.w3.org/TR/css-writing-modes-4/",
       "urls": [
         "https://www.w3.org/TR/css-writing-modes-4/"
@@ -18757,6 +19203,8 @@
       "document": "css",
       "entry": "biblio-cssom-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[26]",
       "citation": "Daniel Glazman; Emilio Cobos Álvarez. CSS Object Model (CSSOM). 26 August 2021. WD. URL: https://www.w3.org/TR/cssom-1/",
       "urls": [
         "https://www.w3.org/TR/cssom-1/"
@@ -18769,6 +19217,8 @@
       "document": "css",
       "entry": "biblio-cssom-view-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[27]",
       "citation": "Simon Fraser; Emilio Cobos Álvarez. CSSOM View Module. 16 September 2025. WD. URL: https://www.w3.org/TR/cssom-view-1/",
       "urls": [
         "https://www.w3.org/TR/cssom-view-1/"
@@ -18781,6 +19231,8 @@
       "document": "css",
       "entry": "biblio-filter-effects-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[28]",
       "citation": "Dirk Schulze; Dean Jackson. Filter Effects Module Level 1. 18 December 2018. WD. URL: https://www.w3.org/TR/filter-effects-1/",
       "urls": [
         "https://www.w3.org/TR/filter-effects-1/"
@@ -18793,6 +19245,8 @@
       "document": "css",
       "entry": "biblio-geometry-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[29]",
       "citation": "Sebastian Zartner; Yehonatan Daniv. Geometry Interfaces Module Level 1. 4 December 2025. CRD. URL: https://www.w3.org/TR/geometry-1/",
       "urls": [
         "https://www.w3.org/TR/geometry-1/"
@@ -18805,6 +19259,8 @@
       "document": "css",
       "entry": "biblio-mediaqueries-4",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[30]",
       "citation": "Tab Atkins Jr.; Florian Rivoal. Media Queries Level 4. 19 February 2026. CRD. URL: https://www.w3.org/TR/mediaqueries-4/",
       "urls": [
         "https://www.w3.org/TR/mediaqueries-4/"
@@ -18817,6 +19273,8 @@
       "document": "css",
       "entry": "biblio-motion-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[31]",
       "citation": "Tab Atkins Jr.; Dirk Schulze; Jihye Hong. Motion Path Module Level 1. 5 November 2024. WD. URL: https://www.w3.org/TR/motion-1/",
       "urls": [
         "https://www.w3.org/TR/motion-1/"
@@ -18829,6 +19287,8 @@
       "document": "css",
       "entry": "biblio-resize-observer-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[32]",
       "citation": "Aleks Totic; Greg Whitworth. Resize Observer. 11 February 2020. FPWD. URL: https://www.w3.org/TR/resize-observer-1/",
       "urls": [
         "https://www.w3.org/TR/resize-observer-1/"
@@ -18841,6 +19301,8 @@
       "document": "css",
       "entry": "biblio-web-animations-1",
       "kind": "informative",
+      "sourceHash": "fddc6c448e08e5eaa22a362c759a3a7c28045da1cdffad2d8421d679d49839d2",
+      "domPath": "/html[1]/head[1]/body[1]/dl[3]/dd[33]",
       "citation": "Brian Birtles; et al. Web Animations. 5 June 2023. WD. URL: https://www.w3.org/TR/web-animations-1/",
       "urls": [
         "https://www.w3.org/TR/web-animations-1/"
@@ -18853,6 +19315,8 @@
       "document": "overview",
       "entry": "bib-csssnapshot",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[1]",
       "citation": "CSS Snapshot. URL: https://www.w3.org/TR/CSS/",
       "urls": [
         "https://www.w3.org/TR/CSS/"
@@ -18865,6 +19329,8 @@
       "document": "overview",
       "entry": "bib-ecmascript",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[2]",
       "citation": "ECMAScript Language Specification. Ecma International. URL: https://tc39.es/ecma262/multipage/",
       "urls": [
         "https://tc39.es/ecma262/multipage/"
@@ -18877,6 +19343,8 @@
       "document": "overview",
       "entry": "bib-epub-31",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[3]",
       "citation": "EPUB 3.1. Markus Gylling; Tzviya Siegman; Matt Garrish. IDPF. 05 January 2017. URL: http://idpf.org/epub/31/spec/epub-spec-20170105.html",
       "urls": [
         "http://idpf.org/epub/31/spec/epub-spec-20170105.html"
@@ -18889,6 +19357,8 @@
       "document": "overview",
       "entry": "bib-epub-32",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[4]",
       "citation": "EPUB 3.2. Matt Garrish; Dave Cramer. EPUB 3 Community Group. 08 May 2019. URL: https://www.w3.org/publishing/epub32/epub-spec.html",
       "urls": [
         "https://www.w3.org/publishing/epub32/epub-spec.html"
@@ -18901,6 +19371,8 @@
       "document": "overview",
       "entry": "bib-epub-33",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[5]",
       "citation": "EPUB 3.3. Ivan Herman; Matt Garrish; Dave Cramer. W3C. 7 January 2025. W3C Recommendation. URL: https://www.w3.org/TR/epub-33/",
       "urls": [
         "https://www.w3.org/TR/epub-33/"
@@ -18913,6 +19385,8 @@
       "document": "overview",
       "entry": "bib-epub-a11y-11",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[6]",
       "citation": "EPUB Accessibility 1.1. George Kerscher; Matt Garrish; Charles LaPierre; Avneesh Singh; Gregorio Pellegrino. W3C. 17 October 2024. W3C Recommendation. URL: https://www.w3.org/TR/epub-a11y-11/",
       "urls": [
         "https://www.w3.org/TR/epub-a11y-11/"
@@ -18925,6 +19399,8 @@
       "document": "overview",
       "entry": "bib-epub-a11y-eaa-mapping",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[7]",
       "citation": "EPUB Accessibility - EU Accessibility Act Mapping. Cristina Mussinelli; Gregorio Pellegrino. W3C. 30 April 2024. W3C Working Group Note. URL: https://www.w3.org/TR/epub-a11y-eaa-mapping/",
       "urls": [
         "https://www.w3.org/TR/epub-a11y-eaa-mapping/"
@@ -18937,6 +19413,8 @@
       "document": "overview",
       "entry": "bib-epub-a11y-tech-11",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[8]",
       "citation": "EPUB Accessibility Techniques 1.1. Matt Garrish; George Kerscher; Charles LaPierre; Gregorio Pellegrino; Avneesh Singh. W3C. 3 December 2024. W3C Working Group Note. URL: https://www.w3.org/TR/epub-a11y-tech-11/",
       "urls": [
         "https://www.w3.org/TR/epub-a11y-tech-11/"
@@ -18949,6 +19427,8 @@
       "document": "overview",
       "entry": "bib-epub-aria-authoring-11",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[9]",
       "citation": "EPUB Type to ARIA Role Authoring Guide 1.1. Matt Garrish. W3C. 14 March 2023. W3C Working Group Note. URL: https://www.w3.org/TR/epub-aria-authoring-11/",
       "urls": [
         "https://www.w3.org/TR/epub-aria-authoring-11/"
@@ -18961,6 +19441,8 @@
       "document": "overview",
       "entry": "bib-epub-multi-rend-11",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[10]",
       "citation": "EPUB 3 Multiple-Rendition Publications 1.1. Matt Garrish. W3C. 21 December 2023. W3C Working Group Note. URL: https://www.w3.org/TR/epub-multi-rend-11/",
       "urls": [
         "https://www.w3.org/TR/epub-multi-rend-11/"
@@ -18973,6 +19455,8 @@
       "document": "overview",
       "entry": "bib-epub-rs-33",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[11]",
       "citation": "EPUB Reading Systems 3.3. Ivan Herman; Matt Garrish; Dave Cramer. W3C. 17 October 2024. W3C Recommendation. URL: https://www.w3.org/TR/epub-rs-33/",
       "urls": [
         "https://www.w3.org/TR/epub-rs-33/"
@@ -18985,6 +19469,8 @@
       "document": "overview",
       "entry": "bib-epub-ssv-11",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[12]",
       "citation": "EPUB 3 Structural Semantics Vocabulary 1.1. Ivan Herman; Matt Garrish. W3C. 21 December 2023. W3C Working Group Note. URL: https://www.w3.org/TR/epub-ssv-11/",
       "urls": [
         "https://www.w3.org/TR/epub-ssv-11/"
@@ -18997,6 +19483,8 @@
       "document": "overview",
       "entry": "bib-epub-tts-10",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[13]",
       "citation": "EPUB 3 Text-to-Speech Enhancements 1.0. Matt Garrish. W3C. 21 December 2023. W3C Working Group Note. URL: https://www.w3.org/TR/epub-tts-10/",
       "urls": [
         "https://www.w3.org/TR/epub-tts-10/"
@@ -19009,6 +19497,8 @@
       "document": "overview",
       "entry": "bib-epubchanges-30",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[14]",
       "citation": "EPUB 3 Changes from 2.0.1. William McCoy; Markus Gylling. IDPF. 11 October 2011. URL: http://idpf.org/epub/30/spec/epub30-changes-20111011.html",
       "urls": [
         "http://idpf.org/epub/30/spec/epub30-changes-20111011.html"
@@ -19021,6 +19511,8 @@
       "document": "overview",
       "entry": "bib-epubchanges-301",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[15]",
       "citation": "EPUB 3.0.1 Changes from 3.0. Markus Gylling; Matt Garrish. IDPF. 26 June 2014. URL: http://idpf.org/epub/301/spec/epub-changes-20140626.html",
       "urls": [
         "http://idpf.org/epub/301/spec/epub-changes-20140626.html"
@@ -19033,6 +19525,8 @@
       "document": "overview",
       "entry": "bib-epubchanges-31",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[16]",
       "citation": "EPUB 3.1 Changes from 3.0.1. Markus Gylling; Matt Garrish. IDPF. 05 January 2017. URL: http://idpf.org/epub/31/spec/epub-changes-20170105.html",
       "urls": [
         "http://idpf.org/epub/31/spec/epub-changes-20170105.html"
@@ -19045,6 +19539,8 @@
       "document": "overview",
       "entry": "bib-epubchanges-32",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[17]",
       "citation": "EPUB 3.2 Changes. Matt Garrish; Dave Cramer. EPUB 3 Community Group. 08 May 2019. URL: https://www.w3.org/publishing/epub32/epub-changes.html",
       "urls": [
         "https://www.w3.org/publishing/epub32/epub-changes.html"
@@ -19057,6 +19553,8 @@
       "document": "overview",
       "entry": "bib-epubcontentdocs-30",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[18]",
       "citation": "EPUB Content Documents 3.0. Markus Gylling; William McCoy; Elika J. Etimad; Matt Garrish. IDPF. 11 October 2011. URL: http://idpf.org/epub/30/spec/epub30-contentdocs-20111011.html",
       "urls": [
         "http://idpf.org/epub/30/spec/epub30-contentdocs-20111011.html"
@@ -19069,6 +19567,8 @@
       "document": "overview",
       "entry": "bib-epubcontentdocs-301",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[19]",
       "citation": "EPUB Content Documents 3.0.1. Markus Gylling; William McCoy; Elika J. Etimad; Matt Garrish. IDPF. 26 June 2014. URL: http://idpf.org/epub/301/spec/epub-contentdocs-20140626.html",
       "urls": [
         "http://idpf.org/epub/301/spec/epub-contentdocs-20140626.html"
@@ -19081,6 +19581,8 @@
       "document": "overview",
       "entry": "bib-epubcontentdocs-31",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[20]",
       "citation": "EPUB Content Documents 3.1. Markus Gylling; William McCoy; Dave Cramer; Elika J. Etimad; Matt Garrish. IDPF. 05 January 2017. URL: http://idpf.org/epub/31/spec/epub-contentdocs-20170105.html",
       "urls": [
         "http://idpf.org/epub/31/spec/epub-contentdocs-20170105.html"
@@ -19093,6 +19595,8 @@
       "document": "overview",
       "entry": "bib-epubcontentdocs-32",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[21]",
       "citation": "EPUB Content Documents 3.2. Dave Cramer; Matt Garrish. EPUB 3 Community Group. 08 May 2019. URL: https://www.w3.org/publishing/epub32/epub-contentdocs.html",
       "urls": [
         "https://www.w3.org/publishing/epub32/epub-contentdocs.html"
@@ -19105,6 +19609,8 @@
       "document": "overview",
       "entry": "bib-epubmediaoverlays-30",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[22]",
       "citation": "EPUB Media Overlays 3.0. Marisa DeMeglio; Daniel Weck. IDPF. 11 October 2011. URL: http://idpf.org/epub/30/spec/epub30-mediaoverlays-20111011.html",
       "urls": [
         "http://idpf.org/epub/30/spec/epub30-mediaoverlays-20111011.html"
@@ -19117,6 +19623,8 @@
       "document": "overview",
       "entry": "bib-epubmediaoverlays-301",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[23]",
       "citation": "EPUB Media Overlays 3.0.1. Marisa DeMeglio; Daniel Weck. IDPF. 26 June 2014. URL: http://idpf.org/epub/301/spec/epub-mediaoverlays-20140626.html",
       "urls": [
         "http://idpf.org/epub/301/spec/epub-mediaoverlays-20140626.html"
@@ -19129,6 +19637,8 @@
       "document": "overview",
       "entry": "bib-epubmediaoverlays-31",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[24]",
       "citation": "EPUB Media Overlays 3.1. Marisa DeMeglio; Daniel Weck. IDPF. 05 January 2017. URL: http://idpf.org/epub/31/spec/epub-mediaoverlays-20170105.html",
       "urls": [
         "http://idpf.org/epub/31/spec/epub-mediaoverlays-20170105.html"
@@ -19141,6 +19651,8 @@
       "document": "overview",
       "entry": "bib-epubmediaoverlays-32",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[25]",
       "citation": "EPUB Media Overlays 3.2. Marisa DeMeglio; Daniel Weck. EPUB 3 Community Group. 08 May 2019. URL: https://www.w3.org/publishing/epub32/epub-mediaoverlays.html",
       "urls": [
         "https://www.w3.org/publishing/epub32/epub-mediaoverlays.html"
@@ -19153,6 +19665,8 @@
       "document": "overview",
       "entry": "bib-epubpackages-31",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[26]",
       "citation": "EPUB Packages 3.1. Markus Gylling; William McCoy; Matt Garrish. IDPF. 05 January 2017. URL: http://idpf.org/epub/31/spec/epub-packages-20170105.html",
       "urls": [
         "http://idpf.org/epub/31/spec/epub-packages-20170105.html"
@@ -19165,6 +19679,8 @@
       "document": "overview",
       "entry": "bib-epubpackages-32",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[27]",
       "citation": "EPUB Packages 3.2. Matt Garrish; Dave Cramer. EPUB 3 Community Group. 08 May 2019. URL: https://www.w3.org/publishing/epub32/epub-packages.html",
       "urls": [
         "https://www.w3.org/publishing/epub32/epub-packages.html"
@@ -19177,6 +19693,8 @@
       "document": "overview",
       "entry": "bib-epubpublications-30",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[28]",
       "citation": "EPUB Publications 3.0. Markus Gylling; William McCoy; Matt Garrish. IDPF. 11 October 2011. URL: http://idpf.org/epub/30/spec/epub30-publications-20111011.html",
       "urls": [
         "http://idpf.org/epub/30/spec/epub30-publications-20111011.html"
@@ -19189,6 +19707,8 @@
       "document": "overview",
       "entry": "bib-epubpublications-301",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[29]",
       "citation": "EPUB Publications 3.0.1. Markus Gylling; William McCoy; Matt Garrish. IDPF. 26 June 2014. URL: http://idpf.org/epub/301/spec/epub-publications-20140626.html",
       "urls": [
         "http://idpf.org/epub/301/spec/epub-publications-20140626.html"
@@ -19201,6 +19721,8 @@
       "document": "overview",
       "entry": "bib-html",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[30]",
       "citation": "HTML Standard. Anne van Kesteren; Domenic Denicola; Dominic Farolino; Ian Hickson; Philip Jägenstedt; Simon Pieters. WHATWG. Living Standard. URL: https://html.spec.whatwg.org/multipage/",
       "urls": [
         "https://html.spec.whatwg.org/multipage/"
@@ -19213,6 +19735,8 @@
       "document": "overview",
       "entry": "bib-json-ld",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[31]",
       "citation": "JSON-LD 1.0. Manu Sporny; Gregg Kellogg; Markus Lanthaler. W3C. 3 November 2020. W3C Recommendation. URL: https://www.w3.org/TR/json-ld/",
       "urls": [
         "https://www.w3.org/TR/json-ld/"
@@ -19225,6 +19749,8 @@
       "document": "overview",
       "entry": "bib-microdata",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[32]",
       "citation": "HTML Microdata. Chaals Nevile; Dan Brickley; Ian Hickson. W3C. 28 January 2021. W3C Working Group Note. URL: https://www.w3.org/TR/microdata/",
       "urls": [
         "https://www.w3.org/TR/microdata/"
@@ -19237,6 +19763,8 @@
       "document": "overview",
       "entry": "bib-ocf-201",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[33]",
       "citation": "EPUB Open Container Format (OCF) 2.0.1. IDPF. 04 September 2010. URL: http://idpf.org/epub/20/spec/OCF_2.0.1_draft.doc",
       "urls": [
         "http://idpf.org/epub/20/spec/OCF_2.0.1_draft.doc"
@@ -19249,6 +19777,8 @@
       "document": "overview",
       "entry": "bib-ocf-30",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[34]",
       "citation": "EPUB Open Container Format (OCF) 3.0. James Pritchett; Markus Gylling. IDPF. 11 October 2011. URL: http://idpf.org/epub/30/spec/epub30-ocf-20111011.html",
       "urls": [
         "http://idpf.org/epub/30/spec/epub30-ocf-20111011.html"
@@ -19261,6 +19791,8 @@
       "document": "overview",
       "entry": "bib-ocf-301",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[35]",
       "citation": "EPUB Open Container Format (OCF) 3.0.1. James Pritchett; Markus Gylling. IDPF. 26 June 2014. URL: http://idpf.org/epub/301/spec/epub-ocf-20140626.html",
       "urls": [
         "http://idpf.org/epub/301/spec/epub-ocf-20140626.html"
@@ -19273,6 +19805,8 @@
       "document": "overview",
       "entry": "bib-ocf-31",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[36]",
       "citation": "Open Container Format (OCF) 3.1. James Pritchett; Markus Gylling. IDPF. 05 January 2017. URL: http://idpf.org/epub/31/spec/epub-ocf-20170105.html",
       "urls": [
         "http://idpf.org/epub/31/spec/epub-ocf-20170105.html"
@@ -19285,6 +19819,8 @@
       "document": "overview",
       "entry": "bib-ocf-32",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[37]",
       "citation": "Open Container Format (OCF) 3.2. Garth Conboy. EPUB 3 Community Group. 08 May 2019. URL: https://www.w3.org/publishing/epub32/epub-ocf.html",
       "urls": [
         "https://www.w3.org/publishing/epub32/epub-ocf.html"
@@ -19297,6 +19833,8 @@
       "document": "overview",
       "entry": "bib-opentype",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[38]",
       "citation": "OpenType specification. Microsoft. URL: http://www.microsoft.com/typography/otspec/default.htm",
       "urls": [
         "http://www.microsoft.com/typography/otspec/default.htm"
@@ -19309,6 +19847,8 @@
       "document": "overview",
       "entry": "bib-opf-201",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[39]",
       "citation": "Open Packaging Format 2.0.1. IDPF. 04 September 2010. URL: http://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm",
       "urls": [
         "http://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm"
@@ -19321,6 +19861,8 @@
       "document": "overview",
       "entry": "bib-ops-201",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[40]",
       "citation": "Open Publication Structure 2.0.1. IDPF. 04 September 2010. URL: http://idpf.org/epub/20/spec/OPS_2.0.1_draft.htm",
       "urls": [
         "http://idpf.org/epub/20/spec/OPS_2.0.1_draft.htm"
@@ -19333,6 +19875,8 @@
       "document": "overview",
       "entry": "bib-rdfa-in-html",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[41]",
       "citation": "HTML+RDFa 1.1 - Second Edition. Manu Sporny. W3C. 17 March 2015. W3C Recommendation. URL: https://www.w3.org/TR/html-rdfa/",
       "urls": [
         "https://www.w3.org/TR/html-rdfa/"
@@ -19345,6 +19889,8 @@
       "document": "overview",
       "entry": "bib-svg",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[42]",
       "citation": "SVG. W3C. URL: https://www.w3.org/TR/SVG/",
       "urls": [
         "https://www.w3.org/TR/SVG/"
@@ -19357,6 +19903,8 @@
       "document": "overview",
       "entry": "bib-unicode",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[43]",
       "citation": "The Unicode Standard. Unicode Consortium. URL: https://www.unicode.org/versions/latest/",
       "urls": [
         "https://www.unicode.org/versions/latest/"
@@ -19369,6 +19917,8 @@
       "document": "overview",
       "entry": "bib-wcag21",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[44]",
       "citation": "Web Content Accessibility Guidelines (WCAG) 2.1. Michael Cooper; Andrew Kirkpatrick; Joshue O'Connor; Alastair Campbell. W3C. 12 December 2024. W3C Recommendation. URL: https://www.w3.org/TR/WCAG21/",
       "urls": [
         "https://www.w3.org/TR/WCAG21/"
@@ -19381,6 +19931,8 @@
       "document": "overview",
       "entry": "bib-woff",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[45]",
       "citation": "WOFF File Format 1.0. Jonathan Kew; Tal Leming; Erik van Blokland. W3C. 13 December 2012. W3C Recommendation. URL: https://www.w3.org/TR/WOFF/",
       "urls": [
         "https://www.w3.org/TR/WOFF/"
@@ -19393,6 +19945,8 @@
       "document": "overview",
       "entry": "bib-woff2",
       "kind": "informative",
+      "sourceHash": "733c863fd882a914917806ffc52547f54162fc6eb94bbec5e9c566d3c909b069",
+      "domPath": "/html[1]/body[1]/section[17]/section[1]/dl[1]/dd[46]",
       "citation": "WOFF File Format 2.0. Vladimir Levantovsky. W3C. 8 August 2024. W3C Recommendation. URL: https://www.w3.org/TR/WOFF2/",
       "urls": [
         "https://www.w3.org/TR/WOFF2/"
@@ -19405,6 +19959,8 @@
       "document": "techniques",
       "entry": "bib-a11y-discov-vocab",
       "kind": "informative",
+      "sourceHash": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "domPath": "/html[1]/body[1]/section[11]/section[1]/dl[1]/dd[1]",
       "citation": "Schema.org Accessibility Properties for Discoverability Vocabulary. URL: https://www.w3.org/2021/a11y-discov-vocab/latest/",
       "urls": [
         "https://www.w3.org/2021/a11y-discov-vocab/latest/"
@@ -19417,6 +19973,8 @@
       "document": "techniques",
       "entry": "bib-dcterms",
       "kind": "informative",
+      "sourceHash": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "domPath": "/html[1]/body[1]/section[11]/section[1]/dl[1]/dd[2]",
       "citation": "DCMI Metadata Terms. DCMI Usage Board. DCMI. 20 January 2020. DCMI Recommendation. URL: https://www.dublincore.org/specifications/dublin-core/dcmi-terms/",
       "urls": [
         "https://www.dublincore.org/specifications/dublin-core/dcmi-terms/"
@@ -19429,6 +19987,8 @@
       "document": "techniques",
       "entry": "bib-dpub-accessibility",
       "kind": "informative",
+      "sourceHash": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "domPath": "/html[1]/body[1]/section[11]/section[1]/dl[1]/dd[3]",
       "citation": "Digital Publishing and Accessibility in W3C Documents. Deborah Kaplan; Charles LaPierre. W3C. 3 May 2016. W3C Working Group Note. URL: https://www.w3.org/TR/dpub-accessibility/",
       "urls": [
         "https://www.w3.org/TR/dpub-accessibility/"
@@ -19441,6 +20001,8 @@
       "document": "techniques",
       "entry": "bib-dpub-aria-1.0",
       "kind": "informative",
+      "sourceHash": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "domPath": "/html[1]/body[1]/section[11]/section[1]/dl[1]/dd[4]",
       "citation": "Digital Publishing WAI-ARIA Module 1.0. Matt Garrish; Tzviya Siegman; Markus Gylling; Shane McCarron. W3C. 14 December 2017. W3C Recommendation. URL: https://www.w3.org/TR/dpub-aria-1.0/",
       "urls": [
         "https://www.w3.org/TR/dpub-aria-1.0/"
@@ -19453,6 +20015,8 @@
       "document": "techniques",
       "entry": "bib-epub-3",
       "kind": "informative",
+      "sourceHash": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "domPath": "/html[1]/body[1]/section[11]/section[1]/dl[1]/dd[5]",
       "citation": "EPUB 3. W3C. URL: https://www.w3.org/TR/epub/",
       "urls": [
         "https://www.w3.org/TR/epub/"
@@ -19465,6 +20029,8 @@
       "document": "techniques",
       "entry": "bib-epub-a11y-11",
       "kind": "informative",
+      "sourceHash": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "domPath": "/html[1]/body[1]/section[11]/section[1]/dl[1]/dd[6]",
       "citation": "EPUB Accessibility 1.1. George Kerscher; Matt Garrish; Charles LaPierre; Avneesh Singh; Gregorio Pellegrino. W3C. 17 October 2024. W3C Recommendation. URL: https://www.w3.org/TR/epub-a11y-11/",
       "urls": [
         "https://www.w3.org/TR/epub-a11y-11/"
@@ -19477,6 +20043,8 @@
       "document": "techniques",
       "entry": "bib-epub-multi-rend-11",
       "kind": "informative",
+      "sourceHash": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "domPath": "/html[1]/body[1]/section[11]/section[1]/dl[1]/dd[7]",
       "citation": "EPUB 3 Multiple-Rendition Publications 1.1. Matt Garrish. W3C. 21 December 2023. W3C Working Group Note. URL: https://www.w3.org/TR/epub-multi-rend-11/",
       "urls": [
         "https://www.w3.org/TR/epub-multi-rend-11/"
@@ -19489,6 +20057,8 @@
       "document": "techniques",
       "entry": "bib-epub-ssv",
       "kind": "informative",
+      "sourceHash": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "domPath": "/html[1]/body[1]/section[11]/section[1]/dl[1]/dd[8]",
       "citation": "EPUB Structural Semantics Vocabulary. IDPF. URL: http://www.idpf.org/epub/vocab/structure/",
       "urls": [
         "http://www.idpf.org/epub/vocab/structure/"
@@ -19501,6 +20071,8 @@
       "document": "techniques",
       "entry": "bib-epub-ssv-11",
       "kind": "informative",
+      "sourceHash": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "domPath": "/html[1]/body[1]/section[11]/section[1]/dl[1]/dd[9]",
       "citation": "EPUB 3 Structural Semantics Vocabulary 1.1. Ivan Herman; Matt Garrish. W3C. 21 December 2023. W3C Working Group Note. URL: https://www.w3.org/TR/epub-ssv-11/",
       "urls": [
         "https://www.w3.org/TR/epub-ssv-11/"
@@ -19513,6 +20085,8 @@
       "document": "techniques",
       "entry": "bib-html",
       "kind": "informative",
+      "sourceHash": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "domPath": "/html[1]/body[1]/section[11]/section[1]/dl[1]/dd[10]",
       "citation": "HTML Standard. Anne van Kesteren; Domenic Denicola; Dominic Farolino; Ian Hickson; Philip Jägenstedt; Simon Pieters. WHATWG. Living Standard. URL: https://html.spec.whatwg.org/multipage/",
       "urls": [
         "https://html.spec.whatwg.org/multipage/"
@@ -19525,6 +20099,8 @@
       "document": "techniques",
       "entry": "bib-iso24751-3",
       "kind": "informative",
+      "sourceHash": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "domPath": "/html[1]/body[1]/section[11]/section[1]/dl[1]/dd[11]",
       "citation": "ISO/IEC 24751-3:2008 Information technology -- Individualized adaptability and accessibility in e-learning, education and training -- Part 3: \"Access for all\" digital resource description. 2008-10-01. URL: http://www.iso.org/iso/catalogue_detail?csnumber=43604",
       "urls": [
         "http://www.iso.org/iso/catalogue_detail?csnumber=43604"
@@ -19537,6 +20113,8 @@
       "document": "techniques",
       "entry": "bib-opf-201",
       "kind": "informative",
+      "sourceHash": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "domPath": "/html[1]/body[1]/section[11]/section[1]/dl[1]/dd[12]",
       "citation": "Open Packaging Format 2.0.1. IDPF. 04 September 2010. URL: http://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm",
       "urls": [
         "http://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm"
@@ -19549,6 +20127,8 @@
       "document": "techniques",
       "entry": "bib-page-source-id",
       "kind": "informative",
+      "sourceHash": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "domPath": "/html[1]/body[1]/section[11]/section[1]/dl[1]/dd[13]",
       "citation": "Page Source Identification. URL: https://www.w3.org/publishing/a11y/page-source-id/",
       "urls": [
         "https://www.w3.org/publishing/a11y/page-source-id/"
@@ -19561,6 +20141,8 @@
       "document": "techniques",
       "entry": "bib-schema-org",
       "kind": "informative",
+      "sourceHash": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "domPath": "/html[1]/body[1]/section[11]/section[1]/dl[1]/dd[14]",
       "citation": "Schema.org. W3C Schema.org Community Group. W3C. 6.0. URL: https://schema.org/",
       "urls": [
         "https://schema.org/"
@@ -19573,6 +20155,8 @@
       "document": "techniques",
       "entry": "bib-svg",
       "kind": "informative",
+      "sourceHash": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "domPath": "/html[1]/body[1]/section[11]/section[1]/dl[1]/dd[15]",
       "citation": "SVG. W3C. URL: https://www.w3.org/TR/SVG/",
       "urls": [
         "https://www.w3.org/TR/SVG/"
@@ -19585,6 +20169,8 @@
       "document": "techniques",
       "entry": "bib-swf",
       "kind": "informative",
+      "sourceHash": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "domPath": "/html[1]/body[1]/section[11]/section[1]/dl[1]/dd[16]",
       "citation": "SWF File Format Specification Version 19. 2012. URL: https://www.adobe.com/content/dam/acom/en/devnet/pdf/swf-file-format-spec.pdf",
       "urls": [
         "https://www.adobe.com/content/dam/acom/en/devnet/pdf/swf-file-format-spec.pdf"
@@ -19597,6 +20183,8 @@
       "document": "techniques",
       "entry": "bib-wai-aria",
       "kind": "informative",
+      "sourceHash": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "domPath": "/html[1]/body[1]/section[11]/section[1]/dl[1]/dd[17]",
       "citation": "Accessible Rich Internet Applications (WAI-ARIA). W3C. URL: https://www.w3.org/TR/wai-aria/",
       "urls": [
         "https://www.w3.org/TR/wai-aria/"
@@ -19609,6 +20197,8 @@
       "document": "techniques",
       "entry": "bib-wcag2",
       "kind": "informative",
+      "sourceHash": "bfdbe81b47adcab8bf99019d63f7ce73dec250827f30b190b4119724e208d94e",
+      "domPath": "/html[1]/body[1]/section[11]/section[1]/dl[1]/dd[18]",
       "citation": "Web Content Accessibility Guidelines (WCAG) 2. W3C. URL: https://www.w3.org/TR/WCAG2/",
       "urls": [
         "https://www.w3.org/TR/WCAG2/"
@@ -19621,6 +20211,8 @@
       "document": "ssv",
       "entry": "bib-dpub-aria-1-1",
       "kind": "informative",
+      "sourceHash": "83f232f88fd113bbfcbe0a0843adb3b67ec0eb02cde08530d935e69129a1330a",
+      "domPath": "/html[1]/body[1]/section[24]/section[1]/dl[1]/dd[1]",
       "citation": "Digital Publishing WAI-ARIA Module 1.1. Matt Garrish; Tzviya Siegman. W3C. 12 June 2025. W3C Recommendation. URL: https://www.w3.org/TR/dpub-aria-1.1/",
       "urls": [
         "https://www.w3.org/TR/dpub-aria-1.1/"
@@ -19633,6 +20225,8 @@
       "document": "ssv",
       "entry": "bib-epub-33",
       "kind": "informative",
+      "sourceHash": "83f232f88fd113bbfcbe0a0843adb3b67ec0eb02cde08530d935e69129a1330a",
+      "domPath": "/html[1]/body[1]/section[24]/section[1]/dl[1]/dd[2]",
       "citation": "EPUB 3.3. Ivan Herman; Matt Garrish; Dave Cramer. W3C. 13 January 2026. W3C Recommendation. URL: https://www.w3.org/TR/epub-33/",
       "urls": [
         "https://www.w3.org/TR/epub-33/"
@@ -19645,6 +20239,8 @@
       "document": "ssv",
       "entry": "bib-epub-dict-10",
       "kind": "informative",
+      "sourceHash": "83f232f88fd113bbfcbe0a0843adb3b67ec0eb02cde08530d935e69129a1330a",
+      "domPath": "/html[1]/body[1]/section[24]/section[1]/dl[1]/dd[3]",
       "citation": "EPUB Dictionaries and Glossaries 1.0. IDPF. 26 August 2015. URL: http://idpf.org/epub/dict",
       "urls": [
         "http://idpf.org/epub/dict"
@@ -19657,6 +20253,8 @@
       "document": "ssv",
       "entry": "bib-epub-indexes-10",
       "kind": "informative",
+      "sourceHash": "83f232f88fd113bbfcbe0a0843adb3b67ec0eb02cde08530d935e69129a1330a",
+      "domPath": "/html[1]/body[1]/section[24]/section[1]/dl[1]/dd[4]",
       "citation": "EPUB Indexes 1.0. IDPF. 26 August 2015. URL: http://idpf.org/epub/idx",
       "urls": [
         "http://idpf.org/epub/idx"
@@ -19669,6 +20267,8 @@
       "document": "ssv",
       "entry": "bib-epub-region-nav-10",
       "kind": "informative",
+      "sourceHash": "83f232f88fd113bbfcbe0a0843adb3b67ec0eb02cde08530d935e69129a1330a",
+      "domPath": "/html[1]/body[1]/section[24]/section[1]/dl[1]/dd[5]",
       "citation": "EPUB Region-Based Navigation 1.0. IDPF. 26 August 2015. URL: http://idpf.org/epub/renditions/region-nav",
       "urls": [
         "http://idpf.org/epub/renditions/region-nav"
@@ -19681,6 +20281,8 @@
       "document": "ssv",
       "entry": "bib-html",
       "kind": "informative",
+      "sourceHash": "83f232f88fd113bbfcbe0a0843adb3b67ec0eb02cde08530d935e69129a1330a",
+      "domPath": "/html[1]/body[1]/section[24]/section[1]/dl[1]/dd[6]",
       "citation": "HTML Standard. Anne van Kesteren; Domenic Denicola; Dominic Farolino; Ian Hickson; Philip Jägenstedt; Simon Pieters. WHATWG. Living Standard. URL: https://html.spec.whatwg.org/multipage/",
       "urls": [
         "https://html.spec.whatwg.org/multipage/"
@@ -19693,6 +20295,8 @@
       "document": "ssv",
       "entry": "bib-html-aria",
       "kind": "informative",
+      "sourceHash": "83f232f88fd113bbfcbe0a0843adb3b67ec0eb02cde08530d935e69129a1330a",
+      "domPath": "/html[1]/body[1]/section[24]/section[1]/dl[1]/dd[7]",
       "citation": "ARIA in HTML. Scott O'Hara; Patrick Lauke. W3C. 15 April 2026. W3C Recommendation. URL: https://www.w3.org/TR/html-aria/",
       "urls": [
         "https://www.w3.org/TR/html-aria/"
@@ -19705,6 +20309,8 @@
       "document": "aria",
       "entry": "bib-dpub-aria",
       "kind": "informative",
+      "sourceHash": "17668a20b4feec4ba12fd8dbf642c2c8b0f15075bab8222ac1ea2a3fb8a182cd",
+      "domPath": "/html[1]/body[1]/section[6]/section[1]/dl[1]/dd[1]",
       "citation": "Digital Publishing WAI-ARIA Module. W3C.",
       "urls": [],
       "status": "not-downloaded",
@@ -19715,6 +20321,8 @@
       "document": "aria",
       "entry": "bib-epub-3",
       "kind": "informative",
+      "sourceHash": "17668a20b4feec4ba12fd8dbf642c2c8b0f15075bab8222ac1ea2a3fb8a182cd",
+      "domPath": "/html[1]/body[1]/section[6]/section[1]/dl[1]/dd[2]",
       "citation": "EPUB 3. W3C.",
       "urls": [],
       "status": "not-downloaded",
@@ -19725,6 +20333,8 @@
       "document": "aria",
       "entry": "bib-epub-ssv-11",
       "kind": "informative",
+      "sourceHash": "17668a20b4feec4ba12fd8dbf642c2c8b0f15075bab8222ac1ea2a3fb8a182cd",
+      "domPath": "/html[1]/body[1]/section[6]/section[1]/dl[1]/dd[3]",
       "citation": "EPUB 3 Structural Semantics Vocabulary 1.1. Ivan Herman; Matt Garrish. W3C. 13 January 2023. W3C Working Group Note. URL: https://www.w3.org/TR/epub-ssv-11/",
       "urls": [
         "https://www.w3.org/TR/epub-ssv-11/"
@@ -19737,6 +20347,8 @@
       "document": "aria",
       "entry": "bib-html",
       "kind": "informative",
+      "sourceHash": "17668a20b4feec4ba12fd8dbf642c2c8b0f15075bab8222ac1ea2a3fb8a182cd",
+      "domPath": "/html[1]/body[1]/section[6]/section[1]/dl[1]/dd[4]",
       "citation": "HTML Standard. Anne van Kesteren; Domenic Denicola; Ian Hickson; Philip Jägenstedt; Simon Pieters. WHATWG. Living Standard. URL: https://html.spec.whatwg.org/multipage/",
       "urls": [
         "https://html.spec.whatwg.org/multipage/"
@@ -19749,6 +20361,8 @@
       "document": "aria",
       "entry": "bib-html-aria",
       "kind": "informative",
+      "sourceHash": "17668a20b4feec4ba12fd8dbf642c2c8b0f15075bab8222ac1ea2a3fb8a182cd",
+      "domPath": "/html[1]/body[1]/section[6]/section[1]/dl[1]/dd[5]",
       "citation": "ARIA in HTML. Steve Faulkner; Scott O'Hara; Patrick Lauke. W3C. 15 February 2023. W3C Recommendation. URL: https://www.w3.org/TR/html-aria/",
       "urls": [
         "https://www.w3.org/TR/html-aria/"
@@ -19761,6 +20375,8 @@
       "document": "aria",
       "entry": "bib-wai-aria",
       "kind": "informative",
+      "sourceHash": "17668a20b4feec4ba12fd8dbf642c2c8b0f15075bab8222ac1ea2a3fb8a182cd",
+      "domPath": "/html[1]/body[1]/section[6]/section[1]/dl[1]/dd[6]",
       "citation": "Accessible Rich Internet Applications (WAI-ARIA). W3C.",
       "urls": [],
       "status": "not-downloaded",
@@ -19771,6 +20387,8 @@
       "document": "multi-rend",
       "entry": "bib-dcterms",
       "kind": "normative",
+      "sourceHash": "6925f41af2ca15beea035f97e06a639e4af2bce0aa3d77510d86a9a0ca5a98ae",
+      "domPath": "/html[1]/body[1]/section[10]/section[1]/dl[1]/dd[1]",
       "citation": "DCMI Metadata Terms. DCMI Usage Board. DCMI. 20 January 2020. DCMI Recommendation. URL: https://www.dublincore.org/specifications/dublin-core/dcmi-terms/",
       "urls": [
         "https://www.dublincore.org/specifications/dublin-core/dcmi-terms/"
@@ -19783,6 +20401,8 @@
       "document": "multi-rend",
       "entry": "bib-epub-33",
       "kind": "normative",
+      "sourceHash": "6925f41af2ca15beea035f97e06a639e4af2bce0aa3d77510d86a9a0ca5a98ae",
+      "domPath": "/html[1]/body[1]/section[10]/section[1]/dl[1]/dd[2]",
       "citation": "EPUB 3.3. Ivan Herman; Matt Garrish; Dave Cramer. W3C. 13 January 2026. W3C Recommendation. URL: https://www.w3.org/TR/epub-33/",
       "urls": [
         "https://www.w3.org/TR/epub-33/"
@@ -19795,6 +20415,8 @@
       "document": "multi-rend",
       "entry": "bib-epubcfi-11",
       "kind": "normative",
+      "sourceHash": "6925f41af2ca15beea035f97e06a639e4af2bce0aa3d77510d86a9a0ca5a98ae",
+      "domPath": "/html[1]/body[1]/section[10]/section[1]/dl[1]/dd[3]",
       "citation": "EPUB Canonical Fragment Identifiers 1.1. Peter Sorotokin; Garth Conboy; Brady Duga; John Rivlin; Don Beaver; Kevin Ballard; Alastair Fettes; Daniel Weck. IDPF. 5 October 2017. URL: http://idpf.org/epub/linking/cfi/epub-cfi-20170105.html",
       "urls": [
         "http://idpf.org/epub/linking/cfi/epub-cfi-20170105.html"
@@ -19807,6 +20429,8 @@
       "document": "multi-rend",
       "entry": "bib-html",
       "kind": "normative",
+      "sourceHash": "6925f41af2ca15beea035f97e06a639e4af2bce0aa3d77510d86a9a0ca5a98ae",
+      "domPath": "/html[1]/body[1]/section[10]/section[1]/dl[1]/dd[4]",
       "citation": "HTML Standard. Anne van Kesteren; Domenic Denicola; Dominic Farolino; Ian Hickson; Philip Jägenstedt; Simon Pieters. WHATWG. Living Standard. URL: https://html.spec.whatwg.org/multipage/",
       "urls": [
         "https://html.spec.whatwg.org/multipage/"
@@ -19819,6 +20443,8 @@
       "document": "multi-rend",
       "entry": "bib-iso24751-3",
       "kind": "normative",
+      "sourceHash": "6925f41af2ca15beea035f97e06a639e4af2bce0aa3d77510d86a9a0ca5a98ae",
+      "domPath": "/html[1]/body[1]/section[10]/section[1]/dl[1]/dd[5]",
       "citation": "ISO/IEC 24751-3:2008 Information technology -- Individualized adaptability and accessibility in e-learning, education and training -- Part 3: \"Access for all\" digital resource description. 2008-10-01. URL: http://www.iso.org/iso/catalogue_detail?csnumber=43604",
       "urls": [
         "http://www.iso.org/iso/catalogue_detail?csnumber=43604"
@@ -19831,6 +20457,8 @@
       "document": "multi-rend",
       "entry": "bib-mediaqueries",
       "kind": "normative",
+      "sourceHash": "6925f41af2ca15beea035f97e06a639e4af2bce0aa3d77510d86a9a0ca5a98ae",
+      "domPath": "/html[1]/body[1]/section[10]/section[1]/dl[1]/dd[6]",
       "citation": "Media Queries Level 4. Florian Rivoal; Tab Atkins Jr. W3C. 25 December 2021. CRD. URL: https://www.w3.org/TR/mediaqueries-4/",
       "urls": [
         "https://www.w3.org/TR/mediaqueries-4/"
@@ -19843,6 +20471,8 @@
       "document": "multi-rend",
       "entry": "bib-rfc2119",
       "kind": "normative",
+      "sourceHash": "6925f41af2ca15beea035f97e06a639e4af2bce0aa3d77510d86a9a0ca5a98ae",
+      "domPath": "/html[1]/body[1]/section[10]/section[1]/dl[1]/dd[7]",
       "citation": "Key words for use in RFCs to Indicate Requirement Levels. S. Bradner. IETF. March 1997. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc2119",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc2119"
@@ -19855,6 +20485,8 @@
       "document": "multi-rend",
       "entry": "bib-rfc4647",
       "kind": "normative",
+      "sourceHash": "6925f41af2ca15beea035f97e06a639e4af2bce0aa3d77510d86a9a0ca5a98ae",
+      "domPath": "/html[1]/body[1]/section[10]/section[1]/dl[1]/dd[8]",
       "citation": "Matching of Language Tags. A. Phillips, Ed.; M. Davis, Ed. IETF. September 2006. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc4647",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc4647"
@@ -19867,6 +20499,8 @@
       "document": "multi-rend",
       "entry": "bib-rfc5646",
       "kind": "normative",
+      "sourceHash": "6925f41af2ca15beea035f97e06a639e4af2bce0aa3d77510d86a9a0ca5a98ae",
+      "domPath": "/html[1]/body[1]/section[10]/section[1]/dl[1]/dd[9]",
       "citation": "Tags for Identifying Languages. A. Phillips, Ed.; M. Davis, Ed. IETF. September 2009. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc5646",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc5646"
@@ -19879,6 +20513,8 @@
       "document": "multi-rend",
       "entry": "bib-rfc8174",
       "kind": "normative",
+      "sourceHash": "6925f41af2ca15beea035f97e06a639e4af2bce0aa3d77510d86a9a0ca5a98ae",
+      "domPath": "/html[1]/body[1]/section[10]/section[1]/dl[1]/dd[10]",
       "citation": "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words. B. Leiba. IETF. May 2017. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc8174",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc8174"
@@ -19891,6 +20527,8 @@
       "document": "multi-rend",
       "entry": "bib-relaxng-schema",
       "kind": "informative",
+      "sourceHash": "6925f41af2ca15beea035f97e06a639e4af2bce0aa3d77510d86a9a0ca5a98ae",
+      "domPath": "/html[1]/body[1]/section[10]/section[2]/dl[1]/dd[1]",
       "citation": "Information technology -- Document Schema Definition Language (DSDL) -- Part 2: Regular-grammar-based validation -- RELAX NG. ISO/IEC. 2008. URL: http://standards.iso.org/ittf/PubliclyAvailableStandards/c052348_ISO_IEC_19757-2_2008(E).zip",
       "urls": [
         "http://standards.iso.org/ittf/PubliclyAvailableStandards/c052348_ISO_IEC_19757-2_2008(E).zip"
@@ -19903,6 +20541,8 @@
       "document": "multi-rend",
       "entry": "bib-xmlschema11-2",
       "kind": "informative",
+      "sourceHash": "6925f41af2ca15beea035f97e06a639e4af2bce0aa3d77510d86a9a0ca5a98ae",
+      "domPath": "/html[1]/body[1]/section[10]/section[2]/dl[1]/dd[2]",
       "citation": "W3C XML Schema Definition Language (XSD) 1.1 Part 2: Datatypes. David Peterson; Sandy Gao; Ashok Malhotra; Michael Sperberg-McQueen; Henry Thompson; Paul V. Biron et al. W3C. 5 April 2012. W3C Recommendation. URL: https://www.w3.org/TR/xmlschema11-2/",
       "urls": [
         "https://www.w3.org/TR/xmlschema11-2/"
@@ -19915,6 +20555,8 @@
       "document": "tts",
       "entry": "bib-bcp47",
       "kind": "normative",
+      "sourceHash": "f65a6cd53d239f5dafab552259677fe7cea57a04baffa32b2cf6e457e6c31ef0",
+      "domPath": "/html[1]/body[1]/section[9]/section[1]/dl[1]/dd[1]",
       "citation": "Tags for Identifying Languages. A. Phillips, Ed.; M. Davis, Ed. IETF. September 2009. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc5646",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc5646"
@@ -19927,6 +20569,8 @@
       "document": "tts",
       "entry": "bib-css-speech-1",
       "kind": "normative",
+      "sourceHash": "f65a6cd53d239f5dafab552259677fe7cea57a04baffa32b2cf6e457e6c31ef0",
+      "domPath": "/html[1]/body[1]/section[9]/section[1]/dl[1]/dd[2]",
       "citation": "CSS Speech Module Level 1. Léonie Watson; Elika Etemad. W3C. 14 February 2023. CRD. URL: https://www.w3.org/TR/css-speech-1/",
       "urls": [
         "https://www.w3.org/TR/css-speech-1/"
@@ -19939,6 +20583,8 @@
       "document": "tts",
       "entry": "bib-css2",
       "kind": "normative",
+      "sourceHash": "f65a6cd53d239f5dafab552259677fe7cea57a04baffa32b2cf6e457e6c31ef0",
+      "domPath": "/html[1]/body[1]/section[9]/section[1]/dl[1]/dd[3]",
       "citation": "Cascading Style Sheets Level 2 Revision 1 (CSS 2.1) Specification. Bert Bos; Tantek Çelik; Ian Hickson; Håkon Wium Lie. W3C. 7 June 2011. W3C Recommendation. URL: https://www.w3.org/TR/CSS2/",
       "urls": [
         "https://www.w3.org/TR/CSS2/"
@@ -19951,6 +20597,8 @@
       "document": "tts",
       "entry": "bib-epub-33",
       "kind": "normative",
+      "sourceHash": "f65a6cd53d239f5dafab552259677fe7cea57a04baffa32b2cf6e457e6c31ef0",
+      "domPath": "/html[1]/body[1]/section[9]/section[1]/dl[1]/dd[4]",
       "citation": "EPUB 3.3. Ivan Herman; Matt Garrish; Dave Cramer. W3C. 27 March 2025. W3C Recommendation. URL: https://www.w3.org/TR/epub-33/",
       "urls": [
         "https://www.w3.org/TR/epub-33/"
@@ -19963,6 +20611,8 @@
       "document": "tts",
       "entry": "bib-html",
       "kind": "normative",
+      "sourceHash": "f65a6cd53d239f5dafab552259677fe7cea57a04baffa32b2cf6e457e6c31ef0",
+      "domPath": "/html[1]/body[1]/section[9]/section[1]/dl[1]/dd[5]",
       "citation": "HTML Standard. Anne van Kesteren; Domenic Denicola; Dominic Farolino; Ian Hickson; Philip Jägenstedt; Simon Pieters. WHATWG. Living Standard. URL: https://html.spec.whatwg.org/multipage/",
       "urls": [
         "https://html.spec.whatwg.org/multipage/"
@@ -19975,6 +20625,8 @@
       "document": "tts",
       "entry": "bib-infra",
       "kind": "normative",
+      "sourceHash": "f65a6cd53d239f5dafab552259677fe7cea57a04baffa32b2cf6e457e6c31ef0",
+      "domPath": "/html[1]/body[1]/section[9]/section[1]/dl[1]/dd[6]",
       "citation": "Infra Standard. Anne van Kesteren; Domenic Denicola. WHATWG. Living Standard. URL: https://infra.spec.whatwg.org/",
       "urls": [
         "https://infra.spec.whatwg.org/"
@@ -19987,6 +20639,8 @@
       "document": "tts",
       "entry": "bib-pronunciation-lexicon",
       "kind": "normative",
+      "sourceHash": "f65a6cd53d239f5dafab552259677fe7cea57a04baffa32b2cf6e457e6c31ef0",
+      "domPath": "/html[1]/body[1]/section[9]/section[1]/dl[1]/dd[7]",
       "citation": "Pronunciation Lexicon Specification (PLS) Version 1.0. Paolo Baggia. W3C. 14 October 2008. W3C Recommendation. URL: https://www.w3.org/TR/pronunciation-lexicon/",
       "urls": [
         "https://www.w3.org/TR/pronunciation-lexicon/"
@@ -19999,6 +20653,8 @@
       "document": "tts",
       "entry": "bib-rfc2119",
       "kind": "normative",
+      "sourceHash": "f65a6cd53d239f5dafab552259677fe7cea57a04baffa32b2cf6e457e6c31ef0",
+      "domPath": "/html[1]/body[1]/section[9]/section[1]/dl[1]/dd[8]",
       "citation": "Key words for use in RFCs to Indicate Requirement Levels. S. Bradner. IETF. March 1997. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc2119",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc2119"
@@ -20011,6 +20667,8 @@
       "document": "tts",
       "entry": "bib-rfc8174",
       "kind": "normative",
+      "sourceHash": "f65a6cd53d239f5dafab552259677fe7cea57a04baffa32b2cf6e457e6c31ef0",
+      "domPath": "/html[1]/body[1]/section[9]/section[1]/dl[1]/dd[9]",
       "citation": "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words. B. Leiba. IETF. May 2017. Best Current Practice. URL: https://www.rfc-editor.org/rfc/rfc8174",
       "urls": [
         "https://www.rfc-editor.org/rfc/rfc8174"
@@ -20023,6 +20681,8 @@
       "document": "tts",
       "entry": "bib-ssml",
       "kind": "normative",
+      "sourceHash": "f65a6cd53d239f5dafab552259677fe7cea57a04baffa32b2cf6e457e6c31ef0",
+      "domPath": "/html[1]/body[1]/section[9]/section[1]/dl[1]/dd[10]",
       "citation": "Speech Synthesis Markup Language (SSML) Version 1.1. Daniel Burnett; Zhi Wei Shuang. W3C. 7 September 2010. W3C Recommendation. URL: https://www.w3.org/TR/speech-synthesis11/",
       "urls": [
         "https://www.w3.org/TR/speech-synthesis11/"
@@ -20035,6 +20695,8 @@
       "document": "tts",
       "entry": "bib-svg",
       "kind": "normative",
+      "sourceHash": "f65a6cd53d239f5dafab552259677fe7cea57a04baffa32b2cf6e457e6c31ef0",
+      "domPath": "/html[1]/body[1]/section[9]/section[1]/dl[1]/dd[11]",
       "citation": "SVG. W3C. URL: https://www.w3.org/TR/SVG/",
       "urls": [
         "https://www.w3.org/TR/SVG/"
@@ -20047,6 +20709,8 @@
       "document": "tts",
       "entry": "bib-epubcontentdocs-30",
       "kind": "informative",
+      "sourceHash": "f65a6cd53d239f5dafab552259677fe7cea57a04baffa32b2cf6e457e6c31ef0",
+      "domPath": "/html[1]/body[1]/section[9]/section[2]/dl[1]/dd[1]",
       "citation": "EPUB Content Documents 3.0. Markus Gylling; William McCoy; Elika J. Etimad; Matt Garrish. IDPF. 11 October 2011. URL: http://idpf.org/epub/30/spec/epub30-contentdocs-20111011.html",
       "urls": [
         "http://idpf.org/epub/30/spec/epub30-contentdocs-20111011.html"
@@ -20059,6 +20723,8 @@
       "document": "tts",
       "entry": "bib-spoken-html",
       "kind": "informative",
+      "sourceHash": "f65a6cd53d239f5dafab552259677fe7cea57a04baffa32b2cf6e457e6c31ef0",
+      "domPath": "/html[1]/body[1]/section[9]/section[2]/dl[1]/dd[2]",
       "citation": "Specification for Spoken Presentation in HTML. Irfan Ali; Markku Hakkinen; Paul Grenier; Ruoxi Ran. W3C. 23 September 2021. W3C Working Draft. URL: https://www.w3.org/TR/spoken-html/",
       "urls": [
         "https://www.w3.org/TR/spoken-html/"
@@ -20071,6 +20737,8 @@
       "document": "tts",
       "entry": "bib-wai-aria",
       "kind": "informative",
+      "sourceHash": "f65a6cd53d239f5dafab552259677fe7cea57a04baffa32b2cf6e457e6c31ef0",
+      "domPath": "/html[1]/body[1]/section[9]/section[2]/dl[1]/dd[3]",
       "citation": "Accessible Rich Internet Applications (WAI-ARIA) 1.0. James Craig; Michael Cooper et al. W3C. 20 March 2014. W3C Recommendation. URL: https://www.w3.org/TR/wai-aria/",
       "urls": [
         "https://www.w3.org/TR/wai-aria/"
@@ -20083,6 +20751,8 @@
       "document": "eaa",
       "entry": "bib-epub-33",
       "kind": "informative",
+      "sourceHash": "86170d99afb0bb6c9e9e3570d3bb7a3ccc8985928f4b09740f5e45c943f39cb3",
+      "domPath": "/html[1]/body[1]/section[5]/section[1]/dl[1]/dd[1]",
       "citation": "EPUB 3.3. Ivan Herman; Matt Garrish; Dave Cramer. W3C. 27 March 2025. W3C Recommendation. URL: https://www.w3.org/TR/epub-33/",
       "urls": [
         "https://www.w3.org/TR/epub-33/"
@@ -20095,6 +20765,8 @@
       "document": "eaa",
       "entry": "bib-epub-a11y-11",
       "kind": "informative",
+      "sourceHash": "86170d99afb0bb6c9e9e3570d3bb7a3ccc8985928f4b09740f5e45c943f39cb3",
+      "domPath": "/html[1]/body[1]/section[5]/section[1]/dl[1]/dd[2]",
       "citation": "EPUB Accessibility 1.1. George Kerscher; Matt Garrish; Charles LaPierre; Avneesh Singh; Gregorio Pellegrino. W3C. 17 October 2024. W3C Recommendation. URL: https://www.w3.org/TR/epub-a11y-11/",
       "urls": [
         "https://www.w3.org/TR/epub-a11y-11/"

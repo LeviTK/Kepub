@@ -1,0 +1,41 @@
+{
+  "kind": "Parent-scoped non-URL bibliography applicability decisions; no target download or implementation support",
+  "decisions": [
+    {
+      "document": "epub",
+      "entry": "bib-us-ascii",
+      "decision": "mapped",
+      "phases": ["T1a", "T6"],
+      "applicability": "OCF filenames and mimetype file US-ASCII requirements",
+      "reason": "Retain ANSI X3.4, 1986 as cited. Publication source sections sec-container-filenames and sec-zip-container-mime apply; do not silently substitute a title-matched URL or buy a paid standard in S0.",
+      "assetPrerequisite": "Before relying on external full text, fix the cited edition and access/license evidence; paid ISO/ANSI material remains a later-stage gap, not an S0 purchase."
+    },
+    {
+      "document": "aria",
+      "entry": "bib-dpub-aria",
+      "decision": "mapped",
+      "phases": ["S4"],
+      "applicability": "Informative ARIA mapping guidance and explicit semantic-edit/a11y verification",
+      "reason": "Preserve the undated Digital Publishing WAI-ARIA Module citation as its own record; title alone does not identify the edition at another URL.",
+      "assetPrerequisite": "Fix the external edition and source bytes if needed by later explicit semantic edits or S4."
+    },
+    {
+      "document": "aria",
+      "entry": "bib-epub-3",
+      "decision": "mapped",
+      "phases": ["S4"],
+      "applicability": "Informative EPUB/ARIA semantic mapping guidance",
+      "reason": "The citation says EPUB 3, not a dated 3.3 or 3.4 edition. Retain it independently; do not merge it with the current core REC or undated /TR/epub/ alias.",
+      "assetPrerequisite": "Resolve and fix an edition only when later external full-text use is required."
+    },
+    {
+      "document": "aria",
+      "entry": "bib-wai-aria",
+      "decision": "mapped",
+      "phases": ["S4"],
+      "applicability": "Informative WAI-ARIA guidance for explicit semantic edits and later a11y verification",
+      "reason": "Retain the original Accessible Rich Internet Applications (WAI-ARIA) citation without inferring a version from another URL.",
+      "assetPrerequisite": "Fix the external edition/source bytes before later semantic or accessibility reliance."
+    }
+  ]
+}

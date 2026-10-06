@@ -52,6 +52,69 @@ class Integrity(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "semantic gate blocked"):
             assets.verify_mapping(self.root, gate=True)
 
+    def review_packet(self):
+        matrix = self.read("matrix.json")
+        for row in matrix["rows"]:
+            row.update(decision="mapped", reason="Fixture source obligation reviewed",
+                       phase="T1b", applicability="Fixture publication resources",
+                       gap="No executed feature evidence")
+        return {"scope": {"document": "epub"}, **matrix}
+
+    def test_review_import_does_not_claim_complete_s0(self):
+        self.save("review.json", self.review_packet())
+        counts = assets.import_reviews(self.root, [self.root / "review.json"])
+        self.assertEqual(counts["mapped"], 3)
+        self.assertFalse(counts["semanticComplete"])
+        with self.assertRaisesRegex(ValueError, "semantic gate blocked"):
+            assets.verify_mapping(self.root, gate=True)
+
+    def test_review_omission_does_not_partially_write_matrix(self):
+        before = (self.root / "matrix.json").read_bytes()
+        packet = self.review_packet()
+        packet["rows"].pop()
+        self.save("review.json", packet)
+        with self.assertRaisesRegex(ValueError, "candidate mapping"):
+            assets.import_reviews(self.root, [self.root / "review.json"])
+        self.assertEqual((self.root / "matrix.json").read_bytes(), before)
+
+    def test_review_source_tamper_does_not_write_matrix(self):
+        before = (self.root / "matrix.json").read_bytes()
+        packet = self.review_packet()
+        packet["rows"][0]["excerpt"] = "Invented requirement"
+        self.save("review.json", packet)
+        with self.assertRaisesRegex(ValueError, "provenance drift"):
+            assets.import_reviews(self.root, [self.root / "review.json"])
+        self.assertEqual((self.root / "matrix.json").read_bytes(), before)
+
+    def amendment(self):
+        return {"document": "epub", "sourceHash": assets.sha(BODY), "constraints": [{
+            "domPath": "/html[1]/body[1]/section[1]/p[1]", "normativeLevel": "DEFINITION",
+            "excerpt": "The publication MUST NOT load a remote entity",
+            "reason": "Fixture source-addressed review", "applicability": "Fixture publications",
+            "phase": "T1b"}]}
+
+    def test_amendment_is_idempotent_and_remains_not_tested(self):
+        self.save("amendment.json", self.amendment())
+        path = self.root / "amendment.json"
+        first = assets.import_reviews(self.root, [], [path])
+        second = assets.import_reviews(self.root, [], [path])
+        self.assertEqual(first, second)
+        self.assertEqual(second["candidates"], 4)
+        self.assertFalse(second["semanticComplete"])
+        row = self.read("matrix.json")["rows"][-1]
+        self.assertEqual(row["excerptSHA256"], assets.sha(b"The publication MUST NOT load a remote entity"))
+        self.assertEqual(row["parse"], "not-tested")
+        self.assertEqual(row["evidence"], [])
+
+    def test_amendment_fabricated_quote_does_not_write(self):
+        before = (self.root / "matrix.json").read_bytes()
+        amendment = self.amendment()
+        amendment["constraints"][0]["excerpt"] = "Invented source"
+        self.save("amendment.json", amendment)
+        with self.assertRaisesRegex(ValueError, "manual constraint provenance"):
+            assets.import_reviews(self.root, [], [self.root / "amendment.json"])
+        self.assertEqual((self.root / "matrix.json").read_bytes(), before)
+
     def test_missing_file(self):
         (self.root / "original/epub.html").unlink()
         with self.assertRaises(FileNotFoundError):

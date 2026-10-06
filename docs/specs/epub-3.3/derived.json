@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
   "sourceManifestSHA256": "067526a571105c65d7e4ff5c4cb43f405bdea6c88c4075acb804596079156109",
-  "matrixSHA256": "024d3dd21fbab724f5660fff53a0b14fe5767cc8522e38f43bf9fea211676b4d",
+  "matrixSHA256": "6766fd02d78b36f4c1173934626991451af50986b5bfb7bdd4ab9d03aff798eb",
   "files": [
     {
       "path": "inventory.json",
-      "sha256": "2ff89966198b028d48404bc620e65be6fd93beea9372539b0373d3f7e4434554"
+      "sha256": "92fee55cc01beb29be0e36b5e17c8c004f9baf1342d5d9c7fb9605baf77c5ff3"
     },
     {
       "path": "external-dependencies.json",
-      "sha256": "764a400496929be751f1189018ce2f18780caedb7a2e89ea60b856b95d34ba95"
+      "sha256": "aa88efddb342c0d61569ef65814a3e96bc60882ce96e20fe3d738dd57e848a86"
     },
     {
       "path": "INDEX.md",
@@ -17,7 +17,7 @@
     },
     {
       "path": "MATRIX.md",
-      "sha256": "19c2c715a363c7ab7defc7ae2f1f8b9e9f22c5ac5eeceaa9236b6a25225f5933"
+      "sha256": "040b871e7ee30fcf0b569cf0dc8e0f4b9b286e924533e9e2fe850d75e3d24a64"
     },
     {
       "path": "text/a11y.txt",

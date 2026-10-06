@@ -437,6 +437,7 @@ def source_inventory(root, manifest):
                     links = [urljoin(e["finalUrl"], c.attrs["href"]) for c in dd.walk() if c.tag == "a" and c.attrs.get("href")]
                     normative = reference_kind == "normative" or any(a.attrs.get("id") == "normative-references" for a in n.ancestors())
                     references.append({"document": e["id"], "entry": n.attrs["id"], "kind": "normative" if normative else "informative",
+                                       "sourceHash": e["sha256"], "domPath": dd.path(),
                                        "citation": normalized(dd), "urls": list(dict.fromkeys(links)), "status": "not-downloaded",
                                        "sha256": None, "stage": "requires-applicability-review"})
             if e["id"] not in ("epub", "rs", "a11y"):
@@ -464,7 +465,12 @@ def inventory(root):
     write_json(root / "inventory.json", inv)
     archived = {e["requestUrl"]: e for e in manifest["assets"]}
     dependencies = {}
+    non_url = []
     for ref in inv["directReferences"]:
+        if not ref["urls"]:
+            non_url.append({k: ref[k] for k in ("document", "entry", "kind", "citation", "sourceHash", "domPath")})
+            non_url[-1].update(url=None, sha256=None, status="not-downloaded",
+                               versionOrAcquiredAt=None, phase="pending-applicability-review")
         for url in ref["urls"]:
             base = urldefrag(url)[0]
             captured = archived.get(base)
@@ -475,7 +481,8 @@ def inventory(root):
             row["citations"].append({"document": ref["document"], "entry": ref["entry"], "kind": ref["kind"]})
     write_json(root / "external-dependencies.json", {"schemaVersion": 1, "recursive": False,
                                                    "applicabilityReviewComplete": False,
-                                                   "dependencies": list(dependencies.values())})
+                                                   "dependencies": list(dependencies.values()),
+                                                   "nonURLReferences": non_url})
     mapping = root / "matrix.json"
     if not mapping.exists():
         write_json(mapping, {"schemaVersion": 1, "semanticComplete": False,
@@ -505,7 +512,7 @@ def inventory(root):
             lines.append(f"- {e['id']}: [raw]({e['path']}) / [offline text]({text_path}); SHA-256 `{e['sha256']}`")
     (root / "INDEX.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     matrix = json.loads(mapping.read_text())
-    table = ["# Mechanical EPUB 3.3 candidate matrix — semantic review pending", "",
+    table = ["# EPUB 3.3 source clause matrix — S0 acceptance pending", "",
              "Generated from matrix.json. `not-tested` is not `supported`, and pending candidates are not mapped constraints.",
              "Full condition/excerpt/UTF-8 hash/DOM identity remain in [matrix.json](matrix.json); no repeated instance is collapsed.", "",
              "| Instance | Document / section | Level | Decision / phase | preserve / parse / edit / render / validate |",
@@ -530,19 +537,23 @@ def candidate(e, node, context, kind, occurrence, level):
             "excerpt": snippet, "excerptSHA256": sha(snippet.encode())}
 
 
-def verify_mapping(root, gate=False):
+def verify_mapping(root, gate=False, matrix=None):
     inv = json.loads((root / "inventory.json").read_text())
-    matrix = json.loads((root / "matrix.json").read_text())
+    if matrix is None:
+        matrix = json.loads((root / "matrix.json").read_text())
     actual = source_inventory(root, verify(root))
     if any(inv[k] != actual[k] for k in ("candidates", "sections", "directReferences")):
         raise ValueError("inventory provenance differs from archived source")
     candidates = {c["featureId"]: c for c in inv["candidates"]}
     manual = matrix.get("manualConstraints", [])
     source_entries = {e["id"]: e for e in verify(root)["assets"]}
+    source_nodes = {}
     for c in manual:
         entry = source_entries[c["document"]]
-        dom = DOM((root / entry["path"]).read_text(encoding="utf-8")).root
-        node = next((n for n in dom.walk() if n.path() == c["domPath"]), None)
+        if c["document"] not in source_nodes:
+            dom = DOM((root / entry["path"]).read_text(encoding="utf-8")).root
+            source_nodes[c["document"]] = {n.path(): n for n in dom.walk()}
+        node = source_nodes[c["document"]].get(c["domPath"])
         if (not node or c["sourceHash"] != entry["sha256"] or not c["excerpt"] or
                 c["excerpt"] not in normalized(node) or sha(c["excerpt"].encode()) != c["excerptSHA256"] or
                 c["featureId"] in candidates):
@@ -582,6 +593,50 @@ def verify_mapping(root, gate=False):
     return {"candidates": len(candidates), **dict(counts), "semanticComplete": matrix["semanticComplete"]}
 
 
+def import_reviews(root, paths, amendments=()):
+    """Validate complete per-REC review packets before replacing any matrix bytes."""
+    matrix = json.loads((root / "matrix.json").read_text())
+    documents = set()
+    for path in paths:
+        review = json.loads(path.read_text())
+        document = review["scope"]["document"]
+        if document not in ("epub", "rs", "a11y") or document in documents:
+            raise ValueError("unknown/duplicate review document")
+        documents.add(document)
+        for key in ("rows", "manualConstraints", "sectionReviews"):
+            if any(r["document"] != document for r in review[key]):
+                raise ValueError("review packet crosses document ownership")
+            matrix[key] = [r for r in matrix.get(key, []) if r["document"] != document] + review[key]
+    entries = {e["id"]: e for e in verify(root)["assets"]}
+    for path in amendments:
+        review = json.loads(path.read_text())
+        document = review["document"]
+        if document not in ("epub", "rs", "a11y") or review["sourceHash"] != entries[document]["sha256"]:
+            raise ValueError("semantic amendment source identity mismatch")
+        nodes = {n.path(): n for n in DOM((root / entries[document]["path"]).read_text()).root.walk()}
+        rules = [{**rule, "domPath": path} for rule in review["constraints"]
+                 for path in rule.get("domPaths", [rule.get("domPath")])]
+        for rule in rules:
+            node = nodes.get(rule["domPath"])
+            if node is None:
+                raise ValueError("semantic amendment source node missing")
+            c = candidate(entries[document], node, node, "manual-amendment", rule.get("occurrence", 1), rule["normativeLevel"])
+            if "excerpt" in rule:
+                c.update(excerpt=rule["excerpt"], excerptSHA256=sha(rule["excerpt"].encode()))
+            row = {**c, **{k: rule[k] for k in ("reason", "applicability", "phase")},
+                   "decision": "mapped", "platform": "not-tested", "testIds": [], "evidence": [],
+                   "gap": "No clause-specific executed evidence; source analysis is not implementation support",
+                   **{k: "not-tested" for k in ("preserve", "parse", "edit", "render", "validate")}}
+            for key, value in (("manualConstraints", c), ("rows", row)):
+                matrix[key] = [r for r in matrix[key] if r["featureId"] != c["featureId"]] + [value]
+    # Source review alone cannot close the complete S0 gate, which also needs
+    # dependency applicability, official-test mapping, and independent acceptance.
+    matrix["semanticComplete"] = False
+    counts = verify_mapping(root, matrix=matrix)
+    write_json(root / "matrix.json", matrix)
+    return counts
+
+
 def verify_derived(root):
     derived = json.loads((root / "derived.json").read_text())
     manifest = json.loads((root / "manifest.json").read_text())
@@ -605,11 +660,17 @@ def main():
     p.add_argument("--root", type=Path, default=ROOT)
     p.add_argument("--bootstrap", action="store_true")
     p.add_argument("--complete-schemas", action="store_true", help="extend a frozen archive only with missing schema dependencies")
+    p.add_argument("--review", action="append", type=Path, default=[], help="index: validate and import a complete per-REC semantic review packet")
+    p.add_argument("--amendment", action="append", type=Path, default=[], help="index: import source-addressed independently reviewed missing constraints")
     args = p.parse_args()
     try:
+        if (args.review or args.amendment) and args.command != "index":
+            raise ValueError("semantic review inputs are only valid with offline index")
         if args.command == "fetch":
             fetch(args.root, args.bootstrap, args.complete_schemas)
         elif args.command == "index":
+            if args.review or args.amendment:
+                print(json.dumps(import_reviews(args.root, args.review, args.amendment), sort_keys=True))
             inventory(args.root)
         else:
             archive = verify(args.root)
