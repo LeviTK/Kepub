@@ -2,7 +2,7 @@
 
 ## 当前结论：阶段资产未通过总验收
 
-首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P8、Droid R1 F1～F6 的阶段修复复验。后续 R2／P9 及 R3 的来源修复已独立复验并集成本地 `main`，固定修复树与父最终组合均 115 项通过。R4 被子 Orb 重启中断，没有 completion、实际退出码或决定；恢复后新完整 **R5 已实际 completion／exit 0，但决定为 rejected**。其 contributor 继承遗漏及七处普通建议缺口现已修复、父独立复验并集成本地；固定修复树完整 121 项及后续 test-only 加强的六项定向测试通过，详见末节。旧失败、阅读限制和错误验收记录保留，不充当当前批准。计划本身复审已完成，S0 仍待新固定输入完整审查和实际门禁通过；T1 继续暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
+首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P8、Droid R1 F1～F6 的阶段修复复验。后续 R2／P9 及 R3 的来源修复已独立复验并集成本地 `main`，固定修复树与父最终组合均 115 项通过。R4 被子 Orb 重启中断，没有 completion、实际退出码或决定；恢复后完整 R5 实际 completion／exit 0，但决定 rejected。其 contributor 继承及七处普通建议缺口现已修复、父独立复验并集成本地；最后集成树完整 **121/121 PASS，589.402s**。随后 **R6 因 Factory 周额度耗尽（HTTP 402）实际 child exit 1，没有 completion 或批准／拒绝决定**，详见末节。旧失败、阅读限制和错误验收记录保留，不充当当前批准。计划本身复审已完成，S0 仍待额度恢复后的新完整审查和实际门禁通过；T1 继续暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
 
 首次受审阶段提交为编码 Orb 的 `b92e1903d831d48ae9df13c8592024e69dac0ed2`；父在独立 worktree `/tmp/kepub-s0-parent-review` 检查，当时没有把阶段资产合入父本地 `main`。以下首次失败记录予以保留；后续修复结果单独记录，不覆盖原结果。检查未修改产品或三份冻结主文档。
 
@@ -357,3 +357,17 @@ R6 fixture `b4e052f590d00665a4d05e02e95f7033bc1bb7f2` 的完整 tree **`7ce11e01
 父全文检查 **11,281-byte prompt** 与 **3,536-byte launcher**，SHA-256 分别为 `53b83688e0537e1074079611ddc4e49f220f2ee3d4b03a9551ff08dda5f9fe3e`／`8f6a45026ccfc908a1ff516a1b95d2cfd4d25612364cf343a2237f46233e131e`；准备证据包 **92,493 bytes**、SHA-256 `e041c732cb5a0a2d3600ce7e28197495feb6ac8a32f3732af1cbd879dee29f5b`。两个目录的实际输入清单均与父完全相同，clean、无 acceptance。未授权 wrapper 的实际 **exit 64** 未创建 claim 或模型请求；此退出不是 Droid 的结果。完成检查后父单独授权唯一 R6，沿用已验证的持久 launch-once 防重机制和无 portal 的受监督服务。
 
 实际 init 为 **1,077 bytes**、SHA-256 `00a25360de1d2306d8b96a27ca085000dfd89a42c981aaa2618ad3057bcf0c42`，确认会话 **`bfff4154-b0d3-4ba3-8f12-349bd12f135e`**、正确持久 cwd、**claude-opus-5-5／medium**；CLI 实测 **0.233.0**。要求全新完整 S0 阅读和实际 demo，不以 R5 阅读账或八条增量代替。当前只有启动／初始阅读证据，没有 completion、actual child exit 或批准；继续跟随这一会话。**S0 未批准，T1 暂停，未 push／发布。**
+
+## R6 因 Factory 周额度耗尽中止，没有审查决定
+
+同一会话在 **2026-10-06 09:15:08 UTC** 实际 child **exit 1**。父核对原 stream 最后两个 `error` 事件，均为 **HTTP 402／weekly Droid Core usage limit reached**；服务商提示约一天后重置，或补充 Extra Usage。两个实际 child exit 文件均为 `1\n`。这不是产品测试失败、审核 rejected、completion 或 approved；原 stream 只有一个 init、**390 个事件、零 completion／finalText**。父未充值、改账号设置、换模型、续接或重试。
+
+原始完整 stream **2,363,109 bytes**、SHA-256 `8cdd93dd2e17459d46ed8595a2199686251d74ada162d20ee878364c863b2a59`；父确认初始 stream 是其精确前缀。中止说明 **3,854 bytes**、SHA-256 `8c300ea033b0760383b702ca5ff774b5373bf0b66608f2040bedba4f5e6d8101` 由协调者写成，只是生命周期记录，不能冒充 Droid 原最终报告。完整证据包 **966,898 bytes**、SHA-256 `6dcdb4789baad160bff2c6827e91955ba5271f406f806d6a5edd1b5f93195d70`，包括 raw stream、服务日志、真实退出、before／after、抽取脚本／阅读账和 cache；父读取并核对 archive 中的 stream 与单独文件相同。
+
+服务 supervisor 于 09:15:10 重启 wrapper，但已有 claim，实际只输出 `DUPLICATE_SUPPRESSED` 并停车；09:16:31 已停止服务。没有第二次模型请求。父稍后的进度文字仍根据最后阅读调用称“继续审查”，未及时识别同一快照末尾的终止错误；此处按原始事件和服务时间纠正，不以协调线程仍活动或 guard 停车误称 Droid 仍运行。
+
+- **实际未完成范围：**阅读账记录了 EPUB 19,287 行、RS 5,738 行、A11y 2,517 行抽取结果及截断后的重读；父保留原阅读记录，不据它宣称完整 S0 验收。额度终止时仍在核对 amendments，资产／index／upstream／official 来源审查没有终局结论。R6 没有执行完整离线 replay、四 verify／reproduce demo、Python 全套、真实 EPUBCheck witnesses 或合成门禁对照；不能把此前各轮或父侧通过结果移填到 R6。
+- **固定内容与目录状态分开：**after-state **107,024 bytes**、SHA-256 `14c17609ca06b15222a0b6a7ccfe1c66b6d399b4306c4d967643c1f817a872f2`。父逐项比对其 836 输入、HEAD／tree／identity 与原包完全相同，无 acceptance。但 frozen 工作树并非 clean：抽取助手未用 `-B`，生成未跟踪的 `scripts/__pycache__/epub33_assets.cpython-311.pyc`，**112,441 bytes**、SHA-256 `1980f7bc9789508eb75c0cc2cdfd0e816181517e03a0b815503962cf15d62312`；不在 836 输入内。原严格 after-status 检查因此失败，后续独立字节检查区分了这两件事；cache 原样保留归档，不删除后冒称初始检查通过。
+- **工具错误保留：**两次 `tool_result.isError` 是提前读取尚不存在的结束文件，以及临时 REC 抽取器对字符串调用 `walk`；后者修正后重跑。它们与末尾两个 quota `error` 事件分开统计，不当作产品缺陷或成功执行。
+
+本地修复、测试和证据已保存，但 **S0 仍未批准，T1 暂停，未 push／发布**。当前阻塞需要 Factory 额度恢复；没有自动重试、自动充值或定时续跑。恢复后须单独启动新的完整审查，不将这次中止改写为通过。
