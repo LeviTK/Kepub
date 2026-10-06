@@ -21,14 +21,15 @@ T1 requires current-input parent and actual Droid approval through the offline
 - [P6/P7 scope and provenance corrections](verification/S0_ASSETS_SCOPE_PROVENANCE.md)
 - [R1 gate, repository evidence and source-only status repairs](verification/S0_ASSETS_R1_GATE_EVIDENCE.md)
 - [R2 source reconciliation and algorithm-scope correction](verification/S0_ASSETS_R2_CORRECTIONS.md)
+- [R3 conditional definitions and advisory scope corrections](verification/S0_ASSETS_R3_CORRECTIONS.md)
 - [Parent's actual 2026 checker evidence](verification/S0_EPUBCHECK_2026.md)
 
 The mechanical inventory contains 749 instances: EPUB publication
 408 BCP14 + 48 definition slots, reading systems 252 + 1, accessibility 40 + 0.
 It preserves repeated keywords, NOT forms, enclosing text, DOM identity, fixed
 document hashes and excerpt hashes. This is **not the final number of normative
-constraints**. The source review currently adds 798 manual instances, for 1547
-total rows: 1484 mapped + 63 reasoned exclusions. All five capability dimensions
+constraints**. The source review currently adds 849 manual instances, for 1598
+total rows: 1535 mapped + 63 reasoned exclusions. All five capability dimensions
 remain `not-tested`; all 500 core section records have source-review notes.
 The bounded Amp research drafts were corrected against the parent's independent
 attribute/default/landmarks tests and coding-Orb source review. P6 additionally
@@ -36,7 +37,7 @@ retains ten informative-source observations as exclusions, not requirements;
 P7 binds manual version/section/identity fields directly to the fixed archive.
 The corresponding actual normative constraints remain mapped. Source-review
 notes alone are not independent acceptance or a successful Factory Droid review.
-R1 and R2 completed with findings; their raw evidence and reading limitations
+R1, R2 and R3 completed with findings; their raw evidence and reading limitations
 are retained, not promoted to approval. Subsequent decisions belong in the
 parent acceptance record. `semanticComplete` stays false;
 the offline `gate` aggregates source, derivative, semantic, official-fixture
@@ -74,7 +75,8 @@ python3 scripts/epub33_assets.py index \
   --amendment docs/specs/epub-3.3/reviews/r1-publication-amendments.json \
   --amendment docs/specs/epub-3.3/reviews/r1-accessibility-amendments.json \
   --amendment docs/specs/epub-3.3/reviews/r2-publication-amendments.json \
-  --amendment docs/specs/epub-3.3/reviews/r2-rs-amendments.json
+  --amendment docs/specs/epub-3.3/reviews/r2-rs-amendments.json \
+  --amendment docs/specs/epub-3.3/reviews/r3-publication-amendments.json
 python3 scripts/epub33_semantics.py index
 python3 scripts/epub33_assets.py verify
 python3 scripts/epub33_semantics.py verify
@@ -88,7 +90,7 @@ their UTF-8 excerpt hashes. They never fabricate behavioral evidence.
 After all reviews and amendments are merged, import must retain every existing
 feature identity; mistaken observations remain as reasoned exclusions, not
 silent deletions. For sections marked complete, independent frozen-DOM checks
-reconcile formal algorithm steps/branches and 27 explicitly reviewed list/value/
+reconcile formal algorithm steps/branches and 46 explicitly reviewed list/value/
 definition families. A wider ancestor, another sibling or an Explanation cannot
 replace a missing member; multiple statement paragraphs remain distinct.
 These bounded structural checks do not classify all natural-language obligations
@@ -122,6 +124,19 @@ previous identities remain. Neither equivalent-result algorithms nor optional
 reading-system behavior requires literal example-code execution or new CLI/UI
 features. Historical review notes and superseded amendments remain visible;
 the final amendment order above supplies the corrected current mapping.
+
+The R3 amendment adds 51 definitions/advisories (41 independently reproduced
+omissions and 10 same-context follow-ups), retaining all prior 1547 rows and
+798 manual entries byte-for-field. It distinguishes the general exemption AND
+from linked-resource OR, SVG reference/inclusion scope, metadata/script/URL
+definitions, scheme-dependent case sensitivity and per-attribute default
+vocabularies. Lowercase advice is not upgraded to BCP14 MUST; MIME transfer
+encoding is not ZIP compression. Normative XHTML inheritance comes from
+`sec-xhtml-req`, not its similar informative overview. Source-bound amendment
+notes correct 25 existing section records without adding section identities or
+changing review status; they explicitly describe bounded reading, not full
+independent approval. The parent's exact-source and deletion regressions pass,
+but another fixed-input complete review is still required after R3's rejection.
 
 The three fixed RECs' raw `data-tests` attributes are independently reconstructed:
 237 fragment references / 162 IDs, 158 known official cases; four unresolved

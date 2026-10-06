@@ -2,7 +2,7 @@
 
 ## 当前结论：阶段资产未通过总验收
 
-首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P8、Droid R1 F1～F6 的阶段修复复验。后续 S0 实现 Droid R2 实际结束并拒绝批准，发现新的规范映射遗漏和验证器缺口；父进一步发现 P8 修复错误排除两个字体算法定义段落，已按 P9 更正。R2／P9 修复已父独立复验并集成本地 `main`，最终组合 105 项测试通过；固定输入 Droid R3 也已实际结束，但决定为 **rejected，readingComplete=false**。父复核后以独立反例确认 41 个具体定义遗漏及四组对账缺口，已交原编码 Orb 修复，尚未验收修复或启动 R4。旧失败和错误验收记录保留，不充当当前批准。计划本身复审已完成，S0 实现仍待修复、新固定输入完整审查及实际门禁通过；T1 继续暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
+首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P8、Droid R1 F1～F6 的阶段修复复验。后续 S0 实现 Droid R2 实际结束并拒绝批准，发现新的规范映射遗漏和验证器缺口；父进一步发现 P8 修复错误排除两个字体算法定义段落，已按 P9 更正。R2／P9 修复已独立复验；固定输入 Droid R3 也已实际结束，但决定为 **rejected，readingComplete=false**。R3 的 41 项定义遗漏、父同组补查 10 项及相应对账修复现已独立复验并集成本地 `main`，固定修复树完整 115 项测试和首次离线重放通过；尚未获新固定输入完整 Droid 批准。旧失败和错误验收记录保留，不充当当前批准。计划本身复审已完成，S0 实现仍待最终组合、新完整审查及实际门禁通过；T1 继续暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
 
 首次受审阶段提交为编码 Orb 的 `b92e1903d831d48ae9df13c8592024e69dac0ed2`；父在独立 worktree `/tmp/kepub-s0-parent-review` 检查，当时没有把阶段资产合入父本地 `main`。以下首次失败记录予以保留；后续修复结果单独记录，不覆盖原结果。检查未修改产品或三份冻结主文档。
 
@@ -273,3 +273,16 @@ XHTML 的两段近似原文须区分：`sec-overview-relations-html p[3]` 继承
 父新增独立 `kepub-s0-parent-r3-definitions.py`，在未修父树实际 **4 tests／45 failures，27.131s，exit 1**：41 个固定原文定义无直接映射，四组全部移除仍 verify 成功；原有效矩阵和 informative／normative 两段区别正控通过。脚本 **6,957 bytes**、SHA-256 `26f6a9f35b9539545a234fed0dc9636771fa425843ece110e841db7041b52d9e`；原红日志 **41,834 bytes**、SHA-256 `6f7856ed98cea2178e9783fb47cd3408bd11e73a7c88bb5f558713d13d892077`，均已实际传给编码 Orb。有限反例不能替代其他未读条款的审查。
 
 现仅授权原编码 Orb 修复 S0 来源数据、有限来源对账及测试，维护原身份、资产字节和五维 `not-tested`。相关章节须记录实际语义而非用模板充当全文证据。父继续拥有主文档和最终验收；**修复未验收，R4 未启动，S0 未批准，T1 暂停，未 push／发布**。
+
+## R3 修复已独立复验并集成本地，尚无新审查批准
+
+父实际接收 `4bb5cc4e341700ee6fc5b310a50c3a2b4a599569` 的固定修复 bundle：**40,094 bytes**，SHA-256 `6a685e7c5254ca1d86c0c4f1a9c567067e1341c7a0d1012a6c22031aa5568815`，前置 `4fed666`、实际导出 `HEAD`。verify／fetch 成功，在原独立 worktree 固定此树后，逐项阅读实现差异、amendment 全部来源规则、章节说明及新增测试。一次合并输出被工具截断，父随后按具体 rule 序号读回遗漏文本，不把截断输出当完整阅读。
+
+- 父独立完整 Python **115/115 PASS，549.780s，exit 0**，日志 SHA-256 `4f83ba63ba09d5d4f0839c850c2f15986b774e32be2b5822457c0062532ee1d8`。父原四项脚本 SHA 与上传件完全一致；新十项附加测试分别核验真实原文、advisory 等级和删除后拒绝。子侧完整 **115/115 PASS，435.073s** 是另一份结果，日志 SHA-256 `8cd7ba4fd05a9bdbe7de6e194e1ef907ac79c94a596366ea05939c73c2728cf7`，不替代父检查。
+- 父首次执行三 review／六 amendment 导入、semantic index、四 verify、official reproduce，全为 exit 0；tracked／staged diff 均无漂移。正常 gate 实际 **exit 1：independent acceptance records missing**，组合输出 `S0_PARENT_R3_FIXED_REPLAY_PASS; GATE_EXPECTED_EXIT_1`；日志 SHA-256 `2ce899473780c9dfbbb4c86310f4a6d1e08b32e50a79593816060718d65b0ae1`。子侧 replay 也通过，日志 SHA-256 `785d2e0b4f4868e05c4bcdb9c3c2a2fce9dfd73675c88d41f161ffdc0174bb3f`；两侧都没有真实批准记录。
+- 父逐身份逐字段对照：原 **1547 rows／798 manual 全部不变，51 新增**；现 **1598＝1535 mapped＋63 excluded，849 manual**。500 章节身份／状态不变，仅 25 条 reviewer／notes 更正为具体有界阅读。118 原资产、官方来源／工件、上游资料、产品 Go、module/setup 均无变化，所有五维仍 `not-tested`。新 46 组来源结构对账仍不是自动证明自然语言完整。
+- 父追加十项来自同组原文：数据块免 fallback、标题／作者四项小写建议、meta property/text 定义及 meta／link／manifest／spine 的默认词汇表。实现保留条件与建议性质，没有把它们变成必须新增 CLI／脚本／UI 功能。父确认 AND／OR、条件大小写、HTML 继承、SVG 两范围及 MIME transfer／ZIP 区别；旧行没有被新行或宽祖先覆盖。
+- 新 `sectionNotes` 只修改既有且与原 DOM 一致的记录；无源、空或非字符串 note 拒绝，失败不部分写矩阵，重复导入字节幂等。新增回归和原 pending 正控／gate 负控通过。子侧最初 **3 tests／8 failures** 与追加十项 **1 test／10 failures** 保留；不删旧红记录或改变父预期来制造绿。
+- 父本地集成为 `791f147`，脚本、规范资产／矩阵和产品与受审树完全相同；父另更新矩阵说明计数、有限范围与完整 replay 命令。增量空白检查通过。本批没有产品改动，不将旧 Go 组合重新标为本批新结果。读取子线程状态曾误返回旧 R2 结果，父用具体 R3 提交／进程重新查询并核对实物后才验收，没有采用错误摘要。
+
+当前仅关闭上述已复现的 S0 修复。最终父组合及新固定输入的完整 Droid 审核仍待完成；**S0 未批准，T1 暂停，未 push／发布**。
