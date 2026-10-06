@@ -16,7 +16,7 @@ v0.10 根据 [Issue #4：EPUB CLI 生态借鉴、安全修复与分层校验](ht
 
 各轮真实模型、输入 hash、发现、失败、completion 和未测范围见 [v0.10 计划审核](verification/V010_PLAN_REVIEW.md)。R4／R5 是增量确认，不冒称全量复审；实现仍须逐批通过测试、真实 CLI／EPUBCheck、Droid review 和父独立验收。此前“暂停”记述是历史状态，S0 通过前仍不恢复 T1 产品实现。
 
-S0 已本地建立原文归档、官方用例来源／工件索引、上游版本与许可记录，以及离线矩阵生成和校验脚本。资产修复 P1～P5 已独立复验；完整语义增量仍在父验收和修复中，随后还需固定树的真实 Droid 审查。进度与历史失败见 [S0 父验收](verification/S0_PARENT_ACCEPTANCE.md)，实际 checker 增量见 [S0 EPUBCheck 核验](verification/S0_EPUBCHECK_2026.md)。归档／生成不算官方用例执行，不提升 CLI 功能状态，不表示 S0 已通过或已经推送／发布。
+S0 已本地建立原文归档、官方用例来源／工件索引、上游版本与许可记录，以及离线矩阵生成和校验脚本。P1～P7 已独立复验；首轮固定树 Droid 实现审查已实际结束但未批准，发现门禁／证据核验、列表条款、官方用例关联及 NVDL 归档遗漏，父另复现算法说明误标的 P8。当前继续最小修复、独立复验与新树审查，不以正常样本通过或本轮进程 exit 0 作为 S0 放行。发现、阅读限制与历史失败见 [S0 父验收](verification/S0_PARENT_ACCEPTANCE.md)，实际 checker 增量见 [S0 EPUBCheck 核验](verification/S0_EPUBCHECK_2026.md)。归档／生成不算官方用例执行，不提升 CLI 功能状态，不表示 S0 已通过或已经推送／发布。
 
 v0.9 对齐 [Issue #3：EPUB 3.3 全规范兼容与 XHTML／CSS 全面排版](https://github.com/LeviTK/Kepub/issues/3) 的完整正文（2026-10-05 核对，当前无评论）。该 issue 是跨 CLI、核心、预览和验收的总目标；本版补齐规范归档、五维能力证据、阶段映射和关闭条件，不把它误缩为六批终端功能，也不把后续 GUI 强行放进当前 CLI 批次。编码 Orb 报告的 T1 初稿尚未编译／测试／集成，仍待 S0 验收后恢复；旧基线普通／race／vet 通过不是新功能证据。
 

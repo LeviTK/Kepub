@@ -149,7 +149,7 @@ XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场�
 
 规范支持与命令可用性分开。S0 固定规范原文和条款后，建立单一机读矩阵，未来向后兼容扩展 capabilities／doctor／诊断，不替换当前 envelope、退出码、operation ID 或检查状态枚举。
 
-离线资产矩阵与生成脚本已本地创建，正在进行 [S0 独立验收](verification/S0_PARENT_ACCEPTANCE.md)；这不是新的 CLI 返回字段或可用能力，也不代表全部规范条款已经实现。完整 S0 的固定树 Droid 审查仍待完成。
+离线资产矩阵与生成脚本已本地创建，正在进行 [S0 独立验收](verification/S0_PARENT_ACCEPTANCE.md)；这不是新的 CLI 返回字段或可用能力，也不代表全部规范条款已经实现。首轮固定树 Droid 审查已结束但发现阻塞问题，修复与新树复验尚未完成，不能据此解锁 T1 或提升五维能力声明。
 
 - 逐特性记录 `featureId`、`specVersion`、`specSection`、`normativeLevel`、`applicability`、`preserve`、`parse`、`edit`、`render`、`validate`、`platform`、`testIds`、`evidence`；五维状态为 `supported | partial | unsupported | policy-disabled | not-tested`，不适用另给理由，不用 supported 代替。
 - 按开发方案 §11.8 的清点单位覆盖完整 BCP 14 关键字集（含 NOT、REQUIRED／RECOMMENDED／OPTIONAL）、定义／语法约束、deprecated 与条件要求，对账来源片段及 hash；与产品安全／预算策略区分。保留未知语法不表示可编辑；CSS 解析不表示渲染；规范允许但产品暂不支持或策略禁用，不伪称标准禁止。

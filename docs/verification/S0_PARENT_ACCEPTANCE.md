@@ -2,7 +2,7 @@
 
 ## 当前结论：阶段资产未通过总验收
 
-首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P7 修复复验、完整语义增量的资产／来源校验和语义抽查，并集成本地 `main`。计划复审已完成，完整 S0 仍待固定组合树的真实 Droid 审查；T1 仍暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
+首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P7 修复复验、完整语义增量的资产／来源校验和语义抽查，并集成本地 `main`。计划复审已完成；S0 实现 Droid R1 已实际结束但发现阻塞问题，父另复现列表／用例关联遗漏和 P8 算法说明范围错误，仍需修复、独立复验与新固定树审查。T1 继续暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
 
 首次受审阶段提交为编码 Orb 的 `b92e1903d831d48ae9df13c8592024e69dac0ed2`；父在独立 worktree `/tmp/kepub-s0-parent-review` 检查，当时没有把阶段资产合入父本地 `main`。以下首次失败记录予以保留；后续修复结果单独记录，不覆盖原结果。检查未修改产品或三份冻结主文档。
 
@@ -139,3 +139,33 @@ P6、P7 和首次重建漂移等待最小修复及原样父复验。完整语义
 - 父将完整语义、排序与两项修复集成本地 `main`，集成终点 `5b36d89`。脚本、全部规范／用例资产、矩阵说明、产品与 Go 依赖与受审树无差异；集成树完整 Python 再次 **66/66 PASS，140.595s**。本次未重复无产品变化的 Go 大组合，不把旧 Go 结果标为新产品实现结果。
 
 P6／P7 和固定重建问题关闭，继续进入固定组合树的真实 Factory Droid 审查。三主文档仅同步 S0 进度而未改变范围／接口，父记录保留所有历史失败。已有验证、源映射及抽查不宣称穷尽证明、完整规范支持、渲染／无障碍通过、S0 总验收或 T1 解锁；未 push／发布。
+
+## S0 实现 Droid R1 已结束，但不批准进入 T1
+
+R1 在固定 fixture `be198c651be1197ae62109dd76e6d4d083cb1b23` 上运行，其完整 tree `da66b3ce0e8c6be3ec1320531032dddc54c70be5` 与当时父本地 `main` 完全相同；fixture 仅承载父的精确文档，不是另一个产品实现。实际 CLI **0.233.0**，stream init 明确 **claude-opus-5-5／reasoning_effort medium**，会话 `6b0b6a6e-c262-4267-930e-9a062aa9dd34`；原 shell PID 83184／Droid PID 83193 正常 **completion、exit 0，94 turns、1,587,830ms**。退出成功表示审查进程结束，不表示审查批准。
+
+父下载并核对原始报告／evidence／完整 stream／探测包，SHA-256 分别为 `452ef6fbef8e19608fec5df8c5f006c437f440edac475f5b9f9c3415fd217be7`、`56620d0594341fdcb32838b2c7622e30f8f388d5ecd062211895728bb8c34e9c`、`6820a9988ac04d922a02a449318234e076d815f2727f8ae7eacc6eab9cdc1b78`、`460e2dfc79f124809283d2bd7e7eab027692bc6871bef6358654d67de9bf6e99`。前后 HEAD、tree、工作树及四文档 hash 均相同。Droid 临时生成后删除的 Python cache 不计产品改动。
+
+- 实际正控：Droid 独立完整 Python **66/66 PASS，104.003s**；真实 JAR 的 `TestRealREC2026` **12/12 PASS，54.9s**；文档流程重建无跟踪文件漂移，正常 gate 为 exit 1。
+- 发现 F1：只修改 `semanticComplete` 并重建，门禁便可错误放行，未核对必需阶段证据和当前输入身份。F2：已有代码／测试关联未登记，任意非空但不存在的 evidence 路径可支撑 `supported`。F5：执行状态硬编码为 false，不能拒绝伪造的 PASS；删掉已知许可缺口后可报告零缺口。这些是验证器及交付数据问题，不能因正常样本测试通过而忽略。
+- F3／F4 是继承列表条件和规范自身 `data-tests` 关联遗漏，父复核如下。F6 是三份直接链接 NVDL schema 未归档；固定 EPUBCheck 源码中均真实存在，须补有限依赖闭包和目录许可，不能标为无效链接规避。
+- 阅读限制：R1 全读四份主要脚本；未覆盖块中的 RS／a11y 逐条读，EPUB 409 个未覆盖块仅约前 220 个细读、其余粗看，Notes／CSS／测试源码抽样。不能把本轮称为全部 S0 原文、代码和测试全文审查，也没有执行全部官方阅读系统用例或 Mac 验收。
+- 工具失败保留：准备时 fetch bundle 的不存在 `HEAD` 引用失败，改用真实命名 ref 后成功；Droid 临时统计脚本把 list 用作 `Counter` 键，实际 `TypeError`／exit 1，非仓库测试失败。其最终文字说无法自证模型，与父保存的实际 init 可以并存，不据此声称更换了模型。
+
+### F3／F4：父原文对照确认遗漏，也排除探测器误报
+
+父只改 import 路径重跑 Droid 原 `lists.py`，确实检出 26 处引导句。但裸 `dt` 标签并不自动等于漏条款：Dublin Core 字段名、MathML 标题和 viewport 的 name／content 标题已有相应 `dd` 约束；RS 的 “Some uses … include” 是例示。真正缺失的允许／禁止列表须分别保留其 MUST、SHOULD、MAY、排除条件及 one-of／any-of 关系，不把每个允许值误写为必须同时使用。
+
+父新增独立 `kepub-s0-parent-list-backlink-tests.py`，在原固定父树运行 **2 tests／58 subtest FAIL，3.159s，exit 1**：47 个具体 leaf 约束缺映射、11 处明确 REC 条款上下文未进入用例关联。47 项包括文件名 18 类中的 20 个叶项（非字符范围含三个子项）、data URL 四场景、禁加密八文件、manifest 五属性、toc 两顺序、自定义属性两保留域、远程资源四族及无障碍同步两顺序。不是以整段引导句中“有冒号”作为已覆盖证据。
+
+规范三个固定原文含 **162 个片段 ID／237 次 `data-tests` 引用**，其中 158 个 ID 属于冻结的 169 个用例；另四个未匹配 ID 和 11 个无 REC 反向关联的既有用例需如实登记，不凭拼写相似自动改名，不替换为 3.4 用例。外部 `epub-structural-tests` 的 **456 次引用**与本轮 169 个报告用例分开。父将 `dt` 配到 `dd`、span／cell 配到所属条款后，仍确认 11 处遗漏；追加 REC 关联不得删除原报告的目标或把 `executed:false` 提升为通过。
+
+脚本 SHA-256 `b4fafbb877d5aea0436946dd3c0c14a0fa05aff595b875aacb5f0aec6e190c3d`，原失败日志 SHA-256 `fb1b19bef831953589ead392d9840690349aafb660c22cdf697899af13552e8d`；两者已实际上传编码 Orb，后续应原样复验。这些定向覆盖不替代其他列表、全部上下文和外部依赖的审查。
+
+### P8：示例伪代码已被错误提升为规范要求
+
+父没有直接采纳 R1 的“17 个叶步骤只登记 9 个，所以再补 8 个”建议。固定 EPUB REC §1.5 明文 “All algorithm explanations are non-normative”；`obfus-algorithm` 又明确 “The following pseudo-code exemplifies the obfuscation algorithm.”。现有九条伪代码 `manual-normative` 记录仍为 mapped，应保留原身份并注明排除；不能因为补覆盖而把说明改成强制要求。该节真正的 MUST（压缩前混淆）及 key 推导的 MUST 仍须保留。对前文算法定义与解释须分别核对，不能整节粗暴排除。
+
+父独立脚本 `kepub-s0-parent-algorithm-tests.py` 实际 **2 tests／10 failures，10.114s，exit 1**：九条状态错误，另一个验证器反例表明重新强制 mapped 也不被拒绝。原有效矩阵 verify、原身份完整性及两个真实 MUST 正控通过。脚本 SHA-256 `d29d51d3b109c1e4a33dd3a00d25dd5fbfe618c32f04df73d7800a2c60b9e7a2`，红日志 SHA-256 `481a11e826c6090cebd92ad2e4df12ecf400cc6d144ab5dd3bc90d382a0d80bc`，均已实际传输。父一次只读探查误用不存在的 section 名称导致 `StopIteration`，改读真实 `obfus-algorithm` 后获得上述原文；不将该工具错误当产品失败。
+
+当前只完成发现复核与原始反例交接，修复包尚待父验收。三主文档仅同步事实状态，不收窄 S0 清单或产品规范承诺；R2 未启动，T1 暂停，没有 push／发布。
