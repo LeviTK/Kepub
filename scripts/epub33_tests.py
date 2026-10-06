@@ -22,6 +22,7 @@ from epub33_assets import DOM, ROOT, download, normalized, sha, write_json
 # The report repeats this case ID, but its source instructions require two
 # publications with the same identifier. A case count is not an artifact count.
 PAIRED_CASES = {"pkg-unique-id": ("pkg-unique-id_duplicate",)}
+REPORT_COMMIT = "54092b4233253e9aac80e93ec4782b380b4b3403"
 
 
 def git(repo, *args):
@@ -320,6 +321,9 @@ def verify(root):
                 raise ValueError(f"official test inventory drift: {row['id']}")
             if {n: sha(d) for n, d in sorted(files.items())} != row["contentInventory"]:
                 raise ValueError(f"official content hash mismatch: {row['id']}")
+    if index.get("reportCommit") != REPORT_COMMIT or any(
+            r.get("reportCommit") != REPORT_COMMIT for r in index["cases"]):
+        raise ValueError("official fixed report commit drift")
     return {"cases": len(index["cases"]), "reportRows": sum(r["reportOccurrences"] for r in index["cases"]),
             "publications": len(artifacts), "sourceGaps": len(index["failures"]),
             "semanticReviewComplete": index["semanticReviewComplete"],

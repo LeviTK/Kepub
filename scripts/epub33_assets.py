@@ -658,6 +658,116 @@ def verify_acceptance(root):
     return identity
 
 
+def non_normative(node):
+    for ancestor in node.ancestors():
+        if set(ancestor.attrs.get("class", "").split()) & {"informative", "note", "example"}:
+            return True
+        if ancestor.tag == "details" and any(
+                isinstance(c, Node) and c.tag == "summary" and normalized(c) == "Explanation"
+                for c in ancestor.children):
+            return True
+        if ancestor.tag == "ol" and ancestor.parent:
+            preceding = ancestor.parent.children[:ancestor.parent.children.index(ancestor)]
+            previous = next((c for c in reversed(preceding) if isinstance(c, Node)), None)
+            if previous and "pseudo-code exemplifies the obfuscation algorithm" in normalized(previous):
+                return True
+    return False
+
+
+def source_member_text(node):
+    """Formal statement text, without subordinate lists or Explanation material."""
+    def text(n):
+        if non_normative(n):
+            return ""
+        return "".join(c if isinstance(c, str) else text(c)
+                       for c in n.children if isinstance(c, str) or
+                       c.tag not in ("ol", "ul", "script", "style"))
+    return " ".join(text(node).split())
+
+
+def reconcile_source_members(source_nodes, rows, reviews):
+    """Finite source families, independently of surviving/manual review rows.
+
+    This is structural reconciliation of reviewed formal algorithms and named
+    list/value families, not a classifier for all natural-language obligations.
+    Selectors address existing frozen DOMs, not a second hand-maintained ledger.
+    """
+    families = {
+        "epub": {
+            "sec-container-filenames": ("ul[1]/li[3]/ul[1]",),
+            "sec-data-urls": ("ul[1]",), "sec-encryption.xml-encryption": ("ul[1]",),
+            "sec-item-resource-properties": ("ul[1]",), "sec-resource-locations": ("ul[1]",),
+            "sec-xhtml-custom-attributes": ("ul[1]",), "sec-foreign-resources": ("ul[1]",),
+            "sec-nav-toc": ("ul[1]",), "sec-skippability": ("ul[1]",),
+            "sec-escapability": ("ul[1]",), "sec-container-iri": ("ul[1]",),
+            "sec-property-datatype": ("ul[1]",), "sec-nav-def-model": ("ul[1]",),
+            "sec-alternate": ("table[1]/tbody[1]/tr[2]/td[1]/ul[1]",),
+            **{anchor: ("dl[1]",) for anchor in (
+                "page-spread", "layout", "layout-overrides", "orientation", "orientation-overrides",
+                "spread", "spread-overrides", "flow", "flow-overrides", "sec-exempt-resources")},
+            "obfus-algorithm": ("p[1]", "p[2]", "p[3]"),
+        },
+        "a11y": {"sec-page-nav-applicability": ("ul[1]",),
+                 "sec-sync-order": ("dl[1]/dd[3]/ul[1]",)},
+    }
+    status = {(r["document"], r["domPath"]): r["status"] for r in reviews}
+    by_path = collections.defaultdict(list)
+    for row in rows.values():
+        by_path[row["document"], row["domPath"]].append(row)
+    for document, nodes in source_nodes.items():
+        anchors = {n.attrs["id"]: n for n in nodes.values() if n.tag == "section" and n.attrs.get("id")}
+        members = {}
+        for node in nodes.values():
+            if node.tag != "ol" or "algorithm" not in node.attrs.get("class", "").split() or non_normative(node):
+                continue
+            for step in node.walk():
+                if step.tag != "li" or non_normative(step):
+                    continue
+                paragraphs = [c for c in step.children if isinstance(c, Node) and c.tag == "p"]
+                for member in paragraphs or [step]:
+                    text = source_member_text(member)
+                    if text:
+                        members[member.path()] = (member, text)
+        for anchor, suffixes in families.get(document, {}).items():
+            if anchor not in anchors:
+                continue  # Small synthetic fixtures need not contain the full REC.
+            for suffix in suffixes:
+                container = nodes.get(anchors[anchor].path() + "/" + suffix)
+                if container is None:
+                    raise ValueError(f"reviewed source family selector drift: {document}:{anchor}/{suffix}")
+                selected = ([n for n in container.walk() if n.tag == "li" and not
+                             any(c.tag == "li" for c in list(n.walk())[1:])]
+                            if container.tag in ("ul", "ol") else
+                            [c for c in container.children if isinstance(c, Node) and c.tag == "dd"]
+                            if container.tag == "dl" else [container])
+                for member in selected:
+                    if not non_normative(member):
+                        paragraphs = [c for c in member.children if isinstance(c, Node) and c.tag == "p"]
+                        for unit in paragraphs if member.tag == "li" and paragraphs else [member]:
+                            text = source_member_text(unit)
+                            if text:
+                                members[unit.path()] = (unit, text)
+        for path, (member, text) in members.items():
+            section = next(n for n in member.ancestors() if n.tag == "section")
+            if status.get((document, section.path())) != "complete":
+                continue
+            # A direct step paragraph can be recorded as the host li, but no
+            # wider ancestor or Explanation descendant can stand in for it.
+            paths = [path]
+            if member.tag == "p" and member.parent.tag == "li" and sum(
+                    isinstance(c, Node) and c.tag == "p" for c in member.parent.children) == 1:
+                paths.append(member.parent.path())
+            statement_rows = [r for p in paths for r in by_path[document, p]]
+            # Marked keywords are descendant instances of this exact statement,
+            # not a substitute from a wider ancestor or a different sibling.
+            statement_rows += [r for r in rows.values() if r["document"] == document and
+                               r["kind"] == "bcp14" and r["domPath"].startswith(path + "/")]
+            matches = [r for r in statement_rows
+                       if r["decision"] in ("mapped", "excluded") and text and text in r["excerpt"]]
+            if not matches:
+                raise ValueError(f"complete section missing reviewed source member: {document}:{path}")
+
+
 def verify_mapping(root, gate=False, matrix=None):
     inv = json.loads((root / "inventory.json").read_text())
     if matrix is None:
@@ -668,7 +778,9 @@ def verify_mapping(root, gate=False, matrix=None):
     candidates = {c["featureId"]: c for c in inv["candidates"]}
     manual = matrix.get("manualConstraints", [])
     source_entries = {e["id"]: e for e in verify(root)["assets"]}
-    source_nodes = {}
+    source_nodes = {document: {n.path(): n for n in
+                              DOM((root / source_entries[document]["path"]).read_text(encoding="utf-8")).root.walk()}
+                    for document in ("epub", "rs", "a11y") if document in source_entries}
     for c in manual:
         entry = source_entries[c["document"]]
         if c["document"] not in source_nodes:
@@ -720,18 +832,7 @@ def verify_mapping(root, gate=False, matrix=None):
                 dom = DOM((root / source_entries[document]["path"]).read_text(encoding="utf-8")).root
                 source_nodes[document] = {n.path(): n for n in dom.walk()}
             node = source_nodes[document][row["domPath"]]
-            informative = any(set(n.attrs.get("class", "").split()) & {"informative", "note", "example"}
-                              for n in node.ancestors())
-            algorithm = next((n for n in node.ancestors() if n.attrs.get("id") == "obfus-algorithm"), None)
-            if document == "epub" and algorithm:
-                # REC §1.5 explicitly excludes algorithm explanations. This
-                # section's prose and exemplary pseudo-code are explanations;
-                # keep its separate marked compression-order MUST normative.
-                block = next((n for n in node.ancestors() if n.parent is algorithm), node)
-                if block.tag in ("p", "ol") and not any(
-                        "rfc2119" in n.attrs.get("class", "").split() for n in block.walk()):
-                    informative = True
-            if informative:
+            if non_normative(node):
                 raise ValueError(f"mapped constraint inherits non-normative source scope: {key}")
         if row["decision"] == "mapped" and (row["phase"] in ("not-assigned", "S0-excluded") or
                 row["applicability"] == "not-reviewed" or not (row["gap"] or row["evidence"])):
@@ -770,6 +871,7 @@ def verify_mapping(root, gate=False, matrix=None):
             raise ValueError("invalid section review status")
         if r["status"] == "complete" and (not r["reviewer"] or not r["notes"]):
             raise ValueError("section review completion without reviewer/reason")
+    reconcile_source_members(source_nodes, rows, reviews)
     counts = collections.Counter(r["decision"] for r in rows.values())
     if gate:
         if counts["pending"] or any(s["status"] != "complete" for s in reviews):
@@ -782,6 +884,7 @@ def verify_mapping(root, gate=False, matrix=None):
 def import_reviews(root, paths, amendments=()):
     """Validate complete per-REC review packets before replacing any matrix bytes."""
     matrix = json.loads((root / "matrix.json").read_text())
+    existing = {r["featureId"] for r in matrix["rows"]}
     documents = set()
     for path in paths:
         review = json.loads(path.read_text())
@@ -849,6 +952,8 @@ def import_reviews(root, paths, amendments=()):
                     matrix[key].append(value)
                 else:
                     matrix[key][position] = value
+    if not existing <= {r["featureId"] for r in matrix["rows"]}:
+        raise ValueError("import would silently delete existing review identities/candidate mapping; retain reasoned exclusions")
     # Source review alone cannot close the complete S0 gate, which also needs
     # dependency applicability, official-test mapping, and independent acceptance.
     matrix["semanticComplete"] = False

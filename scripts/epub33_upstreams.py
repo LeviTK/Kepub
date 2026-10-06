@@ -94,8 +94,11 @@ def verify(root):
     if ({p[0] for p in PROJECTS} != {r["repo"] for r in index["projects"]} or
             len(index["projects"]) != len(PROJECTS)):
         raise ValueError("missing/extra upstream role")
+    roles = {repo: (group, phase, role) for repo, group, phase, role in PROJECTS}
     expected_failures = []
     for r in index["projects"]:
+        if tuple(r.get(k) for k in ("group", "phase", "role")) != roles[r["repo"]]:
+            raise ValueError(f"upstream role/phase differs from frozen research scope: {r['repo']}")
         adoption = ("existing separately configured formal checker 5.3.0; no new adoption"
                     if r["repo"] == "w3c/epubcheck" else "research/deferred (not bundled)")
         if (r.get("behaviorTested") is not False or r.get("adoption") != adoption or

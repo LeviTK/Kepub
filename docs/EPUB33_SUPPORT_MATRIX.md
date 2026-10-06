@@ -70,7 +70,9 @@ python3 scripts/epub33_assets.py index \
   --review docs/specs/epub-3.3/reviews/kepub-s0-a11y-semantic-draft.json \
   --amendment docs/specs/epub-3.3/reviews/publication-amendments.json \
   --amendment docs/specs/epub-3.3/reviews/r1-publication-amendments.json \
-  --amendment docs/specs/epub-3.3/reviews/r1-accessibility-amendments.json
+  --amendment docs/specs/epub-3.3/reviews/r1-accessibility-amendments.json \
+  --amendment docs/specs/epub-3.3/reviews/r2-publication-amendments.json \
+  --amendment docs/specs/epub-3.3/reviews/r2-rs-amendments.json
 python3 scripts/epub33_semantics.py index
 python3 scripts/epub33_assets.py verify
 python3 scripts/epub33_semantics.py verify

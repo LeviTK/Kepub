@@ -50,15 +50,16 @@ class InheritedSourceBindings(unittest.TestCase):
             with self.subTest(prefix=prefix), self.assertRaisesRegex(ValueError, "missing required source binding"):
                 assets.verify_mapping(assets.ROOT, matrix=changed)
 
-    def test_algorithm_explanation_paragraphs_cannot_be_repromoted(self):
+    def test_font_definition_paragraphs_retain_mapped_identities(self):
+        # Correct the R1 test's mistaken scope, using actual history: the three
+        # font definition paragraphs are not named Explanation blocks. The
+        # unchanged parent nine-step test still excludes exemplary pseudo-code.
+        assets.verify_mapping(assets.ROOT, matrix=self.matrix)
         for suffix in ("p[1]", "p[3]"):
-            changed = copy.deepcopy(self.matrix)
-            row = next(r for r in changed["rows"] if r["featureId"] ==
+            row = next(r for r in self.matrix["rows"] if r["featureId"] ==
                        f"epub:manual-normative:/html[1]/body[1]/section[6]/section[4]/section[4]/{suffix}:1")
-            row.update(decision="mapped", phase="T3/T5", applicability="Claimed mandatory font operation",
-                       reason="Pretend explanation is normative", gap="No implementation claim")
-            with self.subTest(suffix=suffix), self.assertRaisesRegex(ValueError, "non-normative source scope"):
-                assets.verify_mapping(assets.ROOT, matrix=changed)
+            with self.subTest(suffix=suffix):
+                self.assertEqual(row["decision"], "mapped")
 
 
 if __name__ == "__main__":
