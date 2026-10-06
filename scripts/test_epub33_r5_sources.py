@@ -76,12 +76,24 @@ class R5SourceMembers(unittest.TestCase):
                     (root / path.name).write_bytes(path.read_bytes())
                 else:
                     (root / path.name).symlink_to(path, target_is_directory=path.is_dir())
+            good = root / "good.json"
+            packet = json.loads((assets.ROOT / "reviews/r5-publication-amendments.json").read_text())
+            note = "Atomicity positive control: changed contributor inheritance review note."
+            packet["sectionNotes"]["sec-opf-dccontributor"] = note
+            assets.write_json(good, packet)
             bad = root / "bad.json"
             assets.write_json(bad, {"document": "rs", "sourceHash": "wrong",
                                     "constraints": []})
             before = (root / "matrix.json").read_bytes()
+            assets.import_reviews(root, [], [good])
+            self.assertNotEqual((root / "matrix.json").read_bytes(), before)
+            expected = json.loads(before)
+            next(s for s in expected["sectionReviews"] if s["document"] == "epub" and
+                 s["anchor"] == "sec-opf-dccontributor")["notes"] = note
+            self.assertEqual(json.loads((root / "matrix.json").read_text()), expected)
+            (root / "matrix.json").write_bytes(before)
             with self.assertRaisesRegex(ValueError, "amendment source identity"):
-                assets.import_reviews(root, [], [assets.ROOT / "reviews/r5-publication-amendments.json", bad])
+                assets.import_reviews(root, [], [good, bad])
             self.assertEqual((root / "matrix.json").read_bytes(), before)
 
 
