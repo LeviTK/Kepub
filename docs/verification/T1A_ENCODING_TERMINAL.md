@@ -57,4 +57,5 @@
 - 新 checker 对照最初预设 `RSC_005`，真实返回 `RSC-016`，导致 checks-v1 exit 1；同时合成 ZIP 的 mimetype 顺序／替换正文丢链接带来额外诊断。之后仅修正预期、条目顺序与只改声明的样本，保留原日志；没有弱化正式 checker。
 - checks-v1 服务在失败后尝试重启，原子守卫拒绝，没有重复测试；随后停止该服务。checks-v2 完成后即使守卫 exit 0，受管服务仍按其 restart 策略反复启动包装器，最后 start-limit-hit；原检查没有重跑，该管理状态不等于测试失败。首次完整执行的九步 exit 0／complete.exit 与后续守卫日志分别保留，已显式停止服务。没有宣称 exit 0 可以阻止该服务重启。
 - 文档 bundle 初次省略 ref 的 fetch 失败，显式 ref 成功；从持久目录直接 upload 被工具的 workspace 限制拒绝，复制新证据到 root .agents 后真实上传成功，未改 root 初稿。
+- 首次证据 tar 将输出置于被归档目录，虽排除自身文件，仍出现 `file changed as we read it` 的目录 mtime 警告；没有记录该次 tar 独立 exit，不把外层命令的 exit 0 充作 tar 通过。改为目录外生成独立 v2 包，检查其实际 exit／解包清单；原首包与警告记录保留。这只是包装修正，产品和检查日志未改变。
 - T1b 内部子集、实体、默认／固定属性及媒体绑定外部标识符仍待下一批；T1a 不等于完整 T1。T2、UI／阅读系统／Mac 实机测试未执行。没有 Droid、合成批准、push、发布或自动接受。
