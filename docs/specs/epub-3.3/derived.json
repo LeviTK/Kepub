@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "sourceManifestSHA256": "ac0e24e27c8d006992bdf90c42f6701cf14ca4d7e7b5224fb58409ea3c0e2472",
-  "matrixSHA256": "fabbf4bc83097dd8e9e56379ae053712c055bdc89e7c92da41033d2c05939fe0",
+  "matrixSHA256": "2caa9c14a2725757e3c27d3eb60b1f184d5b7c0fc41e5648d05249a1b36ad498",
   "files": [
     {
       "path": "inventory.json",
@@ -17,7 +17,7 @@
     },
     {
       "path": "MATRIX.md",
-      "sha256": "def1fbb0da297e8bf28282ad0b5baf235e2eab55bc6bd5dc7425ab1cfb364686"
+      "sha256": "2ccb7d7ac4f203466403816f16e7e915967d5408b715bf0f112b814ba280cd7f"
     },
     {
       "path": "text/a11y.txt",

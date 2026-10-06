@@ -1,0 +1,11 @@
+{
+  "document": "rs",
+  "sourceHash": "2e8d4400d1cce9080e729df8292d8795b4d76cb1a20be2387a263bcfbcd7ca9e",
+  "reviewMethod": "Bounded R5 C5 source correction: read frozen RS CSS paragraphs and property list. Lowercase developer advice is not BCP14 SHOULD or S0/T1 implementation support.",
+  "constraints": [
+    {"domPath":"/html[1]/body[1]/section[8]/section[3]/p[4]","kind":"manual-normative","normativeLevel":"UNMARKED ADVISORY","reason":"Lowercase should advises browser-level CSS support and public documentation of user-agent style sheets and their interaction with creator sheets. Preserve both parts as developer advice, separate from viewport-conditional MUST and marked default-rendering SHOULD; no new T1 CSS implementation or passing behavior is asserted.","applicability":"Reading-system developers' CSS support and documentation; source advice only, not executed browser/reading-system conformance.","phase":"S2-S4 CSS/rendering and user-agent documentation"}
+  ],
+  "sectionNotes": {
+    "sec-css": "R5 C5 correction: read p1-p4 and intervening property list. Register p4 lowercase advice on browser-level support AND public UA-style-sheet/creator-sheet interaction documentation. Existing viewport-conditional MUST, CSS property requirements and p3 default-rendering SHOULD remain independent. S2-S4 allocation, not T1 support or execution evidence."
+  }
+}

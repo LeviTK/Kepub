@@ -711,12 +711,17 @@ def reconcile_source_members(source_nodes, rows, reviews):
             "sec-link-elem": ("p[3]", "ul[1]", "p[10]"), "sec-metadata-values": ("p[1]", "p[3]"),
             "sec-opf-dctitle": ("p[2]", "p[3]"),
             "sec-opf-dccreator": ("p[2]", "p[4]", "p[5]", "p[6]"),
+            "sec-opf-dccontributor": ("p[2]",),
+            "sec-opf-dcidentifier": ("p[3]",), "sec-opf-dcdate": ("p[3]",),
+            "sec-metadata-last-modified": ("p[3]",),
+            "sec-core-media-types": ("ul[1]/li[1]/p[2]",),
+            "security-privacy-recommendations": ("p[7]",),
             "html-script-element": ("p[3]",),
             "sec-scripted-support": ("p[3]",),
             "sec-scripted-context": ("p[1]", "ul[1]", "p[2]"),
             "sec-scripted-container-constrained": ("p[1]", "ul[1]"),
             "sec-scripted-spine": ("p[1]",), "sec-meta-elem": ("p[2]", "ul[1]", "p[5]"),
-            "sec-itemref-elem": ("p[4]", "p[6]", "p[9]"), "sec-opf-dcsubject": ("p[5]",),
+            "sec-itemref-elem": ("p[4]", "p[6]", "p[9]"), "sec-opf-dcsubject": ("p[1]", "p[5]"),
             "sec-xhtml-req": ("p[2]",), "sec-prefix-attr": ("p[4]",),
             "sec-role": ("table[1]/tbody[1]/tr[2]/td[1]/p[3]",),
             "app-media-type-app-oebps-package": ("dl[1]/dd[5]/p[1]", "dl[1]/dd[5]/p[2]",
@@ -725,6 +730,7 @@ def reconcile_source_members(source_nodes, rows, reviews):
         },
         "a11y": {"sec-page-nav-applicability": ("ul[1]",),
                  "sec-sync-order": ("dl[1]/dd[3]/ul[1]",)},
+        "rs": {"sec-css": ("p[4]",)},
     }
     status = {(r["document"], r["domPath"]): r["status"] for r in reviews}
     by_path = collections.defaultdict(list)
