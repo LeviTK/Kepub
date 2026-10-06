@@ -12,12 +12,15 @@ import (
 )
 
 func TestUnstartedRecoveryPreservesDriftAcrossResultInterruption(t *testing.T) {
-	for _, operation := range []string{"metadata", "content"} {
+	for _, operation := range []string{"metadata", "content", "multi"} {
 		t.Run(operation, func(t *testing.T) {
 			w, dir, _ := legalWorkspace(t, "3.0")
 			p := fieldPlan(t, w, "title", "title", "Title", "New")
-			if operation == "content" {
+			switch operation {
+			case "content":
 				p = contentPlan(t, w, "Changed")
+			case "multi":
+				p = multiPlan(t, w)
 			}
 			_, err := w.createCandidate(&p)
 			if err != nil {
@@ -73,21 +76,25 @@ func TestUnstartedRecoveryPreservesDriftAcrossResultInterruption(t *testing.T) {
 }
 
 func TestInterruptedApplyWithPreJournalRestoreLeftovers(t *testing.T) {
-	for _, operation := range []string{"metadata", "content"} {
+	for _, operation := range []string{"metadata", "content", "multi"} {
 		for _, phase := range []string{"partial-copy", "unpublished-journal"} {
 			t.Run(operation+"/"+phase, func(t *testing.T) {
 				var w *Workspace
 				var dir string
 				var p Plan
-				if operation == "metadata" {
+				switch operation {
+				case "metadata":
 					w, dir = makeWorkspace(t)
 					p = planTitle(t, w, "New")
-				} else {
+				case "content":
 					w, dir, _ = legalWorkspace(t, "3.0")
 					p = contentPlan(t, w, "Changed body")
+				default:
+					w, dir, _ = legalWorkspace(t, "3.0")
+					p = multiPlan(t, w)
 				}
-				e, out := prepareExecution(t, w, p)
-				put(t, filepath.Join(dir, candidate, p.WriteSet[0]), out)
+				e, outputs := prepareExecution(t, w, p)
+				putOutputs(t, dir, outputs)
 				if phase == "partial-copy" {
 					put(t, filepath.Join(dir, restoreNew, "partial"), []byte("unfinished restore copy"))
 				} else {
@@ -139,7 +146,7 @@ func TestInterruptedApplyWithPreJournalRestoreLeftovers(t *testing.T) {
 }
 
 func TestRecoveryRejectsAlteredIdentityBeforeWriting(t *testing.T) {
-	for _, operation := range []string{"metadata", "content"} {
+	for _, operation := range []string{"metadata", "content", "multi"} {
 		for _, phase := range []string{"intent", "start"} {
 			for _, tamper := range []string{"missing-use", "malformed-use", "wrong-use-task", "wrong-use-digest", "wrong-use-version", "downgraded-task", "wrong-start"} {
 				if phase == "intent" && tamper == "wrong-start" {
@@ -148,8 +155,11 @@ func TestRecoveryRejectsAlteredIdentityBeforeWriting(t *testing.T) {
 				t.Run(operation+"/"+phase+"/"+tamper, func(t *testing.T) {
 					w, dir, _ := legalWorkspace(t, "3.0")
 					p := fieldPlan(t, w, "title", "title", "Title", "New")
-					if operation == "content" {
+					switch operation {
+					case "content":
 						p = contentPlan(t, w, "Changed")
+					case "multi":
+						p = multiPlan(t, w)
 					}
 					var e Execution
 					if phase == "intent" {
@@ -158,9 +168,9 @@ func TestRecoveryRejectsAlteredIdentityBeforeWriting(t *testing.T) {
 						}
 						put(t, filepath.Join(dir, candidate, "external.txt"), []byte("outside drift"))
 					} else {
-						var out []byte
-						e, out = prepareExecution(t, w, p)
-						put(t, filepath.Join(dir, candidate, p.WriteSet[0]), out)
+						var outputs map[string][]byte
+						e, outputs = prepareExecution(t, w, p)
+						putOutputs(t, dir, outputs)
 					}
 					usedName := "plans/" + p.ID + ".used.json"
 					var used planUse
@@ -215,8 +225,8 @@ func TestLegacyRegisteredRecoveryAllowsEmptyStartID(t *testing.T) {
 		t.Run(fmt.Sprint(recordedUse), func(t *testing.T) {
 			w, dir := makeWorkspace(t)
 			p := planTitle(t, w, "Legacy edit")
-			e, out := prepareExecution(t, w, p)
-			put(t, filepath.Join(dir, candidate, p.WriteSet[0]), out)
+			e, outputs := prepareExecution(t, w, p)
+			putOutputs(t, dir, outputs)
 			put(t, filepath.Join(dir, "tasks/active/task.json"), editJSON(t, taskRecord{Version: 1, BaseRevision: "initial"}))
 			e.TaskID = ""
 			put(t, filepath.Join(dir, "tasks/active/edit-start.json"), editJSON(t, e))
@@ -249,17 +259,20 @@ func TestLegacyRegisteredRecoveryAllowsEmptyStartID(t *testing.T) {
 }
 
 func TestCommittedRestoreFinishesBeforeExecutionRefusal(t *testing.T) {
-	for _, operation := range []string{"metadata", "content"} {
+	for _, operation := range []string{"metadata", "content", "multi"} {
 		for _, tamper := range []string{"used", "start"} {
 			for _, journal := range []string{"valid", "valid-pub-missing", "wrong-hash", "malformed"} {
 				t.Run(operation+"/"+tamper+"/"+journal, func(t *testing.T) {
 					w, dir, _ := legalWorkspace(t, "3.0")
 					p := fieldPlan(t, w, "title", "title", "Title", "New")
-					if operation == "content" {
+					switch operation {
+					case "content":
 						p = contentPlan(t, w, "Changed")
+					case "multi":
+						p = multiPlan(t, w)
 					}
-					e, out := prepareExecution(t, w, p)
-					put(t, filepath.Join(dir, candidate, p.WriteSet[0]), out)
+					e, outputs := prepareExecution(t, w, p)
+					putOutputs(t, dir, outputs)
 					s, err := w.snapshot(e.Checkpoint)
 					if err != nil {
 						t.Fatal(err)

@@ -54,31 +54,64 @@ func ApplyText(a ResourceReader, p *Publication, s TextSet) ([]byte, bool, error
 	if err := s.Validate(); err != nil {
 		return nil, false, err
 	}
-	found := false
-	for _, item := range p.Manifest {
-		if item.Path == s.BookPath {
-			found = true
-			if item.MediaType != "application/xhtml+xml" {
-				return nil, false, fmt.Errorf("target must be manifest XHTML")
-			}
-		}
-	}
-	if !found {
-		return nil, false, fmt.Errorf("target is not in selected manifest")
+	if err := checkTextTarget(p, s.BookPath); err != nil {
+		return nil, false, err
 	}
 	input, err := a.Read(s.BookPath, XMLLimit)
 	if err != nil {
 		return nil, false, fmt.Errorf("read target: %v", err)
 	}
+	if err := CheckTextResourceHash(input, s); err != nil {
+		return nil, false, err
+	}
+	return applyTextTarget(input, p, s)
+}
+
+// CheckTextResourceHash verifies that input is the frozen resource the v1
+// operation was bound to. It decides nothing about target support or content.
+func CheckTextResourceHash(input []byte, s TextSet) error {
 	h := sha256.Sum256(input)
 	if hex.EncodeToString(h[:]) != s.ResourceSHA256 {
-		return nil, false, fault.New(4, "INPUT_DRIFT", "content resource hash changed")
+		return fault.New(4, "INPUT_DRIFT", "content resource hash changed")
+	}
+	return nil
+}
+
+// ApplyTextAt applies s to caller-supplied bytes already bound to the frozen
+// baseline resource hash. Manifest selection, target support and the expected
+// old value are rederived from input, never trusted from the request.
+func ApplyTextAt(input []byte, p *Publication, s TextSet) ([]byte, bool, error) {
+	if err := s.Validate(); err != nil {
+		return nil, false, err
+	}
+	return applyTextTarget(input, p, s)
+}
+
+func applyTextTarget(input []byte, p *Publication, s TextSet) ([]byte, bool, error) {
+	if err := checkTextTarget(p, s.BookPath); err != nil {
+		return nil, false, err
 	}
 	e, err := simpleTextElement(input, s.Locator, xmltext.Profile{Version: p.Version, MediaType: "application/xhtml+xml"})
 	if err != nil {
 		return nil, false, err
 	}
 	return xmltext.Replace(input, e, s.ExpectedOldValue, s.NewValue)
+}
+
+func checkTextTarget(p *Publication, bp bookpath.BookPath) error {
+	found := false
+	for _, item := range p.Manifest {
+		if item.Path == bp {
+			found = true
+			if item.MediaType != "application/xhtml+xml" {
+				return fmt.Errorf("target must be manifest XHTML")
+			}
+		}
+	}
+	if !found {
+		return fmt.Errorf("target is not in selected manifest")
+	}
+	return nil
 }
 
 // ContentText observes the actual candidate simple-text target for review. It

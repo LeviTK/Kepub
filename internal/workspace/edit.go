@@ -182,33 +182,89 @@ func digest(v any) string {
 const legacyEditPolicy = "kepub-metadata-v1:initial-only;single-set;simple-text;no-timestamp;review-required;conformance-not-run"
 const editPolicy = "kepub-metadata-v2:accepted-baseline;single-set;simple-text;no-timestamp;review-required;conformance-not-run"
 const contentEditPolicy = "kepub-content-text-v1:accepted-baseline;single-set;locator-v1;simple-text;no-timestamp;review-required;conformance-not-run"
+const multiEditPolicy = "kepub-multi-v1:accepted-baseline;multi-operation;multi-resource;frozen-baseline;simple-text;no-timestamp;review-required;conformance-not-run"
+
+// maxPlanOperations bounds one version 3 transaction. Each operation may parse
+// its target resource, so the request file size alone is not a work bound.
+const maxPlanOperations = 256
+
+// derivation is the complete deterministic effect of one plan against the frozen
+// baseline: every changed BookPath with its exact final bytes. No caller may
+// assume a single resource or a single output.
+type derivation struct {
+	outputs map[string][]byte
+	writes  []string
+}
+
+func singleDerivation(path string, out []byte, changed bool) derivation {
+	if !changed {
+		return derivation{outputs: map[string][]byte{}, writes: []string{}}
+	}
+	return derivation{outputs: map[string][]byte{path: out}, writes: []string{path}}
+}
 
 func operationSchema(ops []Operation) (int, error) {
-	if len(ops) != 1 || ops[0].Version != 1 {
-		return 0, fmt.Errorf("requires one supported version 1 operation")
-	}
-	switch ops[0].ID {
-	case "metadata.set":
-		if _, ok := ops[0].Params.(metadata.Set); ok {
-			return 1, nil
+	if len(ops) == 1 {
+		if ops[0].Version != 1 {
+			return 0, fmt.Errorf("requires one supported version 1 operation")
 		}
-	case "content.text.set":
-		if p, ok := ops[0].Params.(publication.TextSet); ok {
-			if err := p.Validate(); err != nil {
-				return 0, fmt.Errorf("content params: %v", err)
+		switch ops[0].ID {
+		case "metadata.set":
+			if _, ok := ops[0].Params.(metadata.Set); ok {
+				return 1, nil
 			}
-			if p.RevisionID != "initial" && !validID(p.RevisionID) {
-				return 0, fmt.Errorf("invalid revisionId")
+		case "content.text.set":
+			if p, ok := ops[0].Params.(publication.TextSet); ok {
+				if err := p.Validate(); err != nil {
+					return 0, fmt.Errorf("content params: %v", err)
+				}
+				if p.RevisionID != "initial" && !validID(p.RevisionID) {
+					return 0, fmt.Errorf("invalid revisionId")
+				}
+				return 2, nil
 			}
-			return 2, nil
 		}
+		return 0, fmt.Errorf("unsupported operation params")
 	}
-	return 0, fmt.Errorf("unsupported operation params")
+	if len(ops) > 1 {
+		if len(ops) > maxPlanOperations {
+			return 0, fmt.Errorf("operation count exceeds %d", maxPlanOperations)
+		}
+		for _, op := range ops {
+			if op.Version != 1 {
+				return 0, fmt.Errorf("multi-operation plans require version 1 operations")
+			}
+			switch op.ID {
+			case "metadata.set":
+				if _, ok := op.Params.(metadata.Set); !ok {
+					return 0, fmt.Errorf("unsupported operation params")
+				}
+			case "content.text.set":
+				p, ok := op.Params.(publication.TextSet)
+				if !ok {
+					return 0, fmt.Errorf("unsupported operation params")
+				}
+				if err := p.Validate(); err != nil {
+					return 0, fmt.Errorf("content params: %v", err)
+				}
+				if p.RevisionID != "initial" && !validID(p.RevisionID) {
+					return 0, fmt.Errorf("invalid revisionId")
+				}
+			default:
+				return 0, fmt.Errorf("unsupported operation")
+			}
+		}
+		return 3, nil
+	}
+	return 0, fmt.Errorf("requires one supported version 1 operation")
 }
 
 func policyFor(version int) string {
-	if version == 2 {
+	switch version {
+	case 2:
 		return contentEditPolicy
+	case 3:
+		return multiEditPolicy
 	}
 	return editPolicy
 }
@@ -307,55 +363,173 @@ func ReadEditFile(file string) ([]byte, error) {
 	return b, err
 }
 
-func (w *Workspace) recompute(ops []Operation) ([]byte, []string, error) {
+func (w *Workspace) recompute(ops []Operation) (derivation, error) {
 	return w.recomputeAt(ops, revisionPath(w.current), w.current)
 }
 
 // The same derivation is used for current plans and historical checkpoint
 // provenance during acceptance/recovery. Neither trusts a persisted write set.
-func (w *Workspace) recomputeAt(ops []Operation, baseDir, revision string) ([]byte, []string, error) {
+func (w *Workspace) recomputeAt(ops []Operation, baseDir, revision string) (derivation, error) {
 	version, err := operationSchema(ops)
 	if err != nil {
-		return nil, nil, err
+		return derivation{}, err
 	}
 	r, err := subdir(w.root, baseDir)
 	if err != nil {
-		return nil, nil, err
+		return derivation{}, err
 	}
 	defer r.Close()
 	a := publicationRoot{r}
+	if version == 3 {
+		return w.recomputeMulti(a, ops, revision)
+	}
 	if version == 2 {
 		param := ops[0].Params.(publication.TextSet)
 		if param.RevisionID != revision {
-			return nil, nil, ErrStalePlan
+			return derivation{}, ErrStalePlan
 		}
 		p, err := publication.Load(a, w.state.Rootfile)
 		if err != nil {
-			return nil, nil, err
+			return derivation{}, err
 		}
 		out, changed, err := publication.ApplyText(a, p, param)
 		if err != nil {
-			return nil, nil, err
+			return derivation{}, err
 		}
-		writes := []string{}
-		if changed {
-			writes = append(writes, string(param.BookPath))
-		}
-		return out, writes, nil
+		return singleDerivation(string(param.BookPath), out, changed), nil
 	}
 	b, err := a.Read(bookpath.BookPath(w.state.Rootfile), publication.XMLLimit)
 	if err != nil {
-		return nil, nil, err
+		return derivation{}, err
 	}
 	out, changed, err := metadata.Apply(b, ops[0].Params.(metadata.Set))
 	if err != nil {
-		return nil, nil, err
+		return derivation{}, err
 	}
-	writeSet := []string{}
-	if changed {
-		writeSet = append(writeSet, w.state.Rootfile)
+	return singleDerivation(w.state.Rootfile, out, changed), nil
+}
+
+// recomputeMulti derives a multi-operation plan against the frozen baseline
+// before applying it in order. Every binding (revision, resource hash, expected
+// old value) is checked against the frozen baseline, so an earlier operation can
+// never rewrite a later operation's expectation. Duplicate and aliased targets
+// are rejected instead of being applied twice.
+func (w *Workspace) recomputeMulti(a publicationRoot, ops []Operation, revision string) (derivation, error) {
+	var pub *publication.Publication
+	base := map[string][]byte{}
+	current := map[string][]byte{}
+	touched := map[string]bool{}
+	targets := map[string]bool{}
+	loadBase := func(path string) ([]byte, error) {
+		if b, ok := base[path]; ok {
+			return b, nil
+		}
+		bp, err := bookpath.Parse(path)
+		if err != nil {
+			return nil, err
+		}
+		b, err := a.Read(bp, publication.XMLLimit)
+		if err != nil {
+			return nil, err
+		}
+		base[path] = b
+		return b, nil
 	}
-	return out, writeSet, nil
+	for _, op := range ops {
+		switch op.ID {
+		case "metadata.set":
+			param := op.Params.(metadata.Set)
+			b, err := loadBase(w.state.Rootfile)
+			if err != nil {
+				return derivation{}, err
+			}
+			location, err := metadata.Select(b, param)
+			if err != nil {
+				return derivation{}, err
+			}
+			key := "metadata\x00" + location
+			if targets[key] {
+				return derivation{}, fmt.Errorf("duplicate metadata target %s", location)
+			}
+			targets[key] = true
+			if !touched[w.state.Rootfile] {
+				out, _, err := metadata.Apply(b, param)
+				if err != nil {
+					return derivation{}, err
+				}
+				current[w.state.Rootfile] = out
+				touched[w.state.Rootfile] = true
+				continue
+			}
+			// Revalidate against the frozen baseline before applying to the
+			// evolving bytes: an earlier operation must not relax this
+			// operation's expected old value.
+			if _, _, err := metadata.Apply(b, param); err != nil {
+				return derivation{}, err
+			}
+			out, _, err := metadata.Apply(current[w.state.Rootfile], param)
+			if err != nil {
+				return derivation{}, err
+			}
+			current[w.state.Rootfile] = out
+		case "content.text.set":
+			param := op.Params.(publication.TextSet)
+			if param.RevisionID != revision {
+				return derivation{}, ErrStalePlan
+			}
+			if pub == nil {
+				p, err := publication.Load(a, w.state.Rootfile)
+				if err != nil {
+					return derivation{}, err
+				}
+				pub = p
+			}
+			path := string(param.BookPath)
+			b, err := loadBase(path)
+			if err != nil {
+				return derivation{}, err
+			}
+			if err := publication.CheckTextResourceHash(b, param); err != nil {
+				return derivation{}, err
+			}
+			key := "content\x00" + path + "\x00" + param.Locator
+			if targets[key] {
+				return derivation{}, fmt.Errorf("duplicate content target %s in %s", param.Locator, path)
+			}
+			targets[key] = true
+			if !touched[path] {
+				out, _, err := publication.ApplyTextAt(b, pub, param)
+				if err != nil {
+					return derivation{}, err
+				}
+				current[path] = out
+				touched[path] = true
+				continue
+			}
+			if _, _, err := publication.ApplyTextAt(b, pub, param); err != nil {
+				return derivation{}, err
+			}
+			out, _, err := publication.ApplyTextAt(current[path], pub, param)
+			if err != nil {
+				return derivation{}, err
+			}
+			current[path] = out
+		default:
+			return derivation{}, fmt.Errorf("unsupported operation")
+		}
+	}
+	outputs := map[string][]byte{}
+	for path, out := range current {
+		if !bytes.Equal(out, base[path]) {
+			outputs[path] = out
+		}
+	}
+	writes := make([]string, 0, len(outputs))
+	for path := range outputs {
+		writes = append(writes, path)
+	}
+	slices.Sort(writes)
+	return derivation{outputs, writes}, nil
 }
 
 // Plan reads the immutable accepted snapshot and persists only a plan report.
@@ -386,11 +560,11 @@ func (w *Workspace) Plan(requestJSON []byte) (Plan, error) {
 	if request.SchemaVersion != version {
 		return Plan{}, fmt.Errorf("unsupported request version")
 	}
-	_, writes, err := w.recompute(request.Operations)
+	d, err := w.recompute(request.Operations)
 	if err != nil {
 		return Plan{}, err
 	}
-	p := Plan{version, randomID(), w.id, w.dir, w.current, w.base.SHA256, digest(request.Operations), digest(policyFor(version)), w.state.Rootfile, request.Operations, writes, true}
+	p := Plan{version, randomID(), w.id, w.dir, w.current, w.base.SHA256, digest(request.Operations), digest(policyFor(version)), w.state.Rootfile, request.Operations, d.writes, true}
 	if !exists(w.root, "plans") {
 		if err := w.root.Mkdir("plans", 0700); err != nil {
 			return Plan{}, err
@@ -407,37 +581,37 @@ func (w *Workspace) Plan(requestJSON []byte) (Plan, error) {
 	return p, syncDir(w.root, "plans")
 }
 
-func (w *Workspace) verifyPlan(p Plan, bindPath bool) ([]byte, error) {
+func (w *Workspace) verifyPlan(p Plan, bindPath bool) (derivation, error) {
 	if err := w.ensureIdentity(); err != nil {
-		return nil, err
+		return derivation{}, err
 	}
 	if err := w.verifyBaseline(); err != nil {
-		return nil, errors.Join(ErrStalePlan, err)
+		return derivation{}, errors.Join(ErrStalePlan, err)
 	}
 	if !validPlanOperation(p) || !validID(p.ID) || p.WriteSet == nil || p.WorkspaceID != w.id || bindPath && p.WorkspacePath != w.dir || p.BaseRevision != w.current || p.InputTreeSHA256 != w.base.SHA256 || p.Rootfile != w.state.Rootfile || p.OperationSetSHA256 != digest(p.Operations) {
-		return nil, ErrStalePlan
+		return derivation{}, ErrStalePlan
 	}
 	var stored Plan
 	if err := readEditJSON(w.root, "plans/"+p.ID+".json", &stored); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return nil, ErrStalePlan
+			return derivation{}, ErrStalePlan
 		}
-		return nil, err
+		return derivation{}, err
 	}
 	if digest(stored) != digest(p) {
-		return nil, ErrStalePlan
+		return derivation{}, ErrStalePlan
 	}
 	if err := w.verifyBaseline(); err != nil {
-		return nil, errors.Join(ErrStalePlan, err)
+		return derivation{}, errors.Join(ErrStalePlan, err)
 	}
-	out, writes, err := w.recompute(p.Operations)
+	d, err := w.recompute(p.Operations)
 	if err != nil {
-		return nil, err
+		return derivation{}, err
 	}
-	if !p.Applicable || !slices.Equal(writes, p.WriteSet) {
-		return nil, ErrStalePlan
+	if !p.Applicable || !slices.Equal(d.writes, p.WriteSet) {
+		return derivation{}, ErrStalePlan
 	}
-	return out, nil
+	return d, nil
 }
 
 // Apply strictly reads a plan, re-derives its effects, then creates the sole
@@ -452,7 +626,7 @@ func (w *Workspace) Apply(planJSON []byte) (e Execution, err error) {
 	if err := decodeStrict(planJSON, &p); err != nil {
 		return Execution{}, err
 	}
-	out, err := w.verifyPlan(p, true)
+	d, err := w.verifyPlan(p, true)
 	if err != nil {
 		return Execution{}, err
 	}
@@ -487,7 +661,7 @@ func (w *Workspace) Apply(planJSON []byte) (e Execution, err error) {
 	if err != nil {
 		return e, err
 	}
-	return w.execute(e, out, nil)
+	return w.execute(e, d.outputs, nil)
 }
 
 // startExecution records the pre-mutation checkpoint and durable start. Even
@@ -517,38 +691,23 @@ func (w *Workspace) startExecution(p Plan) (e Execution, err error) {
 
 // execute's hook is used only by package tests to simulate a stopped external
 // writer or an I/O failure at the mutation boundary; no production bypass API.
-func (w *Workspace) execute(e Execution, out []byte, hook func() error) (Execution, error) {
+// All planned resources are written in sorted order; any failure rolls the
+// whole candidate back through its checkpoint, never leaving a partial book.
+func (w *Workspace) execute(e Execution, outputs map[string][]byte, hook func() error) (Execution, error) {
 	var err error
-	if len(e.Plan.WriteSet) > 0 {
-		target := e.Plan.WriteSet[0]
-		r, e2 := subdir(w.root, candidate+"/"+path.Dir(target))
-		if e2 != nil {
-			err = e2
-		} else {
-			f, e2 := openRegular(r, path.Base(target))
-			if e2 != nil {
-				err = e2
-			} else {
-				err = f.Close()
-			}
-			if err == nil {
-				// Anchor both temporary write and replacement to the opened target
-				// parent, never resolve a workspace-relative publication path again.
-				name := ".kepub-edit-" + randomID()
-				f, e2 = r.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
-				if e2 != nil {
-					err = e2
-				} else {
-					_, err = f.Write(out)
-					err = errors.Join(err, f.Sync(), f.Close())
-					if err == nil {
-						err = r.Rename(name, path.Base(target))
-					}
-					err = errors.Join(err, r.RemoveAll(name), syncDir(r, "."))
-				}
-			}
-			r.Close()
+	if len(outputs) != len(e.Plan.WriteSet) {
+		err = fmt.Errorf("derived output set does not match plan")
+	}
+	for _, target := range e.Plan.WriteSet {
+		if err != nil {
+			break
 		}
+		out, ok := outputs[target]
+		if !ok {
+			err = fmt.Errorf("missing derived output for %s", target)
+			break
+		}
+		err = w.writeCandidateFile(target, out)
 	}
 	if err == nil && hook != nil {
 		err = hook()
@@ -568,13 +727,26 @@ func (w *Workspace) execute(e Execution, out []byte, hook func() error) (Executi
 			if !slices.Equal(paths, e.Plan.WriteSet) {
 				err = fmt.Errorf("actual writes exceed plan")
 			}
-			// Verify exact content, not merely the set of changed filenames.
-			if err == nil && len(paths) > 0 {
+			// Verify exact content for every planned resource, not merely the
+			// set of changed filenames.
+			for _, target := range e.Plan.WriteSet {
+				if err != nil {
+					break
+				}
+				out := outputs[target]
 				h := sha256.Sum256(out)
+				seen := false
 				for _, entry := range actual.Entries {
-					if entry.Path == e.Plan.WriteSet[0] && (entry.Type != "file" || entry.Size != int64(len(out)) || entry.SHA256 != hex.EncodeToString(h[:])) {
+					if entry.Path != target {
+						continue
+					}
+					seen = true
+					if entry.Type != "file" || entry.Size != int64(len(out)) || entry.SHA256 != hex.EncodeToString(h[:]) {
 						err = fmt.Errorf("candidate content mismatch")
 					}
+				}
+				if err == nil && !seen {
+					err = fmt.Errorf("candidate target %s is missing", target)
 				}
 			}
 		}
@@ -624,15 +796,46 @@ func (w *Workspace) execute(e Execution, out []byte, hook func() error) (Executi
 	return e, err
 }
 
-func expectedDiff(base Tree, writes []string, out []byte) Diff {
+// writeCandidateFile replaces one candidate resource through a same-directory
+// temporary file and rename. Both the temporary write and the replacement are
+// anchored to the opened target parent, never resolved a second time.
+func (w *Workspace) writeCandidateFile(target string, out []byte) error {
+	r, err := subdir(w.root, candidate+"/"+path.Dir(target))
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	f, err := openRegular(r, path.Base(target))
+	if err != nil {
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+	name := ".kepub-edit-" + randomID()
+	f, err = r.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(out)
+	err = errors.Join(err, f.Sync(), f.Close())
+	if err == nil {
+		err = r.Rename(name, path.Base(target))
+	}
+	return errors.Join(err, r.RemoveAll(name), syncDir(r, "."))
+}
+
+// expectedDiff predicts the candidate tree from the complete derived output set.
+// It must describe every planned write, not only the first resource.
+func expectedDiff(base Tree, outputs map[string][]byte) Diff {
 	after := Tree{Entries: slices.Clone(base.Entries)}
-	if len(writes) > 0 {
-		h := sha256.Sum256(out)
-		for i, entry := range after.Entries {
-			if entry.Path == writes[0] {
-				after.Entries[i] = Entry{entry.Path, "file", int64(len(out)), hex.EncodeToString(h[:])}
-			}
+	for i, entry := range after.Entries {
+		out, ok := outputs[entry.Path]
+		if !ok {
+			continue
 		}
+		h := sha256.Sum256(out)
+		after.Entries[i] = Entry{entry.Path, "file", int64(len(out)), hex.EncodeToString(h[:])}
 	}
 	after.SHA256 = hashEntries(after.Entries)
 	return compareTrees(base, after)
@@ -718,7 +921,7 @@ func (w *Workspace) execution() (Execution, error) {
 	}
 	// A registered task has consumed its plan. Its stored identity and source
 	// still bind execution after moving the workspace, not the former host path.
-	out, err := w.verifyPlan(intent, false)
+	d, err := w.verifyPlan(intent, false)
 	if err != nil {
 		return e, err
 	}
@@ -819,7 +1022,7 @@ func (w *Workspace) execution() (Execution, error) {
 		if !e.ReviewRequired || e.Failure != "" {
 			return e, fmt.Errorf("stale execution result")
 		}
-		if digest(e.Diff) != digest(expectedDiff(w.base, intent.WriteSet, out)) {
+		if digest(e.Diff) != digest(expectedDiff(w.base, d.outputs)) {
 			return e, fmt.Errorf("execution write set/content mismatch")
 		}
 		if digest(e.Diff) != digest(compareTrees(w.base, tree)) {

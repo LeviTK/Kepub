@@ -55,12 +55,13 @@ type MetadataReview struct {
 	Unavailable  string  `json:"unavailable,omitempty"`
 }
 type Review struct {
-	TaskID           string         `json:"taskId"`
-	BaseRevision     string         `json:"baseRevision"`
-	Diff             Diff           `json:"diff"`
-	MatchesExecution bool           `json:"matchesExecution"`
-	Metadata         MetadataReview `json:"metadata"`
-	Content          *ContentReview `json:"content,omitempty"`
+	TaskID           string            `json:"taskId"`
+	BaseRevision     string            `json:"baseRevision"`
+	Diff             Diff              `json:"diff"`
+	MatchesExecution bool              `json:"matchesExecution"`
+	Metadata         MetadataReview    `json:"metadata"`
+	Content          *ContentReview    `json:"content,omitempty"`
+	Operations       []OperationReview `json:"operations,omitempty"`
 }
 
 type ContentReview struct {
@@ -71,6 +72,25 @@ type ContentReview struct {
 	PlannedValue   string  `json:"plannedValue"`
 	NewValue       *string `json:"newValue"`
 	Unavailable    string  `json:"unavailable,omitempty"`
+}
+
+// OperationReview reports one version 3 operation's planned target and the
+// actual candidate value observed for it, in operation order. It is additive:
+// schema 1/2 reviews keep their existing metadata/content fields.
+type OperationReview struct {
+	Index            int     `json:"index"`
+	OperationID      string  `json:"operationId"`
+	OperationVersion int     `json:"operationVersion"`
+	BookPath         string  `json:"bookPath,omitempty"`
+	LocatorVersion   int     `json:"locatorVersion,omitempty"`
+	Locator          string  `json:"locator,omitempty"`
+	Namespace        string  `json:"namespace,omitempty"`
+	LocalName        string  `json:"localName,omitempty"`
+	ID               string  `json:"id,omitempty"`
+	OldValue         string  `json:"oldValue"`
+	PlannedValue     string  `json:"plannedValue"`
+	NewValue         *string `json:"newValue"`
+	Unavailable      string  `json:"unavailable,omitempty"`
 }
 
 func revisionPath(id string) string { return "revisions/" + id + "/pub" }
@@ -437,7 +457,9 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 		return Review{}, err2
 	}
 	r := Review{TaskID: id, BaseRevision: w.current, Diff: compareTrees(w.base, t), MatchesExecution: err == nil}
-	if param, ok := e.Plan.Operations[0].Params.(publication.TextSet); ok {
+	if e.Plan.SchemaVersion == 3 {
+		r.Operations = plannedReviews(e.Plan.Operations)
+	} else if param, ok := e.Plan.Operations[0].Params.(publication.TextSet); ok {
 		r.Content = &ContentReview{BookPath: string(param.BookPath), LocatorVersion: param.LocatorVersion, Locator: param.Locator, OldValue: param.ExpectedOldValue, PlannedValue: param.NewValue}
 	} else {
 		param := e.Plan.Operations[0].Params.(metadata.Set)
@@ -445,40 +467,42 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 	}
 	a, frozen, err := archive.SnapshotDirectory(filepath.Join(w.dir, filepath.FromSlash(candidate)), archive.DefaultLimits)
 	if err != nil {
-		if r.Content != nil {
-			r.Content.Unavailable = err.Error()
-		} else {
-			r.Metadata.Unavailable = err.Error()
-		}
+		unavailableReview(&r, err.Error())
 		return r, nil
 	}
 	defer a.Close()
 	if frozen.SHA256 != t.SHA256 {
 		return r, ErrCandidateDrift
 	}
-	if r.Content != nil {
-		param := e.Plan.Operations[0].Params.(publication.TextSet)
-		p, err := publication.Load(a, w.state.Rootfile)
-		if err != nil {
-			r.Content.Unavailable = err.Error()
-			return r, nil
-		}
-		b, err := a.Read(param.BookPath, publication.XMLLimit)
-		if err != nil {
-			r.Content.Unavailable = err.Error()
-			return r, nil
-		}
-		media := ""
-		for _, item := range p.Manifest {
-			if item.Path == param.BookPath {
-				media = item.MediaType
+	p, err := publication.Load(a, w.state.Rootfile)
+	if err != nil {
+		unavailableReview(&r, err.Error())
+		return r, nil
+	}
+	if r.Operations != nil {
+		for i, op := range e.Plan.Operations {
+			switch param := op.Params.(type) {
+			case publication.TextSet:
+				value, err := candidateContentValue(a, p, param)
+				if err != nil {
+					r.Operations[i].Unavailable = err.Error()
+				} else {
+					r.Operations[i].NewValue = &value
+				}
+			case metadata.Set:
+				value, err := candidateMetadataValue(p, param)
+				if err != nil {
+					r.Operations[i].Unavailable = err.Error()
+				} else {
+					r.Operations[i].NewValue = &value
+				}
 			}
 		}
-		if media != "application/xhtml+xml" {
-			r.Content.Unavailable = "candidate target is not manifest XHTML"
-			return r, nil
-		}
-		value, err := publication.ContentText(b, param.Locator, xmltext.Profile{Version: p.Version, MediaType: media})
+		return r, nil
+	}
+	if r.Content != nil {
+		param := e.Plan.Operations[0].Params.(publication.TextSet)
+		value, err := candidateContentValue(a, p, param)
 		if err != nil {
 			r.Content.Unavailable = err.Error()
 		} else {
@@ -487,11 +511,71 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 		return r, nil
 	}
 	param := e.Plan.Operations[0].Params.(metadata.Set)
-	p, err := publication.Load(a, w.state.Rootfile)
+	value, err := candidateMetadataValue(p, param)
 	if err != nil {
 		r.Metadata.Unavailable = err.Error()
-		return r, nil
+	} else {
+		r.Metadata.NewValue = &value
 	}
+	return r, nil
+}
+
+// plannedReviews lists every version 3 operation's planned target in order. It
+// reports no actual candidate value; callers fill those from real bytes.
+func plannedReviews(ops []Operation) []OperationReview {
+	out := make([]OperationReview, 0, len(ops))
+	for i, op := range ops {
+		or := OperationReview{Index: i, OperationID: op.ID, OperationVersion: op.Version}
+		switch param := op.Params.(type) {
+		case publication.TextSet:
+			or.BookPath, or.LocatorVersion, or.Locator = string(param.BookPath), param.LocatorVersion, param.Locator
+			or.OldValue, or.PlannedValue = param.ExpectedOldValue, param.NewValue
+		case metadata.Set:
+			or.Namespace, or.LocalName, or.ID = param.Namespace, param.LocalName, param.ID
+			or.OldValue, or.PlannedValue = param.ExpectedOldValue, param.NewValue
+		}
+		out = append(out, or)
+	}
+	return out
+}
+
+func unavailableReview(r *Review, reason string) {
+	switch {
+	case r.Operations != nil:
+		for i := range r.Operations {
+			r.Operations[i].Unavailable = reason
+		}
+	case r.Content != nil:
+		r.Content.Unavailable = reason
+	default:
+		r.Metadata.Unavailable = reason
+	}
+}
+
+// candidateContentValue observes the actual candidate simple-text target. It
+// never substitutes the planned value for unreadable candidate content.
+func candidateContentValue(a *archive.Archive, p *publication.Publication, param publication.TextSet) (string, error) {
+	media := ""
+	for _, item := range p.Manifest {
+		if item.Path == param.BookPath {
+			media = item.MediaType
+		}
+	}
+	if media != "application/xhtml+xml" {
+		return "", fmt.Errorf("candidate target is not manifest XHTML")
+	}
+	b, err := a.Read(param.BookPath, publication.XMLLimit)
+	if err != nil {
+		return "", err
+	}
+	return publication.ContentText(b, param.Locator, xmltext.Profile{Version: p.Version, MediaType: media})
+}
+
+// candidateMetadataValue observes the actual candidate metadata target.
+// Ambiguity or complex content is reported, never guessed.
+func candidateMetadataValue(p *publication.Publication, param metadata.Set) (string, error) {
+	found := false
+	value := ""
 	for _, m := range p.Metadata {
 		if m.Name.Space != param.Namespace || m.Name.Local != param.LocalName {
 			continue
@@ -505,18 +589,16 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 		if param.ID != "" && mid != param.ID {
 			continue
 		}
-		if r.Metadata.NewValue != nil || len(m.Children) != 0 {
-			r.Metadata.NewValue = nil
-			r.Metadata.Unavailable = "ambiguous or complex candidate metadata"
-			return r, nil
+		if found || len(m.Children) != 0 {
+			return "", fmt.Errorf("ambiguous or complex candidate metadata")
 		}
-		value := m.Text
-		r.Metadata.NewValue = &value
+		found = true
+		value = m.Text
 	}
-	if r.Metadata.NewValue == nil {
-		r.Metadata.Unavailable = "selected metadata is absent"
+	if !found {
+		return "", fmt.Errorf("selected metadata is absent")
 	}
-	return r, nil
+	return value, nil
 }
 
 // AcceptedSnapshot freezes only the current accepted tree. Initial is a usable
@@ -813,15 +895,15 @@ func (w *Workspace) taskDigests(dir string, j *settlement) error {
 	if !validPlanOperation(p) || p.Rootfile != w.state.Rootfile || p.OperationSetSHA256 != digest(p.Operations) || s.Version != p.SchemaVersion || e.Version != s.Version || s.TaskID != e.TaskID || s.TaskID != id && !(id == "active" && s.TaskID == "") || (s.Status != "running" && s.Status != "unstarted") || (s.Status == "unstarted" && e.Status != "failed") || s.ReviewRequired || s.Conformance != "not_run" || digest(s.Diff) != digest(compareTrees(tree, tree)) || e.Conformance != "not_run" || e.Diff.Changes == nil {
 		return fmt.Errorf("settlement operation/execution version mismatch")
 	}
-	out, writes, err := w.recomputeAt(p.Operations, dir+"/checkpoints/"+s.Checkpoint+"/pub", p.BaseRevision)
+	d, err := w.recomputeAt(p.Operations, dir+"/checkpoints/"+s.Checkpoint+"/pub", p.BaseRevision)
 	if err != nil {
 		return err
 	}
-	if !p.Applicable || !slices.Equal(writes, p.WriteSet) {
+	if !p.Applicable || !slices.Equal(d.writes, p.WriteSet) {
 		return fmt.Errorf("settlement write set mismatch")
 	}
 	if e.Status == "review_required" {
-		if !e.ReviewRequired || e.Failure != "" || digest(e.Diff) != digest(expectedDiff(tree, writes, out)) {
+		if !e.ReviewRequired || e.Failure != "" || digest(e.Diff) != digest(expectedDiff(tree, d.outputs)) {
 			return fmt.Errorf("settlement content mismatch")
 		}
 	} else if e.Status != "failed" || e.ReviewRequired || e.Failure == "" || j.Decision.Status == "accepted" {

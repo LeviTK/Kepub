@@ -152,8 +152,8 @@ func TestAcceptedLifecycle(t *testing.T) {
 			if second.BaseRevision != d.RevisionID || second.InputTreeSHA256 != d.TreeSHA256 {
 				t.Fatal("second plan did not advance baseline")
 			}
-			failed, out := prepareExecution(t, w, second)
-			failed, err = w.execute(failed, out, func() error {
+			failed, outputs := prepareExecution(t, w, second)
+			failed, err = w.execute(failed, outputs, func() error {
 				put(t, filepath.Join(dir, candidate, "EPUB/style.css"), []byte("unexpected accepted-baseline write"))
 				return nil
 			})
@@ -770,8 +770,8 @@ func TestFailedCandidateDriftRemainsReviewable(t *testing.T) {
 						t.Fatal(err)
 					}
 				} else {
-					_, out := prepareExecution(t, w, p)
-					put(t, filepath.Join(dir, candidate, p.WriteSet[0]), out)
+					_, outputs := prepareExecution(t, w, p)
+					putOutputs(t, dir, outputs)
 					w.Close()
 					var err error
 					w, err = Open(dir) // Interrupted mutation restores its checkpoint.

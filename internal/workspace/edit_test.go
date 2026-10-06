@@ -184,9 +184,9 @@ func TestRequestsAndPlansRejectTampering(t *testing.T) {
 		t.Fatalf("baseline drift: %v", err)
 	}
 }
-func prepareExecution(t *testing.T, w *Workspace, p Plan) (Execution, []byte) {
+func prepareExecution(t *testing.T, w *Workspace, p Plan) (Execution, map[string][]byte) {
 	t.Helper()
-	out, err := w.verifyPlan(p, true)
+	d, err := w.verifyPlan(p, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -205,7 +205,16 @@ func prepareExecution(t *testing.T, w *Workspace, p Plan) (Execution, []byte) {
 	if err := writeJSON(w.root, "tasks/active/edit-start.json", e); err != nil {
 		t.Fatal(err)
 	}
-	return e, out
+	return e, d.outputs
+}
+
+// putOutputs materializes every derived resource of a prepared execution, so a
+// test interruption is not limited to the first planned write.
+func putOutputs(t *testing.T, dir string, outputs map[string][]byte) {
+	t.Helper()
+	for path, out := range outputs {
+		put(t, filepath.Join(dir, candidate, path), out)
+	}
 }
 
 func TestPublishedTaskStartupFailureRetainsID(t *testing.T) {
@@ -257,8 +266,8 @@ func TestActualWriteSetFailureRollbackAndReopen(t *testing.T) {
 		t.Run(scenario, func(t *testing.T) {
 			w, dir := makeWorkspace(t)
 			p := planTitle(t, w, "New")
-			e, out := prepareExecution(t, w, p)
-			e, err := w.execute(e, out, func() error {
+			e, outputs := prepareExecution(t, w, p)
+			e, err := w.execute(e, outputs, func() error {
 				switch scenario {
 				case "add":
 					put(t, filepath.Join(dir, candidate, "new-file.txt"), []byte("unexpected"))
@@ -312,9 +321,9 @@ func TestInterruptedApplyRollsBackNotRerun(t *testing.T) {
 					t.Fatal(err)
 				}
 			} else {
-				_, out := prepareExecution(t, w, p)
+				_, outputs := prepareExecution(t, w, p)
 				if phase == "after-write" {
-					put(t, filepath.Join(dir, candidate, p.Rootfile), out)
+					putOutputs(t, dir, outputs)
 					put(t, filepath.Join(dir, candidate, "extra"), []byte("unplanned"))
 				}
 			}
@@ -470,12 +479,12 @@ func TestForgedExecutionCannotClaimReview(t *testing.T) {
 func TestReportFailureAlsoRollsBack(t *testing.T) {
 	w, dir := makeWorkspace(t)
 	p := planTitle(t, w, "New")
-	e, out := prepareExecution(t, w, p)
+	e, outputs := prepareExecution(t, w, p)
 	collision := filepath.Join(dir, "tasks/active/edit-result.json")
 	if err := os.Mkdir(collision, 0700); err != nil {
 		t.Fatal(err)
 	}
-	e, err := w.execute(e, out, nil)
+	e, err := w.execute(e, outputs, nil)
 	if err == nil || e.Status != "failed" || e.ReviewRequired || e.Failure == "" {
 		t.Fatalf("report failure: %+v %v", e, err)
 	}

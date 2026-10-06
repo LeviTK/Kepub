@@ -110,7 +110,7 @@ func Capabilities() []Capability {
 		{ID: "workspace.export", Commands: []string{"workspace export"}, Risk: "external"},
 	} {
 		c.Version, c.Status = 1, "available"
-		c.Reason = "Explicit workspace directory; one metadata.set v1 (schema 1) or content.text.set v1 (schema 2); apply remains review_required/conformance not_run; accept and formal export run pinned EPUBCheck (must be installed)"
+		c.Reason = "Explicit workspace directory; one metadata.set v1 (schema 1), one content.text.set v1 (schema 2), or 2–256 mixed metadata.set/content.text.set v1 operations (schema 3); apply remains review_required/conformance not_run; accept and formal export run pinned EPUBCheck (must be installed)"
 		if c.Risk == "" {
 			c.Risk = "read_only"
 		}

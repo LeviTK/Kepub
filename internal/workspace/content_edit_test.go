@@ -218,11 +218,11 @@ func TestContentEditPlanExecutionTamperAndRollback(t *testing.T) {
 					t.Fatal(err)
 				}
 			} else {
-				e, out := prepareExecution(t, w, p)
+				e, outputs := prepareExecution(t, w, p)
 				if scenario == "interrupted" {
-					put(t, filepath.Join(dir, candidate, "EPUB/chapter.xhtml"), out)
+					putOutputs(t, dir, outputs)
 				} else {
-					e, err := w.execute(e, out, func() error {
+					e, err := w.execute(e, outputs, func() error {
 						if scenario == "wrong-content" {
 							put(t, filepath.Join(dir, candidate, "EPUB/chapter.xhtml"), []byte("wrong bytes"))
 						} else {

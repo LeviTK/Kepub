@@ -210,6 +210,20 @@ XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场�
 
 本节只是接口语义设计，不声明这些字段或修复规则当前可用。新增回归与阶段条件见[开发方案 §11.9](DEVELOPMENT_PLAN.md#119-issue-4-的阶段落点与落实条件)。S0 按 §11.8 的有限清单验收，负责 checker 2026 增量核对，未知已证规则基线使用 `specBaseline: unknown`，目标规范 URI 另记；计划复审无阻塞问题后按用户授权实施，不跳过 S0 或将 planned 当 available。
 
+### 2.7 T2 首批多操作／多资源事务实施契约（本批已实现，待独立审查与父验收）
+
+本批按 [开发方案 §11.7](DEVELOPMENT_PLAN.md#117-v010-独立-cli-批次与完成标准) 先交付**版本化多操作／多资源事务底座**：把 plan／apply／checkpoint／restore／journal／diff／accept／历史来源重算从单操作单输出扩展为完整的冻结输入事务。它**不是完整 T2**：不新增操作类型、不开放混合内容／结构编辑、不做 OPF／nav／ID／链接依赖同步，FixProposal 与 ValidationDelta 仍为设计。旧 `metadata.set` v1（schema 1）与 `content.text.set` v1（schema 2）的含义、规范编码摘要与旧计划兼容规则不变；新增能力只使用新的版本号，不静默升级。
+
+- **请求 schema 3：** `schemaVersion:3` 携带 2–256 个操作，每个为 `metadata.set` v1 或 `content.text.set` v1，参数形状与 v1／v2 相同。单操作请求继续使用 schema 1／2，不提供第三个等价编码；操作数超限、版本不符、未知操作或重复键明确失败，不截断或忽略。
+- **冻结输入：** plan 仍绑定工作区身份、绝对路径、baseRevision、完整输入树 hash、rootfile、操作集摘要与策略摘要（`kepub-multi-v1:accepted-baseline;multi-operation;multi-resource;frozen-baseline;simple-text;no-timestamp;review-required;conformance-not-run` 的既有摘要算法）。每个 `content.text.set` 的 `revisionId`／`resourceSha256` 绑定冻结基线；旧值始终对照冻结基线校验，**前一个操作的输出不会放松或改写后一个操作的旧值期望**。
+- **目标唯一：** 同一 `bookPath` 的 locator 必须互不相同；metadata 目标按冻结元素的结构 location 判重，因此显式 `id` 与省略 `id` 命中同一元素也算重复。重复／别名目标在 plan 阶段拒绝，不会被执行两次或按序叠加。
+- **完整写集合：** 写集合为所有实际字节变化资源的排序去重列表，覆盖全部操作与资源；no-op 操作不贡献条目，全 no-op 事务写集合为空且仍产生完整待审记录。计划文件的 writeSet 只是派生结果，apply／执行恢复／接受／历史结算都从冻结 checkpoint 重新推导并要求完全一致。
+- **执行与失败：** 按写集合顺序逐资源以同目录临时文件＋原子改名替换；完成后核对实际变更路径与写集合完全一致，并逐个核对目标类型、大小与 SHA-256。任一资源失败、记录发布失败或进程中断都会回滚整个候选（checkpoint／restore journal），不留下半本书；已发布的 restore journal 先完成其原决定。失败执行可 diff／reject，永远不能 accept；候选漂移可 diff／reject，不能沿用执行状态接受。
+- **审核与历史：** v3 的 `task diff` 在既有 `diff`（实际候选树）之外增量返回 `operations` 数组，按操作顺序给出计划目标与**实际候选值**（不可读取时为 `unavailable`，不用计划值冒充）。accept 对冻结树运行真实固定 EPUBCheck，settlement／revision／历史状态重新推导 v3 完整写集合与预期差异；未改资源字节、原书 hash、失败无正式产物与输出不覆盖规则不变。
+- **限制：** 请求文件仍为 32 MiB 上限；单操作解析沿用每资源 XML 8 MiB 与既有 token／深度／索引预算，不因多操作放宽。
+
+本批不新增 CLI 命令；`plan`／`apply` 的输入语法不变，只有请求文件内容使用 schema 3。通过独立审查与父验收前，不得把剩余 T2（结构编辑、依赖同步、修复提案与诊断差异、字体混淆资格）标记为完成。
+
 ## 3. 目标选择与全局约定
 
 ### 3.1 明确目标
