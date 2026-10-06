@@ -2,7 +2,7 @@
 
 ## 当前结论：阶段资产未通过总验收
 
-首次检查于 2026-10-05；2026-10-06 已完成下述 P1／P2／P3／P4 修复复验并集成本地 `main`。计划复审已完成，S0 开发进行中；T1 仍暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
+首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P5 修复复验并集成本地 `main`。计划复审已完成，S0 开发进行中；T1 仍暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
 
 首次受审阶段提交为编码 Orb 的 `b92e1903d831d48ae9df13c8592024e69dac0ed2`；父在独立 worktree `/tmp/kepub-s0-parent-review` 检查，当时没有把阶段资产合入父本地 `main`。以下首次失败记录予以保留；后续修复结果单独记录，不覆盖原结果。检查未修改产品或三份冻结主文档。
 
@@ -88,8 +88,16 @@ P4 已交编码 Orb 补齐配对工件并增加缺失／伪造配对来源的验
 
 研究发现 CSS Snapshot 的 33 条非规范性引用被误标为 normative。父实际复读 `original/css.html` 第 7584 行起的 `<h3 id="informative">Non-Normative References` 及其书目，确认该观察；`source_inventory` 先做 `"normative references" in heading` 子串匹配，因此把 `Non-Normative References` 也归为规范性引用。原文不需要修改，需修复抽取和重新生成派生清单。
 
-父新增 `.agents/kepub-s0-parent-reference-tests.py`（SHA-256 `f4f42e2899aa246b7db97e0e45cc70d88ff7873f6b3fdc6b9bf0209d55ca67ab`）：一个规范→非规范→规范的合成控制，以及真实 CSS 八条书目断言。在当前修复前父树实际运行 **2 tests／FAIL，9 个含 subtest 失败，0.012s，exit 1**；日志 SHA-256 `fed8ce678b76ac71adc2727a52021ae519ddaa7b80bcb5b88fb3eb355bf6026d`。代码和测试已交脚本所有者修复，尚未父复验关闭。
+父新增 `.agents/kepub-s0-parent-reference-tests.py`（SHA-256 `f4f42e2899aa246b7db97e0e45cc70d88ff7873f6b3fdc6b9bf0209d55ca67ab`）：一个规范→非规范→规范的合成控制，以及真实 CSS 八条书目断言。在修复前父树实际运行 **2 tests／FAIL，9 个含 subtest 失败，0.012s，exit 1**；日志 SHA-256 `fed8ce678b76ac71adc2727a52021ae519ddaa7b80bcb5b88fb3eb355bf6026d`。先将代码和测试交脚本所有者修复，再做下述固定树复验，不改写这次失败。
 
 研究草案实际输出 `.agents/kepub-s0-parent-dependencies-review.json`，412,716 bytes，SHA-256 `75897ba88561782c39bc93600b57d7d900844157377bd1ff45e5106ac6a012e7`，绑定原外依赖输入 SHA-256 `6a2f061df2e22df6d9b14caba93534a4d38c7dec62547a3c80b6a6f4aa966090`。父程序逐项检查 227/227 的 URL、citations、下载状态、hash 和版本字段保持原样；197 项 mapped、30 项有理由 excluded，后者均为资料性引用。草案保留 P5 错误标记，未升级任何下载状态。修复后须显式修订并重新绑定新输入，不能篡改原稿 hash 伪称早已基于正确清单。
 
 另确认 336 条原文书目中只有 332 条附带 URL：`epub/bib-us-ascii` 及 `aria/bib-dpub-aria`、`aria/bib-epub-3`、`aria/bib-wai-aria` 原文确无 URL。父要求单独记录这些书目，按 document＋entry＋原文 hash／DOM 绑定，URL／未下载内容 hash 保持 null，不凭题名合并到可能不同的版本。引用页面的取得时间也不能被标成目标外文的下载时间。T3 的额外 DTD／NCX／DTBook 清单只登记后续资产前置；付费 ISO 继续披露后续缺口，不购买、不把目录页当全文。这些决定不放松 S0 对实际必需归档范围的要求。
+
+### P5 独立复验通过并集成
+
+父实际下载固定修复 bundle，4,248 bytes、SHA-256 `4ce5383eec28d263d99c4bd1e710efd8486fee5edabe0dbcba078644970c76c6`，verify／fetch 成功；受审提交为 `5d3e7e8b7c96f873ec09fe1afd5710e071a034e1`。父隔离固定树上原样 P5 测试 **2/2 PASS，0.011s**，全部 Python **34/34 PASS，0.378s**；三个 verify 及官方工件 reproduce 全部 exit 0，重建后无跟踪文件漂移，增量空白检查通过。子侧一次使用错误脚本名的失败保留在 [P5 修复记录](S0_ASSETS_REFERENCES.md)，不与正确命令的通过结果合并。
+
+父逐项比较 JSON，确认仅 33 条 CSS 书目的 kind 从 normative 改为 informative，并同步相应依赖引用；336 条原文书目、227 个 URL 和其他库存字段均未改变。新外依赖基线 SHA-256 为 `764a400496929be751f1189018ce2f18780caedb7a2e89ea60b856b95d34ba95`。原规范文件、P4 的 170 本测试书和产品代码均未改。
+
+集成本地 `main` 后全部 Python 再次 **34/34 PASS，0.425s**，资产 verify 成功；与受审树的脚本、规范资产、产品和三主文档比对相同。P5 关闭，但当前稳定树仍只有 749 条 pending 矩阵：后续完整语义增量尚未父验收，`semanticComplete:false`，不得据此开始 T1 或宣称完成 S0／Droid 审查。
