@@ -10,6 +10,7 @@ import (
 	"github.com/LeviTK/Kepub/internal/archive"
 	"github.com/LeviTK/Kepub/internal/bookpath"
 	"github.com/LeviTK/Kepub/internal/fault"
+	"github.com/LeviTK/Kepub/internal/xmltext"
 )
 
 const ContentLocatorVersion = 1
@@ -88,6 +89,12 @@ func readContent(a *archive.Archive, p *Publication, resource bookpath.BookPath,
 	}
 	root, err := parseXML(data)
 	if err != nil {
+		return Content{}, err
+	}
+	if err := root.XMLDocument.CheckProfile(xmltext.Profile{Version: p.Version, MediaType: "application/xhtml+xml"}); err != nil {
+		return Content{}, err
+	}
+	if err := root.XMLDocument.RequireComplete(); err != nil {
 		return Content{}, err
 	}
 	if root.Name != (xml.Name{Space: XHTMLNamespace, Local: "html"}) {

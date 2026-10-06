@@ -79,7 +79,7 @@ func TestTextSetSimpleSubsetAndAncestors(t *testing.T) {
 		contentHTML(`<p>x</p>`) + `<broken`,
 		strings.Replace(contentHTML(`<p>x</p>`), `</p>`, `</q>`, 1),
 	} {
-		if _, err := ContentText([]byte(raw), "/html[1]/body[1]/p[1]"); err == nil {
+		if _, err := ContentText([]byte(raw), "/html[1]/body[1]/p[1]", xmltext.Profile{Version: "3.0", MediaType: "application/xhtml+xml"}); err == nil {
 			t.Fatal("invalid structure allowed")
 		}
 	}
@@ -157,7 +157,7 @@ func FuzzContentSimpleTextReplacement(f *testing.F) {
 		prefix := "\xef\xbb\xbf" + `<html xmlns="http://www.w3.org/1999/xhtml"><body><p>Same&amp;😀</p><p id='chosen'>`
 		suffix := `</p><p>Same&amp;😀</p></body></html>` + "\r\n"
 		input := []byte(prefix + `Same&#38;😀` + suffix)
-		e, err := simpleTextElement(input, "/html[1]/body[1]/p[2]")
+		e, err := simpleTextElement(input, "/html[1]/body[1]/p[2]", xmltext.Profile{Version: "3.0", MediaType: "application/xhtml+xml"})
 		if err != nil {
 			t.Fatal(err)
 		}

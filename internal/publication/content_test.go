@@ -172,7 +172,7 @@ func TestContentExactManifestAndStructure(t *testing.T) {
 	for _, tc := range []struct{ data, code string }{
 		{`<html><body><p>wrong namespace</p></body></html>`, "CONTENT_STRUCTURE"},
 		{contentHTML(`<p>&unknown;</p>`), "XML_NOT_WELL_FORMED"},
-		{`<!DOCTYPE html SYSTEM "https://example.invalid/external.dtd">` + contentHTML(`<p/>`), "UNSUPPORTED_XML_DTD"},
+		{`<!DOCTYPE html SYSTEM "https://example.invalid/external.dtd">` + contentHTML(`<p/>`), "XML_POLICY"},
 		{contentHTML(`<p xml:base="x">x</p>`), "UNSUPPORTED_XML_BASE"},
 		{contentHTML(strings.Repeat("<div>", 129) + strings.Repeat("</div>", 129)), "XML_LIMIT"},
 		{contentHTML(strings.Repeat(`<p/>`, 100001)), "XML_LIMIT"},

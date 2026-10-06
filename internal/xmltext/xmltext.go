@@ -8,7 +8,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"regexp"
 	"strings"
 	"unicode/utf8"
 
@@ -17,31 +16,39 @@ import (
 
 const Limit = 8 << 20
 
-var htmlDoctype = regexp.MustCompile(`^DOCTYPE[\x20\x09\x0d\x0a]+html[\x20\x09\x0d\x0a]*$`)
-
 type Element struct {
-	Name       xml.Name
-	Attributes []xml.Attr
-	ID         string
-	Start, End int
-	Text       string
-	DirectText string
-	Complex    bool
-	Location   string
-	Parent     *Element
-	Children   []*Element
-	rawName    xml.Name
-	text       strings.Builder
-	direct     strings.Builder
-	order      binary.ByteOrder
-	ns         map[string]string
-	counts     map[string]int
+	Name                xml.Name
+	Attributes          []xml.Attr
+	ID                  string
+	Start, End          int
+	Text                string
+	DirectText          string
+	Complex             bool
+	Uncertain           bool // An attribute depends on an unread entity.
+	Location            string
+	Parent              *Element
+	Children            []*Element
+	rawName             xml.Name
+	text                strings.Builder
+	direct              strings.Builder
+	order               binary.ByteOrder
+	ns                  map[string]string
+	uncertainNS         map[string]bool
+	uncertainAttributes map[xml.Name]bool
+	counts              map[string]int
+	streamStart         int
+	profile             Profile
+	unknownDefaults     bool
 }
 
 type Document struct {
 	Root                   *Element
 	Elements               []*Element // document order
 	ProcessingInstructions []string
+	Unresolved             []Unresolved
+	Notations              []Notation
+	UnknownDefaults        bool
+	dtd                    *internalSubset
 }
 
 // Parse is the former metadata RawToken index: lexical namespace validation,
@@ -51,13 +58,20 @@ func Parse(input []byte) (*Document, error) {
 	if err != nil {
 		return nil, err
 	}
-	d := xml.NewDecoder(bytes.NewReader(s.text))
+	s, subset, err := expand(s)
+	if err != nil {
+		return nil, err
+	}
+	tokenBytes, err := tokenStream(s.text)
+	if err != nil {
+		return nil, err
+	}
+	d := xml.NewDecoder(bytes.NewReader(tokenBytes))
 	// Physical encoding and declaration have already been checked. RawToken
 	// must not decode the transcoded UTF-8 a second time.
 	d.CharsetReader = func(_ string, r io.Reader) (io.Reader, error) { return r, nil }
 	stack := []*Element{}
-	doc := &Document{}
-	doctype := false
+	doc := &Document{Unresolved: subset.unresolved, Notations: subset.notations, UnknownDefaults: subset.unreadPE || subset.externalSubset, dtd: subset, ProcessingInstructions: subset.processingInstructions}
 	tokens, indexed := 0, 0
 	for {
 		before := int(d.InputOffset())
@@ -74,24 +88,44 @@ func Parse(input []byte) (*Document, error) {
 		}
 		switch t := t.(type) {
 		case xml.Directive:
-			if !htmlDoctype.Match(t) {
-				return nil, fault.New(3, "UNSUPPORTED_XML_DTD", "DTD is outside the T1a offline subset")
-			}
-			if doctype || doc.Root != nil {
-				return nil, fmt.Errorf("duplicate or misplaced DOCTYPE")
-			}
-			doctype = true
+			return nil, malformed("unexpected XML directive")
 		case xml.StartElement:
 			if len(stack) >= 128 {
 				return nil, fault.New(1, "XML_LIMIT", "XML depth limit")
 			}
+			names, err := lexicalTokenNames(s.text[before:int(d.InputOffset())])
+			if err != nil {
+				return nil, err
+			}
+			t.Name = names[0].Name
+			uncertain := make([]bool, len(t.Attr))
+			for i := range t.Attr {
+				t.Attr[i].Name = names[i+1].Name
+				end := int(d.InputOffset())
+				if i+2 < len(names) {
+					end = before + names[i+2].Start
+				}
+				uncertain[i] = s.uncertain(before+names[i+1].Start, end)
+			}
 			ns := map[string]string{"xml": "http://www.w3.org/XML/1998/namespace"}
+			uncertainNS := map[string]bool{}
 			var parent *Element
 			if len(stack) > 0 {
 				parent = stack[len(stack)-1]
 				parent.Complex = true
 			}
-			for _, a := range t.Attr {
+			for i, a := range t.Attr {
+				if a.Name == (xml.Name{Space: "xmlns", Local: "xmlns"}) {
+					return nil, malformed("xmlns prefix cannot be declared")
+				}
+				if uncertain[i] && (a.Name.Space == "xmlns" || a.Name == (xml.Name{Local: "xmlns"})) {
+					prefix := a.Name.Local
+					if a.Name.Space == "" {
+						prefix = ""
+					}
+					ns[prefix], uncertainNS[prefix] = a.Value, true
+					continue
+				}
 				if a.Name.Space == "xmlns" {
 					if strings.Contains(a.Name.Local, ":") || a.Name.Local == "xmlns" || a.Value == "http://www.w3.org/2000/xmlns/" || (a.Name.Local == "xml" && a.Value != "http://www.w3.org/XML/1998/namespace") || (a.Name.Local != "xml" && a.Value == "http://www.w3.org/XML/1998/namespace") || a.Value == "" {
 						return nil, fmt.Errorf("invalid namespace declaration")
@@ -105,7 +139,12 @@ func Parse(input []byte) (*Document, error) {
 					ns[""] = a.Value
 				}
 			}
-			e := &Element{rawName: t.Name, Start: s.offset(int(d.InputOffset())), ns: ns, counts: map[string]int{}, Parent: parent, order: s.order}
+			// Generated attributes have no writable interval, but do not make an
+			// original literal text interval virtual. Entity-generated tag tails do.
+			e := &Element{rawName: t.Name, Start: s.offset(int(d.InputOffset())), ns: ns, counts: map[string]int{}, Parent: parent, order: s.order, streamStart: int(d.InputOffset()), Complex: s.generated(int(d.InputOffset())-1, int(d.InputOffset()))}
+			e.uncertainNS, e.uncertainAttributes = uncertainNS, map[xml.Name]bool{}
+			e.Uncertain = s.uncertain(before, int(d.InputOffset()))
+			e.unknownDefaults = doc.UnknownDefaults
 			var resolveErr error
 			t.Name, resolveErr = resolveName(t.Name, e, true)
 			if resolveErr != nil {
@@ -124,6 +163,7 @@ func Parse(input []byte) (*Document, error) {
 					}
 				}
 				t.Attr[i] = a
+				e.uncertainAttributes[a.Name] = uncertain[i]
 				if seen[a.Name] {
 					return nil, fmt.Errorf("duplicate attribute")
 				}
@@ -156,6 +196,15 @@ func Parse(input []byte) (*Document, error) {
 			}
 			e := stack[len(stack)-1]
 			e.End = s.offset(before)
+			e.Complex = e.Complex || s.generated(e.streamStart, before)
+			t.Name = e.rawName // RawToken's synthetic end for an empty-element tag.
+			if int(d.InputOffset()) > before {
+				names, err := lexicalTokenNames(s.text[before:int(d.InputOffset())])
+				if err != nil {
+					return nil, err
+				}
+				t.Name = names[0].Name
+			}
 			name, err := resolveName(t.Name, e, true)
 			if err != nil || name != e.Name || t.Name != e.rawName {
 				return nil, fmt.Errorf("mismatched XML end element")
@@ -171,8 +220,11 @@ func Parse(input []byte) (*Document, error) {
 			}
 			stack = stack[:len(stack)-1]
 		case xml.CharData:
+			if bytes.HasPrefix(s.text[before:], []byte("<![CDATA[")) {
+				t = s.restoreCDATA(t, before)
+			}
 			if len(stack) == 0 {
-				if strings.TrimSpace(string(t)) != "" {
+				if strings.Trim(string(t), " \t\r\n") != "" {
 					return nil, fmt.Errorf("text outside root")
 				}
 			} else {
@@ -185,6 +237,11 @@ func Parse(input []byte) (*Document, error) {
 				}
 			}
 		case xml.ProcInst:
+			lex := dtdLex{text: string(s.text[before:int(d.InputOffset())]), pos: 2}
+			t.Target, err = lex.name(false)
+			if err != nil {
+				return nil, err
+			}
 			if strings.EqualFold(t.Target, "xml") && (t.Target != "xml" || before != 0 || !declaration.Match(s.text)) {
 				return nil, fmt.Errorf("misplaced XML declaration")
 			}
@@ -218,11 +275,17 @@ func resolveName(name xml.Name, scope *Element, defaultNS bool) (xml.Name, error
 	}
 	for current := scope; current != nil; current = current.Parent {
 		if uri, ok := current.ns[name.Space]; ok {
+			if current.uncertainNS[name.Space] {
+				return name, fault.New(3, "XML_ENTITY_UNRESOLVED", "namespace URI depends on an unresolved entity")
+			}
 			name.Space = uri
 			return name, nil
 		}
 	}
 	if name.Space != "" {
+		if scope.unknownDefaults {
+			return name, fault.New(3, "XML_ENTITY_UNRESOLVED", "namespace prefix declaration is unknown")
+		}
 		return name, fmt.Errorf("undeclared namespace prefix")
 	}
 	return name, nil
@@ -251,6 +314,9 @@ func Replace(input []byte, e *Element, old, new string) ([]byte, bool, error) {
 	out = append(out, input[e.End:]...)
 	check, err := Parse(out)
 	if err != nil {
+		return nil, false, err
+	}
+	if err := check.CheckProfile(e.profile); err != nil {
 		return nil, false, err
 	}
 	for _, c := range check.Elements {

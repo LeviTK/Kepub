@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"regexp"
+	"sort"
 	"strings"
 	"unicode/utf16"
 	"unicode/utf8"
@@ -16,10 +17,14 @@ const DecodedLimit = 16 << 20
 // The parser consumes UTF-8, but every interval refers to the original resource.
 // No document serialization or external charset/entity resolver is involved.
 type source struct {
-	text    []byte
-	order   binary.ByteOrder
-	bom     int
-	offsets []uint32
+	text          []byte
+	order         binary.ByteOrder
+	bom           int
+	offsets       []uint32
+	original      *source
+	spans         []sourceSpan
+	uncertainties []sourceSpan
+	crPositions   []int
 }
 
 // XML S is exactly space, tab, CR and LF, not Go's regexp \s or Unicode space.
@@ -123,6 +128,20 @@ func DecodeText(input []byte) (string, error) {
 }
 
 func (s source) offset(n int) int {
+	if s.original != nil {
+		i := sort.Search(len(s.spans), func(i int) bool { return s.spans[i].end >= n })
+		if i == len(s.spans) {
+			return s.original.offset(len(s.original.text))
+		}
+		span := s.spans[i]
+		if span.linear {
+			return s.original.offset(span.from + n - span.start)
+		}
+		if n == span.end {
+			return s.original.offset(span.to)
+		}
+		return s.original.offset(span.from)
+	}
 	if s.order == nil {
 		return n + s.bom
 	}

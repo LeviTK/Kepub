@@ -9,6 +9,7 @@ import (
 	"github.com/LeviTK/Kepub/internal/archive"
 	"github.com/LeviTK/Kepub/internal/bookpath"
 	"github.com/LeviTK/Kepub/internal/fault"
+	"github.com/LeviTK/Kepub/internal/xmltext"
 )
 
 const XHTMLNamespace = "http://www.w3.org/1999/xhtml"
@@ -51,12 +52,13 @@ type Navigation struct {
 	ParserVersion int               `json:"parserVersion"`
 	Entries       []NavigationNode  `json:"entries"`
 	Diagnostics   []Diagnostic      `json:"diagnostics"`
+	XMLCoverage   *XMLCoverage      `json:"xmlCoverage,omitempty"`
 }
 
 // LoadNavigation uses EPUB3's manifest nav property or EPUB2's spine toc ID.
 // It neither synthesizes a TOC from spine nor changes the reading order.
 func LoadNavigation(a *archive.Archive, p *Publication) Navigation {
-	n := Navigation{Status: "complete", ParserVersion: 1, Entries: []NavigationNode{}, Diagnostics: []Diagnostic{}}
+	n := Navigation{Status: "complete", ParserVersion: 1, Entries: []NavigationNode{}, Diagnostics: []Diagnostic{}, XMLCoverage: p.XMLCoverage}
 	var candidates []Item
 	if p.Version == "3.0" {
 		n.Format = "epub3-nav"
@@ -95,11 +97,16 @@ func LoadNavigation(a *archive.Archive, p *Publication) Navigation {
 		n.Status = "blocked"
 		return n
 	}
-	root, err := ReadXML(a, item.Path)
+	root, err := ReadXML(a, item.Path, xmltext.Profile{Version: p.Version, MediaType: item.MediaType})
 	if err != nil {
 		n.Diagnostics = append(n.Diagnostics, DiagnosticFor(err, item.Path, ""))
 		n.Status = "blocked"
 		return n
+	}
+	n.XMLCoverage = n.XMLCoverage.Merge(root.XMLCoverage)
+	if err := root.XMLDocument.RequireComplete(); err != nil {
+		n.Diagnostics = append(n.Diagnostics, DiagnosticFor(err, item.Path, ""))
+		n.Status = "partial"
 	}
 	if n.Format == "epub3-nav" {
 		if root.Name != (xml.Name{Space: XHTMLNamespace, Local: "html"}) {

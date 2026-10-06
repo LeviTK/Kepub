@@ -13,6 +13,7 @@ import (
 	"github.com/LeviTK/Kepub/internal/metadata"
 	"github.com/LeviTK/Kepub/internal/publication"
 	"github.com/LeviTK/Kepub/internal/validation"
+	"github.com/LeviTK/Kepub/internal/xmltext"
 )
 
 var ErrTaskConflict = errors.New("explicit task is not the active task")
@@ -457,12 +458,27 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 	}
 	if r.Content != nil {
 		param := e.Plan.Operations[0].Params.(publication.TextSet)
+		p, err := publication.Load(a, w.state.Rootfile)
+		if err != nil {
+			r.Content.Unavailable = err.Error()
+			return r, nil
+		}
 		b, err := a.Read(param.BookPath, publication.XMLLimit)
 		if err != nil {
 			r.Content.Unavailable = err.Error()
 			return r, nil
 		}
-		value, err := publication.ContentText(b, param.Locator)
+		media := ""
+		for _, item := range p.Manifest {
+			if item.Path == param.BookPath {
+				media = item.MediaType
+			}
+		}
+		if media != "application/xhtml+xml" {
+			r.Content.Unavailable = "candidate target is not manifest XHTML"
+			return r, nil
+		}
+		value, err := publication.ContentText(b, param.Locator, xmltext.Profile{Version: p.Version, MediaType: media})
 		if err != nil {
 			r.Content.Unavailable = err.Error()
 		} else {

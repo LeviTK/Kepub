@@ -14,6 +14,7 @@ import (
 	"github.com/LeviTK/Kepub/internal/bookpath"
 	"github.com/LeviTK/Kepub/internal/fault"
 	"github.com/LeviTK/Kepub/internal/publication"
+	"github.com/LeviTK/Kepub/internal/xmltext"
 )
 
 const ParserVersion = 1
@@ -49,6 +50,7 @@ type Graph struct {
 	Coverage      []Coverage               `json:"coverage"`
 	Diagnostics   []publication.Diagnostic `json:"diagnostics"`
 	ParserVersion int                      `json:"parserVersion"`
+	XMLCoverage   *publication.XMLCoverage `json:"xmlCoverage,omitempty"`
 }
 
 type builder struct {
@@ -58,6 +60,7 @@ type builder struct {
 	covered map[string]int
 	ids     map[bookpath.BookPath]map[string]int
 	items   map[string]publication.Item
+	media   map[bookpath.BookPath]string
 }
 
 // Build inspects the entire safe archive, including unmanifested resources.
@@ -65,9 +68,10 @@ type builder struct {
 func Build(a *archive.Archive, p *publication.Publication) Graph {
 	b := builder{a: a, p: p, covered: map[string]int{}, ids: map[bookpath.BookPath]map[string]int{}, items: map[string]publication.Item{}, g: Graph{
 		Status: "complete", Scope: "archive resources; selected rootfile only; extraction is not conformance validation",
-		Direction: "both", Edges: []Edge{}, Coverage: []Coverage{}, Diagnostics: []publication.Diagnostic{}, ParserVersion: ParserVersion,
+		Direction: "both", Edges: []Edge{}, Coverage: []Coverage{}, Diagnostics: []publication.Diagnostic{}, ParserVersion: ParserVersion, XMLCoverage: p.XMLCoverage,
 	}}
 	media := map[bookpath.BookPath]string{}
+	b.media = media
 	for _, item := range p.Manifest {
 		b.items[item.ID] = item
 		if previous, ok := media[item.Path]; ok && previous != item.MediaType {
@@ -101,6 +105,7 @@ func Build(a *archive.Archive, p *publication.Publication) Graph {
 		kind := media[bp]
 		if bp == p.Rootfile {
 			kind = "application/oebps-package+xml"
+			media[bp] = kind
 		}
 		if kind == "" {
 			switch strings.ToLower(path.Ext(string(bp))) {
@@ -116,7 +121,7 @@ func Build(a *archive.Archive, p *publication.Publication) Graph {
 			b.cover(bp, "unmanifested-resource", "partial", "media type is not declared in the selected manifest")
 		}
 		switch kind {
-		case "application/xhtml+xml", "image/svg+xml", "application/x-dtbncx+xml", "application/oebps-package+xml":
+		case "application/xhtml+xml", "image/svg+xml", "application/x-dtbncx+xml", "application/oebps-package+xml", "application/mathml+xml", "application/mathml-presentation+xml", "application/mathml-content+xml":
 			if kind == "application/oebps-package+xml" && bp != p.Rootfile {
 				b.cover(bp, "opf", "blocked", "other package documents require explicit rootfile selection")
 				continue
@@ -290,15 +295,25 @@ func (b *builder) scanXML(bp bookpath.BookPath, kind string) {
 	case "application/oebps-package+xml":
 		syntaxes = append(syntaxes, "opf.manifest", "opf.spine", "opf.href", "opf.idref")
 		expected = xml.Name{Space: opfNS, Local: "package"}
+	case "application/mathml+xml", "application/mathml-presentation+xml", "application/mathml-content+xml":
+		expected = xml.Name{Space: "http://www.w3.org/1998/Math/MathML", Local: "math"}
 	}
-	root, err := publication.ReadXML(b.a, bp)
+	root, err := publication.ReadXML(b.a, bp, xmltext.Profile{Version: b.p.Version, MediaType: b.media[bp]})
 	if err != nil {
 		b.block(bp, syntaxes, err)
 		return
 	}
+	b.g.XMLCoverage = b.g.XMLCoverage.Merge(root.XMLCoverage)
 	if root.Name != expected {
 		b.block(bp, syntaxes, fault.New(1, "REFERENCE_XML_ROOT", "root/namespace does not match declared media type"))
 		return
+	}
+	incomplete := root.XMLDocument.RequireComplete()
+	if incomplete != nil {
+		for _, syntax := range syntaxes {
+			b.cover(bp, syntax, "partial", "XML entities/default declarations are unresolved")
+		}
+		b.g.Diagnostics = append(b.g.Diagnostics, publication.DiagnosticFor(incomplete, bp, ""))
 	}
 	// HTML base changes all relative URLs, including URLs occurring before it.
 	var hasBase func(*publication.Element) bool
@@ -323,11 +338,13 @@ func (b *builder) scanXML(bp bookpath.BookPath, kind string) {
 	for _, s := range syntaxes {
 		b.cover(bp, s, "complete", "")
 	}
-	b.ids[bp] = map[string]int{}
-	b.walkXML(bp, root, false)
+	if incomplete == nil {
+		b.ids[bp] = map[string]int{}
+	}
+	b.walkXML(bp, root, false, incomplete != nil)
 }
 
-func (b *builder) walkXML(bp bookpath.BookPath, e *publication.Element, inNav bool) {
+func (b *builder) walkXML(bp bookpath.BookPath, e *publication.Element, inNav, incomplete bool) {
 	ns, name := e.Name.Space, e.Name.Local
 	if ns == publication.XHTMLNamespace && name == "nav" {
 		inNav = true
@@ -349,7 +366,7 @@ func (b *builder) walkXML(bp bookpath.BookPath, e *publication.Element, inNav bo
 	if (ns == publication.XHTMLNamespace || ns == svgNS) && name == "style" {
 		if typ, _ := e.Attribute("", "type"); typ != "" && typ != "text/css" {
 			b.cover(bp, "inline-style", "blocked", "non-CSS style language")
-		} else {
+		} else if !incomplete {
 			b.css(bp, e.Location+"/text()", e.Content)
 		}
 	}
@@ -359,7 +376,7 @@ func (b *builder) walkXML(bp bookpath.BookPath, e *publication.Element, inNav bo
 		if a.Name.Space == xlinkNS {
 			location = e.Location + "/@xlink:" + a.Name.Local
 		}
-		if (a.Name.Space == "" || a.Name.Space == "http://www.w3.org/XML/1998/namespace") && a.Name.Local == "id" && !elementIDs[a.Value] {
+		if !incomplete && (a.Name.Space == "" || a.Name.Space == "http://www.w3.org/XML/1998/namespace") && a.Name.Local == "id" && !elementIDs[a.Value] {
 			elementIDs[a.Value] = true
 			b.ids[bp][a.Value]++
 			if b.ids[bp][a.Value] > 1 {
@@ -376,10 +393,10 @@ func (b *builder) walkXML(bp bookpath.BookPath, e *publication.Element, inNav bo
 			if a.Name.Space == "" && strings.HasPrefix(a.Name.Local, "on") {
 				b.cover(bp, "script", "blocked", "event handler references are not analyzed")
 			}
-			if a.Name.Space == "" && a.Name.Local == "style" {
+			if !incomplete && a.Name.Space == "" && a.Name.Local == "style" {
 				b.css(bp, location, a.Value)
 			}
-			if ns == svgNS && a.Name.Space == "" && slices.Contains([]string{"fill", "stroke", "filter", "clip-path", "mask", "marker", "marker-start", "marker-mid", "marker-end", "cursor"}, a.Name.Local) {
+			if !incomplete && ns == svgNS && a.Name.Space == "" && slices.Contains([]string{"fill", "stroke", "filter", "clip-path", "mask", "marker", "marker-start", "marker-mid", "marker-end", "cursor"}, a.Name.Local) {
 				b.css(bp, location, a.Value)
 			}
 		}
@@ -406,6 +423,9 @@ func (b *builder) walkXML(bp bookpath.BookPath, e *publication.Element, inNav bo
 			if name == "itemref" && a.Name.Local == "idref" {
 				syntax = "opf.spine"
 			}
+			if incomplete {
+				continue
+			}
 			if item, found := b.items[a.Value]; found {
 				r, _ := bookpath.ResolveReference(b.p.Rootfile, item.Href)
 				b.addTarget(bp, location, syntax, bookpath.Href(a.Value), r)
@@ -418,8 +438,10 @@ func (b *builder) walkXML(bp bookpath.BookPath, e *publication.Element, inNav bo
 			syntax = "opf.href"
 		}
 		if syntax != "" {
-			b.cover(bp, syntax, "complete", "")
-			b.add(bp, location, syntax, a.Value)
+			if !incomplete {
+				b.cover(bp, syntax, "complete", "")
+				b.add(bp, location, syntax, a.Value)
+			}
 			if strings.HasPrefix(strings.ToLower(strings.TrimSpace(a.Value)), "javascript:") {
 				b.cover(bp, "script", "blocked", "javascript URLs are not analyzed or executed")
 			}
@@ -430,6 +452,6 @@ func (b *builder) walkXML(bp bookpath.BookPath, e *publication.Element, inNav bo
 		}
 	}
 	for _, child := range e.Children {
-		b.walkXML(bp, child, inNav)
+		b.walkXML(bp, child, inNav, incomplete)
 	}
 }

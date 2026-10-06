@@ -274,3 +274,24 @@ func TestSameElementIDsAndExactCase(t *testing.T) {
 		}
 	}
 }
+
+func TestT1BXMLPartialAndBusinessBlocksAreIndependent(t *testing.T) {
+	for _, tc := range []struct{ body, syntax string }{
+		{`<script/>&unknown;<a href="#known">raw</a>`, "script"},
+		{`<base href="elsewhere/"/>&unknown;`, "xhtml.href"},
+		{`<a onclick="known" href="#known">&unknown;</a>`, "script"},
+	} {
+		entries := testfixture.NavigationEPUB("3.0")
+		entries[3].Data = []byte(`<!DOCTYPE html [%unread;]><html xmlns="http://www.w3.org/1999/xhtml"><body><p id="known"/>` + tc.body + `</body></html>`)
+		g := graphFixture(t, entries)
+		requireCoverage(t, g, "书/Text/第二 章.xhtml", tc.syntax, "blocked")
+		if g.XMLCoverage == nil || len(g.XMLCoverage.Resources) != 1 || g.XMLCoverage.Resources[0].Status != "partial" {
+			t.Fatal("blocked business extraction must retain partial XML provenance", g)
+		}
+		for _, edge := range g.Edges {
+			if edge.Source == "书/Text/第二 章.xhtml" {
+				t.Fatal("partial XML must not invent complete URL/ID extraction", edge)
+			}
+		}
+	}
+}

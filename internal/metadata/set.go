@@ -33,19 +33,13 @@ func Apply(input []byte, request Set) ([]byte, bool, error) {
 	if err != nil {
 		return nil, false, err
 	}
+	if _, err := doc.PackageProfile(); err != nil {
+		return nil, false, err
+	}
+	if err := doc.RequireComplete(); err != nil {
+		return nil, false, err
+	}
 	root := doc.Root
-	if root.Name != (xml.Name{Space: opf, Local: "package"}) {
-		return nil, false, fmt.Errorf("expected single OPF package")
-	}
-	version := ""
-	for _, a := range root.Attributes {
-		if a.Name == (xml.Name{Local: "version"}) {
-			version = a.Value
-		}
-	}
-	if version != "2.0" && version != "3.0" {
-		return nil, false, fmt.Errorf("unsupported package version")
-	}
 	metas := 0
 	var selected []*xmltext.Element
 	ids := map[string]int{}

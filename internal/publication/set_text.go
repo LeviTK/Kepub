@@ -74,7 +74,7 @@ func ApplyText(a ResourceReader, p *Publication, s TextSet) ([]byte, bool, error
 	if hex.EncodeToString(h[:]) != s.ResourceSHA256 {
 		return nil, false, fault.New(4, "INPUT_DRIFT", "content resource hash changed")
 	}
-	e, err := simpleTextElement(input, s.Locator)
+	e, err := simpleTextElement(input, s.Locator, xmltext.Profile{Version: p.Version, MediaType: "application/xhtml+xml"})
 	if err != nil {
 		return nil, false, err
 	}
@@ -83,17 +83,23 @@ func ApplyText(a ResourceReader, p *Publication, s TextSet) ([]byte, bool, error
 
 // ContentText observes the actual candidate simple-text target for review. It
 // deliberately does not require the old hash or planned value to still match.
-func ContentText(input []byte, locator string) (string, error) {
-	e, err := simpleTextElement(input, locator)
+func ContentText(input []byte, locator string, profile xmltext.Profile) (string, error) {
+	e, err := simpleTextElement(input, locator, profile)
 	if err != nil {
 		return "", err
 	}
 	return e.Text, nil
 }
 
-func simpleTextElement(input []byte, locator string) (*xmltext.Element, error) {
+func simpleTextElement(input []byte, locator string, profile xmltext.Profile) (*xmltext.Element, error) {
 	doc, err := xmltext.Parse(input)
 	if err != nil {
+		return nil, err
+	}
+	if err := doc.CheckProfile(profile); err != nil {
+		return nil, err
+	}
+	if err := doc.RequireComplete(); err != nil {
 		return nil, err
 	}
 	if doc.Root.Name != (xml.Name{Space: XHTMLNamespace, Local: "html"}) {

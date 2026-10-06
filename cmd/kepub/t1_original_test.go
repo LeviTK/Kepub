@@ -65,7 +65,7 @@ func TestT1AuthorizedOriginalLifecycle(t *testing.T) {
 			if n.LocalName != "p" || n.HasChildElements || n.Text == "" {
 				continue
 			}
-			if text, err := publication.ContentText(files[string(item.Path)], n.Locator); err == nil && text == n.Text {
+			if text, err := publication.ContentText(files[string(item.Path)], n.Locator, xmltext.Profile{Version: p.Version, MediaType: item.MediaType}); err == nil && text == n.Text {
 				selected, target, found = c, n, true
 				break
 			}

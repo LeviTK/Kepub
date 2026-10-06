@@ -184,6 +184,7 @@ func Inspect(a *archive.Archive, p *publication.Publication, section, resource, 
 		return nil, err
 	}
 	var value any
+	coverage := p.XMLCoverage
 	switch section {
 	case "metadata":
 		value = p.Metadata
@@ -192,16 +193,22 @@ func Inspect(a *archive.Archive, p *publication.Publication, section, resource, 
 	case "spine":
 		value = map[string]any{"items": p.Spine, "attributes": p.SpineAttributes}
 	case "navigation":
-		value = publication.LoadNavigation(a, p)
+		navigation := publication.LoadNavigation(a, p)
+		value, coverage = navigation, navigation.XMLCoverage
 	case "references":
 		graph := references.Build(a, p)
 		value, _ = graph.Filter(resource, direction)
+		coverage = graph.XMLCoverage
 	case "capabilities":
 		value = Capabilities()
 	default:
 		return nil, fault.New(2, "INVALID_ARGUMENT", "supported --section is required")
 	}
-	return map[string]any{"rootfile": p.Rootfile, "section": section, "value": value, "limitations": p.Limitations}, nil
+	out := map[string]any{"rootfile": p.Rootfile, "section": section, "value": value, "limitations": p.Limitations}
+	if coverage != nil {
+		out["xmlCoverage"] = coverage
+	}
+	return out, nil
 }
 
 // ValidateInspect runs before opening the book so input errors take precedence

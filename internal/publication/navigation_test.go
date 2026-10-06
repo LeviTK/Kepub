@@ -72,7 +72,7 @@ func TestNavigationDiagnostics(t *testing.T) {
 		{"wrong token", `e:type="toc"`, `e:type="toc-other"`, "blocked", "NAVIGATION_STRUCTURE"},
 		{"base", "<body>", `<head><base href="elsewhere/"/></head><body>`, "blocked", "NAVIGATION_STRUCTURE"},
 		{"bad XML", "</body>", "</broken>", "blocked", "XML_NOT_WELL_FORMED"},
-		{"DTD", "<html", `<!DOCTYPE html SYSTEM "https://example.invalid/remote.dtd"><html`, "blocked", "UNSUPPORTED_XML_DTD"},
+		{"DTD", "<html", `<!DOCTYPE html SYSTEM "https://example.invalid/remote.dtd"><html`, "blocked", "XML_POLICY"},
 		{"xml base", "<body>", `<body xml:base="Text/">`, "blocked", "UNSUPPORTED_XML_BASE"},
 		{"empty label", ">Part A</span>", "></span>", "partial", "NAVIGATION_STRUCTURE"},
 	} {
@@ -141,6 +141,28 @@ func TestNavigationMissingAmbiguousAndEmpty(t *testing.T) {
 		n := navigationFixture(t, entries)
 		if n.Status != tc.status || len(n.Diagnostics) == 0 || n.Diagnostics[0].Code != tc.code {
 			t.Fatalf("%s: %+v", tc.name, n)
+		}
+	}
+}
+
+func TestT1BNavigationPartialDoesNotEraseRawLabelsOrUnblockStructure(t *testing.T) {
+	for _, bad := range []bool{false, true} {
+		entries := testfixture.NavigationEPUB("3.0")
+		raw := strings.Replace(string(entries[5].Data), ">First</a>", ">&unknown;</a>", 1)
+		if bad {
+			raw = strings.Replace(raw, `e:type="toc"`, `e:type="other"`, 1)
+		}
+		entries[5].Data = []byte(`<!DOCTYPE html [%unread;]>` + raw)
+		n := navigationFixture(t, entries)
+		if n.XMLCoverage == nil || len(n.XMLCoverage.Resources) != 1 || n.XMLCoverage.Resources[0].Status != "partial" || len(n.XMLCoverage.Resources[0].Unresolved) != 2 {
+			t.Fatal("source uncertainty was suppressed", n)
+		}
+		if bad {
+			if n.Status != "blocked" || len(n.Entries) != 0 {
+				t.Fatal("XML partial must not unblock missing TOC structure", n)
+			}
+		} else if n.Status != "partial" || len(n.Entries) != 2 || n.Entries[1].Label != "&unknown;" {
+			t.Fatal("unknown label must not become empty or a complete tree", n)
 		}
 	}
 }

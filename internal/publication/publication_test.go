@@ -96,8 +96,8 @@ func TestXMLSafety(t *testing.T) {
 	for _, tc := range []struct{ xml, code string }{
 		{`<x><y></x>`, "XML_NOT_WELL_FORMED"},
 		{`<x>&external;</x>`, "XML_NOT_WELL_FORMED"},
-		{`<!DOCTYPE x SYSTEM "https://example.com/evil.dtd"><x/>`, "UNSUPPORTED_XML_DTD"},
-		{`<!DOCTYPE x [<!ENTITY x "expanded">]><x>&x;</x>`, "UNSUPPORTED_XML_DTD"},
+		{`<!DOCTYPE x [<!ELEMENT x (a|b,c)>]><x/>`, "XML_NOT_WELL_FORMED"},
+		{`<!DOCTYPE x [<!ENTITY x "expanded">]><x>&x;</wrong>`, "XML_NOT_WELL_FORMED"},
 		{`<x/><y/>`, "XML_NOT_WELL_FORMED"},
 		{`<x a="1" a="2"/>`, "XML_NOT_WELL_FORMED"},
 		{`<x xml:base="../"/>`, "UNSUPPORTED_XML_BASE"},

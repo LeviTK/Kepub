@@ -16,13 +16,16 @@ const containerNS = "urn:oasis:names:tc:opendocument:xmlns:container"
 const XMLLimit = xmltext.Limit
 
 type Element struct {
-	Name                   xml.Name   `json:"name"`
-	Attributes             []xml.Attr `json:"attributes"`
-	Text                   string     `json:"text"`
-	Children               []*Element `json:"children"`
-	Content                string     `json:"-"` // Mixed text in document order, for navigation labels.
-	Location               string     `json:"-"` // Structural position, not a writable byte offset.
-	ProcessingInstructions []string   `json:"-"` // Document-level unknown reference syntax.
+	Name                   xml.Name          `json:"name"`
+	Attributes             []xml.Attr        `json:"attributes"`
+	Text                   string            `json:"text"`
+	Children               []*Element        `json:"children"`
+	Content                string            `json:"-"` // Mixed text in document order, for navigation labels.
+	Location               string            `json:"-"` // Structural position, not a writable byte offset.
+	ProcessingInstructions []string          `json:"-"` // Document-level unknown reference syntax.
+	XMLDocument            *xmltext.Document `json:"-"`
+	XMLCoverage            *XMLCoverage      `json:"-"`
+	Uncertain              bool              `json:"-"`
 }
 
 func (e *Element) Attribute(ns, name string) (string, bool) {
@@ -54,18 +57,29 @@ func (e *Element) children(ns, name string) []*Element {
 func one(e *Element, ns, name string) (*Element, error) {
 	list := e.children(ns, name)
 	if len(list) != 1 {
+		if e.XMLDocument != nil && (e.XMLDocument.UnknownDefaults || len(e.XMLDocument.Unresolved) != 0) {
+			return nil, fault.New(3, "XML_ENTITY_UNRESOLVED", "required %s structure is unknown", name)
+		}
 		return nil, fault.New(1, "INVALID_STRUCTURE", "expected exactly one %s", name)
 	}
 	return list[0], nil
 }
 
 // ReadXML shares the bounded, non-networked parser with read-only indexes.
-func ReadXML(a *archive.Archive, p bookpath.BookPath) (*Element, error) {
+func ReadXML(a *archive.Archive, p bookpath.BookPath, profile xmltext.Profile) (*Element, error) {
 	b, err := a.Read(p, XMLLimit)
 	if err != nil {
 		return nil, err
 	}
-	return parseXML(b)
+	root, err := parseXML(b)
+	if err != nil {
+		return nil, err
+	}
+	if err := root.XMLDocument.CheckProfile(profile); err != nil {
+		return nil, err
+	}
+	root.XMLCoverage = xmlCoverage(p, b, root.XMLDocument)
+	return root, nil
 }
 
 // Read indexes and local edits share strict lexical/encoding validation.
@@ -81,7 +95,7 @@ func parseXML(b []byte) (*Element, error) {
 	}
 	var convert func(*xmltext.Element) *Element
 	convert = func(e *xmltext.Element) *Element {
-		out := &Element{Name: e.Name, Attributes: e.Attributes, Text: e.DirectText, Content: e.Text, Location: e.Location, Children: []*Element{}}
+		out := &Element{Name: e.Name, Attributes: e.Attributes, Text: e.DirectText, Content: e.Text, Location: e.Location, Children: []*Element{}, XMLDocument: doc, Uncertain: e.Uncertain}
 		for _, c := range e.Children {
 			out.Children = append(out.Children, convert(c))
 		}
@@ -125,6 +139,7 @@ type Publication struct {
 	Spine             []Itemref         `json:"spine"`
 	SpineAttributes   []xml.Attr        `json:"spineAttributes"`
 	Limitations       []Limitation      `json:"limitations"`
+	XMLCoverage       *XMLCoverage      `json:"xmlCoverage,omitempty"`
 }
 
 // ResourceReader supplies bounded bytes and the approved file inventory. Locked
@@ -141,6 +156,10 @@ func Load(a ResourceReader, selected string) (*Publication, error) {
 	}
 	c, err := parseXML(b)
 	if err != nil {
+		return nil, err
+	}
+	containerBytes := b
+	if err := c.XMLDocument.RequireComplete(); err != nil {
 		return nil, err
 	}
 	if c.Name != (xml.Name{Space: containerNS, Local: "container"}) {
@@ -193,13 +212,15 @@ func Load(a ResourceReader, selected string) (*Publication, error) {
 	if err != nil {
 		return nil, err
 	}
-	if pkg.Name != (xml.Name{Space: opfNS, Local: "package"}) {
-		return nil, fault.New(1, "INVALID_OPF", "unexpected package root/namespace")
+	profile, err := pkg.XMLDocument.PackageProfile()
+	if err != nil {
+		return nil, err
 	}
-	p.Version = pkg.attr("version")
-	if p.Version != "2.0" && p.Version != "3.0" {
-		return nil, fault.New(3, "UNSUPPORTED_EPUB_VERSION", "unsupported package version %q", p.Version)
+	p.Version = profile.Version
+	if err := c.XMLDocument.CheckProfile(xmltext.Profile{Version: p.Version, MediaType: "application/xml"}); err != nil {
+		return nil, err
 	}
+	p.XMLCoverage = xmlCoverage("META-INF/container.xml", containerBytes, c.XMLDocument).Merge(xmlCoverage(p.Rootfile, b, pkg.XMLDocument))
 	p.UniqueIdentifier = pkg.attr("unique-identifier")
 	p.PackageAttributes = pkg.Attributes
 	m, err := one(pkg, opfNS, "metadata")
@@ -213,11 +234,20 @@ func Load(a ResourceReader, selected string) (*Publication, error) {
 	}
 	ids := map[string]bool{}
 	for _, i := range manifest.children(opfNS, "item") {
+		if i.Uncertain {
+			return nil, fault.New(3, "XML_ENTITY_UNRESOLVED", "manifest identity or resource media type is unknown")
+		}
 		id := i.attr("id")
 		if id == "" || ids[id] {
+			if id == "" && pkg.XMLDocument.UnknownDefaults {
+				return nil, fault.New(3, "XML_ENTITY_UNRESOLVED", "manifest id depends on unread declarations")
+			}
 			return nil, fault.New(1, "INVALID_MANIFEST", "missing or duplicate manifest id")
 		}
 		ids[id] = true
+		if (i.attr("href") == "" || i.attr("media-type") == "") && pkg.XMLDocument.UnknownDefaults {
+			return nil, fault.New(3, "XML_ENTITY_UNRESOLVED", "manifest href/media type depends on unread declarations")
+		}
 		bp, e := bookpath.Resolve(p.Rootfile, bookpath.Href(i.attr("href")))
 		if e != nil {
 			return nil, e
@@ -234,6 +264,9 @@ func Load(a ResourceReader, selected string) (*Publication, error) {
 	}
 	p.SpineAttributes = spine.Attributes
 	for _, i := range spine.children(opfNS, "itemref") {
+		if i.Uncertain || i.attr("idref") == "" && pkg.XMLDocument.UnknownDefaults {
+			return nil, fault.New(3, "XML_ENTITY_UNRESOLVED", "spine identity depends on unread XML declarations")
+		}
 		id := i.attr("idref")
 		if !ids[id] {
 			return nil, fault.New(1, "INVALID_SPINE", "unknown spine idref %q", id)
@@ -278,6 +311,13 @@ func Load(a ResourceReader, selected string) (*Publication, error) {
 		if e != nil {
 			return nil, e
 		}
+		if e := enc.XMLDocument.CheckProfile(xmltext.Profile{Version: p.Version, MediaType: "application/xml"}); e != nil {
+			return nil, e
+		}
+		if e := enc.XMLDocument.RequireComplete(); e != nil {
+			return nil, e
+		}
+		p.XMLCoverage = p.XMLCoverage.Merge(xmlCoverage("META-INF/encryption.xml", b, enc.XMLDocument))
 		p.Limitations = append(p.Limitations, Limitation{"ENCRYPTION_DECLARED", "Encryption/obfuscation declarations retained; no decryption or editing supported; presence alone does not establish DRM"})
 		var algorithms func(*Element)
 		algorithms = func(e *Element) {
