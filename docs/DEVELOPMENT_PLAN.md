@@ -268,7 +268,7 @@ T1a 只通过 §11.7 的首增量门槛；T1b 必须在统一资源预算内完�
 
 无法展开实体使用专用 `XML_ENTITY_UNRESOLVED` 能力诊断，位置不丢；真正违反 Entity Declared WFC（如 standalone=yes）的输入仍报非良构，不与未读取外部声明混淆。可表达 coverage 的读取／inspect 返回 partial；现有 `content/search` 要求完整文本与匹配数，遇到应读取的未展开内容明确 exit 3，不返回成功的残缺文本／匹配数，不跳过资源。T1b 对附录 B MathML 外部实体、内部参数实体及 standalone=yes 反例做无外部读取、保留、诊断和写入拒绝测试。checker 若使用其自有 DTD 而产生不同文本，记录处理 profile 差异，不为匹配它而修改 Kepub 的零外部读取策略。
 
-以上附录 B 约束只用于已确定为 EPUB3（package version 3.0）的上下文；解析器须携带资源类型和版本 profile，不能从 DOCTYPE 猜书籍版本。EPUB2 非迁移读取路径对其合法外部 DOCTYPE／尚未支持的实体报能力不足（exit 3），不称 EPUB3 意义的非法；实际 XML 非良构仍拒绝。T3 显式迁移才加载其白名单离线资产。S0 另记录 NOTATION 的规范解释及依据：XML NOTATION 中的标识符不等于外部实体声明，不因其形似 URI 就读取资源；若 EPUB 适用性仍有歧义须在 T1b 冻结前裁定并说明，不用通用 unsupported 暗中削减必需集。
+以上附录 B 约束只用于已确定为 EPUB3（package version 3.0）的上下文；解析器须携带资源类型和版本 profile，不能从 DOCTYPE 猜书籍版本。EPUB2 非迁移读取路径对其合法外部 DOCTYPE／尚未支持的实体报能力不足（exit 3），不称 EPUB3 意义的非法；实际 XML 非良构仍拒绝。T3 显式迁移才加载其白名单离线资产。T1b 已据固定 EPUB §3.9／附录 B、XML §4.7／§5.1 和 RS §15.3 冻结 NOTATION 判定：合法内部声明须解析／保留，其标识符不等于外部实体或 DOCTYPE 外部子集，不套 DOCTYPE 白名单且零外部读取；其他适用约束和真实 checker 不豁免。`xmlCoverage` 按需报告未展开来源／notation，区间绑定原始资源 hash，直接引用与展开来源分开；精确增量形状见 [CLI 契约 §2.4](CLI_CONTRACT.md#t1b-的-xml-来源输出实施契约尚待实现与验收)。此为待实现契约，不是支持状态提升，不用通用 unsupported 暗中削减必需集。
 
 T2 内容矩阵还须覆盖 span/em/strong/a、ruby/rt/rp、上下标、表格、figure、代码空白、脚注往返、lang/xml:lang、dir/bdi/bdo、ARIA／epub:type／RDFa、内联 SVG／MathML。嵌入语法的保留／引用与专用编辑、真实呈现分别记状态；`base`／`xml:base`、脚本和嵌入限制逐条按规范判定。不能导出浏览器修补后的 DOM 充当作者源文，也不能通过扩大简单文本操作的含义注入 HTML。
 

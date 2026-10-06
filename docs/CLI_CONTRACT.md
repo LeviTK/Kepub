@@ -149,6 +149,40 @@ XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场�
 
 限额与兼容验收包含 UTF-16 ASCII／CJK／代理对在原始 8 MiB 两侧，读取／写入／重算／历史一致。转码后跨 8 MiB 的成功样本用大段 CJK 注释与小段可编辑正文，确保索引未超限；LE／BE 各一份，均须验证读取／定位／局部编辑／来源重算／历史重开一致，不能仅验证解析。正文为主的 CJK 和不同嵌套深度另测索引超限拒绝，不以注释样本代表大正文容量。旧二进制不支持新增输入语法时允许安全拒绝，不能丢记录后“兼容”；旧输入及已发布摘要含义保持。语法错误／能力不足诊断变化在实现批次发布兼容说明，不冒称旧错误码含义未变。
 
+#### T1b 的 XML 来源输出（实施契约，尚待实现与验收）
+
+合法内部 `NOTATION` 的 SYSTEM／PUBLIC 标识符依据 XML §4.7 描述 notation，不是外部 ENTITY 声明或 DOCTYPE 外部子集。按 XML 语法解析并保留，向应用提供被引用的 notation 名称及标识符，绝不据此解析外部资源或启动程序。EPUB §3.9／附录 B 的 DOCTYPE 约束不扩大到所有 notation 标识符；内部外部 ENTITY 仍按 EPUB3 规则拒绝。此判定不豁免其他适用规范约束，也不将 parser 接受当作正式 checker 通过。
+
+为不伪装不完整读取，T1b 在 `info` 的 data、`inspect` 的 data 外层按需增量提供 `xmlCoverage`，以及 navigation／references 的结果中提供同形字段；不替换旧 `value`／元素数组、不改变 envelope／操作／计划／执行 schema 或摘要。
+
+```json
+{
+  "xmlCoverage": {
+    "resources": [{
+      "bookPath": "EPUB/chapter.xhtml",
+      "resourceSha256": "原始资源的64位小写SHA-256",
+      "status": "partial",
+      "unresolved": [{
+        "name": "unknown",
+        "kind": "general",
+        "startByte": 100,
+        "endByte": 109,
+        "origin": "reference"
+      }],
+      "notations": []
+    }]
+  }
+}
+```
+
+- `resources` 只列本次实际解析中存在未展开实体或需要报告 notation 的资源，按精确 BookPath 排序；与本次请求无关或未读取的资源不暗中全书扫描。没有此类信息时省略 `xmlCoverage`，不把省略解释为全书 XML 或 EPUB 合规。
+- `status` 为 `complete | partial`，只指所选非验证 XML profile 的处理；被识别但未读取的实体、未知参数实体后的不确定声明／默认值均须传播 partial。未展开文本保留引用／来源，不用空串或猜测值冒充确定文本。结构必需信息（如 rootfile、package version、manifest 路径）未知时明确 exit 3／`XML_ENTITY_UNRESOLVED`，不猜结构，也不因缺失该未知值伪报 XML 非良构。
+- `kind` 为 `general | parameter`；`startByte/endByte` 是含 BOM 的原始资源内 0-based 半开区间，不是解码流偏移。`origin:reference` 指实体引用自身的原字节；从实体展开间接产生、没有独立原始区间时，`origin:expansion` 指向导致该内容的原始引用区间，不冒充未知实体自身逐字节位置或可写区间。同一区间可关联多个展开来源，必须保留必要的不同实体记录；范围与资源 hash 绑定。
+- `notations` 元素为 `{name, publicId, systemId}`，未提供的标识符用空字符串；至少包括已引用的 notation，允许同时报告已解析但未引用的声明。它们是声明数据，不是可跟随 URL 或读取授权。资源内列表按声明／引用处理顺序确定；重复 notation 采用首个已解析声明作为本实现的确定性非验证策略，不误称 XML 要求的良构约束，也不靠 map 随机顺序决定语义。
+- navigation／references 沿用已有 coverage、status 与 diagnostics，并同步声明 partial；不得从未知默认属性／实体文本生成肯定的引用或“无引用”结论。`content/search` 仍只返回完整文本，应读取范围不完整时 exit 3／`XML_ENTITY_UNRESOLVED`，不返回成功的残缺匹配数；不得靠 query 或 limit 跳过未知内容。依赖未知值的写入、实体生成节点或其他无独立原始可写区间的目标拒绝直接局部写。
+
+这些增量只表达本次 XML 来源与不确定性，不提前实现 §2.5 的全规范五维能力模型。验收须检查 UTF-16 原字节区间、直接／嵌套实体来源、NOTATION、缺失 PE 后默认属性、standalone=yes 非良构反例、无外部读取，以及旧无 DTD 输出的兼容性。
+
 ### 2.5 Issue #3 的能力证据设计（计划，尚未加入机器输出）
 
 规范支持与命令可用性分开。S0 固定规范原文和条款后，建立单一机读矩阵，未来向后兼容扩展 capabilities／doctor／诊断，不替换当前 envelope、退出码、operation ID 或检查状态枚举。
