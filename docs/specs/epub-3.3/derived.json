@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "sourceManifestSHA256": "067526a571105c65d7e4ff5c4cb43f405bdea6c88c4075acb804596079156109",
-  "matrixSHA256": "087c47ca77707bcc22a1c9b50a186699b0ba49c6bef791772641a653e66833c9",
+  "matrixSHA256": "7069506a497eb57e2f4f3890968756aae430c11a1804568f58e2e437478dd5b0",
   "files": [
     {
       "path": "inventory.json",

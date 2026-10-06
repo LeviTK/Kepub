@@ -19,7 +19,8 @@ from urllib.parse import urldefrag, urljoin, urlparse
 import xml.etree.ElementTree as ET
 
 
-ROOT = Path(__file__).resolve().parents[1] / "docs/specs/epub-3.3"
+PROJECT = Path(__file__).resolve().parents[1]
+ROOT = PROJECT / "docs/specs/epub-3.3"
 SEEDS = [
     ("epub", "normative", "REC", "https://www.w3.org/TR/2026/REC-epub-33-20260113/"),
     ("rs", "normative", "REC", "https://www.w3.org/TR/2024/REC-epub-rs-33-20241017/"),
@@ -537,6 +538,111 @@ def candidate(e, node, context, kind, occurrence, level):
             "excerpt": snippet, "excerptSHA256": sha(snippet.encode())}
 
 
+def repository_evidence(reference):
+    """Resolve a file or Go test reference; existence alone proves no behavior."""
+    if not isinstance(reference, str):
+        raise ValueError("invalid repository evidence reference")
+    name, separator, test = reference.partition(":")
+    path = Path(name)
+    if (not name or path.is_absolute() or ".." in path.parts or
+            not (PROJECT / path).resolve().is_relative_to(PROJECT.resolve()) or
+            not (PROJECT / path).is_file()):
+        raise ValueError(f"missing/unsafe repository evidence: {reference}")
+    if separator and (not re.fullmatch(r"Test[A-Za-z0-9_]+", test) or
+                      not name.endswith("_test.go") or
+                      not re.search(rf"(?m)^func\s+{re.escape(test)}\(\s*\w+\s+\*testing\.T\s*\)",
+                                    (PROJECT / path).read_text())):
+        raise ValueError(f"missing repository test evidence: {reference}")
+    return PROJECT / path
+
+
+def acceptance_inputs(root):
+    """Identity of source, mapping, indexes, review inputs and implementation.
+
+    Approval records are deliberately not inputs to their own identity. This
+    is repository review consistency, not a signature or access-control scheme.
+    """
+    files = {p for p in root.rglob("*") if p.is_file() and p != root / "acceptance.json"}
+    # Original bytes and upstream licenses are included, not just their indexes.
+    inputs = {"archive/" + str(p.relative_to(root)): sha(p.read_bytes()) for p in sorted(files)}
+    for directory in ("scripts", "cmd", "internal"):
+        for path in sorted((PROJECT / directory).rglob("*")):
+            if path.is_file() and path.suffix in (".py", ".go"):
+                inputs["repository/" + str(path.relative_to(PROJECT))] = sha(path.read_bytes())
+    for name in ("go.mod", "go.sum", ".agents/setup", "README.md", "docs/DEVELOPMENT_PLAN.md",
+                 "docs/CLI_CONTRACT.md", "docs/EPUB33_SUPPORT_MATRIX.md",
+                 "docs/verification/S0_EPUBCHECK_2026.md"):
+        inputs["repository/" + name] = sha((PROJECT / name).read_bytes())
+    for path in sorted((PROJECT / "docs/verification").glob("S0_ASSETS*.md")):
+        inputs["repository/" + str(path.relative_to(PROJECT))] = sha(path.read_bytes())
+    matrix = json.loads((root / "matrix.json").read_text())
+    for row in matrix.get("rows", []):
+        for reference in row["evidence"]:
+            path = repository_evidence(reference)
+            inputs["repository/" + str(path.relative_to(PROJECT))] = sha(path.read_bytes())
+    return inputs
+
+
+def verify_acceptance(root):
+    """Aggregate S0 validators and current-input parent/actual Droid decisions."""
+    import epub33_semantics as semantics
+    import epub33_upstreams as upstreams
+    verify_derived(root)
+    expected = semantics.build(root)
+    if json.loads((root / "semantic-index.json").read_text()) != expected:
+        raise ValueError("S0 semantic gate blocked: semantic index drift")
+    upstreams.verify(root / "upstreams")
+    path = root / "acceptance.json"
+    if not path.is_file():
+        raise ValueError("S0 semantic gate blocked: independent acceptance records missing")
+    acceptance = json.loads(path.read_text())
+    inputs = acceptance_inputs(root)
+    identity = sha(json.dumps(inputs, sort_keys=True, separators=(",", ":")).encode())
+    if acceptance.get("schemaVersion") != 1 or acceptance.get("inputs") != inputs:
+        raise ValueError("S0 semantic gate blocked: approval input identity changed")
+    reviews = acceptance.get("reviews", {})
+    if set(reviews) != {"parent", "droid"}:
+        raise ValueError("S0 semantic gate blocked: parent/Droid acceptance incomplete")
+    for role, review in reviews.items():
+        if (review.get("decision") != "approved" or review.get("scope") != "complete-S0" or
+                not review.get("reviewer") or review.get("inputIdentitySHA256") != identity):
+            raise ValueError(f"S0 semantic gate blocked: {role} has not approved these inputs")
+        report = repository_evidence(review["reportPath"])
+        if sha(report.read_bytes()) != review["reportSHA256"]:
+            raise ValueError(f"S0 semantic gate blocked: {role} report changed")
+        decisions = re.findall(r"```json\s*(.*?)\s*```", report.read_text(), re.S)
+        if len(decisions) != 1:
+            raise ValueError(f"S0 semantic gate blocked: actual {role} decision missing")
+        decision = json.loads(decisions[0])
+        if (not isinstance(decision, dict) or decision.get("scope") != "complete-S0" or
+                decision.get("decision") != "approved" or decision.get("findings") != [] or
+                decision.get("inputIdentitySHA256") != identity or
+                (role == "droid" and decision.get("readingComplete") is not True)):
+            name = "Droid" if role == "droid" else "parent"
+            raise ValueError(f"S0 semantic gate blocked: actual {name} review not complete/approved")
+    review = reviews["droid"]
+    report = repository_evidence(review["reportPath"])
+    stream = repository_evidence(review["streamPath"])
+    exit_file = repository_evidence(review["exitPath"])
+    if (sha(stream.read_bytes()) != review["streamSHA256"] or
+            sha(exit_file.read_bytes()) != review["exitSHA256"] or exit_file.read_text().strip() != "0" or
+            review.get("cliVersion") != "0.233.0"):
+        raise ValueError("S0 semantic gate blocked: Droid execution evidence mismatch")
+    events = [json.loads(line) for line in stream.read_text().splitlines() if line.strip()]
+    starts = [e for e in events if e.get("type") == "system" and e.get("subtype") == "init"]
+    ends = [e for e in events if e.get("type") == "completion"]
+    if (len(starts) != 1 or len(ends) != 1 or starts[0].get("model") != "claude-opus-5-5" or
+            starts[0].get("reasoning_effort") != "medium" or not starts[0].get("session_id") or
+            starts[0]["session_id"] != ends[0].get("session_id") or
+            starts[0]["session_id"] != review.get("sessionId")):
+        raise ValueError("S0 semantic gate blocked: Droid init/completion identity mismatch")
+    if report.read_text().strip() != ends[0]["finalText"].strip():
+        raise ValueError("S0 semantic gate blocked: Droid report is not actual completion")
+    # The decisions must be in the actual reports, not only coordinator-written
+    # receipt fields. R1's rejection/incomplete reading cannot satisfy this.
+    return identity
+
+
 def verify_mapping(root, gate=False, matrix=None):
     inv = json.loads((root / "inventory.json").read_text())
     if matrix is None:
@@ -588,6 +694,26 @@ def verify_mapping(root, gate=False, matrix=None):
             raise ValueError(f"mapped constraint without stage/applicability/gap: {key}")
         if "supported" in [row[k] for k in ("preserve", "parse", "edit", "render", "validate")] and not row["evidence"]:
             raise ValueError(f"unsupported support claim without evidence: {key}")
+        for reference in row["evidence"]:
+            repository_evidence(reference)
+        for test in row["testIds"]:
+            if ":" not in test or test not in row["evidence"]:
+                raise ValueError(f"test identity without matching repository evidence: {key}")
+            repository_evidence(test)
+        supported = {k for k in ("preserve", "parse", "edit", "render", "validate") if row[k] == "supported"}
+        if supported:
+            # Code/test references are discoverability, not executed coverage.
+            coverage = set()
+            for reference in row["evidence"]:
+                path = repository_evidence(reference)
+                if ":" in reference or path.suffix != ".json":
+                    continue
+                record = json.loads(path.read_text())
+                if (isinstance(record, dict) and record.get("result") == "passed" and key in record.get("featureIds", []) and
+                        row["testIds"] and set(row["testIds"]) <= set(record.get("testIds", []))):
+                    coverage.update(record.get("dimensions", []))
+            if not supported <= coverage:
+                raise ValueError(f"support claim requires clause-specific execution evidence: {key}")
     expected_sections = {(s["document"], s["domPath"]): s for s in inv["sections"] if s["document"] in ("epub", "rs", "a11y")}
     reviews = matrix.get("sectionReviews", [])
     if {(s["document"], s["domPath"]) for s in reviews} != set(expected_sections) or len(reviews) != len(expected_sections):
@@ -601,9 +727,12 @@ def verify_mapping(root, gate=False, matrix=None):
         if r["status"] == "complete" and (not r["reviewer"] or not r["notes"]):
             raise ValueError("section review completion without reviewer/reason")
     counts = collections.Counter(r["decision"] for r in rows.values())
-    if gate and (counts["pending"] or not matrix["semanticComplete"] or any(s["status"] != "complete" for s in reviews)):
-        raise ValueError("S0 semantic gate blocked: pending clause/section review (not an asset PASS)")
-    return {"candidates": len(candidates), **dict(counts), "semanticComplete": matrix["semanticComplete"]}
+    if gate:
+        if counts["pending"] or any(s["status"] != "complete" for s in reviews):
+            raise ValueError("S0 semantic gate blocked: pending clause/section review (not an asset PASS)")
+        verify_acceptance(root)
+    return {"candidates": len(candidates), **dict(counts),
+            "semanticComplete": True if gate else matrix["semanticComplete"]}
 
 
 def import_reviews(root, paths, amendments=()):
@@ -645,6 +774,19 @@ def import_reviews(root, paths, amendments=()):
     # Source review alone cannot close the complete S0 gate, which also needs
     # dependency applicability, official-test mapping, and independent acceptance.
     matrix["semanticComplete"] = False
+    implementation = root / "reviews/implementation.json"
+    if implementation.exists():
+        packet = json.loads(implementation.read_text())
+        if packet["sourceHashes"] != {d: entries[d]["sha256"] for d in ("epub", "rs", "a11y")}:
+            raise ValueError("implementation reference source identity mismatch")
+        rows = {r["featureId"]: r for r in matrix["rows"]}
+        seen = set()
+        for reference in packet["rows"]:
+            if reference["featureId"] not in rows or reference["featureId"] in seen:
+                raise ValueError("unknown/duplicate implementation reference")
+            seen.add(reference["featureId"])
+            row = rows[reference["featureId"]]
+            row.update(evidence=reference["evidence"], testIds=reference["testIds"], gap=reference["gap"])
     counts = verify_mapping(root, matrix=matrix)
     write_json(root / "matrix.json", matrix)
     return counts

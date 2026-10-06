@@ -17,6 +17,7 @@ CLI contract are unchanged.
 - [Checkpoint verification and remaining work](verification/S0_ASSETS_CHECKPOINT.md)
 - [Stable semantic increment and actual checks](verification/S0_ASSETS_SEMANTICS.md)
 - [P6/P7 scope and provenance corrections](verification/S0_ASSETS_SCOPE_PROVENANCE.md)
+- [R1 gate, repository evidence and source-only status repairs](verification/S0_ASSETS_R1_GATE_EVIDENCE.md)
 - [Parent's actual 2026 checker evidence](verification/S0_EPUBCHECK_2026.md)
 
 The mechanical inventory contains 749 instances: EPUB publication
@@ -31,9 +32,13 @@ attribute/default/landmarks tests and coding-Orb source review. P6 additionally
 retains ten informative-source observations as exclusions, not requirements;
 P7 binds manual version/section/identity fields directly to the fixed archive.
 The corresponding actual normative constraints remain mapped. These are not
-independent acceptance or Factory Droid results. `semanticComplete` stays false
-and the offline `gate` deliberately fails until the remaining S0 review gates
-are closed. Counts never establish normative completeness by themselves.
+complete independent acceptance or a successful Factory Droid review. R1
+completed with findings and explicitly incomplete detailed reading. Its raw
+evidence is retained, not promoted to approval. `semanticComplete` stays false;
+the offline `gate` aggregates source, derivative, semantic, official-fixture
+and upstream validators and requires current-input parent and actual Droid
+approval records. Editing that boolean cannot close S0. Counts never establish
+normative completeness by themselves.
 
 `matrix.json` is the single mutable mapping source. `manualConstraints` records
 additional minimum independently decidable constraints with exact archived
@@ -44,6 +49,15 @@ row requires applicability and phase/gap. Exclusions require reasons. The
 readable matrix and plain-text extracts are generated derivatives, whose
 hashes are locked in `derived.json`; rerun offline `index` after reviewed mapping
 changes. Generation never marks a pending clause as reviewed.
+
+[Implementation references](specs/epub-3.3/reviews/implementation.json) link 13
+specific existing clauses to related Go code, named tests and the actual narrow
+2026 checker record, with explicit untested boundaries and an identified
+same-version multi-rootfile gap. All capability states remain `not-tested`:
+references alone are not execution or clause-wide support. Offline review import
+reapplies these associations deterministically. Evidence files and named Go
+tests must exist inside the repository; `supported` additionally requires a
+clause/test/dimension-specific passed execution record, never a code path alone.
 
 Offline reproduction of the current source mapping:
 

@@ -273,6 +273,8 @@ def verify(root):
         raise ValueError("missing/duplicate/extra official report mapping")
     if index["failures"] or any(not r.get("sourceCommit") for r in index["cases"]):
         raise ValueError("unresolved official source gaps")
+    if index.get("executed", False) is not False:
+        raise ValueError("official source archive must not invent reading-system execution")
     report_hash = sha((root / "original/test-index.html").read_bytes())
     dest = root / "official-tests"
     if (sha((dest / "LICENSE.upstream.md").read_bytes()) != index["licenseSHA256"] or
@@ -293,6 +295,11 @@ def verify(root):
         required = ("sourceCommit", "sourcePath", "sourceArchivePath", "sourceArchiveSHA256", "generatedArtifactPath", "generatedSHA256")
         if any(not row.get(k) for k in required):
             raise ValueError(f"incomplete official source evidence: {row['id']}")
+        executed = row.get("executed") if row["id"] in expected else row.get("executed", False)
+        if executed is not False or row.get("result", "not-tested") != "not-tested":
+            raise ValueError("official source archive must not invent reading-system execution")
+        if row["id"] in expected and row.get("status") != "exact-source-file-inventory-match; semantic-review-pending":
+            raise ValueError("official source archive status is not execution evidence")
         if not ((row.get("websiteArtifactPath") and row.get("websiteSHA256")) or
                 (row.get("historicalArtifactPath") and row.get("historicalArtifactSHA256"))):
             raise ValueError(f"missing official original artifact: {row['id']}")
@@ -314,7 +321,9 @@ def verify(root):
             if {n: sha(d) for n, d in sorted(files.items())} != row["contentInventory"]:
                 raise ValueError(f"official content hash mismatch: {row['id']}")
     return {"cases": len(index["cases"]), "reportRows": sum(r["reportOccurrences"] for r in index["cases"]),
-            "publications": len(artifacts), "sourceGaps": len(index["failures"]), "semanticReviewComplete": False, "executed": False}
+            "publications": len(artifacts), "sourceGaps": len(index["failures"]),
+            "semanticReviewComplete": index["semanticReviewComplete"],
+            "executed": any(row["executed"] for row in index["cases"])}
 
 
 def main():

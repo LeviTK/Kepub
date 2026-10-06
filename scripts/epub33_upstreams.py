@@ -91,9 +91,16 @@ def capture(root):
 
 def verify(root):
     index = json.loads((root / "index.json").read_text())
-    if {p[0] for p in PROJECTS} != {r["repo"] for r in index["projects"]}:
+    if ({p[0] for p in PROJECTS} != {r["repo"] for r in index["projects"]} or
+            len(index["projects"]) != len(PROJECTS)):
         raise ValueError("missing/extra upstream role")
+    expected_failures = []
     for r in index["projects"]:
+        adoption = ("existing separately configured formal checker 5.3.0; no new adoption"
+                    if r["repo"] == "w3c/epubcheck" else "research/deferred (not bundled)")
+        if (r.get("behaviorTested") is not False or r.get("adoption") != adoption or
+                r.get("evidenceStrength") != "public-source-and-license-only"):
+            raise ValueError(f"upstream research must not invent behavior/adoption: {r['repo']}")
         for key in ("sourceMetadata", "license", "licenseMetadata"):
             if r.get(key + "Path"):
                 path = Path(r[key + "Path"])
@@ -102,7 +109,24 @@ def verify(root):
         metadata = json.loads((root / r["sourceMetadataPath"]).read_text())
         if r["commit"] != metadata["sha"]:
             raise ValueError(f"upstream commit mismatch: {r['repo']}")
-    return {"projects": len(index["projects"]), "gaps": len(index["failures"]), "behaviorTested": False}
+        directory = root / r["repo"].replace("/", "--")
+        if not r.get("licensePath"):
+            if (r.get("licenseSHA256") is not None or r.get("licenseSPDX") is not None or
+                    r.get("licenseMetadataPath") or (directory / "LICENSE.upstream").exists() or
+                    r.get("licenseStatus") != "API license unavailable; adoption blocked"):
+                raise ValueError(f"upstream missing-license evidence mismatch: {r['repo']}")
+            expected_failures.append({"repo": r["repo"], "kind": "license-unavailable"})
+        else:
+            license_data = json.loads((root / r["licenseMetadataPath"]).read_text())
+            if (base64.b64decode(license_data["content"]) != (root / r["licensePath"]).read_bytes() or
+                    r["licenseSPDX"] != license_data["license"]["spdx_id"] or
+                    r["licenseSourcePath"] != license_data["path"] or
+                    r["licenseStatus"] != "actual-file-archived; legal obligations not adjudicated"):
+                raise ValueError(f"upstream license metadata mismatch: {r['repo']}")
+    if index["failures"] != expected_failures:
+        raise ValueError("upstream license gaps differ from required evidence")
+    return {"projects": len(index["projects"]), "gaps": len(expected_failures),
+            "behaviorTested": any(r["behaviorTested"] for r in index["projects"])}
 
 
 def main():
