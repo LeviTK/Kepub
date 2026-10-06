@@ -141,7 +141,7 @@ Apply、Open 恢复和 Accept 都须重新推导相同的单资源写集合及�
 
 T1a 验收 raw／decoded／扫描／返回限额，DTD 声明数、实体展开／工作预算及下述未展开实体语义由 T1b 验收，不以“本节全部限额”把两个批次合并。
 
-EPUB3 依据固定 [§3.9](https://www.w3.org/TR/2026/REC-epub-33-20260113/#sec-xml-constraints)／附录 B 按 manifest 媒体类型检查 external identifier，接受允许的 NCX／SVG／MathML 元组但不读取任何外部 DTD 子集，包括离线 catalog；不接受 XHTML 外部标识符、内部外部实体声明或 XInclude。内部子集按非验证 XML 语义处理，未知能力与非法输入分开；未声明实体不得静默从外部补齐。实体生成节点或默认属性无原始可写区间时明确拒绝直接局部写，不伪造 locator／offset，读取和原字节保留仍须正确。T3 显式 EPUB2 迁移模式才启用版本／hash／许可冻结的有限离线 DTD／实体；不读取书籍指定的任意 URL／本机路径，迁移结果和来源进入 diff。
+EPUB3 依据固定 [§3.9](https://www.w3.org/TR/2026/REC-epub-33-20260113/#sec-xml-constraints)／附录 B 按 manifest 媒体类型检查 external identifier，接受允许的 NCX／SVG／MathML 元组但不读取任何外部 DTD 子集，包括离线 catalog；不接受 XHTML 外部标识符、内部子集中的外部 ENTITY 声明或 XInclude。内部子集按非验证 XML 语义处理，未知能力与非法输入分开；未声明实体不得静默从外部补齐。实体生成节点或默认属性无原始可写区间时明确拒绝直接局部写，不伪造 locator／offset，读取和原字节保留仍须正确。T3 显式 EPUB2 迁移模式才启用版本／hash／许可冻结的有限离线 DTD／实体；不读取书籍指定的任意 URL／本机路径，迁移结果和来源进入 diff。
 
 XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场景，可能存在良构但未取得声明的实体引用。T1b 必须记录未展开实体名、原字节位置和 partial 来源，保留原文，不以空串代替，不把后续可能被覆盖的声明／默认值当确定事实。使用独立能力诊断 `XML_ENTITY_UNRESOLVED`，禁止对依赖该未知内容的元素直接局部写；违反 Entity Declared WFC（如 standalone=yes）的输入仍报非良构。可表达 coverage 的读取／inspect 显式 partial；`content/search` 对应读取范围内的不完整文本明确 exit 3，不返回成功的残缺文本、完整匹配数或静默跳过资源。此实现是必需的可判定处理，不是允许必需解析项笼统报 unsupported。
 
@@ -151,16 +151,16 @@ XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场�
 
 #### T1b 的 XML 来源输出（实施契约，尚待实现与验收）
 
-合法内部 `NOTATION` 的 SYSTEM／PUBLIC 标识符依据 XML §4.7 描述 notation，不是外部 ENTITY 声明或 DOCTYPE 外部子集。按 XML 语法解析并保留，向应用提供被引用的 notation 名称及标识符，绝不据此解析外部资源或启动程序。EPUB §3.9／附录 B 的 DOCTYPE 约束不扩大到所有 notation 标识符；内部外部 ENTITY 仍按 EPUB3 规则拒绝。此判定不豁免其他适用规范约束，也不将 parser 接受当作正式 checker 通过。
+合法内部 `NOTATION` 的 SYSTEM／PUBLIC 标识符依据 XML §4.7 描述 notation，不是外部 ENTITY 声明或 DOCTYPE 外部子集。按 XML 语法解析并保留，向应用提供被引用的 notation 名称及标识符，绝不据此解析外部资源或启动程序。EPUB §3.9／附录 B 的 DOCTYPE 约束不扩大到所有 notation 标识符；内部子集中的外部 ENTITY 声明仍按 EPUB3 规则拒绝。此判定不豁免其他适用规范约束，也不将 parser 接受当作正式 checker 通过。
 
-为不伪装不完整读取，T1b 在 `info` 的 data、`inspect` 的 data 外层按需增量提供 `xmlCoverage`，以及 navigation／references 的结果中提供同形字段；不替换旧 `value`／元素数组、不改变 envelope／操作／计划／执行 schema 或摘要。
+为不伪装不完整读取，T1b 在 `info` 与 `inspect` 的 `data` 内按需增量提供顶层字段 `xmlCoverage`（不是 envelope 顶层；inspect 中与 rootfile／section／value／limitations 并列）。navigation／references 的结果值本身另含同形字段，即 inspect 返回时位于 `data.value.xmlCoverage`；不替换旧 `value`／元素数组、不改变 envelope／操作／计划／执行 schema 或摘要。
 
 ```json
 {
   "xmlCoverage": {
     "resources": [{
       "bookPath": "EPUB/chapter.xhtml",
-      "resourceSha256": "原始资源的64位小写SHA-256",
+      "resourceSha256": "原始资源的SHA-256，64个小写十六进制字符",
       "status": "partial",
       "unresolved": [{
         "name": "unknown",
@@ -178,8 +178,8 @@ XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场�
 - `resources` 只列本次实际解析中存在未展开实体或需要报告 notation 的资源，按精确 BookPath 排序；与本次请求无关或未读取的资源不暗中全书扫描。没有此类信息时省略 `xmlCoverage`，不把省略解释为全书 XML 或 EPUB 合规。
 - `status` 为 `complete | partial`，只指所选非验证 XML profile 的处理；被识别但未读取的实体、未知参数实体后的不确定声明／默认值均须传播 partial。未展开文本保留引用／来源，不用空串或猜测值冒充确定文本。结构必需信息（如 rootfile、package version、manifest 路径）未知时明确 exit 3／`XML_ENTITY_UNRESOLVED`，不猜结构，也不因缺失该未知值伪报 XML 非良构。
 - `kind` 为 `general | parameter`；`startByte/endByte` 是含 BOM 的原始资源内 0-based 半开区间，不是解码流偏移。`origin:reference` 指实体引用自身的原字节；从实体展开间接产生、没有独立原始区间时，`origin:expansion` 指向导致该内容的原始引用区间，不冒充未知实体自身逐字节位置或可写区间。同一区间可关联多个展开来源，必须保留必要的不同实体记录；范围与资源 hash 绑定。
-- `notations` 元素为 `{name, publicId, systemId}`，未提供的标识符用空字符串；至少包括已引用的 notation，允许同时报告已解析但未引用的声明。它们是声明数据，不是可跟随 URL 或读取授权。资源内列表按声明／引用处理顺序确定；重复 notation 采用首个已解析声明作为本实现的确定性非验证策略，不误称 XML 要求的良构约束，也不靠 map 随机顺序决定语义。
-- navigation／references 沿用已有 coverage、status 与 diagnostics，并同步声明 partial；不得从未知默认属性／实体文本生成肯定的引用或“无引用”结论。`content/search` 仍只返回完整文本，应读取范围不完整时 exit 3／`XML_ENTITY_UNRESOLVED`，不返回成功的残缺匹配数；不得靠 query 或 limit 跳过未知内容。依赖未知值的写入、实体生成节点或其他无独立原始可写区间的目标拒绝直接局部写。
+- `notations` 元素为 `{name, publicId, systemId}`，未提供的标识符用空字符串；至少包括 XML §4.7 所述在属性值、属性定义或实体声明中被引用且本次已解析声明的 notation，允许同时报告已解析但未引用的声明。未知声明不得伪造标识符；外部 ENTITY 禁令仍适用，不因它引用 notation 而放行。它们是声明数据，不是可跟随 URL 或读取授权。资源内列表按声明／引用处理顺序确定；重复 notation 采用首个已解析声明作为本实现的确定性非验证策略，不靠 map 随机顺序决定语义。唯一名称是有效性约束（VC），不是良构约束（WFC）；此流程不声明 DTD 有效。后续同名声明仍完整保留在原资源字节中，本批不另加重复声明输出字段。
+- navigation／references 沿用已有 coverage、status 与 diagnostics。未知 XML 信息使结果至少为 partial；不足以建立导航／引用结构时仍可为 blocked，不把 blocked 降为 partial。两种状态独立：可表达的未展开 XML 来源仍报告 `xmlCoverage.status:partial`，纯业务结构阻断不把已完整解析的 XML 改为 partial；XML 非良构／限额等硬失败不为该资源生成 xmlCoverage 记录，而沿用 blocked／diagnostics 或相应命令失败，不能将失败伪装成 complete。不得从未知默认属性／实体文本生成肯定的引用或“无引用”结论。`content/search` 仍只返回完整文本，应读取范围不完整时 exit 3／`XML_ENTITY_UNRESOLVED`，不返回成功的残缺匹配数；不得靠 query 或 limit 跳过未知内容。依赖未知值的写入、实体生成节点或其他无独立原始可写区间的目标拒绝直接局部写。
 
 这些增量只表达本次 XML 来源与不确定性，不提前实现 §2.5 的全规范五维能力模型。验收须检查 UTF-16 原字节区间、直接／嵌套实体来源、NOTATION、缺失 PE 后默认属性、standalone=yes 非良构反例、无外部读取，以及旧无 DTD 输出的兼容性。
 
