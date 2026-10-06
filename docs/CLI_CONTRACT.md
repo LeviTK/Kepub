@@ -135,6 +135,8 @@ Apply、Open 恢复和 Accept 都须重新推导相同的单资源写集合及�
 
 标准语法接纳不扩大 `content.text.set` v1 的结构权限。T1 编码支持须覆盖读取、定位、局部写入、来源重算与历史重开：未改资源保持原字节，已改资源保持原编码、BOM／声明和目标外字节。T1a 独立验收原生 HTML DOCTYPE／UTF-16 LE／BE 全链路、本节 search／status／diff、授权原书与公共合成样本，不宣称完整 T1。T1b 须完成开发方案 §3.4 的必需解析／保留矩阵：内部实体（含标记及参数实体）、ATTLIST 默认／固定属性及规范化、允许的声明与命名空间；预算内必需项不得仅标 unsupported。T1a 与 T1b 都通过才进入 T2。
 
+**编码可解析不等于正式检查通过。** 固定 EPUBCheck 5.3.0 对 UTF-16 `application/xhtml+xml` 报 `HTM_058` error，对 UTF-16 OPF／container 报 `RSC-027` warning；其[编码分支](https://github.com/w3c/epubcheck/blob/029831b8f477e4519e9734c984ee24357547a698/src/main/java/com/adobe/epubcheck/xml/XMLParser.java#L129-L181)不按 EPUB2／3 区分。UTF-16 XHTML 的读取／局部编辑／来源重算／重开仍保真，但正式接受和正式导出必须保留这个失败、accepted 不推进且不生成正式产物；显式 draft 保留原字节并标记未验证。不得隐式转码、过滤该诊断或降低 checker 门槛，也不把检查器拒绝等同于 XML 非良构。正式成功正控使用原生 UTF-8 XHTML，以及 UTF-16 LE／BE OPF／container 配合 UTF-8 XHTML；后者须用 `metadata.set` 修改 UTF-16 OPF，验证接受后历史来源和导出字节，`--strict` 仍阻止 warning。大段 UTF-16 CJK 注释跨解码 8 MiB 的样本验证解析／编辑／重开与正式拒绝，不伪称其通过正式检查。
+
 T1a 验收 raw／decoded／扫描／返回限额，DTD 声明数、实体展开／工作预算及下述未展开实体语义由 T1b 验收，不以“本节全部限额”把两个批次合并。
 
 EPUB3 依据固定 [§3.9](https://www.w3.org/TR/2026/REC-epub-33-20260113/#sec-xml-constraints)／附录 B 按 manifest 媒体类型检查 external identifier，接受允许的 NCX／SVG／MathML 元组但不读取任何外部 DTD 子集，包括离线 catalog；不接受 XHTML 外部标识符、内部外部实体声明或 XInclude。内部子集按非验证 XML 语义处理，未知能力与非法输入分开；未声明实体不得静默从外部补齐。实体生成节点或默认属性无原始可写区间时明确拒绝直接局部写，不伪造 locator／offset，读取和原字节保留仍须正确。T3 显式 EPUB2 迁移模式才启用版本／hash／许可冻结的有限离线 DTD／实体；不读取书籍指定的任意 URL／本机路径，迁移结果和来源进入 diff。
