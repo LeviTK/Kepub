@@ -261,7 +261,7 @@ F3／F4／F6、P8 及 T3 前置机读登记仍由编码 Orb 修复，尚未父�
 同一 R3 会话实际 **completion＋exit 0，72 turns、1,142,164ms**，250 stream events、零 error 事件。最终决定 **rejected，readingComplete=false**；正常退出不是审核批准。父下载完整 stream、报告、evidence、exit 及探针包，并核对报告等于实际 completion 的 `finalText`。固定 tree 和 828 输入身份保持原值；没有 `acceptance.json`。
 
 - 原报告 **9,563 bytes**，SHA-256 `1bea493d32a70316a843c370a9760088846bf82bd7ea308b741c79079aebbf2b`；stream **828,201 bytes**，SHA-256 `994979a30fa17f0832bb471bdd0110077d5a736af2d8e95b8b831194d2df364d`；探针包 **107,142 bytes**，SHA-256 `5b50165094cfd2334488aea26986cf02d629cf4140c724714c985494fe05f32b`。实际 exit 文件仍为 `0\n`。
-- Droid 的完整 Python **105/105 PASS，298.633s**；真实 EPUBCheck 5.3.0 的 `TestRealREC2026` 12 子例通过；首次离线回放、四类 verify、reproduce 和 no-drift 通过。正常 gate 因缺少独立批准 exit 1。一次性副本中的合成一致批准正控通过、21 个反例均拒绝，只说明凭据／输入一致性检查有效；**不能据此认定真实批准被绕过，也不能用机械检查证明自然语言规范完整**。
+- Droid 的完整 Python **105/105 PASS，298.633s**；真实 EPUBCheck 5.3.0 的 `TestRealREC2026` 12 子例通过；首次离线回放、四类 verify、reproduce 和 no-drift 通过。正常 gate 因缺少独立批准 exit 1。原报告把负控计为 21；父后读原 `gate_ctl.py` 和 `gate_ctl.log` 确认是 **20 个负控均拒绝＋1 个合成一致批准正控通过**（N0、N2～N20，P1 不是 N1），纠正本记录先前沿用的错误计数。这只说明凭据／输入一致性检查有效；**不能据此认定真实批准被绕过，也不能用机械检查证明自然语言规范完整**。
 - 阅读边界：R3 阅读实现和多数治理文档，但开发计划仅部分、多数测试未逐行读；主要核对三个 REC 的未映射残余，未通读完整 REC。部分原 Read 输出被截断，不能把随后局部重读补成全文阅读。其 `readingComplete=false` 如实保留。
 
 父逐项读冻结原文后确认：**F-R3-1** 的通用豁免必须同时满足“不被 spine 引用”和“不直接嵌入”两个条件；**F-R3-2** 的 SVG reference／inclusion 分别关联 SVG 文档和 §6.2.3 共用限制。这些定义没有映射，不是声称当前 CLI 的 SVG 或资源行为已实际失败。
