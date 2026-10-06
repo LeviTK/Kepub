@@ -347,3 +347,13 @@ R4 冻结目录 `/tmp/kepub-s0-droid-review-r4`；唯一启动外层 PID **20605
 新固定 test-only 树父定向 **6/6 PASS，37.493s**，无 tracked／staged 漂移；日志 SHA-256 `244b5951da34eafc7f052fe815581ae165002f475726379dd5f454993110b94a`。子定向 **6/6 PASS，38.515s**，故意先写首包的内存 mutant 被检出为 **1 failure／0 errors，18.870s**；其 harness exit 0 表示预期失败已观察到，不把 mutant 说成通过。证据包 **2,062 bytes**、SHA-256 `1da525182e0a0293d8b942b06e814393baed06759c025e744d1fe78fbbaaa8ce`。旧 121 项组合不冒称覆盖这一后加测试修改。
 
 父本地集成为 `a0935ce`／`ce7d659`；脚本、资产、产品及依赖与最后受验子树逐项相同。保留子先前误用 paragraph 的 list-only contextDOM 失败、选中原语句充当 sibling 的测试错误以及全部原红结果，详见 [本批记录](S0_REVIEW_R5_FIXES.md)。C3／M1 的版本和解释边界未改，没有放宽门禁、改写原始文档、运行新 Go 大组合或恢复 T1。修复本身关闭这些已确认问题，但 **S0 未批准，R6 尚未启动，未 push／发布**。
+
+### 最终组合复验完成；新完整 R6 已真实启动，尚无决定
+
+父本地固定 `26b32fbfa85605d621046710bdad3d9ef95d31b9` 上完整 Python **121/121 PASS，589.402s，actual exit 0**，这次明确包含后加原子性测试和最终矩阵说明。日志 SHA-256 `ea75592a4898ffcbe13ba365d606bcf3c2a278185166bcb8d77a17cd340b7c02`。父另以独立内存 mutant 模拟先写首包：加强测试只在最终字节比较处出现 **1 failure／0 errors，18.850s**；harness exit 0 证明预期错误被检出，不是生产测试失败，日志 SHA-256 `8f1e0208db22f8737d86fdccc3905e840cc09e456c477f4a2918746a90e6c59d`。测试后无 tracked／staged 漂移，全部批准输入逐项不变。
+
+R6 fixture `b4e052f590d00665a4d05e02e95f7033bc1bb7f2` 的完整 tree **`7ce11e0150fe3ed2007349ae8bf264ae07a71eaf`** 与上述父本地提交相同，不是 `origin/main`。实际传输 bundle **37,713 bytes**、SHA-256 `e8d89463856dc37b1f08e3e9460502bf8e0abc912e0d870b2188436594bb004b`，前置 `bfc93e7`；输入包 **106,741 bytes**、SHA-256 `b30acb424a844df89bdc23b9b793e930c18f8c7a82eadef0cbd1aec9f3dcd4d2`。双方逐字节核验 **836 个输入**，canonical identity **`329c917fa55cea90e4c260832310a3f837789b71b1c3e5df9cf3e3723a7c2cd1`**。子使用持久、独立 `review-r6`／`scratch-r6`／`probes-r6`，保留原 T1 初稿及 R5 证据。
+
+父全文检查 **11,281-byte prompt** 与 **3,536-byte launcher**，SHA-256 分别为 `53b83688e0537e1074079611ddc4e49f220f2ee3d4b03a9551ff08dda5f9fe3e`／`8f6a45026ccfc908a1ff516a1b95d2cfd4d25612364cf343a2237f46233e131e`；准备证据包 **92,493 bytes**、SHA-256 `e041c732cb5a0a2d3600ce7e28197495feb6ac8a32f3732af1cbd879dee29f5b`。两个目录的实际输入清单均与父完全相同，clean、无 acceptance。未授权 wrapper 的实际 **exit 64** 未创建 claim 或模型请求；此退出不是 Droid 的结果。完成检查后父单独授权唯一 R6，沿用已验证的持久 launch-once 防重机制和无 portal 的受监督服务。
+
+实际 init 为 **1,077 bytes**、SHA-256 `00a25360de1d2306d8b96a27ca085000dfd89a42c981aaa2618ad3057bcf0c42`，确认会话 **`bfff4154-b0d3-4ba3-8f12-349bd12f135e`**、正确持久 cwd、**claude-opus-5-5／medium**；CLI 实测 **0.233.0**。要求全新完整 S0 阅读和实际 demo，不以 R5 阅读账或八条增量代替。当前只有启动／初始阅读证据，没有 completion、actual child exit 或批准；继续跟随这一会话。**S0 未批准，T1 暂停，未 push／发布。**
