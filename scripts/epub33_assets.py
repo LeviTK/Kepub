@@ -598,8 +598,35 @@ def acceptance_inputs(root):
     return inputs
 
 
+def verify_amp_completion(review, report):
+    """Verify the user-authorized Amp/DeepSeek alternative, not a Droid stream.
+
+    Like the existing receipts, this checks recorded execution consistency;
+    an exported transcript is not a cryptographic attestation by the provider.
+    """
+    path = repository_evidence(review["exportPath"])
+    if sha(path.read_bytes()) != review["exportSHA256"]:
+        raise ValueError("S0 semantic gate blocked: Amp execution evidence changed")
+    export = json.loads(path.read_text())
+    agent = export.get("meta", {}).get("threadAgent", {})
+    if (not export.get("id") or export["id"] != review.get("threadId") or
+            agent.get("type") != "custom-agent" or agent.get("pluginAgentModeKey") != "deepseek-v4.1-flash" or
+            agent.get("definition", {}).get("model") != "deepseek/deepseek-v4.1-flash"):
+        raise ValueError("S0 semantic gate blocked: Amp thread/model identity mismatch")
+    messages = export.get("messages", [])
+    assistants = [m for m in messages if m.get("role") == "assistant"]
+    if (not assistants or any(m.get("usage", {}).get("model") != "deepseek-v4.1-flash" for m in assistants) or
+            messages[-1].get("role") != "assistant" or
+            messages[-1].get("state", {}).get("type") != "complete" or
+            messages[-1].get("state", {}).get("stopReason") != "end_turn"):
+        raise ValueError("S0 semantic gate blocked: Amp actual model/completion mismatch")
+    text = "\n".join(c["text"] for c in messages[-1].get("content", []) if c.get("type") == "text")
+    if text.strip() != report.read_text().strip():
+        raise ValueError("S0 semantic gate blocked: Amp report is not actual completion")
+
+
 def verify_acceptance(root):
-    """Aggregate S0 validators and current-input parent/actual Droid decisions."""
+    """Aggregate S0 validators and current-input parent/independent decisions."""
     import epub33_semantics as semantics
     import epub33_upstreams as upstreams
     verify_derived(root)
@@ -616,8 +643,8 @@ def verify_acceptance(root):
     if acceptance.get("schemaVersion") != 1 or acceptance.get("inputs") != inputs:
         raise ValueError("S0 semantic gate blocked: approval input identity changed")
     reviews = acceptance.get("reviews", {})
-    if set(reviews) != {"parent", "droid"}:
-        raise ValueError("S0 semantic gate blocked: parent/Droid acceptance incomplete")
+    if set(reviews) not in ({"parent", "droid"}, {"parent", "amp"}):
+        raise ValueError("S0 semantic gate blocked: parent/independent acceptance incomplete")
     for role, review in reviews.items():
         if (review.get("decision") != "approved" or review.get("scope") != "complete-S0" or
                 not review.get("reviewer") or review.get("inputIdentitySHA256") != identity):
@@ -632,9 +659,13 @@ def verify_acceptance(root):
         if (not isinstance(decision, dict) or decision.get("scope") != "complete-S0" or
                 decision.get("decision") != "approved" or decision.get("findings") != [] or
                 decision.get("inputIdentitySHA256") != identity or
-                (role == "droid" and decision.get("readingComplete") is not True)):
-            name = "Droid" if role == "droid" else "parent"
+                (role != "parent" and decision.get("readingComplete") is not True)):
+            name = {"droid": "Droid", "amp": "Amp", "parent": "parent"}[role]
             raise ValueError(f"S0 semantic gate blocked: actual {name} review not complete/approved")
+    if "amp" in reviews:
+        review = reviews["amp"]
+        verify_amp_completion(review, repository_evidence(review["reportPath"]))
+        return identity
     review = reviews["droid"]
     report = repository_evidence(review["reportPath"])
     stream = repository_evidence(review["streamPath"])

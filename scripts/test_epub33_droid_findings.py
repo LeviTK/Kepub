@@ -149,6 +149,94 @@ class AcceptanceProtocol(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "license provenance drift"):
             assets.verify_acceptance(self.root)
 
+    def make_amp_approval(self, decision=None):
+        self.make_approval(decision)
+        text = (self.project / "droid.md").read_text()
+        (self.project / "amp.md").write_text(text)
+        self.export = {
+            "v": 5, "id": "T-00000000-0000-0000-0000-000000000001",
+            "meta": {"threadAgent": {
+                "type": "custom-agent", "pluginAgentModeKey": "deepseek-v4.1-flash",
+                "definition": {"name": "deepseek-v4.1-flash", "model": "deepseek/deepseek-v4.1-flash"}}},
+            "messages": [
+                {"role": "user", "content": [{"type": "text", "text": "Synthetic review request"}]},
+                {"role": "assistant", "usage": {"model": "deepseek-v4.1-flash"},
+                 "state": {"type": "complete", "stopReason": "tool_use"}, "content": []},
+                {"role": "user", "content": []},
+                {"role": "assistant", "usage": {"model": "deepseek-v4.1-flash"},
+                 "state": {"type": "complete", "stopReason": "end_turn"},
+                 "content": [{"type": "text", "text": text}]},
+            ],
+        }
+        del self.receipt["reviews"]["droid"]
+        self.receipt["reviews"]["amp"] = {
+            "decision": "approved", "scope": "complete-S0", "reviewer": "Amp DeepSeek fixture",
+            "inputIdentitySHA256": self.identity, "reportPath": "amp.md",
+            "reportSHA256": assets.sha(text.encode()), "exportPath": "amp.json",
+            "threadId": self.export["id"],
+        }
+        self.save_amp_export()
+
+    def save_amp_export(self):
+        path = self.project / "amp.json"
+        assets.write_json(path, self.export)
+        self.receipt["reviews"]["amp"]["exportSHA256"] = assets.sha(path.read_bytes())
+        assets.write_json(self.root / "acceptance.json", self.receipt)
+
+    def test_amp_current_identity_and_parent_are_still_required(self):
+        self.make_amp_approval()
+        self.assertEqual(assets.verify_acceptance(self.root), self.identity)
+        self.assertTrue(self.derived_mock.called)
+        self.assertTrue(self.semantic_mock.called)
+        self.assertTrue(self.upstream_mock.called)
+        # Actual exports changed v from 5 at creation to 589 during execution;
+        # it is not a fixed transcript-format version.
+        self.export["v"] = 589
+        self.save_amp_export()
+        self.assertEqual(assets.verify_acceptance(self.root), self.identity)
+        path = self.project / "scripts/check.py"
+        before = path.read_bytes()
+        path.write_bytes(before + b"# changed\n")
+        with self.assertRaisesRegex(ValueError, "input identity changed"):
+            assets.verify_acceptance(self.root)
+        path.write_bytes(before)
+        del self.receipt["reviews"]["parent"]
+        self.save_amp_export()
+        with self.assertRaises(ValueError):
+            assets.verify_acceptance(self.root)
+
+    def test_amp_metadata_cannot_replace_actual_model_completion_or_report(self):
+        changes = (
+            lambda e: e.update(id="T-other"),
+            lambda e: e["meta"]["threadAgent"].update(pluginAgentModeKey="another-mode"),
+            lambda e: e["meta"]["threadAgent"]["definition"].update(model="another-model"),
+            lambda e: e["messages"][1]["usage"].update(model="another-model"),
+            lambda e: e["messages"][-1].pop("usage"),
+            lambda e: e["messages"][-1].update(state={"type": "streaming"}),
+            lambda e: e["messages"][-1]["state"].update(stopReason="tool_use"),
+            lambda e: e["messages"][-1]["content"][0].update(text="Only a delivery acknowledgment"),
+            lambda e: e["messages"].append({"role": "user", "content": []}),
+            lambda e: e.update(messages=[]),
+        )
+        for i, change in enumerate(changes):
+            with self.subTest(mutation=i):
+                self.make_amp_approval()
+                change(self.export)
+                # Rehash the changed export: rejection must inspect its contents.
+                self.save_amp_export()
+                with self.assertRaisesRegex(ValueError, "Amp"):
+                    assets.verify_acceptance(self.root)
+
+    def test_amp_rejected_partial_or_wrong_scope_report_is_not_approval(self):
+        for change in ({"decision": "rejected"}, {"readingComplete": False},
+                       {"findings": ["F1"]}, {"scope": "gate-only"}):
+            with self.subTest(change=change):
+                decision = {"scope": "complete-S0", "decision": "approved", "readingComplete": True,
+                            "findings": [], "inputIdentitySHA256": self.identity, **change}
+                self.make_amp_approval(decision)
+                with self.assertRaisesRegex(ValueError, "actual Amp review not complete/approved"):
+                    assets.verify_acceptance(self.root)
+
 
 class EvidenceReferences(unittest.TestCase):
     def test_completion_boolean_cannot_bypass_real_aggregate_gate(self):

@@ -3,8 +3,11 @@
 This source checkpoint alone is **not S0 approval**, an implementation support
 declaration, or closure of Issue #3. Actual review decisions and phase status
 are recorded in the [parent acceptance record](verification/S0_PARENT_ACCEPTANCE.md).
-T1 requires current-input parent and actual Droid approval through the offline
+T1 requires current-input parent and actual independent approval through the offline
 `gate`; source counts and successful generation do not grant that approval.
+The user currently authorizes Amp's `deepseek-v4.1-flash` auditor while Factory
+Droid quota is unavailable. This changes the execution evidence, not the scope
+or completeness required for approval; historical Droid evidence is retained.
 
 - [Immutable original source manifest](specs/epub-3.3/manifest.json)
 - [Offline document index](specs/epub-3.3/INDEX.md)
@@ -42,9 +45,21 @@ R1, R2 and R3 completed with findings; their raw evidence and reading limitation
 are retained, not promoted to approval. Subsequent decisions belong in the
 parent acceptance record. `semanticComplete` stays false;
 the offline `gate` aggregates source, derivative, semantic, official-fixture
-and upstream validators and requires current-input parent and actual Droid
+and upstream validators and requires current-input parent and actual independent
 approval records. Editing that boolean cannot close S0. Counts never establish
 normative completeness by themselves.
+
+The receipt accepts exactly `parent` plus either `droid` or `amp`, never an
+independent review alone. Both actual reports must approve `complete-S0`, have
+no unresolved findings and bind the current input identity; the independent
+report must also assert complete reading. The Droid protocol remains unchanged.
+For Amp, the hashed thread export must match `threadId`, the actual
+`deepseek-v4.1-flash` agent and every assistant message's execution model. Its
+last message must be a completed assistant final turn, with text matching the
+review report, not a coordinator's replacement conclusion. An export is review
+consistency evidence, not a provider signature or an access-control guarantee.
+Supporting reading ledgers and command logs remain separate evidence; synthetic
+test transcripts are never real approval. Changed inputs require renewed review.
 
 `matrix.json` is the single mutable mapping source. `manualConstraints` records
 additional minimum independently decidable constraints with exact archived
@@ -182,7 +197,7 @@ assets are prerequisites, not claimed downloaded. Paid ISO/ANSI full text is a
 later-stage gap, not an S0 purchase. Later module semantics, rendering,
 accessibility, legal applicability and adoption remain explicit gaps. Source
 mapping is ready for independent acceptance; this checkpoint does not unblock
-T1 or replace the subsequent fixed-tree Factory Droid review.
+T1 or replace the subsequent fixed-tree independent review.
 
 [Finite T3 prerequisite registry](specs/epub-3.3/reviews/t3-prerequisites.json)
 registers OPF/OPS/OCF 2.0.1, NCX, DTBook, XHTML1.1 DTD/modules/entity sets.
