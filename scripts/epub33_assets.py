@@ -694,18 +694,34 @@ def reconcile_source_members(source_nodes, rows, reviews):
     """
     families = {
         "epub": {
-            "sec-container-filenames": ("ul[1]/li[3]/ul[1]",),
+            "sec-container-filenames": ("p[1]", "ul[1]/li[3]/ul[1]"),
             "sec-data-urls": ("ul[1]",), "sec-encryption.xml-encryption": ("ul[1]",),
-            "sec-item-resource-properties": ("ul[1]",), "sec-resource-locations": ("ul[1]",),
+            "sec-item-resource-properties": ("p[2]", "ul[1]"), "sec-resource-locations": ("ul[1]",),
             "sec-xhtml-custom-attributes": ("ul[1]",), "sec-foreign-resources": ("ul[1]",),
             "sec-nav-toc": ("ul[1]",), "sec-skippability": ("ul[1]",),
-            "sec-escapability": ("ul[1]",), "sec-container-iri": ("ul[1]",),
-            "sec-property-datatype": ("ul[1]",), "sec-nav-def-model": ("ul[1]",),
+            "sec-escapability": ("ul[1]",), "sec-container-iri": ("p[2]", "p[3]", "ul[1]"),
+            "sec-property-datatype": ("p[4]", "ul[1]"), "sec-nav-def-model": ("ul[1]",),
             "sec-alternate": ("table[1]/tbody[1]/tr[2]/td[1]/ul[1]",),
             **{anchor: ("dl[1]",) for anchor in (
                 "page-spread", "layout", "layout-overrides", "orientation", "orientation-overrides",
-                "spread", "spread-overrides", "flow", "flow-overrides", "sec-exempt-resources")},
+                "spread", "spread-overrides", "flow", "flow-overrides")},
             "obfus-algorithm": ("p[1]", "p[2]", "p[3]"),
+            "sec-exempt-resources": ("dl[1]", "p[4]", "ul[1]"),
+            "sec-xhtml-svg": ("ul[1]",), "sec-svg-restrictions": ("p[1]",),
+            "sec-link-elem": ("p[3]", "ul[1]", "p[10]"), "sec-metadata-values": ("p[1]", "p[3]"),
+            "sec-opf-dctitle": ("p[2]", "p[3]"),
+            "sec-opf-dccreator": ("p[2]", "p[4]", "p[5]", "p[6]"),
+            "html-script-element": ("p[3]",),
+            "sec-scripted-support": ("p[3]",),
+            "sec-scripted-context": ("p[1]", "ul[1]", "p[2]"),
+            "sec-scripted-container-constrained": ("p[1]", "ul[1]"),
+            "sec-scripted-spine": ("p[1]",), "sec-meta-elem": ("p[2]", "ul[1]", "p[5]"),
+            "sec-itemref-elem": ("p[4]", "p[6]", "p[9]"), "sec-opf-dcsubject": ("p[5]",),
+            "sec-xhtml-req": ("p[2]",), "sec-prefix-attr": ("p[4]",),
+            "sec-role": ("table[1]/tbody[1]/tr[2]/td[1]/p[3]",),
+            "app-media-type-app-oebps-package": ("dl[1]/dd[5]/p[1]", "dl[1]/dd[5]/p[2]",
+                                                "dl[1]/dd[6]/p[1]", "dl[1]/dd[6]/p[3]"),
+            "app-media-type": ("dl[1]/dd[5]/p[1]", "dl[1]/dd[6]/p[1]", "dl[1]/dd[6]/p[3]"),
         },
         "a11y": {"sec-page-nav-applicability": ("ul[1]",),
                  "sec-sync-order": ("dl[1]/dd[3]/ul[1]",)},
@@ -952,6 +968,15 @@ def import_reviews(root, paths, amendments=()):
                     matrix[key].append(value)
                 else:
                     matrix[key][position] = value
+        for anchor, note in review.get("sectionNotes", {}).items():
+            section = next((n for n in nodes.values() if n.tag == "section" and
+                            n.attrs.get("id") == anchor), None)
+            record = next((r for r in matrix["sectionReviews"] if r["document"] == document and
+                           r["anchor"] == anchor), None)
+            if (not section or not record or record["domPath"] != section.path() or
+                    not isinstance(note, str) or not note.strip()):
+                raise ValueError("semantic section note source identity mismatch")
+            record.update(notes=note, reviewer="coding Orb source/context correction; not independent full review")
     if not existing <= {r["featureId"] for r in matrix["rows"]}:
         raise ValueError("import would silently delete existing review identities/candidate mapping; retain reasoned exclusions")
     # Source review alone cannot close the complete S0 gate, which also needs
