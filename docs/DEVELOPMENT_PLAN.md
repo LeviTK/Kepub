@@ -20,7 +20,7 @@ v0.10 根据 [Issue #4：EPUB CLI 生态借鉴、安全修复与分层校验](ht
 
 S0 已本地建立原文归档、官方用例来源／工件索引、上游版本与许可记录，以及离线矩阵生成和校验脚本。P1～P7 已独立复验；首轮固定树 Droid 实现审查结束时未批准，发现门禁／证据核验、列表条款、官方用例关联及 NVDL 归档遗漏，父另复现算法说明误标的 P8。各项修复、固定新树审查、阅读限制及实际放行结论持续记录在 [S0 父验收](verification/S0_PARENT_ACCEPTANCE.md)，不改写原失败；实际 checker 增量见 [S0 EPUBCheck 核验](verification/S0_EPUBCHECK_2026.md)。离线 `gate` 核验资产、派生物、来源，以及绑定同一输入的父验收和真实独立审计完整批准，不以布尔字段、普通样本通过或审查进程 exit 0 放行。归档／生成不算官方用例执行，不提升 CLI 功能状态；实施验收与推送／发布分别记录。
 
-**当前交付：S0 固定输入及 T1a／T1b 均已通过独立审计和父验收，本地集成，未推送或发布。** T1b 最终固定树通过父 507 次 CLI 验收、root 普通／race／vet、Darwin 交叉构建及编码方三组 live fuzz；此前缺陷／拒绝审计／旧树超时保留。未经预处理授权原书的 53 个 ZIP 条目逐字节回归、真实 checker 与旧二进制兼容均通过。证据见 [T1a 验证](verification/T1A_ENCODING_TERMINAL.md)和 [T1b 验证及父验收](verification/T1B_XML_SUBSET.md)。这仅完成规定的 T1 兼容与终端基础；T2 尚未开始，不代表完整 EPUB3 编辑器。S0 旧批准仅绑定原固定身份，不重签或挪用为本文更新后的输入批准。
+**当前交付：S0 固定输入及 T1a／T1b 均已通过独立审计和父验收，源码已同步到 GitHub main，未发布版本化安装包。** T1b 最终固定树通过父 507 次 CLI 验收、root 普通／race／vet、Darwin 交叉构建及编码方三组 live fuzz；此前缺陷／拒绝审计／旧树超时保留。未经预处理授权原书的 53 个 ZIP 条目逐字节回归、真实 checker 与旧二进制兼容均通过。证据见 [T1a 验证](verification/T1A_ENCODING_TERMINAL.md)和 [T1b 验证及父验收](verification/T1B_XML_SUBSET.md)。这仅完成规定的 T1 兼容与终端基础；T2 尚未开始，不代表完整 EPUB3 编辑器。S0 旧批准仅绑定原固定身份，不重签或挪用为本文更新后的输入批准。
 
 v0.9 对齐 [Issue #3：EPUB 3.3 全规范兼容与 XHTML／CSS 全面排版](https://github.com/LeviTK/Kepub/issues/3) 的完整正文（2026-10-05 核对，当前无评论）。该 issue 是跨 CLI、核心、预览和验收的总目标；本版补齐规范归档、五维能力证据、阶段映射和关闭条件，不把它误缩为六批终端功能，也不把后续 GUI 强行放进当前 CLI 批次。当时编码 Orb 的未测初稿曾暂停等待 S0；此历史状态已由上述 T1a 独立验收更新，旧基线通过仍不作为新功能证据。
 

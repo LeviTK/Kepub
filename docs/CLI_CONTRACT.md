@@ -14,7 +14,7 @@ Obsidian CLI 的参考取舍见 [开发方案 §9.1／§9.2](DEVELOPMENT_PLAN.md
 
 ## 2. 命令分组与实施次序
 
-下表 M0～M6 是技术工作包编号，不再表示执行先后。当前先完成 [S0 规范资产与差距矩阵](DEVELOPMENT_PLAN.md#118-issue-3-阶段映射规范资产与关闭门槛)，再按 [开发方案 v0.10 §11.7](DEVELOPMENT_PLAN.md#117-v010-独立-cli-批次与完成标准) 完成独立终端制书：默认 EPUB3、EPUB2 → EPUB3 转换、完整 EPUB3 XHTML、样式和系统字体发现；本阶段不接入 UI、Amp 或外部编辑器。C1 发现／诊断、C2 有界内容读取／定位、C3 单个 XHTML 简单文本确定性修改已实现并作为源码发布到 main，尚无版本化安装包。C3 操作 schema 在 §2.2 冻结；支持边界见 [§11.4](DEVELOPMENT_PLAN.md#114-首个正文读写版本的边界)。T1a／T1b 已本地验收并集成（未推送），编码／内部子集／来源及 search／status／终端输出见 §2.4；§2.3、§2.5～§2.6 的其余能力仍待实施。CLI 完成不等于 Issue #3 的真实排版／无障碍目标完成。
+下表 M0～M6 是技术工作包编号，不再表示执行先后。当前先完成 [S0 规范资产与差距矩阵](DEVELOPMENT_PLAN.md#118-issue-3-阶段映射规范资产与关闭门槛)，再按 [开发方案 v0.10 §11.7](DEVELOPMENT_PLAN.md#117-v010-独立-cli-批次与完成标准) 完成独立终端制书：默认 EPUB3、EPUB2 → EPUB3 转换、完整 EPUB3 XHTML、样式和系统字体发现；本阶段不接入 UI、Amp 或外部编辑器。C1 发现／诊断、C2 有界内容读取／定位、C3 单个 XHTML 简单文本确定性修改已实现并作为源码发布到 main，尚无版本化安装包。C3 操作 schema 在 §2.2 冻结；支持边界见 [§11.4](DEVELOPMENT_PLAN.md#114-首个正文读写版本的边界)。T1a／T1b 已验收，源码已同步到 GitHub main，编码／内部子集／来源及 search／status／终端输出见 §2.4；§2.3、§2.5～§2.6 的其余能力仍待实施。CLI 完成不等于 Issue #3 的真实排版／无障碍目标完成。
 
 | 命令形态 | 语义 | 阶段 |
 |---|---|---|
@@ -126,7 +126,7 @@ Apply、Open 恢复和 Accept 都须重新推导相同的单资源写集合及�
 
 ### 2.4 T1 终端增量实施契约（已本地验收）
 
-本节 T1a 入口、原生 HTML DOCTYPE／编码增量及 T1b 内部 DTD／实体／默认属性／来源均已本地集成，分别通过父验收及 DeepSeek V4.1 Flash 的代码／demo 审计，未推送或发行。证据见 [T1a 验证](verification/T1A_ENCODING_TERMINAL.md)与 [T1b 验证](verification/T1B_XML_SUBSET.md)。两批通过仅完成规定的 T1 范围，不代表完整编辑器或全产品复审。既有 JSON envelope、单资源 `content`、操作／计划／执行版本和正式检查门槛不变。
+本节 T1a 入口、原生 HTML DOCTYPE／编码增量及 T1b 内部 DTD／实体／默认属性／来源均已集成到 main，分别通过父验收及 DeepSeek V4.1 Flash 的代码／demo 审计，源码已推送，未发布版本化安装包。证据见 [T1a 验证](verification/T1A_ENCODING_TERMINAL.md)与 [T1b 验证](verification/T1B_XML_SUBSET.md)。两批通过仅完成规定的 T1 范围，不代表完整编辑器或全产品复审。既有 JSON envelope、单资源 `content`、操作／计划／执行版本和正式检查门槛不变。
 
 - `kepub search --workspace DIR --query TEXT [--limit N] --json`：持锁读取所选 rootfile 的 accepted revision，按 manifest 顺序检索其中所有 XHTML，不读取活动候选、不选另一个 rootfile。沿用 `content` 的区分大小写字面子串及节点／排除规则；命中数是匹配结果元素数，不是短语出现次数，不跨资源拼接匹配，也不是浏览器可见文本。
 - query 必填，范围为 1～4096 UTF-8 字节；limit 默认 50、范围 1～200。返回工作区／revision／rootfile 身份、完整匹配数、返回数和 truncated；每个结果包含精确 bookPath、原资源 SHA-256、locatorVersion、locator 和解码文本。达到返回数限制仍须扫描剩余资源才能声称完整匹配数。不同资源出现同一 locator 不合并。
