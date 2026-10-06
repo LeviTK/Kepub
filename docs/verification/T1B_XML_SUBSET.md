@@ -111,3 +111,39 @@ suites and all four T1b CLI tests (38.895 s, real pinned checker), including
 entity-text content and metadata history/accept/export with exact ZIP bytes.
 New-tree root/race/vet/live-fuzz results and independent acceptance remain pending
 until their own actual completion evidence is available.
+
+## Actual retained-stream budget and DTD particle correction
+
+The isolated `5183e40` tree subsequently completed its original root normal,
+race, vet and two live fuzz stages: all actual exits 0, identity/status unchanged.
+Normal CLI 358.053 s and race CLI 596.227 s included the authorized original and
+pinned checker; entity-source fuzz executed 10119 cases/46.020 s and encoding
+fuzz 24492 cases/31.015 s. This does not resolve the independent B2 finding or
+cover the following changes; independent audit of the original tree was rejected.
+
+B2 was reproduced without changing that checked-out tree: the original CR probe
+had raw 7500072 bytes, retained decoder stream 37500068 bytes and work 12000000;
+an independent quote-attribute variant had raw 6000078, retained stream 30000074
+and work 9600000. Both were incorrectly accepted. The stream now checks actual
+serialized bytes before append, removing caller-supplied logical-size accounting.
+Nested content work counts actual retained output; generated attribute/default
+serialization also counts its real intermediate bytes. Existing raw, decoded,
+depth, replacement and index limits are unchanged.
+
+Regression controls cover both overflows and the same declarations with one
+use (constructed CR/quote values remain exact), exact 16 MiB append and one-byte
+overflow with no partial append, nested serialized-content work, and explicit/
+default attribute-work boundaries with final stream/index/raw still legal.
+The unmodified observational audit probe now exits 1 at its assumption that
+expand succeeds, because expansion correctly reports XML_LIMIT; that is retained
+as rejection evidence, not described as a passing assertion-based test.
+
+The parent's unused-declaration Mixed-inside-cp syntax counterexamples also
+reproduced. XML [46]/[48] now allows Mixed only at the top-level contentspec;
+three nested-Mixed negatives and four top-level/nested-children positives pass,
+without enforcing DTD validity or changing the depth limit.
+
+Complete normal xmltext/publication/metadata/references suites and four T1b CLI
+tests with real checker pass (CLI 39.006 s), including exact ZIP history/formal
+loops. This newest tree still requires its own root/race/vet/live-fuzz completion
+and independent audit/acceptance; earlier tree results are not reused as approval.

@@ -293,6 +293,10 @@ func (l *dtdLex) model(depth int) error {
 	}
 	l.space()
 	if l.take("#PCDATA") {
+		// Mixed is a top-level contentspec, never a nested cp (XML [48]).
+		if depth != 0 {
+			return malformed("mixed content is not a child content particle")
+		}
 		more := false
 		for {
 			l.space()

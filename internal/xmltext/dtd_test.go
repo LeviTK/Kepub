@@ -506,3 +506,16 @@ func TestT1BVirtualOrNonSimpleEntityTargetsRemainUnwritable(t *testing.T) {
 		}
 	}
 }
+
+func TestT1BMixedContentIsNotAChildContentParticle(t *testing.T) {
+	for _, model := range []string{`(a,(#PCDATA))`, `((#PCDATA)*)`, `(a|(#PCDATA|em)*)`} {
+		if _, err := Parse([]byte(`<!DOCTYPE r [<!ELEMENT unused ` + model + `>]><r/>`)); err == nil {
+			t.Errorf("nested Mixed accepted as a cp despite unused declaration: %s", model)
+		}
+	}
+	for _, model := range []string{`(#PCDATA|em)*`, `(#PCDATA)`, `(a,(b|c)+)`, `((a,b)*|c)+`} {
+		if _, err := Parse([]byte(`<!DOCTYPE r [<!ELEMENT unused ` + model + `>]><r/>`)); err != nil {
+			t.Errorf("valid contentspec/child model was rejected: %s: %v", model, err)
+		}
+	}
+}

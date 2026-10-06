@@ -28,7 +28,6 @@ type expansion struct {
 	sawRoot       bool
 	sawDoctype    bool
 	active        map[string]bool
-	streamBytes   int
 	crPositions   []int
 	inParameter   bool
 }
@@ -53,11 +52,10 @@ func expand(s source) (source, *internalSubset, error) {
 	return s, x.dtd, nil
 }
 
-func (x *expansion) append(text string, from, to int, linear, generated bool, size int) error {
-	if x.streamBytes+size > DecodedLimit {
+func (x *expansion) append(text string, from, to int, linear, generated bool) error {
+	if len(text) > DecodedLimit-len(x.text) {
 		return fault.New(1, "XML_LIMIT", "expanded XML stream exceeds 16 MiB")
 	}
-	x.streamBytes += size
 	if len(text) == 0 {
 		return nil
 	}
@@ -203,6 +201,9 @@ func (x *expansion) attribute(value string, base, anchorStart, anchorEnd, depth 
 				if err := x.dtd.chargeWork(len(v)); err != nil {
 					return "", false, err
 				}
+				if len(v) > DecodedLimit-out.Len() {
+					return "", false, fault.New(1, "XML_LIMIT", "expanded attribute exceeds 16 MiB")
+				}
 				out.WriteString(v)
 				generated = true
 			}
@@ -236,13 +237,13 @@ func (x *expansion) tag(text string, base, anchorStart, anchorEnd, depth int) (i
 	if err != nil {
 		return 0, err
 	}
-	appendPiece := func(v string, lo, hi int, linear, generated bool, size int) error {
+	appendPiece := func(v string, lo, hi int, linear, generated bool) error {
 		if depth != 0 {
 			lo, hi, linear, generated = anchorStart, anchorEnd, false, true
 		}
-		return x.append(v, lo, hi, linear, generated, size)
+		return x.append(v, lo, hi, linear, generated)
 	}
-	if err := appendPiece(text[:l.pos], base, base+l.pos, true, false, l.pos); err != nil {
+	if err := appendPiece(text[:l.pos], base, base+l.pos, true, false); err != nil {
 		return 0, err
 	}
 	seen := map[string]bool{}
@@ -250,7 +251,7 @@ func (x *expansion) tag(text string, base, anchorStart, anchorEnd, depth int) (i
 		start := l.pos
 		space := l.space()
 		if strings.HasPrefix(text[l.pos:], ">") || strings.HasPrefix(text[l.pos:], "/>") {
-			if err := appendPiece(text[start:l.pos], base+start, base+l.pos, true, false, l.pos-start); err != nil {
+			if err := appendPiece(text[start:l.pos], base+start, base+l.pos, true, false); err != nil {
 				return 0, err
 			}
 			break
@@ -286,17 +287,23 @@ func (x *expansion) tag(text string, base, anchorStart, anchorEnd, depth int) (i
 		if a, ok := x.dtd.attributeIndex[name][attr]; ok && a.tokenized {
 			v = collapse(v)
 		}
-		if err := appendPiece(text[start:valueStart], base+start, base+valueStart, true, false, valueStart-start); err != nil {
+		if err := appendPiece(text[start:valueStart], base+start, base+valueStart, true, false); err != nil {
 			return 0, err
 		}
 		outputStart := len(x.text)
-		if err := appendPiece(escaped(v), base+valueStart, base+valueEnd, false, generated, len(v)); err != nil {
+		serialized := escaped(v)
+		if generated {
+			if err := x.dtd.chargeWork(len(serialized)); err != nil {
+				return 0, err
+			}
+		}
+		if err := appendPiece(serialized, base+valueStart, base+valueEnd, false, generated); err != nil {
 			return 0, err
 		}
 		if len(x.dtd.unresolved) != unresolvedBefore {
 			x.uncertainties = append(x.uncertainties, sourceSpan{start: outputStart, end: len(x.text)})
 		}
-		if err := appendPiece(text[valueEnd:l.pos], base+valueEnd, base+l.pos, true, false, l.pos-valueEnd); err != nil {
+		if err := appendPiece(text[valueEnd:l.pos], base+valueEnd, base+l.pos, true, false); err != nil {
 			return 0, err
 		}
 	}
@@ -307,7 +314,11 @@ func (x *expansion) tag(text string, base, anchorStart, anchorEnd, depth int) (i
 		// A default has no independent writable interval in the start tag.
 		v := a.value
 		outputStart := len(x.text)
-		if err := appendPiece(" "+a.name+"=\""+escaped(v)+"\"", base+l.pos, base+l.pos, false, true, len(a.name)+4+len(v)); err != nil {
+		serialized := " " + a.name + "=\"" + escaped(v) + "\""
+		if err := x.dtd.chargeWork(len(serialized)); err != nil {
+			return 0, err
+		}
+		if err := appendPiece(serialized, base+l.pos, base+l.pos, false, true); err != nil {
 			return 0, err
 		}
 		if a.uncertain {
@@ -326,17 +337,17 @@ func (x *expansion) tag(text string, base, anchorStart, anchorEnd, depth int) (i
 		x.stack = append(x.stack, name)
 	}
 	x.sawRoot = true
-	return l.pos, appendPiece(text[start:l.pos], base+start, base+l.pos, true, false, l.pos-start)
+	return l.pos, appendPiece(text[start:l.pos], base+start, base+l.pos, true, false)
 }
 
 func (x *expansion) content(text string, base, anchorStart, anchorEnd, depth int) error {
 	entryDepth := len(x.stack)
-	appendPiece := func(v string, lo, hi int, generated bool, size int) error {
+	appendPiece := func(v string, lo, hi int, generated bool) error {
 		linear := len(v) == hi-lo
 		if depth != 0 {
 			lo, hi, linear, generated = anchorStart, anchorEnd, false, true
 		}
-		return x.append(v, lo, hi, linear, generated, size)
+		return x.append(v, lo, hi, linear, generated)
 	}
 	for i := 0; i < len(text); {
 		start := i
@@ -352,7 +363,7 @@ func (x *expansion) content(text string, base, anchorStart, anchorEnd, depth int
 			x.sawDoctype = true
 			i += n
 			// Count expanded PE declarations while retaining the original source.
-			if err := appendPiece(strings.Repeat(" ", n+x.dtd.addedDTD), base+start, base+i, false, n+x.dtd.addedDTD); err != nil {
+			if err := appendPiece(strings.Repeat(" ", n+x.dtd.addedDTD), base+start, base+i, false); err != nil {
 				return err
 			}
 		case strings.HasPrefix(text[i:], "<!--"), strings.HasPrefix(text[i:], "<![CDATA["), strings.HasPrefix(text[i:], "<?"):
@@ -383,7 +394,7 @@ func (x *expansion) content(text string, base, anchorStart, anchorEnd, depth int
 				}
 				piece = b.String()
 			}
-			if err := appendPiece(piece, base+start, base+i, false, i-start); err != nil {
+			if err := appendPiece(piece, base+start, base+i, false); err != nil {
 				return err
 			}
 		case strings.HasPrefix(text[i:], "</"):
@@ -398,7 +409,7 @@ func (x *expansion) content(text string, base, anchorStart, anchorEnd, depth int
 			}
 			x.stack = x.stack[:len(x.stack)-1]
 			i += l.pos
-			if err := appendPiece(text[start:i], base+start, base+i, false, i-start); err != nil {
+			if err := appendPiece(text[start:i], base+start, base+i, false); err != nil {
 				return err
 			}
 		case text[i] == '<':
@@ -422,21 +433,12 @@ func (x *expansion) content(text string, base, anchorStart, anchorEnd, depth int
 				lo, hi = anchorStart, anchorEnd
 			}
 			if strings.HasPrefix(name, "#") || predefined(name) {
-				size := 1
-				if strings.HasPrefix(name, "#") {
-					base, digits := 10, name[1:]
-					if strings.HasPrefix(digits, "x") {
-						base, digits = 16, digits[1:]
-					}
-					r, _ := strconv.ParseUint(digits, base, 32)
-					size = len(string(rune(r)))
-				}
 				if predefined(name) {
 					if err := x.dtd.charge("x", depth+1); err != nil {
 						return err
 					}
 				}
-				if err := appendPiece(text[i:end], base+i, base+end, false, size); err != nil {
+				if err := appendPiece(text[i:end], base+i, base+end, false); err != nil {
 					return err
 				}
 			} else if e, ok := x.dtd.general[name]; !ok || e.external {
@@ -447,7 +449,7 @@ func (x *expansion) content(text string, base, anchorStart, anchorEnd, depth int
 					return err
 				}
 				outputStart := len(x.text)
-				if err := appendPiece("&#38;"+name+";", base+i, base+end, true, end-i); err != nil {
+				if err := appendPiece("&#38;"+name+";", base+i, base+end, true); err != nil {
 					return err
 				}
 				x.uncertainties = append(x.uncertainties, sourceSpan{start: outputStart, end: len(x.text)})
@@ -465,13 +467,13 @@ func (x *expansion) content(text string, base, anchorStart, anchorEnd, depth int
 				if e.value == "" {
 					x.spans = append(x.spans, sourceSpan{start: len(x.text), end: len(x.text), from: lo, to: hi, generated: true})
 				}
-				producedStart := x.streamBytes
+				producedStart := len(x.text)
 				err := x.content(e.value, 0, lo, hi, depth+1)
 				delete(x.active, name)
 				if err != nil {
 					return err
 				}
-				if err := x.dtd.chargeWork(x.streamBytes - producedStart); err != nil {
+				if err := x.dtd.chargeWork(len(x.text) - producedStart); err != nil {
 					return err
 				}
 			}
@@ -487,7 +489,7 @@ func (x *expansion) content(text string, base, anchorStart, anchorEnd, depth int
 			if depth != 0 {
 				piece = strings.ReplaceAll(piece, "\r", "&#xD;")
 			}
-			if err := appendPiece(piece, base+start, base+i, false, i-start); err != nil {
+			if err := appendPiece(piece, base+start, base+i, false); err != nil {
 				return err
 			}
 		}
