@@ -101,3 +101,29 @@ P4 已交编码 Orb 补齐配对工件并增加缺失／伪造配对来源的验
 父逐项比较 JSON，确认仅 33 条 CSS 书目的 kind 从 normative 改为 informative，并同步相应依赖引用；336 条原文书目、227 个 URL 和其他库存字段均未改变。新外依赖基线 SHA-256 为 `764a400496929be751f1189018ce2f18780caedb7a2e89ea60b856b95d34ba95`。原规范文件、P4 的 170 本测试书和产品代码均未改。
 
 集成本地 `main` 后全部 Python 再次 **34/34 PASS，0.425s**，资产 verify 成功；与受审树的脚本、规范资产、产品和三主文档比对相同。P5 关闭，但当前稳定树仍只有 749 条 pending 矩阵：后续完整语义增量尚未父验收，`semanticComplete:false`，不得据此开始 T1 或宣称完成 S0／Droid 审查。
+
+## 完整语义增量首次验收：既有检查通过，独立反例仍阻断
+
+父实际下载语义提交 `a330430703fcf35f0fa02de14c19cc99be32b465` 的 bundle，**1,115,832 bytes**、SHA-256 `7b648efb7445fbd4e12ef7d803844df1d6af08e535449d38ff431d1d69d7427f`，前置 P5 提交；verify／fetch 成功。在隔离 worktree 固定此树，确认产品、Go 依赖与三主文档无变化；没有先集成再把作者的通过声明当父验收。
+
+- 全部既有 Python **59/59 PASS，114.516s**。原父 attributes／linear default／landmarks、P1～P5 控制均通过。
+- 四个资产／用例／上游／语义 verify 与官方工件 reproduce 全部成功。107 资产，1474 条矩阵（1430 mapped／44 excluded），500 核心章节，169 cases／170 reportRows／170 publications，283 配套章节和 63 CSS 模块。五维能力仍 `not-tested`，官方用例仍未执行。
+- 原父外依赖研究与原输入保留；重新绑定后的 33 条 P5 修订、227 个 URL／332 条带 URL 引用、4 条独立无 URL 书目都有记录，不声称下载或版本等价。
+- `gate` 实际 exit 1。此时没有 pending 矩阵行；`semanticComplete:false` 仍要求父语义验收和随后固定树 Droid。通用错误中“pending clause/section review”不能解释为旧 749 条仍未整理。
+- 首次按文档完整重建造成 `matrix.json`、`MATRIX.md`、`derived.json`、`semantic-index.json` 四文件漂移。父逐身份比较 1474 rows／725 manualConstraints／500 sectionReviews 全相同，其他 metadata 也相同，仅排列不同；仍不符合固定提交的字节可复现要求，不能用第二次幂等冒称首次无漂移。
+
+### P6：明确的非规范性说明被登记为规范约束
+
+固定 EPUB REC 原文中 `sec-container-abstract-intro`、`sec-docs-intro`、`sec-nav-def-types-intro` 均有 `class="informative"` 和 “This section is non-normative”。§1.5 明确排除这种来源的规范性。父从矩阵发现 **10 条 manual mapped** 仍来自这些章节：6 条容器文件角色、1 条 SMIL text 说明、3 条导航类型说明；SMIL 那条同时写着 mapped、`S0-excluded` 与“不适用”，自相矛盾。
+
+父新增 `.agents/kepub-s0-parent-informative-tests.py`，源 hash 固定到上述 REC；要求保留这些来源记录但按理由排除，并以真正规范章节的 SMIL text REQUIRED／toc SHOULD 为不受影响的正控。实际运行 **2 tests／10 个 subtest FAIL，0.882s，exit 1**；正控通过。原脚本 SHA-256 `473ec3a68978c5be7ff56d5f13cd49bcbcf3a58877aedc21d9254d6d29e68c09`，失败日志 SHA-256 `79efea9edb9521c5156e1ebcb320f36571704cb9c564b9f8336a29b8449c8b8b`，均已实际传给编码 Orb。
+
+此项要求修正来源适用范围的继承与 amendment 决定，不能直接删除观察或把对应正式章节的要求一并排除。不是 CLI 解析／渲染功能的失败。
+
+### P7：手工条款的版本与章节可自洽错绑而不被拒绝
+
+父在内存副本中同时修改 `manualConstraints` 与对应 row：把 manifest item 定义的 `specVersion` 换成虚构的 EPUB 3.4／2027 URI，或把 `specSection` 换成真实但无关的 `sec-nav-toc`。原始归档、source hash、DOM 与片段保持；`verify_mapping(matrix=...)` 两次均接受，因为 row 只与手工记录比较，没有将手工记录的版本／章节重新绑定原 manifest 与 DOM。
+
+新增 `.agents/kepub-s0-parent-manual-provenance-tests.py` 实际 **1 test／2 个 subtest FAIL，10.763s，exit 1**；脚本 SHA-256 `cd3831d5fb127aeabd351e559d174472e93ad3eb23bbdc1c89673a12d06588dd`，红日志 SHA-256 `929cc410d50f953c50951e80d96f960177f016c4c493a12f4ff6c35a6e8a45ef`，两者均已传输。这是验证器反例，不声称收到的真实矩阵已经指向 3.4。
+
+P6、P7 和首次重建漂移等待最小修复及原样父复验。完整语义增量尚未集成，S0 未通过，T1 仍暂停，尚未启动完整 S0 的 Droid 审查；本地新增记录没有 push／发布。
