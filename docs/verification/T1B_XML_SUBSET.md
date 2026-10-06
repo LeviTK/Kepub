@@ -147,3 +147,24 @@ Complete normal xmltext/publication/metadata/references suites and four T1b CLI
 tests with real checker pass (CLI 39.006 s), including exact ZIP history/formal
 loops. This newest tree still requires its own root/race/vet/live-fuzz completion
 and independent audit/acceptance; earlier tree results are not reused as approval.
+
+## PUBLIC identifier matching only
+
+The isolated `11a0fea` tree completed all five original stages with actual exit
+0 and no HEAD/tree/tracked-status drift: normal CLI 394.749 s, race CLI
+605.784 s, vet without diagnostics, entity-source fuzz 65803 executions/46.022 s,
+and encoding fuzz 3787 executions/31.021 s. Those checks do not cover this final
+small PUBLIC-matching correction or constitute independent acceptance.
+
+The parent's XML-space PUBLIC counterexample reproduced as nine failures across
+SVG/NCX/MathML and UTF-8/UTF-16 LE/BE. XML §4.2.2 now normalizes legal space/CR/LF
+only in the match key. The allowlist, exact system identifier, original source,
+stored identifiers and notation application output remain unchanged. Tabs,
+illegal public characters and NBSP still fail PubidLiteral parsing; wrong PUBLIC
+names and changed/spaced system identifiers remain policy failures.
+
+All 72 asymmetric profile/encoding controls and complete normal xmltext,
+publication, metadata and references suites pass. The parent's exact three
+synthetic EPUBs also pass their intended CLI observations: canonical and
+XML-space SVG produce no XML_POLICY, while wrong-name retains XML_POLICY.
+New-tree verification and independent audit/acceptance remain separately pending.

@@ -2,6 +2,7 @@ package xmltext
 
 import (
 	"encoding/xml"
+	"strings"
 
 	"github.com/LeviTK/Kepub/internal/fault"
 )
@@ -39,7 +40,12 @@ func (d *Document) CheckProfile(p Profile) error {
 		case "application/mathml+xml", "application/mathml-presentation+xml", "application/mathml-content+xml":
 			pub, sys = "-//W3C//DTD MathML 3.0//EN", "http://www.w3.org/Math/DTD/mathml3/mathml3.dtd"
 		}
-		if pub == "" || d.dtd.publicID != pub || d.dtd.systemID != sys {
+		// XML §4.2.2 normalizes a legal PubidLiteral before matching, not
+		// its stored/application-visible spelling or the system identifier.
+		publicID := strings.Join(strings.FieldsFunc(d.dtd.publicID, func(r rune) bool {
+			return r == ' ' || r == '\r' || r == '\n'
+		}), " ")
+		if pub == "" || publicID != pub || d.dtd.systemID != sys {
 			return fault.New(1, "XML_POLICY", "DOCTYPE external identifier is not allowed for this EPUB3 manifest media type")
 		}
 	}
