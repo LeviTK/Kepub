@@ -19,6 +19,11 @@ import zlib
 from epub33_assets import DOM, ROOT, download, normalized, sha, write_json
 
 
+# The report repeats this case ID, but its source instructions require two
+# publications with the same identifier. A case count is not an artifact count.
+PAIRED_CASES = {"pkg-unique-id": ("pkg-unique-id_duplicate",)}
+
+
 def git(repo, *args):
     return subprocess.check_output(["git", "-C", str(repo), *args], stderr=subprocess.DEVNULL)
 
@@ -119,6 +124,29 @@ def match_source(root, repo, row, artifact):
     raise ValueError("no historical source tree matches full official ZIP inventory")
 
 
+def capture_pairs(root, repo, index):
+    for row in index["cases"]:
+        if row.get("pairedFixtures"):
+            continue  # Existing frozen evidence is verified, never redownloaded.
+        pairs = []
+        for name in PAIRED_CASES.get(row["id"], ()):
+            url = f"https://w3c.github.io/epub-tests/tests/{name}.epub"
+            artifact, final, _ = download(url)
+            pair = {"id": name, "reportCommit": row["reportCommit"],
+                    "sourcePath": f"tests/{name}", "websiteUrl": url,
+                    "websiteFinalUrl": final, "websiteArtifactPath": f"official-tests/website/{name}.epub",
+                    "websiteSHA256": sha(artifact), "sourceCommit": None,
+                    "role": "Required paired publication; same identifier, different title/content",
+                    "executed": False, "generatorRuntime": generator_runtime()}
+            match_source(root, repo, pair, artifact)
+            if pair["sourceCommit"] != row["reportCommit"]:
+                raise ValueError("paired publication not found at fixed report commit")
+            (root / pair["websiteArtifactPath"]).write_bytes(artifact)
+            pairs.append(pair)
+        if pairs:
+            row["pairedFixtures"] = pairs
+
+
 def resolve_missing(root, repo):
     """Resolve two actually investigated historical names, retain first failures."""
     index_path = root / "official-tests/index.json"
@@ -210,6 +238,10 @@ def capture(root, repo):
             match_source(root, repo, row, website)
         except (ValueError, zipfile.BadZipFile, subprocess.CalledProcessError) as exc:
             failures.append({"id": name, "reason": str(exc)})
+    try:
+        capture_pairs(root, repo, {"cases": rows})
+    except (ValueError, subprocess.CalledProcessError) as exc:
+        failures.append({"id": "paired-publications", "reason": str(exc)})
     write_json(dest / "index.json", {"schemaVersion": 1, "reportCommit": commit,
                                     "reportSourcePath": "epub33/ (historically history/epub33/)",
                                     "upstreamGeneratorSHA256": sha(upstream_generator), "licenseSHA256": sha(license_data),
@@ -226,10 +258,11 @@ def reproduce(root):
     for row in index["cases"]:
         if not row["sourceCommit"]:
             raise ValueError("cannot reproduce unresolved source")
-        files = source_files((root / row["sourceArchivePath"]).read_bytes())
-        if sha(generate(files)) != row["generatedSHA256"]:
-            raise ValueError(f"generator output differs: {row['id']}")
-        row["generatorRuntimeAtOfflineReproduction"] = runtime
+        for artifact in [row] + row.get("pairedFixtures", []):
+            files = source_files((root / artifact["sourceArchivePath"]).read_bytes())
+            if sha(generate(files)) != artifact["generatedSHA256"]:
+                raise ValueError(f"generator output differs: {artifact['id']}")
+            artifact["generatorRuntimeAtOfflineReproduction"] = runtime
     write_json(path, index)
 
 
@@ -248,7 +281,16 @@ def verify(root):
     for row in index["cases"]:
         if row["reportSHA256"] != report_hash or any(row[k] != v for k, v in expected[row["id"]].items()):
             raise ValueError("official report provenance drift")
-        required = ("sourcePath", "sourceArchivePath", "sourceArchiveSHA256", "generatedArtifactPath", "generatedSHA256")
+        pairs = row.get("pairedFixtures", [])
+        if tuple(p.get("id") for p in pairs) != PAIRED_CASES.get(row["id"], ()):
+            raise ValueError("missing/duplicate/extra required paired publication")
+        for pair in pairs:
+            if (pair.get("sourcePath") != f"tests/{pair['id']}" or
+                    pair.get("sourceCommit") != row["reportCommit"]):
+                raise ValueError("paired publication fixed source identity drift")
+    artifacts = [artifact for row in index["cases"] for artifact in [row] + row.get("pairedFixtures", [])]
+    for row in artifacts:
+        required = ("sourceCommit", "sourcePath", "sourceArchivePath", "sourceArchiveSHA256", "generatedArtifactPath", "generatedSHA256")
         if any(not row.get(k) for k in required):
             raise ValueError(f"incomplete official source evidence: {row['id']}")
         if not ((row.get("websiteArtifactPath") and row.get("websiteSHA256")) or
@@ -271,21 +313,28 @@ def verify(root):
                 raise ValueError(f"official test inventory drift: {row['id']}")
             if {n: sha(d) for n, d in sorted(files.items())} != row["contentInventory"]:
                 raise ValueError(f"official content hash mismatch: {row['id']}")
-    return {"cases": len(index["cases"]), "sourceGaps": len(index["failures"]), "semanticReviewComplete": False, "executed": False}
+    return {"cases": len(index["cases"]), "reportRows": sum(r["reportOccurrences"] for r in index["cases"]),
+            "publications": len(artifacts), "sourceGaps": len(index["failures"]), "semanticReviewComplete": False, "executed": False}
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("command", choices=("capture", "resolve-missing", "reproduce", "verify"))
+    p.add_argument("command", choices=("capture", "resolve-missing", "capture-pairs", "reproduce", "verify"))
     p.add_argument("--root", type=Path, default=ROOT)
     p.add_argument("--source-repo", type=Path)
     args = p.parse_args()
     try:
-        if args.command in ("capture", "resolve-missing"):
+        if args.command in ("capture", "resolve-missing", "capture-pairs"):
             if not args.source_repo:
                 raise ValueError("--source-repo requires a full-history w3c/epub-tests clone")
             if args.command == "capture":
                 capture(args.root, args.source_repo)
+            elif args.command == "capture-pairs":
+                path = args.root / "official-tests/index.json"
+                index = json.loads(path.read_text())
+                capture_pairs(args.root, args.source_repo, index)
+                write_json(path, index)
+                print(json.dumps(verify(args.root), sort_keys=True))
             else:
                 resolve_missing(args.root, args.source_repo)
         elif args.command == "reproduce":

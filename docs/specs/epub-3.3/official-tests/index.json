@@ -1492,7 +1492,46 @@
         "zlibCompile": "1.2.13",
         "zlibRuntime": "1.2.13",
         "generatorFunctionSHA256": "f694ddcc4dcb22580fc98c50f3c38ef9955865650889bab559bd1f67d0d2ab64"
-      }
+      },
+      "pairedFixtures": [
+        {
+          "id": "pkg-unique-id_duplicate",
+          "reportCommit": "54092b4233253e9aac80e93ec4782b380b4b3403",
+          "sourcePath": "tests/pkg-unique-id_duplicate",
+          "websiteUrl": "https://w3c.github.io/epub-tests/tests/pkg-unique-id_duplicate.epub",
+          "websiteFinalUrl": "https://w3c.github.io/epub-tests/tests/pkg-unique-id_duplicate.epub",
+          "websiteArtifactPath": "official-tests/website/pkg-unique-id_duplicate.epub",
+          "websiteSHA256": "2f1b1967d196d94ed6e330bfe037e7eff44447d5802fbe2158de30c829cb09b7",
+          "sourceCommit": "54092b4233253e9aac80e93ec4782b380b4b3403",
+          "role": "Required paired publication; same identifier, different title/content",
+          "executed": false,
+          "generatorRuntime": {
+            "python": "3.11.6 (main, Nov 29 2023, 04:19:53) [GCC 12.2.0]",
+            "zlibCompile": "1.2.13",
+            "zlibRuntime": "1.2.13",
+            "generatorFunctionSHA256": "f694ddcc4dcb22580fc98c50f3c38ef9955865650889bab559bd1f67d0d2ab64"
+          },
+          "status": "exact-source-file-inventory-match; semantic-review-pending",
+          "sourceArchivePath": "official-tests/source/pkg-unique-id_duplicate.tar",
+          "sourceArchiveSHA256": "df8f1541cd55b2ad2bcb8fed342911f41ddc7e91ba8f8229d45b8438cb174e91",
+          "generatedArtifactPath": "official-tests/generated/pkg-unique-id_duplicate.epub",
+          "generatedSHA256": "866e6926d65db657d4ea18067125781322e6678ff1ccc2478b1aade9198c59f2",
+          "contentInventory": {
+            "EPUB/content_001.xhtml": "0c29d7b30867277bd90831653c837fe3e634f623abdf22d11e87031c8b83362b",
+            "EPUB/nav.xhtml": "97787442936a97c67b68d7b53652c493ba734e36e39881d067a3e9f554e01b5f",
+            "EPUB/package.opf": "1f6798518ba915b268f02db3e494c577e853ac6a0e2b89da1f8d59a713db2aeb",
+            "META-INF/container.xml": "b871e7745e5d2bfa067a032b9b9a771185adcf0e8173b36fdbeed181163ef93c",
+            "mimetype": "e468e350d1143eb648f60c7b0bd6031101ec0544a361ca74ecef256ac901f48b"
+          },
+          "comparison": "all paths and uncompressed bytes equal; ZIP hashes distinct",
+          "generatorRuntimeAtOfflineReproduction": {
+            "python": "3.11.6 (main, Nov 29 2023, 04:19:53) [GCC 12.2.0]",
+            "zlibCompile": "1.2.13",
+            "zlibRuntime": "1.2.13",
+            "generatorFunctionSHA256": "f694ddcc4dcb22580fc98c50f3c38ef9955865650889bab559bd1f67d0d2ab64"
+          }
+        }
+      ]
     },
     {
       "id": "pkg-version-backward",
