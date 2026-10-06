@@ -397,3 +397,28 @@ R6 fixture `b4e052f590d00665a4d05e02e95f7033bc1bb7f2` 的完整 tree **`7ce11e01
 新 tree `99ee292eec23f71a0fb00b09a9de7253217c869f` 的 836 输入 identity 为 **`1e3055f507824e62e58e51380b509347c8bc22bc9413a30a27c072705b0ac1eb`**。恰好两 Python／测试及四治理文档变化；原始 archive、全部产品 Go 与测试字节不变。父进度记录不属于批准输入，新增记录不改这项身份。当前改动仅本地提交，未 push／发布。
 
 用户随后直接在 D1 线程要求新建 DeepSeek 审计 Orb、只替换审计模型而不改开发流程。D1 确认没有自行创建，父据此创建 [独立完整 D2](https://ampcode.com/threads/T-01a110c5-dd31-748d-83f3-1c398f01c097)，实际指定 `deepseek-v4.1-flash`。交付完整基线 bundle **62,147,462 bytes**、SHA-256 `c747ebcb02e724a7e9d9626a4f56711058f1069bc4ae89fadcef1c8fa1a9f58e` 与输入表 **106,855 bytes**、SHA-256 `33fc87135291d39046ac77e52db6441a7d809bada867e21be19495e9abf9cd12`，要求独立完整阅读和实际检查，不继承 D1 的阅读声明或旧树批准。当前仅创建／准备状态，无 D2 完成、批准或 T1 放行结论；继续跟随该线程，不启动重复审计。
+
+## D2 完整审计及补读已完成；父批准固定 S0 输入
+
+2026-10-06，D2 在上述同一固定树实际完成，父从原始 Amp 导出确认实际 agent definition、全部 assistant usage 为 **DeepSeek V4.1 Flash**，最后消息为 **complete/end_turn**，批准报告逐字等于实际 final text。首次最终文本 SHA-256 `5f66653b3fd86b6f8ba494873be912aba6f49efbbcbc638096ca38772d12a9a2`，首次私有导出 SHA-256 `e90d08ffd5347b3f6af5adf7ecaf8676de0bf21100c4848b0ca41c4238ab2e74`。没有用模式标签、idle 或中间消息代替终局证据。
+
+父下载并核对全部 12 份原证据文件，`SHA256SUMS` 全部通过，清单自身 SHA-256 `9bd23a6c5707acd25af195b1212e74a8efb4bc5f44ec7c0f66b1635cd1ae8df6`。逐一读取原日志、探针和阅读账：
+
+- 独立完整 Python **124/124 PASS，633.795s，exit 0**；首次 3 review＋8 amendment、两 index、四 verify、official reproduce 全通过，前后 tracked diff 为零。正常无收据 gate 仍因缺批准 exit 1。父在同输入固定树的 **124/124、652.007s** 及完整重放结果见前节，双方执行分开记录。
+- 真实固定 EPUBCheck **2 个顶层测试＋12 个子测试，54.709s，exit 0**；子测试为 6 个合法正例与 6 个预期非法负例，Java 后端确为 5.3.0。原报告把含顶层测试的 14 条 PASS 称为 14 子例，父按日志更正，不增加虚构测试。
+- **21 项控制符合预期**：2 个合成批准正控、18 个针对性拒绝反例及 1 个无真实收据检查。检查实际报告／导出／输入 hash、模型、终局、父批准与独立批准，不把合成正控当真实验收。
+- 118 资产、1606 行（1543 mapped＋63 有理由 excluded）、857 手工来源、500 节记录、169 官方用例／170 报告行／170 本书均有原始执行核对；五维仍全 `not-tested`，官方 `executed:false`。上游 14 项目的一个既有许可缺口与 T3 八类待归档资产保留，不虚称已采用或已取得。
+
+父按实际 Read 返回行号及与固定源逐字相同的 shell 输出核对阅读并集：三份 REC **19187／5866／2432 行**、四生产脚本与 21 份 Python 测试无缺段。首次治理阅读确实缺开发计划 **1–790 行**；该部分包含当前范围、五维能力及上游采用边界，不能整体排除为旧产品历史。父未接受首次过宽的 `readingComplete:true`，要求同一 D2 在相同输入补读并重新给出完整终局；没有改实现或重新启动审计 Orb。
+
+D2 随后补读 1–790，父核对实际返回后确认计划 **1065/1065 行**覆盖，并读取其范围／结论核对。补读不改变 complete-S0 实质结论，新的实际最终决定仍为 **approved、findings=[]、readingComplete=true**。原报告／日志保持原字节，补充账和日志单独保存；补充清单 SHA-256 `a022d507a4c6525db14b13dc39107bbe9aebb261c6cb8c9e497a724ac177db49` 全通过。更正后的[完整独立报告](S0_DEEPSEEK_D2.md) SHA-256 **`c9fb367360006bfe47a51787e03ab5ca92d7468cbb04693b38e8723d53c218cc`**；对应私有实际导出 SHA-256 **`9d62784999ae0f8969e1a432ff6ed7804f8d3445aecb3c5ae45056afb0ca1959`**，再次通过真实终局一致性校验。
+
+父综合既有独立来源复验、反例／修复、最终组合与本轮完整审计，**批准 complete-S0**，仅绑定 **836 输入 identity `1e3055f507824e62e58e51380b509347c8bc22bc9413a30a27c072705b0ac1eb`**。父另用独立重构脚本核对本地输入表逐项相同。下列为本记录唯一机器决定；此前 pending／拒绝／中断历史不改写，不借更新进度修改受审输入。
+
+```json
+{"scope":"complete-S0","decision":"approved","findings":[],"inputIdentitySHA256":"1e3055f507824e62e58e51380b509347c8bc22bc9413a30a27c072705b0ac1eb"}
+```
+
+真实收据已按两份实际报告及私有导出 hash 生成，`python3 -B scripts/epub33_assets.py gate` 实际 **exit 0**，输出 `archiveFiles:118` 与 `mapping:{candidates:1606,excluded:63,mapped:1543,semanticComplete:true}`。这里的 true 是聚合检查结果；没有编辑矩阵中的 `semanticComplete:false` 或五维状态来通过。收据与私有导出不提交，完整批准基线及所需证据须实际传给后续编码 Orb，在无初稿污染的固定 checkout 重验后恢复 T1a；不能只传提交名或复用旧树批准。
+
+原始导出含私有线程内容，只在授权 Orb 内保存／传输，不公开；收据不属于其自身批准输入。本地可读批准记录与独立最终报告纳入版本控制，GitHub 上的源码尚未包含这些新工作。此批准是固定基线的 S0 退出，不是 T1a／T1b 完成、169 个阅读系统用例已执行、渲染／Mac／人工无障碍通过或 Issue #3／#4 关闭。后续输入变化不能复用旧批准；独立审查继续使用用户指定的 DeepSeek，Droid 不自动重试或监控额度。当前仍无 push／发布。
