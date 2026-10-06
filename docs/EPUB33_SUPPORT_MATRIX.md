@@ -24,8 +24,8 @@ The mechanical inventory contains 749 instances: EPUB publication
 408 BCP14 + 48 definition slots, reading systems 252 + 1, accessibility 40 + 0.
 It preserves repeated keywords, NOT forms, enclosing text, DOM identity, fixed
 document hashes and excerpt hashes. This is **not the final number of normative
-constraints**. The source review currently adds 725 manual instances, for 1474
-total rows: 1420 mapped + 54 reasoned exclusions. All five capability dimensions
+constraints**. The source review currently adds 784 manual instances, for 1533
+total rows: 1468 mapped + 65 reasoned exclusions. All five capability dimensions
 remain `not-tested`; all 500 core section records have source-review notes.
 The bounded Amp research drafts were corrected against the parent's independent
 attribute/default/landmarks tests and coding-Orb source review. P6 additionally
@@ -66,7 +66,9 @@ python3 scripts/epub33_assets.py index \
   --review docs/specs/epub-3.3/reviews/kepub-s0-epub-semantic-r2.json \
   --review docs/specs/epub-3.3/reviews/kepub-s0-rs-semantic-draft.json \
   --review docs/specs/epub-3.3/reviews/kepub-s0-a11y-semantic-draft.json \
-  --amendment docs/specs/epub-3.3/reviews/publication-amendments.json
+  --amendment docs/specs/epub-3.3/reviews/publication-amendments.json \
+  --amendment docs/specs/epub-3.3/reviews/r1-publication-amendments.json \
+  --amendment docs/specs/epub-3.3/reviews/r1-accessibility-amendments.json
 python3 scripts/epub33_semantics.py index
 python3 scripts/epub33_assets.py verify
 python3 scripts/epub33_semantics.py verify
@@ -88,6 +90,29 @@ CSS tier membership is checked against actual source lists. Flat Bikeshed
 sections carry explicit sibling ranges; display excerpts ending in an ellipsis
 are explicitly truncated derivatives, not full-source hashes.
 
+R1 source corrections register 59 inherited leaf conditions/options with their
+exact introductory context. AND ordering, any-of page-navigation triggers,
+one-of fallback alternatives, OPTIONAL objectives, namespace exclusions and
+iframe exceptions are distinct; none is a blanket mandatory feature. Value
+definitions bind their actual preceding `dt` to the mapped `dd`, without
+creating obligations from labels. Eleven old algorithm observations (nine
+pseudo-code identities and two explanatory paragraphs) are retained as
+exclusions under REC §1.5; compression-order/key/specifying MUSTs remain mapped.
+
+The three fixed RECs' raw `data-tests` attributes are independently reconstructed:
+237 fragment references / 162 IDs, 158 known official cases; four unresolved
+IDs remain explicit and eleven cases without a REC backlink retain their report
+targets. Concrete normalized contexts add missing backlinks without replacing
+publication-side conditions. All 456 external structural-test links are marked
+external and unexecuted, not silently treated as the 169 RS fixtures.
+
+The archive now contains 118 files, preserving the original 107 files byte-for-byte. Three
+directly linked NVDL dispatchers from fixed EPUBCheck commit
+`029831b8f477e4519e9734c984ee24357547a698` have a deduplicated closure of 14 schema
+files plus the actual directory IDPF MIT-form LICENSE. NVDL validate/schema,
+Schematron include/href and inherited XML base are checked offline. This is
+source closure, not actual execution of those schemas or whole-REC support.
+
 External-reference review is now explicitly rebound to the corrected source:
 227 URL records (332 bibliography entries) plus four independent non-URL
 records cover all 336 source bibliography entries. The original parent proposal
@@ -103,6 +128,13 @@ later-stage gap, not an S0 purchase. Later module semantics, rendering,
 accessibility, legal applicability and adoption remain explicit gaps. Source
 mapping is ready for independent acceptance; this checkpoint does not unblock
 T1 or replace the subsequent fixed-tree Factory Droid review.
+
+[Finite T3 prerequisite registry](specs/epub-3.3/reviews/t3-prerequisites.json)
+registers OPF/OPS/OCF 2.0.1, NCX, DTBook, XHTML1.1 DTD/modules/entity sets.
+Every target remains pending with null acquired hash/path. The first three
+retain actual fixed bibliography URLs; exact remaining editions/URIs and their
+finite offline dependency closure must be frozen at T3, not guessed from EPUB3
+Appendix B. Registry presence does not authorize runtime downloads or migration.
 
 ## Explicit boundary register for semantic review
 

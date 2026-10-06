@@ -193,14 +193,14 @@ def resources(root, base):
         elif n.tag == "a":
             href = n.attrs.get("href", "")
             target = urldefrag(urljoin(base, href))[0]
-            if not href.startswith("#") and (re.search(r"\.(?:rng|rnc|xsd|dtd|ent)(?:$|\?)", target) or
+            if not href.startswith("#") and (re.search(r"\.(?:rng|rnc|xsd|dtd|ent|nvdl|sch)(?:$|\?)", target) or
                     (target.startswith(base) and target != base and urlparse(target).path.endswith(".html")) or
                     (base.startswith("https://w3c.github.io/epub-specs/epub33/reports/") and
                      target.startswith("https://w3c.github.io/epub-specs/epub33/reports/") and target.endswith(".html"))):
                 raw = href
         if raw:
             target = urldefrag(urljoin(base, raw))[0]
-            schema = re.fullmatch(r"https://github.com/w3c/epubcheck/blob/main/(.+)", target)
+            schema = re.fullmatch(r"https://github.com/w3c/epubcheck/(?:blob|tree)/(?:main|master)/(.+)", target)
             if schema:
                 target = f"https://raw.githubusercontent.com/w3c/epubcheck/{EPUBCHECK_SCHEMA_COMMIT}/{schema.group(1)}"
             if urlparse(target).scheme in ("http", "https") and target != base:
@@ -234,7 +234,7 @@ def schema_dependencies(data, base):
                 if "\\" in literal:
                     raise ValueError("escaped schema URI needs explicit closure review")
                 relative.append((base, literal))
-    elif suffix in (".rng", ".xsd"):
+    elif suffix in (".rng", ".xsd", ".nvdl", ".sch"):
         try:
             document = ET.fromstring(data)
         except ET.ParseError as exc:
@@ -244,6 +244,14 @@ def schema_dependencies(data, base):
             if node.tag in ("{http://relaxng.org/ns/structure/1.0}include", "{http://relaxng.org/ns/structure/1.0}externalRef"):
                 if not node.get("href"):
                     raise ValueError("schema reference missing href")
+                relative.append((context, node.get("href")))
+            elif node.tag == "{http://purl.oclc.org/dsdl/nvdl/ns/structure/1.0}validate":
+                if not node.get("schema"):
+                    raise ValueError("NVDL validate missing schema")
+                relative.append((context, node.get("schema")))
+            elif node.tag == "{http://purl.oclc.org/dsdl/schematron}include":
+                if not node.get("href"):
+                    raise ValueError("Schematron include missing href")
                 relative.append((context, node.get("href")))
             elif node.tag in {"{http://www.w3.org/2001/XMLSchema}" + tag for tag in ("include", "import", "redefine", "override")}:
                 if node.get("schemaLocation"):
@@ -265,6 +273,10 @@ def schema_dependencies(data, base):
 
 def extra_dependencies(data, final, kind):
     deps = schema_dependencies(data, final)
+    schema_root = f"https://raw.githubusercontent.com/w3c/epubcheck/{EPUBCHECK_SCHEMA_COMMIT}/src/main/resources/com/adobe/epubcheck/schema/30/"
+    if final.startswith(schema_root) and Path(urlparse(final).path).suffix.lower() in (".rnc", ".rng", ".nvdl", ".sch"):
+        # This directory has its own IDPF MIT-form notice, not just root BSD.
+        deps.append(schema_root + "LICENSE")
     if "css" in kind:
         css = data.decode("utf-8")
         deps += [urldefrag(urljoin(final, s))[0] for s in re.findall(r"url\(\s*['\"]?([^)'\"\s]+)", css) if not s.startswith("data:")]
@@ -318,9 +330,12 @@ def fetch(root, bootstrap=False, complete_schemas=False):
             if sha(data) != entry["sha256"] or len(data) != entry["bytes"]:
                 raise ValueError("cannot extend modified source")
             if "html" in entry["contentType"]:
-                html_ok(data, entry["finalUrl"], requested_url=entry["requestUrl"])
-            deps = schema_dependencies(data, entry["finalUrl"])
-            if Path(urlparse(entry["requestUrl"]).path).suffix.lower() in (".rnc", ".rng", ".xsd", ".dtd", ".ent"):
+                dom = html_ok(data, entry["finalUrl"], requested_url=entry["requestUrl"])
+                deps = resources(dom, entry["finalUrl"])
+            else:
+                deps = []
+            deps += extra_dependencies(data, entry["finalUrl"], entry["contentType"])
+            if Path(urlparse(entry["requestUrl"]).path).suffix.lower() in (".rnc", ".rng", ".xsd", ".dtd", ".ent", ".nvdl", ".sch"):
                 entry["version"] = entry["requestUrl"]
             entry["dependencies"] = sorted(set(entry["dependencies"] + deps))
             queue += [(url, sha(url.encode())[:24], "external-dependency", "schema", [entry["id"]]) for url in deps]
@@ -350,7 +365,7 @@ def fetch(root, bootstrap=False, complete_schemas=False):
             path = f"original/{name}.{extension}" if not parents else f"assets/{sha(url.encode())[:24]}"
             entry = {"id": name, "category": category, "normativeLevel": level,
                      "requestUrl": url, "finalUrl": final,
-                     "version": url if not parents or Path(urlparse(url).path).suffix.lower() in (".rnc", ".rng", ".xsd", ".dtd", ".ent") else "display/dependency asset",
+                     "version": url if not parents or Path(urlparse(url).path).suffix.lower() in (".rnc", ".rng", ".xsd", ".dtd", ".ent", ".nvdl", ".sch") else "display/dependency asset",
                      "downloadedAt": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                      "path": path, "bytes": len(data), "sha256": sha(data), "contentType": kind,
                      "requiredBy": parents, "dependencies": []}
@@ -668,6 +683,25 @@ def verify_mapping(root, gate=False, matrix=None):
         if any(c[k] != canonical[k] for k in
                ("featureId", "document", "specVersion", "sourceHash", "specSection", "domPath")):
             raise ValueError("manual constraint provenance/identity differs from archived source")
+        required_binding = {"li": "contextDOM", "dd": "termDOM"}.get(node.tag)
+        if c["kind"] == "manual-amendment" and required_binding and required_binding not in c:
+            raise ValueError("manual list/value constraint missing required source binding")
+        for prefix in ("context", "term"):
+            if prefix + "DOM" in c:
+                linked = source_nodes[c["document"]].get(c[prefix + "DOM"])
+                if (not linked or c[prefix + "Excerpt"] != normalized(linked) or
+                        c[prefix + "SHA256"] != sha(normalized(linked).encode()) or
+                        linked.section() != node.section()):
+                    raise ValueError("manual inherited context/value binding differs from source")
+                owners = [node] if prefix == "term" else [n for n in node.ancestors() if n.tag in ("ul", "ol")]
+                preceding = []
+                for owner in owners:
+                    siblings = owner.parent.children[:owner.parent.children.index(owner)]
+                    previous = next((n for n in reversed(siblings) if isinstance(n, Node)), None)
+                    if previous:
+                        preceding.append(previous)
+                if linked not in preceding or (prefix == "term" and (node.tag != "dd" or linked.tag != "dt")):
+                    raise ValueError("manual context/value is not the source list introduction/term")
         candidates[c["featureId"]] = c
     rows = {r["featureId"]: r for r in matrix["rows"]}
     if len(rows) != len(matrix["rows"]) or set(rows) != set(candidates):
@@ -686,8 +720,18 @@ def verify_mapping(root, gate=False, matrix=None):
                 dom = DOM((root / source_entries[document]["path"]).read_text(encoding="utf-8")).root
                 source_nodes[document] = {n.path(): n for n in dom.walk()}
             node = source_nodes[document][row["domPath"]]
-            if any(set(n.attrs.get("class", "").split()) & {"informative", "note", "example"}
-                   for n in node.ancestors()):
+            informative = any(set(n.attrs.get("class", "").split()) & {"informative", "note", "example"}
+                              for n in node.ancestors())
+            algorithm = next((n for n in node.ancestors() if n.attrs.get("id") == "obfus-algorithm"), None)
+            if document == "epub" and algorithm:
+                # REC §1.5 explicitly excludes algorithm explanations. This
+                # section's prose and exemplary pseudo-code are explanations;
+                # keep its separate marked compression-order MUST normative.
+                block = next((n for n in node.ancestors() if n.parent is algorithm), node)
+                if block.tag in ("p", "ol") and not any(
+                        "rfc2119" in n.attrs.get("class", "").split() for n in block.walk()):
+                    informative = True
+            if informative:
                 raise ValueError(f"mapped constraint inherits non-normative source scope: {key}")
         if row["decision"] == "mapped" and (row["phase"] in ("not-assigned", "S0-excluded") or
                 row["applicability"] == "not-reviewed" or not (row["gap"] or row["evidence"])):
@@ -756,13 +800,43 @@ def import_reviews(root, paths, amendments=()):
         if document not in ("epub", "rs", "a11y") or review["sourceHash"] != entries[document]["sha256"]:
             raise ValueError("semantic amendment source identity mismatch")
         nodes = {n.path(): n for n in DOM((root / entries[document]["path"]).read_text()).root.walk()}
-        rules = [{**rule, "domPath": path} for rule in review["constraints"]
-                 for path in rule.get("domPaths", [rule.get("domPath")])]
+        rules = []
+        for rule in review["constraints"]:
+            paths = rule.get("domPaths", [rule.get("domPath")])
+            if "leafCount" in rule:
+                container = nodes[rule["domPath"]]
+                if container.tag not in ("ul", "ol"):
+                    raise ValueError("inherited constraint selector is not a list")
+                paths = [n.path() for n in container.walk() if n.tag == "li" and
+                         not any(c.tag == "li" for c in list(n.walk())[1:])]
+                if len(paths) != rule["leafCount"]:
+                    raise ValueError("reviewed inherited list cardinality drift")
+            rules.extend({**rule, "domPath": path} for path in paths)
         for rule in rules:
             node = nodes.get(rule["domPath"])
             if node is None:
                 raise ValueError("semantic amendment source node missing")
-            c = candidate(entries[document], node, node, "manual-amendment", rule.get("occurrence", 1), rule["normativeLevel"])
+            c = candidate(entries[document], node, node, rule.get("kind", "manual-amendment"),
+                          rule.get("occurrence", 1), rule["normativeLevel"])
+            if node.tag == "li" and c["kind"] == "manual-amendment" and "contextDOM" not in rule:
+                owner = next(n for n in node.ancestors() if n.tag in ("ul", "ol"))
+                previous = owner.parent.children[:owner.parent.children.index(owner)]
+                context = next((n for n in reversed(previous) if isinstance(n, Node)), None)
+                if context is None:
+                    raise ValueError("list constraint lacks source introduction")
+                c.update(contextDOM=context.path(), contextExcerpt=normalized(context),
+                         contextSHA256=sha(normalized(context).encode()))
+            elif "contextDOM" in rule:
+                context = nodes[rule["contextDOM"]]
+                c.update(contextDOM=context.path(), contextExcerpt=normalized(context),
+                         contextSHA256=sha(normalized(context).encode()))
+            if node.tag == "dd":
+                previous = node.parent.children[:node.parent.children.index(node)]
+                term = next((n for n in reversed(previous) if isinstance(n, Node)), None)
+                if not term or term.tag != "dt":
+                    raise ValueError("value definition lacks preceding term")
+                c.update(termDOM=term.path(), termExcerpt=normalized(term),
+                         termSHA256=sha(normalized(term).encode()))
             if "excerpt" in rule:
                 c.update(excerpt=rule["excerpt"], excerptSHA256=sha(rule["excerpt"].encode()))
             row = {**c, **{k: rule[k] for k in ("reason", "applicability", "phase")},
@@ -770,7 +844,11 @@ def import_reviews(root, paths, amendments=()):
                    "gap": "No clause-specific executed evidence; source analysis is not implementation support",
                    **{k: "not-tested" for k in ("preserve", "parse", "edit", "render", "validate")}}
             for key, value in (("manualConstraints", c), ("rows", row)):
-                matrix[key] = [r for r in matrix[key] if r["featureId"] != c["featureId"]] + [value]
+                position = next((i for i, r in enumerate(matrix[key]) if r["featureId"] == c["featureId"]), None)
+                if position is None:
+                    matrix[key].append(value)
+                else:
+                    matrix[key][position] = value
     # Source review alone cannot close the complete S0 gate, which also needs
     # dependency applicability, official-test mapping, and independent acceptance.
     matrix["semanticComplete"] = False
@@ -787,6 +865,11 @@ def import_reviews(root, paths, amendments=()):
             seen.add(reference["featureId"])
             row = rows[reference["featureId"]]
             row.update(evidence=reference["evidence"], testIds=reference["testIds"], gap=reference["gap"])
+    for row in matrix["rows"]:
+        if row["excerpt"].rstrip().endswith(":") and "inherited list context" in row["reason"]:
+            row["reason"] = ("Source-addressed introductory constraint: this excerpt ends at the colon and does not "
+                             "contain the enumerated leaves. Inherited members/conditions require their separate "
+                             "source mappings and the full fixed REC; this paragraph alone is not list completeness evidence.")
     counts = verify_mapping(root, matrix=matrix)
     write_json(root / "matrix.json", matrix)
     return counts

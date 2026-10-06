@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "scope": "Finite S0 registration of reviewed-plan 11.8 T3 prerequisites, not their archive or a runtime catalog",
+  "phase": "T3",
+  "registrationOnly": true,
+  "runtimeDownloads": false,
+  "requiredBefore": "Freeze exact legacy editions, original bytes, licenses and the finite transitive DTD/module/entity whitelist offline before implementing migration or interpreting legacy external subsets",
+  "requirements": [
+    {"id":"opf-201","title":"Open Packaging Format 2.0.1","edition":"2.0.1 / 04 September 2010","url":"https://idpf.org/epub/20/spec/OPF_2.0.1_draft.htm","citationSource":{"document":"epub","entry":"bib-opf-201"},"status":"pending-T3-archive","sha256":null,"archivePath":null,"gap":"The frozen REC cites the draft-named URL; no download, edition validation or migration conformance claimed."},
+    {"id":"ops-201","title":"Open Publication Structure 2.0.1","edition":"2.0.1 / 04 September 2010","url":"http://idpf.org/epub/20/spec/OPS_2.0.1_draft.htm","citationSource":{"document":"overview","entry":"bib-ops-201"},"status":"pending-T3-archive","sha256":null,"archivePath":null,"gap":"Freeze the actual EPUB2 content-document profile, not an EPUB3 XHTML external-identifier rule."},
+    {"id":"ocf-201","title":"EPUB Open Container Format (OCF) 2.0.1","edition":"2.0.1 / 04 September 2010","url":"http://idpf.org/epub/20/spec/OCF_2.0.1_draft.doc","citationSource":{"document":"overview","entry":"bib-ocf-201"},"status":"pending-T3-archive","sha256":null,"archivePath":null,"gap":"The cited original is a .doc artifact. No assertion that a substituted HTML edition or EPUB3 schema represents this legacy profile."},
+    {"id":"ncx","title":"NCX legacy specification and DTD","edition":"Exact edition required by EPUB2.0.1 to be frozen at T3","url":null,"status":"pending-T3-archive","sha256":null,"archivePath":null,"gap":"Resolve the exact legacy edition, public/system identifiers and finite transitive assets from the archived legacy specifications; EPUB3 Appendix B alone is not the EPUB2 profile."},
+    {"id":"dtbook","title":"DTBook legacy specification and DTD","edition":"Exact edition required by EPUB2.0.1 to be frozen at T3","url":null,"status":"pending-T3-archive","sha256":null,"archivePath":null,"gap":"Register the family without silently substituting a current DAISY version. Original specification/DTD, license and dependencies are not downloaded."},
+    {"id":"xhtml11-dtd","title":"XHTML 1.1 legacy DTD","edition":"XHTML 1.1 edition required by EPUB2.0.1 to be frozen at T3","url":null,"status":"pending-T3-archive","sha256":null,"archivePath":null,"gap":"Determine the exact edition and identifiers before interpretation; cannot reuse the EPUB3 XHTML external-subset prohibition as a legacy verdict."},
+    {"id":"xhtml11-modules","title":"XHTML 1.1 legacy DTD modules","edition":"Edition-consistent module closure to be frozen at T3","url":null,"status":"pending-T3-archive","sha256":null,"archivePath":null,"gap":"Archive the required finite include/module closure and license evidence, not the entire Web or a live runtime resolver."},
+    {"id":"xhtml11-entities","title":"XHTML 1.1 legacy entity sets","edition":"Edition-consistent entity closure to be frozen at T3","url":null,"status":"pending-T3-archive","sha256":null,"archivePath":null,"gap":"Archive the exact entity sets reached by the selected DTD/modules; null target/hash truthfully denotes no acquired asset."}
+  ]
+}

@@ -16,6 +16,9 @@
       "contentType": "text/html; charset=utf-8",
       "requiredBy": [],
       "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/media-overlay-30.nvdl",
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/ocf-container-30.nvdl",
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/package-30.nvdl",
         "https://www.w3.org/StyleSheets/TR/2021/W3C-REC",
         "https://www.w3.org/StyleSheets/TR/2021/logos/W3C",
         "https://www.w3.org/TR/2026/REC-epub-33-20260113/images/example_rendering_paginated_multiple_spine.svg",
@@ -737,9 +740,12 @@
       "sha256": "d64af090a264aa12df6845768d75d9107ac8b16f68b01a03fdbeca000e673192",
       "contentType": "text/plain; charset=utf-8",
       "requiredBy": [
+        "19dfd824a6f417f7190c9bf7",
         "multi-rend"
       ],
-      "dependencies": []
+      "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/LICENSE"
+      ]
     },
     {
       "id": "f013e4ef1d2a6d82681a1ece",
@@ -757,6 +763,7 @@
         "multi-rend"
       ],
       "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/LICENSE",
         "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/datatypes.rnc"
       ]
     },
@@ -776,6 +783,7 @@
         "multi-rend"
       ],
       "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/LICENSE",
         "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/package-30.rnc"
       ]
     },
@@ -1977,10 +1985,14 @@
       "sha256": "4ecd6dfc146993af602145983b860dc971158aa0ddcdc7062028f385d653787c",
       "contentType": "text/plain; charset=utf-8",
       "requiredBy": [
+        "19dfd824a6f417f7190c9bf7",
         "4dd44247c45ce2470dd288d1",
-        "f013e4ef1d2a6d82681a1ece"
+        "f013e4ef1d2a6d82681a1ece",
+        "f8ac7295dc292767cbbd5603"
       ],
-      "dependencies": []
+      "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/LICENSE"
+      ]
     },
     {
       "id": "4dd44247c45ce2470dd288d1",
@@ -1995,9 +2007,11 @@
       "sha256": "557d1c4443acf7f2587c11a3dfee9841470ed7c65db2b49ce4ff3d22aa0ca9f0",
       "contentType": "text/plain; charset=utf-8",
       "requiredBy": [
+        "6a87be65580e34b4054378be",
         "c11241fd1fad599a0e68441c"
       ],
       "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/LICENSE",
         "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/datatypes.rnc",
         "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/epub-prefix-attr.rnc"
       ]
@@ -2015,9 +2029,248 @@
       "sha256": "d1a3a8872e7013e4f25f46d898f6b520ce4ea06156612e93036cfd726842df71",
       "contentType": "text/plain; charset=utf-8",
       "requiredBy": [
-        "4dd44247c45ce2470dd288d1"
+        "4dd44247c45ce2470dd288d1",
+        "f8ac7295dc292767cbbd5603"
+      ],
+      "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/LICENSE"
+      ]
+    },
+    {
+      "id": "49dbcce566d54e2049bfa000",
+      "category": "external-dependency",
+      "normativeLevel": "schema",
+      "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/media-overlay-30.nvdl",
+      "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/media-overlay-30.nvdl",
+      "version": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/media-overlay-30.nvdl",
+      "downloadedAt": "2026-10-06T03:11:55.114685+00:00",
+      "path": "assets/49dbcce566d54e2049bfa000",
+      "bytes": 533,
+      "sha256": "e1f3f698a0edee2c7a5ca47000ab923b3b7418d96b4de6302217cfa7c61bd24f",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": [
+        "epub"
+      ],
+      "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/LICENSE",
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/media-overlay-30.rnc",
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/media-overlay-30.sch"
+      ]
+    },
+    {
+      "id": "c8e8aa30d1cb222b0972b21c",
+      "category": "external-dependency",
+      "normativeLevel": "schema",
+      "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/ocf-container-30.nvdl",
+      "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/ocf-container-30.nvdl",
+      "version": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/ocf-container-30.nvdl",
+      "downloadedAt": "2026-10-06T03:11:55.277069+00:00",
+      "path": "assets/c8e8aa30d1cb222b0972b21c",
+      "bytes": 511,
+      "sha256": "255dc7d68f6ad0bdc18696f8c3d790bf27e041c691d3ca675679fd09ae6a3a19",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": [
+        "epub"
+      ],
+      "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/LICENSE",
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/container.sch",
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/ocf-container-30.rnc"
+      ]
+    },
+    {
+      "id": "6a87be65580e34b4054378be",
+      "category": "external-dependency",
+      "normativeLevel": "schema",
+      "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/package-30.nvdl",
+      "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/package-30.nvdl",
+      "version": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/package-30.nvdl",
+      "downloadedAt": "2026-10-06T03:11:55.454063+00:00",
+      "path": "assets/6a87be65580e34b4054378be",
+      "bytes": 531,
+      "sha256": "4426a8bc2b556d6297e082f6af3a547b0fca1280f03ad49f27b5012012305432",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": [
+        "epub"
+      ],
+      "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/LICENSE",
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/package-30.rnc",
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/package-30.sch"
+      ]
+    },
+    {
+      "id": "8d6011271b8a0f86568220d1",
+      "category": "external-dependency",
+      "normativeLevel": "schema",
+      "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/LICENSE",
+      "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/LICENSE",
+      "version": "display/dependency asset",
+      "downloadedAt": "2026-10-06T03:11:55.616191+00:00",
+      "path": "assets/8d6011271b8a0f86568220d1",
+      "bytes": 1280,
+      "sha256": "bc31197ad4f01c1813dd200349c75309c29a1486b5b5d1ae51a5203acfc4df00",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": [
+        "19dfd824a6f417f7190c9bf7",
+        "24870d4acf293ff2e745463e",
+        "49dbcce566d54e2049bfa000",
+        "4dd44247c45ce2470dd288d1",
+        "59ff3d003b7a94ec8c406f88",
+        "6a87be65580e34b4054378be",
+        "6ba5ec4ff60051257c71e8b5",
+        "768e2e545a6b0ebbe0e68169",
+        "a9586b9b351f184bb8a02973",
+        "c11241fd1fad599a0e68441c",
+        "c8e8aa30d1cb222b0972b21c",
+        "cd6bf49071cad8a61ecee697",
+        "cec19d8f6390ccc18a96d3b5",
+        "ddfba09b70bc2ff727d61202",
+        "f013e4ef1d2a6d82681a1ece",
+        "f8ac7295dc292767cbbd5603"
       ],
       "dependencies": []
+    },
+    {
+      "id": "f8ac7295dc292767cbbd5603",
+      "category": "external-dependency",
+      "normativeLevel": "schema",
+      "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/media-overlay-30.rnc",
+      "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/media-overlay-30.rnc",
+      "version": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/media-overlay-30.rnc",
+      "downloadedAt": "2026-10-06T03:12:39.482597+00:00",
+      "path": "assets/f8ac7295dc292767cbbd5603",
+      "bytes": 1997,
+      "sha256": "d9a81e81d51ad6eefaceb5b748e45be73659ae913bf1cf3788de9d866b09b7e5",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": [
+        "49dbcce566d54e2049bfa000"
+      ],
+      "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/LICENSE",
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/datatypes.rnc",
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/epub-prefix-attr.rnc",
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/epub-type-attr.rnc"
+      ]
+    },
+    {
+      "id": "cec19d8f6390ccc18a96d3b5",
+      "category": "external-dependency",
+      "normativeLevel": "schema",
+      "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/media-overlay-30.sch",
+      "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/media-overlay-30.sch",
+      "version": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/media-overlay-30.sch",
+      "downloadedAt": "2026-10-06T03:12:39.642535+00:00",
+      "path": "assets/cec19d8f6390ccc18a96d3b5",
+      "bytes": 251,
+      "sha256": "3eb290110ed84bff64013c204b95e76ed0bdbcc8bee7b7d166d8463e664256cf",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": [
+        "49dbcce566d54e2049bfa000"
+      ],
+      "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/LICENSE",
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/id-unique.sch"
+      ]
+    },
+    {
+      "id": "a9586b9b351f184bb8a02973",
+      "category": "external-dependency",
+      "normativeLevel": "schema",
+      "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/container.sch",
+      "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/container.sch",
+      "version": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/container.sch",
+      "downloadedAt": "2026-10-06T03:12:39.824388+00:00",
+      "path": "assets/a9586b9b351f184bb8a02973",
+      "bytes": 1448,
+      "sha256": "8be5046036bb115a1fbf9a83fcca4a6639e860ebf8715d8b8c3cfec64d43271b",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": [
+        "c8e8aa30d1cb222b0972b21c"
+      ],
+      "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/LICENSE"
+      ]
+    },
+    {
+      "id": "19dfd824a6f417f7190c9bf7",
+      "category": "external-dependency",
+      "normativeLevel": "schema",
+      "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/ocf-container-30.rnc",
+      "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/ocf-container-30.rnc",
+      "version": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/ocf-container-30.rnc",
+      "downloadedAt": "2026-10-06T03:12:39.985721+00:00",
+      "path": "assets/19dfd824a6f417f7190c9bf7",
+      "bytes": 1252,
+      "sha256": "1a3ee7a4a3b3211e9536194a3dd9184195fd8fc77bd51aa1b91d89564a9ff3d5",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": [
+        "c8e8aa30d1cb222b0972b21c"
+      ],
+      "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/LICENSE",
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/datatypes.rnc",
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/multiple-renditions/container.rnc"
+      ]
+    },
+    {
+      "id": "24870d4acf293ff2e745463e",
+      "category": "external-dependency",
+      "normativeLevel": "schema",
+      "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/package-30.sch",
+      "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/package-30.sch",
+      "version": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/package-30.sch",
+      "downloadedAt": "2026-10-06T03:12:40.150917+00:00",
+      "path": "assets/24870d4acf293ff2e745463e",
+      "bytes": 25504,
+      "sha256": "aba7184561df2e1dfaac4d9b3175cf36e4b3bd4c666f6250585ba61feba40245",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": [
+        "6a87be65580e34b4054378be"
+      ],
+      "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/LICENSE",
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/id-unique.sch"
+      ]
+    },
+    {
+      "id": "6ba5ec4ff60051257c71e8b5",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/epub-type-attr.rnc",
+      "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/epub-type-attr.rnc",
+      "version": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/epub-type-attr.rnc",
+      "downloadedAt": "2026-10-06T03:12:40.325935+00:00",
+      "path": "assets/6ba5ec4ff60051257c71e8b5",
+      "bytes": 374,
+      "sha256": "785922cef6320bc62ef9f36033cacce43b14dc28dbd5ca497c5bb21968e5a586",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": [
+        "f8ac7295dc292767cbbd5603"
+      ],
+      "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/LICENSE"
+      ]
+    },
+    {
+      "id": "cd6bf49071cad8a61ecee697",
+      "category": "external-dependency",
+      "normativeLevel": "display/schema",
+      "requestUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/id-unique.sch",
+      "finalUrl": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/id-unique.sch",
+      "version": "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/mod/id-unique.sch",
+      "downloadedAt": "2026-10-06T03:12:40.522417+00:00",
+      "path": "assets/cd6bf49071cad8a61ecee697",
+      "bytes": 465,
+      "sha256": "960df559c9efb930d8aef49a677ed9c285c1543033f54eba4c21718c32331afc",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": [
+        "24870d4acf293ff2e745463e",
+        "cec19d8f6390ccc18a96d3b5"
+      ],
+      "dependencies": [
+        "https://raw.githubusercontent.com/w3c/epubcheck/029831b8f477e4519e9734c984ee24357547a698/src/main/resources/com/adobe/epubcheck/schema/30/LICENSE"
+      ]
     }
   ],
   "failures": []

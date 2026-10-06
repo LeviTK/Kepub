@@ -14,6 +14,16 @@ import epub33_assets as assets
 import epub33_tests as official
 
 
+def clause_context(node):
+    """Normalize source labels/cells without broadening to a whole section."""
+    if node.tag == "dt":
+        following = node.parent.children[node.parent.children.index(node) + 1:]
+        return next((n for n in following if isinstance(n, assets.Node) and n.tag == "dd"), node)
+    if node.tag not in ("p", "li", "dd", "tr", "section"):
+        return next((n for n in node.ancestors() if n.tag in ("p", "li", "dd", "tr", "section")), node)
+    return node
+
+
 def dependency_review(root, entries, inventory, nodes):
     """Explicitly rebind historical review after P5; never rewrite its evidence."""
     path = root / "external-dependencies.json"
@@ -138,6 +148,28 @@ def build(root):
     entries = {e["id"]: e for e in manifest["assets"]}
     inventory = json.loads((root / "inventory.json").read_text())
     matrix = json.loads((root / "matrix.json").read_text())
+    legacy = json.loads((root / "reviews/t3-prerequisites.json").read_text())
+    required_legacy = {"opf-201", "ops-201", "ocf-201", "ncx", "dtbook", "xhtml11-dtd", "xhtml11-modules", "xhtml11-entities"}
+    if ({r["id"] for r in legacy["requirements"]} != required_legacy or len(legacy["requirements"]) != 8 or
+            legacy["schemaVersion"] != 1 or legacy["phase"] != "T3" or
+            legacy["registrationOnly"] is not True or legacy["runtimeDownloads"] is not False or not legacy["requiredBefore"]):
+        raise ValueError("missing/duplicate or misrepresented finite T3 prerequisites")
+    citations = {(r["document"], r["entry"]): r for r in inventory["directReferences"]}
+    legacy_citations = {"opf-201": ("epub", "bib-opf-201"), "ops-201": ("overview", "bib-ops-201"),
+                        "ocf-201": ("overview", "bib-ocf-201")}
+    for record in legacy["requirements"]:
+        if (record["status"] != "pending-T3-archive" or record["sha256"] is not None or
+                record["archivePath"] is not None or any(not record[k] for k in ("title", "edition", "gap"))):
+            raise ValueError("T3 registration must not invent archived evidence")
+        if record["id"] in legacy_citations:
+            identity = legacy_citations[record["id"]]
+            reference = citations[identity]
+            if (record["citationSource"] != dict(zip(("document", "entry"), identity)) or
+                    record["url"] not in reference["urls"]):
+                raise ValueError("T3 legacy citation differs from fixed source")
+            record["citationProvenance"] = {k: reference[k] for k in ("document", "entry", "sourceHash", "domPath", "citation")}
+        elif record["url"] is not None:
+            raise ValueError("T3 unresolved family target must not invent an edition URL")
     nodes = {}
     for document, entry in entries.items():
         if not entry["path"].startswith("original/") or "html" not in entry["contentType"]:
@@ -232,7 +264,33 @@ def build(root):
                 "sourceHash": entries[document]["sha256"], "sourceDOM": path,
                 "section": node.section(), "excerpt": assets.normalized(node),
                 "excerptSHA256": assets.sha(assets.normalized(node).encode()),
-                "clauses": [{k: r[k] for k in ("featureId", "normativeLevel", "excerpt", "excerptSHA256", "applicability", "phase")} for r in linked]}
+                "clauses": [{k: r[k] for k in ("featureId", "normativeLevel", "excerpt", "excerptSHA256", "applicability", "phase", "decision", "reason")} for r in linked]}
+
+    backlinks, by_case, external_links = [], {}, []
+    for document in ("epub", "rs", "a11y"):
+        for node in nodes[document].values():
+            for raw in node.attrs.get("data-tests", "").split(","):
+                reference = raw.strip()
+                if not reference:
+                    continue
+                source = {"document": document, "fixedREC": entries[document]["requestUrl"],
+                          "sourceHash": entries[document]["sha256"], "sourceDOM": node.path(),
+                          "sourceAttribute": node.attrs["data-tests"], "reference": reference,
+                          "sourceExcerpt": assets.normalized(node),
+                          "sourceExcerptSHA256": assets.sha(assets.normalized(node).encode())}
+                if not reference.startswith("#"):
+                    external_links.append({**source, "status": "external-link; not-executed",
+                                           "reason": "External structural-test reference, not a frozen official RS fixture"})
+                    continue
+                case = reference[1:]
+                if case in cases:
+                    context = correspondence(document, clause_context(node))
+                    by_case.setdefault(case, []).append(context)
+                    backlinks.append({**source, "caseId": case, "status": "known-case; source-mapped; not-executed",
+                                      "clauseContextDOM": context["sourceDOM"]})
+                else:
+                    backlinks.append({**source, "caseId": case, "status": "unresolved; not-executed",
+                                      "reason": "Fragment absent from the frozen 169-case report/source inventory; no rename, edition substitution or equivalence established"})
 
     output_cases = []
     for record in draft["cases"]:
@@ -252,23 +310,26 @@ def build(root):
             if node is None:
                 missing.append(target["reportURL"])
                 continue
-            if node.tag == "dt":
-                following = node.parent.children[node.parent.children.index(node) + 1:]
-                node = next((n for n in following if isinstance(n, assets.Node) and n.tag == "dd"), node)
-            elif node.tag not in ("p", "li", "dd", "tr", "section"):
-                node = next((n for n in node.ancestors() if n.tag in ("p", "li", "dd", "tr", "section")), node)
-            links.append(correspondence(document, node))
+            links.append(correspondence(document, clause_context(node)))
         amendment = reviewed.get(record["id"])
         if missing and not amendment:
             raise ValueError(f"obsolete report anchor without reviewed correspondence: {record['id']}")
         if amendment:
             for target in amendment["targets"]:
                 links.append(correspondence(target["document"], nodes[target["document"]][target["domPath"]]))
+        existing = {(link["document"], link["sourceDOM"]) for link in links}
+        for link in by_case.get(record["id"], []):
+            identity = (link["document"], link["sourceDOM"])
+            if identity not in existing:
+                links.append(link)
+                existing.add(identity)
         if not links or not record["plannedStages"] or not record["applicability"]:
             raise ValueError("case review lacks target/stage/applicability")
         output_cases.append({**{k: v for k, v in record.items() if k not in ("targets", "gaps")},
                              "initialDraftTargets": record["targets"], "initialDraftGaps": record["gaps"],
                              "fixedSourceCorrespondences": links,
+                             "recBacklinkStatus": "source-mapped; not-executed" if record["id"] in by_case else
+                                                  "no-fixed-REC-backlink; original report mapping retained; not-executed",
                              "obsoleteHistoricalReferences": missing,
                              "explicitCorrespondenceReview": amendment,
                              "pairedFixtures": original.get("pairedFixtures", []),
@@ -276,12 +337,20 @@ def build(root):
     return {"schemaVersion": 1, "semanticComplete": False,
             "remainingGate": "Independent semantic acceptance; then fixed-tree Factory Droid",
             "officialCounts": official_counts, "supporting": supporting, "cases": output_cases,
+            "legacyPrerequisites": legacy,
+            "recBacklinks": {"fragments": backlinks, "externalLinks": external_links,
+                             "counts": {"fragmentReferences": len(backlinks),
+                                        "distinctFragmentIds": len({r["caseId"] for r in backlinks}),
+                                        "knownCases": len(by_case), "casesWithoutRECBacklink": len(set(cases) - set(by_case)),
+                                        "unresolvedIds": sorted({r["caseId"] for r in backlinks if r["caseId"] not in cases}),
+                                        "externalReferences": len(external_links)}},
             "externalReferences": dependency_review(root, entries, inventory, nodes),
             "inputs": {str(p.relative_to(root)): assets.sha(p.read_bytes()) for p in
                        [root / "matrix.json", root / "official-tests/index.json", root / "reviews/supporting.json",
                         root / "reviews/official-cases.json", root / "reviews/official-anchor-amendments.json",
                         root / "external-dependencies.json", root / "reviews/parent-dependencies-original.json",
-                        root / "reviews/dependencies-original-input.json", root / "reviews/non-url-references.json"]}}
+                        root / "reviews/dependencies-original-input.json", root / "reviews/non-url-references.json",
+                        root / "reviews/t3-prerequisites.json"]}}
 
 
 def main():

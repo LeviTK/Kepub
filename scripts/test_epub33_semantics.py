@@ -79,6 +79,26 @@ class SemanticEvidence(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "obsolete report anchor"):
             semantics.build(root)
 
+    def test_t3_registry_cannot_omit_family_or_invent_acquisition(self):
+        for mutate in (lambda r: r["requirements"].pop(),
+                       lambda r: r["requirements"][0].update(sha256="0" * 64, status="archived")):
+            root = self.mutated_review("t3-prerequisites.json", mutate)
+            with self.subTest(mutate=mutate), self.assertRaisesRegex(ValueError, "T3"):
+                semantics.build(root)
+
+    def test_raw_rec_backlinks_keep_unknowns_and_non_execution_distinct(self):
+        backlinks = self.index["recBacklinks"]
+        self.assertEqual(backlinks["counts"]["fragmentReferences"], 237)
+        self.assertEqual(backlinks["counts"]["distinctFragmentIds"], 162)
+        self.assertEqual(backlinks["counts"]["knownCases"], 158)
+        self.assertEqual(backlinks["counts"]["unresolvedIds"],
+                         ["fxl-svg-icb_multi", "lay-fxl-layout-duplication", "pkg-spine-nonlinear", "pub-cmt-jpg"])
+        self.assertEqual(backlinks["counts"]["externalReferences"], 456)
+        self.assertTrue(all(r["status"] == "external-link; not-executed" for r in backlinks["externalLinks"]))
+        absent = [c for c in self.index["cases"] if c["recBacklinkStatus"].startswith("no-fixed-REC-backlink")]
+        self.assertEqual(len(absent), 11)
+        self.assertTrue(all(c["fixedSourceCorrespondences"] and not c["executed"] for c in absent))
+
 
 if __name__ == "__main__":
     unittest.main()
