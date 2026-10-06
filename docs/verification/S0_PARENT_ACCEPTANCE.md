@@ -2,7 +2,7 @@
 
 ## 当前结论：阶段资产未通过总验收
 
-首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P7 修复复验、完整语义增量的资产／来源校验和语义抽查，并集成本地 `main`。计划复审已完成；S0 实现 Droid R1 已实际结束但发现阻塞问题，父另复现列表／用例关联遗漏和 P8 算法说明范围错误，仍需修复、独立复验与新固定树审查。T1 继续暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
+首次检查于 2026-10-05；2026-10-06 已完成下述 P1～P8、Droid R1 F1～F6 修复复验、完整语义增量的资产／来源校验和语义抽查，并集成本地 `main`。计划复审已完成；S0 实现 R1 正常结束但未批准，其已复现问题的两批修复均已父验收，仍待固定最终输入后的新完整 Droid 审查及实际门禁通过。T1 继续暂停。父 Orb 的 [EPUBCheck 增量核验](S0_EPUBCHECK_2026.md) 已通过定向及全仓普通／race／vet、Darwin 交叉编译，但不替代本记录的资产与矩阵验收。
 
 首次受审阶段提交为编码 Orb 的 `b92e1903d831d48ae9df13c8592024e69dac0ed2`；父在独立 worktree `/tmp/kepub-s0-parent-review` 检查，当时没有把阶段资产合入父本地 `main`。以下首次失败记录予以保留；后续修复结果单独记录，不覆盖原结果。检查未修改产品或三份冻结主文档。
 
@@ -183,3 +183,19 @@ R1 在固定 fixture `be198c651be1197ae62109dd76e6d4d083cb1b23` 上运行，其�
 - 父本地集成为 `de53b5704799ac4885cf8bafe10a88c19c864ae5`，资产／脚本／产品与受审树完全一致；集成后完整 Python 再次 **79/79 PASS，181.240s**。固定／集成日志 SHA-256 分别为 `0a8e2b3fa879ef76f3ff11d94c9d19ee995d416296427022fc198de84e64eaec`／`9e78eeeb2b0f0872628471b891856b2e36a23fb7b4a6e621ce1d55ff0423c5f4`。本批不重新标注旧 Go 大组合为新结果。
 
 F3／F4／F6、P8 及 T3 前置机读登记仍由编码 Orb 修复，尚未父验收；新完整 Droid R2 未启动，S0 不通过，T1 仍暂停。以上仅是首批局部问题关闭，不是当前所有问题清零；未 push／发布。
+
+## F3／F4／F6、P8 与 T3 前置登记已独立复验并集成
+
+父实际下载相对 `294cc8d` 的第二批 bundle：**147,713 bytes**、SHA-256 `715fd53fb1c3a461c2264da2c6c071fb86d8c5a39b2dc7e3ca86fd565ace9e57`，verify／fetch 成功；受审提交为 `df57cddddae3653a6197d9f071957169ede1902f`。在独立 worktree 固定此树，完整 Python **92/92 PASS，261.055s**，其中原父列表／backlink 和算法反例脚本与原 SHA 逐字一致。测试日志 SHA-256 `571e532c06b6262150c82eb668ab8feb2c66c835996111de27c669b476a63b6a`。脚本及测试差异已实际阅读，不只依赖子侧通过报告。
+
+- 首次按新文档完整执行三 review／三 amendment 导入、两个 index、四类 verify、official reproduce，全部 exit 0；`git diff --exit-code` 和 staged diff 都为零。正常 gate 实际 **exit 1：independent acceptance records missing**。组合输出 `S0_PARENT_R1_SOURCE_FIXED_REPLAY_PASS`，日志 SHA-256 `71e211291886802bb5f8e21c6de5891d7573daf58d00485f1bd4f762b674be56`；不是 S0 总门槛通过。
+- 父逐组读取新增 59 个叶项及其真实引导句，核对 filename 禁止条件、data URL iframe 例外、八项禁加密文件、manifest 条件属性、remote MAY、namespace 排除域、fallback one-of、toc／sync 两顺序、skip／escape 非穷尽可选项和 a11y any-of 条件。原 1474 身份无删除；11 个算法解释观察保留为排除，真正的 key／压缩顺序／算法标识 MUST 不受影响；28 条旧引导句仅改正“已含完整列表”的误述，5 个旧叶项补上下文，44 个旧 `dd` 补相邻 `dt` 绑定。500 section records 原样保留。
+- **1533＝1468 mapped＋65 excluded**，784 manual，五维仍全部 `not-tested`。来源匹配反例覆盖同时篡改 manual／row 的真实但不相邻上下文和 `dt`、整组删除绑定及算法说明重新升级；不能只以 hash 自洽接受错误语义关联。父原定向覆盖不声称穷尽证明所有剩余语义。
+- 固定 REC 的 237 处片段引用／162 ID、158 个已知用例、4 个未匹配 ID、11 个无 REC backlink 的既有用例，以及 456 个外部结构测试链接分开保存。父原 11 条遗漏反例现通过，原报告的出版物侧条件保持；169 个官方 case／170 report rows／170 本书仍未执行阅读系统行为测试。
+- 父直接从固定 EPUBCheck 源提交独立取得三 NVDL 的 **14 schema＋目录 LICENSE**，15 项 SHA-256／字节数全部与交付 raw bytes 相同。来源哈希清单 SHA-256 `bdc4cda83a5c1bf7fcf083c047f0f21cef41728c3b1bee478ca8eea5b8ff6899`。共 **118 文件／12,599,439 原始字节**；原 107 个资产的 URL、取得时间、路径、长度及 hash 均保留。目录 LICENSE 的 IDPF MIT-form 不以根 BSD 替代，不宣称法律意见或执行了这些 schema。
+- T3 八家族登记逐项复读：前三保持固定 bibliography 的原版本／URL（包括 draft 命名和 `.doc`），其他精确 legacy edition 仍待确定；全部 pending，取得 hash／path 为 null，禁运行时下载。此登记不完成 T3 的有限离线依赖归档，也不新增迁移功能。
+- 父本地集成提交为 `cdf8725`，脚本、全部资产／矩阵、产品、Go/module/setup 与受审树相同。父拥有的主文档仅改为引用实际验收记录和固定输入门禁，不改范围或接口；避免为了写下审查结论而再次改变其已审输入。真实批准证据将独立保存，不把此阶段记录写成已批准。
+
+子侧首次 91-test 运行的一个新增测试失败保留：测试按相同 XPath 误选了 RS 记录，不是其意图的 EPUB 同节相邻绑定反例；修正选择条件后原异常预期不变。最终子侧 92/92 PASS 229.677s 与父独立结果分开。初次 NVDL 捕获因 namespace 不完整只得 111 文件的错误成功也保留，最终以精确 15-file 闭包和独立字节对照验收；原样上游文件的 whitespace 检查 exit 2 不伪称通过。详细记录见 [第二批修复](S0_ASSETS_R1_SOURCE_CORRECTIONS.md)。
+
+当前已复现的 R1/P8 修复已关闭，但新固定树仍未获 Droid 批准。下一步是冻结最终组合输入并执行真实完整 R2；不拿 R1 的局部阅读、正常进程退出或这批 92 个通过测试替代。T1 暂停，未 push／发布。

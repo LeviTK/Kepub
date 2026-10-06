@@ -1,6 +1,6 @@
 # Kepub CLI 与操作契约
 
-> 设计版本：0.6 · 日期：2026-10-06 · 状态：分阶段实现；对齐 Issue #3／#4 与开发方案 v0.10，补修复提案、诊断差异及可选适配设计，不改变已实现 schema。真实 Droid 计划审查已关闭已知问题，S0 资产与矩阵正在实施／独立验收，T1 仍待 S0 通过；实际可用命令以 README 与 `capabilities` 为准。
+> 设计版本：0.6 · 日期：2026-10-06 · 状态：分阶段实现；对齐 Issue #3／#4 与开发方案 v0.10，补修复提案、诊断差异及可选适配设计，不改变已实现 schema。真实 Droid 计划审查已关闭已知问题，S0 与后续批次按固定输入和独立证据逐批验收，T1 启动须先通过 S0；实际可用命令以 README 与 `capabilities` 为准。
 >
 > 本文定义 Kepub 自己的命令和协议，不是 Calibre 或 Amp 的使用手册，也不表示命令已经能运行。架构见 [开发方案](DEVELOPMENT_PLAN.md)，设计依据见 [Calibre 研究](research/CALIBRE_CLI_REVIEW.md)。
 
@@ -149,7 +149,7 @@ XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场�
 
 规范支持与命令可用性分开。S0 固定规范原文和条款后，建立单一机读矩阵，未来向后兼容扩展 capabilities／doctor／诊断，不替换当前 envelope、退出码、operation ID 或检查状态枚举。
 
-离线资产矩阵与生成脚本已本地创建，正在进行 [S0 独立验收](verification/S0_PARENT_ACCEPTANCE.md)；这不是新的 CLI 返回字段或可用能力，也不代表全部规范条款已经实现。首轮固定树 Droid 审查已结束但发现阻塞问题，修复与新树复验尚未完成，不能据此解锁 T1 或提升五维能力声明。
+离线资产矩阵与生成脚本已本地创建；实际修复、审查与放行结论见 [S0 独立验收](verification/S0_PARENT_ACCEPTANCE.md)。这不是新的 CLI 返回字段或可用能力，也不代表全部规范条款已经实现。首轮固定树 Droid 审查曾发现阻塞问题，其正常退出不构成批准。离线 `gate` 必须核验绑定同一输入的父验收与真实 Droid 完整批准，以及资产、派生物、来源和执行证据；布尔字段或普通样本通过不能单独解锁 T1，也不提升五维能力声明。
 
 - 逐特性记录 `featureId`、`specVersion`、`specSection`、`normativeLevel`、`applicability`、`preserve`、`parse`、`edit`、`render`、`validate`、`platform`、`testIds`、`evidence`；五维状态为 `supported | partial | unsupported | policy-disabled | not-tested`，不适用另给理由，不用 supported 代替。
 - 按开发方案 §11.8 的清点单位覆盖完整 BCP 14 关键字集（含 NOT、REQUIRED／RECOMMENDED／OPTIONAL）、定义／语法约束、deprecated 与条件要求，对账来源片段及 hash；与产品安全／预算策略区分。保留未知语法不表示可编辑；CSS 解析不表示渲染；规范允许但产品暂不支持或策略禁用，不伪称标准禁止。

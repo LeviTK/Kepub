@@ -1,8 +1,10 @@
 # EPUB 3.3 evidence matrix — S0 semantic checkpoint
 
-This checkpoint is **not S0 completion**, an implementation support declaration,
-or closure of Issue #3. Product development remains paused. The main plan and
-CLI contract are unchanged.
+This source checkpoint alone is **not S0 approval**, an implementation support
+declaration, or closure of Issue #3. Actual review decisions and phase status
+are recorded in the [parent acceptance record](verification/S0_PARENT_ACCEPTANCE.md).
+T1 requires current-input parent and actual Droid approval through the offline
+`gate`; source counts and successful generation do not grant that approval.
 
 - [Immutable original source manifest](specs/epub-3.3/manifest.json)
 - [Offline document index](specs/epub-3.3/INDEX.md)
@@ -31,8 +33,8 @@ The bounded Amp research drafts were corrected against the parent's independent
 attribute/default/landmarks tests and coding-Orb source review. P6 additionally
 retains ten informative-source observations as exclusions, not requirements;
 P7 binds manual version/section/identity fields directly to the fixed archive.
-The corresponding actual normative constraints remain mapped. These are not
-complete independent acceptance or a successful Factory Droid review. R1
+The corresponding actual normative constraints remain mapped. Source-review
+notes alone are not independent acceptance or a successful Factory Droid review. R1
 completed with findings and explicitly incomplete detailed reading. Its raw
 evidence is retained, not promoted to approval. `semanticComplete` stays false;
 the offline `gate` aggregates source, derivative, semantic, official-fixture
