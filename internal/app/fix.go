@@ -143,11 +143,46 @@ func FixDelta(ctx context.Context, dir, before, afterRevision, afterTask, output
 func mergeDeltaErrors(errs ...error) error {
 	var out error
 	for _, err := range errs {
-		if err != nil {
-			out = errors.Join(out, err)
+		if err == nil || deltaFaultCode(err) == "VALIDATION_FAILED" {
+			// A complete report with a normal compliance FAIL is delta data:
+			// the delta still explains the difference instead of failing.
+			continue
 		}
+		out = errors.Join(out, err)
 	}
 	return out
+}
+
+// deltaFaultCode reports the fault code carried by one validation error.
+func deltaFaultCode(err error) string {
+	var fe *fault.Error
+	if errors.As(err, &fe) {
+		return fe.Code
+	}
+	return ""
+}
+
+// deltaRunStatus maps the validation check status onto the frozen delta
+// vocabulary: a normal compliance FAIL is a completed run, execution and report
+// errors keep their own status.
+func deltaRunStatus(status string, verr error) string {
+	switch status {
+	case "passed":
+		return "completed"
+	case "unavailable":
+		return "unavailable"
+	case "not_run":
+		return "not_run"
+	case "failed":
+		switch deltaFaultCode(verr) {
+		case "VALIDATION_FAILED":
+			return "completed"
+		case "CHECKER_REPORT_INVALID":
+			return "incomplete"
+		}
+		return "failed"
+	}
+	return "failed"
 }
 
 // nativeLimitations returns the native coverage limitations of one side.
@@ -186,7 +221,7 @@ func buildDeltaSide(ctx context.Context, ds workspace.DeltaSnapshot, o validatio
 		NativeDiagnostics: native,
 		Upstream:          upstreamDiagnostics(report),
 	}
-	side.Checks = deltaChecks(report, side.ReportHash, nativeHash, coverage, ds.TreeSHA256)
+	side.Checks = deltaChecks(report, side.ReportHash, nativeHash, coverage, ds.TreeSHA256, verr)
 	return side, verr
 }
 
@@ -214,14 +249,14 @@ func upstreamDiagnostics(report validation.Report) []fix.UpstreamDiagnostic {
 }
 
 // deltaChecks maps the actual validation checks plus the native check identity.
-func deltaChecks(report validation.Report, reportHash, nativeHash string, coverage fix.NativeCoverage, tree string) []fix.CheckMeta {
+func deltaChecks(report validation.Report, reportHash, nativeHash string, coverage fix.NativeCoverage, tree string, verr error) []fix.CheckMeta {
 	out := []fix.CheckMeta{}
 	for _, c := range report.Checks {
 		out = append(out, fix.CheckMeta{
 			CheckerID: c.ID, ToolVersion: c.Version, Ruleset: c.Rules,
 			SpecBaseline: "unknown", Profile: "", Flags: "",
 			InputHash: c.InputSHA256, ConfigHash: c.ConfigSHA256, ReportHash: reportHash,
-			RunStatus: c.Status, Coverage: c.Coverage,
+			RunStatus: deltaRunStatus(c.Status, verr), Coverage: c.Coverage,
 		})
 	}
 	out = append(out, fix.CheckMeta{

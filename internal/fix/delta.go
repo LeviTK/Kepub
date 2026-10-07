@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"sort"
 )
 
@@ -190,16 +191,39 @@ func genericSchemaCode(code string) bool {
 }
 
 // checksComparable reports whether the two sides ran the same checker
-// configuration over a comparable scope.
+// configuration over a comparable scope. Checks are matched by checker
+// identity, never cross pairs.
 func checksComparable(before, after DeltaSide) bool {
 	if len(before.Checks) == 0 || len(after.Checks) == 0 {
 		return false
 	}
 	for _, b := range before.Checks {
+		matched := false
 		for _, a := range after.Checks {
-			if b.CheckerID != a.CheckerID || b.Ruleset != a.Ruleset || b.SpecBaseline != a.SpecBaseline || b.Profile != a.Profile || b.Flags != a.Flags || b.RunStatus != a.RunStatus {
+			if b.CheckerID != a.CheckerID {
+				continue
+			}
+			matched = true
+			if b.ToolVersion != a.ToolVersion || b.Ruleset != a.Ruleset || b.SpecBaseline != a.SpecBaseline ||
+				b.Profile != a.Profile || b.Flags != a.Flags || b.RunStatus != a.RunStatus ||
+				fmt.Sprint(b.Coverage) != fmt.Sprint(a.Coverage) {
 				return false
 			}
+		}
+		if !matched {
+			return false
+		}
+	}
+	for _, a := range after.Checks {
+		matched := false
+		for _, b := range before.Checks {
+			if a.CheckerID == b.CheckerID {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			return false
 		}
 	}
 	return true
