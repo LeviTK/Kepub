@@ -90,6 +90,12 @@ func (o *Operation) UnmarshalJSON(b []byte) error {
 			return err
 		}
 		o.Params = p
+	case "content.text.replace":
+		var p publication.TextReplace
+		if err := decodeStrict(wire.Params, &p); err != nil {
+			return err
+		}
+		o.Params = p
 	default:
 		return fmt.Errorf("unsupported operation")
 	}
@@ -221,6 +227,7 @@ const editPolicy = "kepub-metadata-v2:accepted-baseline;single-set;simple-text;n
 const contentEditPolicy = "kepub-content-text-v1:accepted-baseline;single-set;locator-v1;simple-text;no-timestamp;review-required;conformance-not-run"
 const multiEditPolicy = "kepub-multi-v1:accepted-baseline;multi-operation;multi-resource;frozen-baseline;simple-text;no-timestamp;review-required;conformance-not-run"
 const structurePolicy = "kepub-xhtml-structure-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;reference-gate;no-timestamp;review-required;conformance-not-run"
+const replacePolicy = "kepub-content-text-replace-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;explicit-hits;no-timestamp;review-required;conformance-not-run"
 
 // maxPlanOperations bounds one version 3 or version 4 transaction. Each
 // operation may parse its target resource, so the request file size alone is
@@ -236,6 +243,8 @@ type derivation struct {
 	// edits carries each resource's planned structural edits, so review can
 	// locate a planned target in the candidate without guessing.
 	edits map[string][]*publication.StructureEdit
+	// replaces carries each batch replace operation's facts by operation index.
+	replaces map[int]publication.ReplaceFacts
 }
 
 func singleDerivation(path string, out []byte, changed bool) derivation {
@@ -251,6 +260,18 @@ func singleDerivation(path string, out []byte, changed bool) derivation {
 func structureOperation(ops []Operation) bool {
 	for _, op := range ops {
 		if strings.HasPrefix(op.ID, "xhtml.") {
+			return true
+		}
+	}
+	return false
+}
+
+// replaceOperation reports whether a request carries the batch text replace
+// operation. Such requests use schema 5, which may also carry the frozen v1
+// operations; requests without it keep schema 1/2/3/4.
+func replaceOperation(ops []Operation) bool {
+	for _, op := range ops {
+		if op.ID == "content.text.replace" {
 			return true
 		}
 	}
@@ -320,11 +341,30 @@ func validateStructureOperation(op Operation) error {
 			return fmt.Errorf("invalid revisionId")
 		}
 		return nil
+	case publication.TextReplace:
+		if err := p.Validate(); err != nil {
+			return fmt.Errorf("replace params: %v", err)
+		}
+		if p.RevisionID != "initial" && !validID(p.RevisionID) {
+			return fmt.Errorf("invalid revisionId")
+		}
+		return nil
 	}
 	return fmt.Errorf("unsupported operation params")
 }
 
 func operationSchema(ops []Operation) (int, error) {
+	if replaceOperation(ops) {
+		if len(ops) == 0 || len(ops) > maxPlanOperations {
+			return 0, fmt.Errorf("operation count exceeds %d", maxPlanOperations)
+		}
+		for _, op := range ops {
+			if err := validateStructureOperation(op); err != nil {
+				return 0, err
+			}
+		}
+		return 5, nil
+	}
 	if structureOperation(ops) {
 		if len(ops) == 0 || len(ops) > maxPlanOperations {
 			return 0, fmt.Errorf("operation count exceeds %d", maxPlanOperations)
@@ -399,6 +439,8 @@ func policyFor(version int) string {
 		return multiEditPolicy
 	case 4:
 		return structurePolicy
+	case 5:
+		return replacePolicy
 	}
 	return editPolicy
 }
@@ -514,7 +556,7 @@ func (w *Workspace) recomputeAt(ops []Operation, baseDir, revision string) (deri
 	}
 	defer r.Close()
 	a := publicationRoot{r}
-	if version == 4 {
+	if version == 4 || version == 5 {
 		return w.recomputeStructure(a, ops, revision)
 	}
 	if version == 3 {

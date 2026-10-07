@@ -148,6 +148,50 @@ func (s source) offset(n int) int {
 	return int(s.offsets[n])
 }
 
+// runOffsets maps one literal character-data token to original byte offsets: one
+// entry per decoded byte plus the run end. XML line-ending normalization turns a
+// CRLF or CR in the source into one LF in the decoded text, so the stream and
+// the decoded text are walked together and a mismatch refuses the run.
+func (s source) runOffsets(before, end int, text string) ([]int, bool) {
+	stream := s.text[before:end]
+	offsets := make([]int, len(text)+1)
+	si, ti := 0, 0
+	for ti < len(text) {
+		if si >= len(stream) {
+			return nil, false
+		}
+		if stream[si] == '\r' {
+			if text[ti] != '\n' {
+				return nil, false
+			}
+			offsets[ti] = s.offset(before + si)
+			si++
+			if si < len(stream) && stream[si] == '\n' {
+				si++
+			}
+			ti++
+			continue
+		}
+		r, size := utf8.DecodeRune(stream[si:])
+		if r == utf8.RuneError && size <= 1 {
+			return nil, false
+		}
+		if ti+size > len(text) || string(stream[si:si+size]) != text[ti:ti+size] {
+			return nil, false
+		}
+		for k := 0; k < size; k++ {
+			offsets[ti+k] = s.offset(before + si + k)
+		}
+		si += size
+		ti += size
+	}
+	if si != len(stream) {
+		return nil, false
+	}
+	offsets[len(text)] = s.offset(before + si)
+	return offsets, true
+}
+
 func encode(text []byte, order binary.ByteOrder) []byte {
 	if order == nil {
 		return text

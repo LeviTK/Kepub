@@ -90,6 +90,8 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 			path = string(param.BookPath)
 		case publication.ElementMove:
 			path = string(param.BookPath)
+		case publication.TextReplace:
+			path = string(param.BookPath)
 		default:
 			return derivation{}, fmt.Errorf("unsupported operation params")
 		}
@@ -111,11 +113,12 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 	// whole transaction, never a partially processed group.
 	gate := &structureGate{a: a, pub: pub, baseIDs: map[bookpath.BookPath]map[string]int{}, removed: map[bookpath.BookPath]map[string]int{}, added: map[bookpath.BookPath]map[string]int{}}
 	type groupEdit struct {
-		path  string
-		bp    bookpath.BookPath
-		base  []byte
-		doc   *publication.StructureDocument
-		edits []*publication.StructureEdit
+		path     string
+		bp       bookpath.BookPath
+		base     []byte
+		doc      *publication.StructureDocument
+		edits    []*publication.StructureEdit
+		replaces map[int]publication.ReplaceFacts
 	}
 	derived := make([]*groupEdit, 0, len(order))
 	for _, path := range order {
@@ -133,6 +136,7 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 			return derivation{}, err
 		}
 		edits := make([]*publication.StructureEdit, 0, len(g.ops))
+		replaceFacts := map[int]publication.ReplaceFacts{}
 		targets := map[string]string{}
 		for j, op := range g.ops {
 			index := g.index[j]
@@ -202,6 +206,25 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 					return derivation{}, err
 				}
 				edit, err = doc.ElementMoveEdit(param)
+			case publication.TextReplace:
+				if param.RevisionID != revision {
+					return derivation{}, ErrStalePlan
+				}
+				if err := checkStructureHash(base, param.ResourceSHA256); err != nil {
+					return derivation{}, err
+				}
+				var facts publication.ReplaceFacts
+				var replaceEdits []*publication.StructureEdit
+				replaceEdits, facts, err = doc.ReplaceTextEdits(param)
+				if err != nil {
+					return derivation{}, err
+				}
+				for _, re := range replaceEdits {
+					re.OpIndex = index
+					edits = append(edits, re)
+				}
+				replaceFacts[index] = facts
+				continue
 			default:
 				return derivation{}, fmt.Errorf("unsupported operation params")
 			}
@@ -214,7 +237,7 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 		if err := publication.ValidateEdits(edits); err != nil {
 			return derivation{}, fault.New(2, "INVALID_OPERATIONS", "%v", err)
 		}
-		derived = append(derived, &groupEdit{path: path, bp: bp, base: base, doc: doc, edits: edits})
+		derived = append(derived, &groupEdit{path: path, bp: bp, base: base, doc: doc, edits: edits, replaces: replaceFacts})
 	}
 	// Phase 2 collects every identity fact of the whole transaction before any
 	// dependency check, so operation order cannot change the outcome.
@@ -337,7 +360,13 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 	for _, path := range writes {
 		final[path] = outputs[path]
 	}
-	return derivation{outputs: final, writes: writes, edits: planned}, nil
+	replaces := map[int]publication.ReplaceFacts{}
+	for _, ge := range derived {
+		for index, facts := range ge.replaces {
+			replaces[index] = facts
+		}
+	}
+	return derivation{outputs: final, writes: writes, edits: planned, replaces: replaces}, nil
 }
 
 func checkStructureHash(base []byte, sha string) error {
@@ -365,6 +394,8 @@ func structureTargetKey(op Operation) (string, string) {
 		return "element\x00" + string(param.BookPath) + "\x00" + param.Locator, "element target"
 	case publication.ElementMove:
 		return "element\x00" + string(param.BookPath) + "\x00" + param.Locator, "element target"
+	case publication.TextReplace:
+		return "replace\x00" + string(param.BookPath) + "\x00" + param.Locator, "replace target"
 	case publication.ElementInsert:
 		return "insert\x00" + string(param.BookPath) + "\x00" + param.Locator + "\x00" + param.Position, "insertion point"
 	}

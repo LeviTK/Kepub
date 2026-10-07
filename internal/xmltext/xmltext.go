@@ -50,7 +50,31 @@ type Element struct {
 	profile              Profile
 	unknownDefaults      bool
 	attributeMarkup      []AttributeMarkup
+	textRuns             []TextRun
 }
+
+// TextRun is one direct character-data token of an element in document order:
+// the decoded text and, for a literal run, the original byte interval of every
+// decoded byte. A run is writable only when it comes from literal source syntax
+// without an entity reference, CDATA marker or unresolved piece.
+type TextRun struct {
+	Text     string
+	Writable bool
+	offsets  []int // original byte offset per decoded byte, plus the run end
+}
+
+// Range maps a decoded byte interval of one run to original resource bytes. Only
+// writable runs have a physical interval.
+func (r TextRun) Range(start, end int) (int, int, bool) {
+	if !r.Writable || start < 0 || end < start || end >= len(r.offsets) {
+		return 0, 0, false
+	}
+	return r.offsets[start], r.offsets[end], true
+}
+
+// TextRuns returns the element's direct character-data runs in document order.
+// Their texts concatenated are exactly DirectText.
+func (e *Element) TextRuns() []TextRun { return e.textRuns }
 
 // AttributeMarkup is the original byte interval of one literal attribute: the
 // whole attribute including preceding whitespace, and the value between the
@@ -371,7 +395,8 @@ func Parse(input []byte) (*Document, error) {
 			}
 			stack = stack[:len(stack)-1]
 		case xml.CharData:
-			if bytes.HasPrefix(s.text[before:], []byte("<![CDATA[")) {
+			cdata := bytes.HasPrefix(s.text[before:], []byte("<![CDATA["))
+			if cdata {
 				t = s.restoreCDATA(t, before)
 			}
 			if len(stack) == 0 {
@@ -384,6 +409,13 @@ func Parse(input []byte) (*Document, error) {
 				e.text.Write(t)
 				e.direct.Write(t)
 				end := int(d.InputOffset())
+				run := TextRun{Text: string(t)}
+				if !cdata && !s.uncertain(before, end) {
+					if offsets, ok := s.runOffsets(before, end, run.Text); ok {
+						run.Writable, run.offsets = true, offsets
+					}
+				}
+				e.textRuns = append(e.textRuns, run)
 				if s.uncertain(before, end) {
 					e.ContentUnknown, e.ChildrenUnknown = true, true
 					known, err := s.knownText(before, end)
@@ -394,7 +426,7 @@ func Parse(input []byte) (*Document, error) {
 				} else {
 					e.KnownDirectText = e.KnownDirectText || strings.TrimSpace(string(t)) != ""
 				}
-				if bytes.HasPrefix(s.text[before:], []byte("<![CDATA[")) {
+				if cdata {
 					e.Complex = true
 				}
 			}

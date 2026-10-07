@@ -98,6 +98,26 @@ type OperationReview struct {
 
 	Attribute *AttributeReview `json:"attribute,omitempty"`
 	Element   *ElementReview   `json:"element,omitempty"`
+	Replace   *ReplaceReview   `json:"replace,omitempty"`
+}
+
+// ReplaceReview reports one batch replace operation's planned rule and the
+// actual candidate direct text of every element it planned to change.
+type ReplaceReview struct {
+	Mode         string              `json:"mode"`
+	Pattern      string              `json:"pattern"`
+	Replacement  string              `json:"replacement"`
+	ExpectedHits int                 `json:"expectedHits"`
+	Hits         int                 `json:"hits"`
+	Skipped      int                 `json:"skipped"`
+	Nodes        []ReplaceNodeReview `json:"nodes,omitempty"`
+}
+
+// ReplaceNodeReview is one planned replace target and its candidate observation.
+type ReplaceNodeReview struct {
+	Locator     string  `json:"locator"`
+	NewValue    *string `json:"newValue"`
+	Unavailable string  `json:"unavailable,omitempty"`
 }
 
 // AttributeReview reports one attribute operation's actual candidate state.
@@ -516,9 +536,11 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 		bases := map[string][]byte{}
 		docs := map[string]*publication.StructureDocument{}
 		var planned map[string][]*publication.StructureEdit
-		if e.Plan.SchemaVersion == 4 {
+		replaceFacts := map[int]publication.ReplaceFacts{}
+		if e.Plan.SchemaVersion >= 4 {
 			if d, derr := w.recomputeAt(e.Plan.Operations, revisionPath(w.current), w.current); derr == nil {
 				planned = d.edits
+				replaceFacts = d.replaces
 			}
 		}
 		for i, op := range e.Plan.Operations {
@@ -587,6 +609,20 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 				} else {
 					r.Operations[i].Element.Candidate = value
 				}
+			case publication.TextReplace:
+				facts := replaceFacts[i]
+				r.Operations[i].Replace.Hits = facts.Hits
+				r.Operations[i].Replace.Skipped = facts.Skipped
+				for _, node := range facts.Nodes {
+					entry := ReplaceNodeReview{Locator: node.Locator}
+					value, err := candidateReplaceText(a, p, cands, base, bases, docs, planned, param, node.Locator)
+					if err != nil {
+						entry.Unavailable = err.Error()
+					} else {
+						entry.NewValue = &value
+					}
+					r.Operations[i].Replace.Nodes = append(r.Operations[i].Replace.Nodes, entry)
+				}
 			}
 		}
 		return r, nil
@@ -644,6 +680,10 @@ func plannedReviews(ops []Operation) []OperationReview {
 		case publication.ElementMove:
 			or.BookPath, or.LocatorVersion, or.Locator = string(param.BookPath), param.LocatorVersion, param.Locator
 			or.Element = &ElementReview{Action: "move", Anchor: param.Anchor, Position: param.Position}
+		case publication.TextReplace:
+			or.BookPath, or.LocatorVersion, or.Locator = string(param.BookPath), param.LocatorVersion, param.Locator
+			or.OldValue, or.PlannedValue = param.Pattern, param.Replacement
+			or.Replace = &ReplaceReview{Mode: param.Mode, Pattern: param.Pattern, Replacement: param.Replacement, ExpectedHits: param.ExpectedHits}
 		}
 		out = append(out, or)
 	}
@@ -696,6 +736,29 @@ func candidateContentValue(a *archive.Archive, p *publication.Publication, cands
 		return "", fmt.Errorf("candidate target is not simple text")
 	}
 	return e.Text, nil
+}
+
+// candidateReplaceText observes the actual candidate direct text of one planned
+// replace node, following the planned tree path so earlier edits in the same
+// transaction cannot move the locator.
+func candidateReplaceText(a *archive.Archive, p *publication.Publication, cands map[string][]byte, base publicationRoot, bases map[string][]byte, docs map[string]*publication.StructureDocument, planned map[string][]*publication.StructureEdit, param publication.TextReplace, locator string) (string, error) {
+	candDoc, err := candidateStructure(a, p, cands, param.BookPath)
+	if err != nil {
+		return "", err
+	}
+	var e *xmltext.Element
+	if edits := planned[string(param.BookPath)]; edits != nil {
+		baseDoc, _, err := candidateBaseStructure(base, p, param.BookPath, bases, docs)
+		if err != nil {
+			return "", err
+		}
+		if e, err = candidateTargetElement(baseDoc, edits, candDoc, locator); err != nil {
+			return "", err
+		}
+	} else if e, err = candDoc.Locate(locator); err != nil {
+		return "", err
+	}
+	return e.DirectText, nil
 }
 
 // candidateMetadataValue observes the actual candidate metadata target.

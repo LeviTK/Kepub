@@ -6,7 +6,9 @@ which was never pushed. Batch 1 started from `origin/main`
 fixed commit `23ba8f8c36b9ccf04138819acbea2af55caba832` (tree
 `545f1824eb1756a979b0a554808a2bc0c0fc5c63`). Batch 2 continues from that commit
 and stops at the fixed commit that introduces this section, awaiting independent
-medium review and parent acceptance. Batch 2's first four trees were rejected —
+medium review and parent acceptance; batch 2 was accepted at `79a4548` and
+released by the parent, and batch 3 (native literal/regex batch text
+replacement) is in progress. Batch 2's first four trees were rejected —
 `ff64188` and `f295f3f` by the high reviewer, `6f9980e` by the medium reviewer,
 `b301fb9` by the parent's acceptance verification and the medium reviewer — and
 every result stays bound to the reviewer and tree that produced it. Private
@@ -56,7 +58,7 @@ Verification actually performed by the independent reviewer and the parent:
   parent fast-forwarded local main to `23ba8f8`; `origin/main` stayed at
   `18618fee` and nothing was pushed.
 
-## Batch 2 — XHTML mixed content and structural editing (first three trees rejected; fixed and awaiting medium re-review)
+## Batch 2 — XHTML mixed content and structural editing (first four trees rejected; accepted and released at `79a4548`)
 
 The first batch-2 fixed tree, commit `ff64188b4d073aa665fa7e352910c75468d0e218`
 (tree `1d76e4e59088aa3b7e47275ec5587980e20791ce`, bundle
@@ -350,11 +352,13 @@ was committed as the fixed commit that introduces this section.
   The joint and adjacent cases now refuse the dangling existing reference and the
   removed value in both operation orders and accept the legal swap with the
   authored bytes.
-- Fuzz runs on this revision: structural edit round trip 567,343 executions in
+- Fuzz runs on this revision's working tree before the commit (not from a fresh
+  checkout of the commit): structural edit round trip 567,343 executions in
   61.024 s, plan order independence 43,335 executions in 61.121 s, and the medium
   joint-identity target 4,466 executions in 60.053 s (with the replayed minimal
   seed), all passing with no failing input.
-- Real CLI smoke on the fixed binary with the pinned checker: joint `id`/`xml:id`
+- Real CLI smoke on the working-tree binary built before the commit, with the
+  pinned checker: joint `id`/`xml:id`
   removal and distinct renames refused a new ARIA/href reference in both
   operation orders (exit 2, no plan file), an existing frozen ARIA reference
   after a joint removal was refused (exit 1 `REFERENCE_CONFLICT`), while a legal
@@ -366,5 +370,97 @@ was committed as the fixed commit that introduces this section.
   `xml:id` on `p` were refused by EPUBCheck as non-conformant (EPUB 3.3 does not
   allow `xml:id` there), which is the checker gate and not a product defect. The
   original books' bytes were unchanged and the export ZIPs intact.
+- The fixed commit, tree and bundle hashes are reported to the parent thread and
+  frozen in the next batch's record.
+
+### Acceptance of batch 2 (released)
+
+The fixed tree `79a4548f25f9e6d7c651c48bd0d404dabe1868d0` (tree
+`0a22a15cff53f4b638626968bc37dee63207a55e`, bundle
+`t2-multi-operation-foundation.bundle` SHA-256
+`6a35ffe0559274c0621549e99df9aad2d877bade1e82555714db353b9315a31a`) was
+accepted by the independent medium review and released by the parent, who
+fast-forwarded local `main` to the same commit (`origin/main` stayed at
+`18618fee`, seven commits ahead, nothing pushed). The acceptance covers only the
+limited schema 4 structural-editing increment: not complete T2, macOS,
+power-loss or release.
+
+- Medium (independent evidence, not inherited from the author): the frozen 24+2
+  position functions and the minimal seed passed ordinary and focused race runs;
+  a clean fixed product tree passed the sequential full-repository ordinary and
+  race suites under the 30-minute bound with `go vet`; the 48 mixed UTF adjacency
+  subcases passed ordinary and race; real CLI runs passed (ordinary 30.800 s,
+  race 32.981 s) with no skips or data races. Four live fuzz targets passed in
+  60 s with two workers (joint identity 2,721, block position 190,864, structural
+  round trip 483,048, plan order 25,300 executions). A legal joint rename that
+  removes the alias passed checker accept/export with exact ZIP bytes, and the
+  candidate retaining `xml:id` was refused by EPUBCheck with RSC-005. The
+  complete evidence pack `79a4548-medium-complete-evidence.tar.gz` (35,757 B,
+  SHA-256 `cabeaa7f2f1f681bb81f17e37708572dc2f93edc642641ad8eb31eb389c557b6`) was
+  verified, and historical failures are retained.
+- Parent: all 14 received probe sources ran in their correct packages, ordinary
+  and focused race with the minimal seed, no skips or data races; the real CLI
+  passed in 7.390 s and 9.974 s; the effective-transaction joint-identity fuzz
+  passed (994 executions in 20.132 s); after cleaning temporary probes and
+  corpus the full ordinary suite passed (cmd/kepub 296.399 s, internal/workspace
+  204.503 s, internal/validation 249.358 s) with `go vet` exit 0 and an empty
+  product diff. The parent did not rerun the full race suite (focused race only)
+  and does not claim macOS, power-loss or complete T2.
+
+## Batch 3 — explicit-scope literal/regex batch text replacement (in progress)
+
+Delivered: request schema 5 (`kepub-content-text-replace-v1`) with the new
+`content.text.replace` v1 operation on the frozen transaction base. One explicit
+element locator scopes the operation; every occurrence of a literal or Go RE2
+pattern in the target subtree's own direct character data is replaced; the
+expected hit count must match exactly; empty matches are refused; matches never
+cross element boundaries or unwritable runs; and the full chain
+plan/apply/diff/accept/history/recovery re-derives rules, hits and the write set
+from the frozen baseline. `content.text.set` v1 and schemas 1–4 are unchanged.
+Not delivered (remaining T2): FixProposal, ValidationDelta, cross-resource move
+and OPF/nav/ID/link synchronization, font-obfuscation eligibility and explicit
+old-workspace re-evaluation.
+
+### Verification of this revision
+
+This revision's runs are labelled by where they were taken; the product content
+was committed as the fixed commit that introduces this section.
+
+- Repository ordinary suite with the pinned EPUBCheck 5.3.0 jar, taken from this
+  revision's working tree before the commit (working-tree verification, not a
+  fresh checkout of the commit): all packages passed (cmd/kepub 334.677 s,
+  internal/validation 282.047 s, internal/workspace 242.609 s,
+  internal/publication 5.511 s, internal/xmltext 7.823 s, internal/references
+  0.121 s, experiments/amp-cli 5.191 s, internal/app 0.320 s, internal/archive
+  0.083 s, internal/metadata 0.524 s, internal/bookpath 0.002 s). The race suite
+  on the same tree also passed all packages (cmd/kepub 557.004 s,
+  internal/validation 308.143 s, internal/workspace 315.084 s,
+  internal/publication 100.941 s, internal/xmltext 93.114 s, internal/references
+  1.956 s, experiments/amp-cli 7.433 s, internal/app 1.933 s, internal/archive
+  1.370 s, internal/bookpath 1.014 s, internal/metadata 5.833 s). `go vet ./...`
+  and `gofmt` are clean on the same tree.
+- Batch-3 tests: the publication layer covers literal and mixed-content
+  replacement, cross-run and unwritable refusals (entity and CDATA), exact hit
+  counts, empty literal/regex patterns, regex capture expansion, foreign-subtree
+  scope, no-op and CRLF/UTF-16 fidelity; the workspace layer covers the
+  plan/apply/review/accept chain with the pinned checker, a mixed schema 5
+  transaction, refusals (hit count, empty match, head/root target, duplicate
+  target, cross-run, stale revision, resource drift), a no-op write set and a
+  UTF-16LE chapter end to end. The capability registry advertises the operation.
+- Fuzz runs on this revision's working tree before the commit: the new
+  `FuzzReplaceTextEdits` compared 967,149 executions in 60.112 s against an
+  independent standard-library oracle (candidate direct text, untouched
+  elements, structural verification) with no failing input; the structural round
+  trip passed 875,825 executions in 61.756 s and plan order independence 35,452
+  executions in 61.033 s.
+- Real CLI smoke on the working-tree binary built before the commit, with the
+  pinned checker: a literal replace (`One` → `Chapter One`) and a regex replace
+  with capture expansion (`(Free)\.` → `$1 text.`) planned, applied, reviewed
+  (`replace` with mode, expected hits, actual hits and the actual candidate
+  direct text) and were accepted by EPUBCheck 5.3.0 and exported with
+  `verified: true` and the expected bytes; a zero-hit operation kept an empty
+  write set. Hit-count mismatch, an empty-match regex, a `head` target and a
+  cross-run match were refused (exit 2, no plan file). The original book bytes
+  were unchanged.
 - The fixed commit, tree and bundle hashes are reported to the parent thread and
   frozen in the next batch's record.

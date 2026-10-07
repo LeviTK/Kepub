@@ -118,6 +118,12 @@ func Capabilities() []Capability {
 	xhtmlNamespace := map[string]any{"enum": []string{"", "http://www.w3.org/XML/1998/namespace", "http://www.idpf.org/2007/ops"}}
 	xhtmlPosition := map[string]any{"enum": []string{"before", "after", "first-child", "last-child"}}
 	xhtmlFragment := map[string]any{"type": "string", "minLength": 1, "x-maxUtf8Bytes": publication.XMLLimit}
+	replaceSchema := xhtmlBase(map[string]any{
+		"mode":         map[string]any{"enum": []string{"literal", "regex"}},
+		"pattern":      map[string]any{"type": "string", "minLength": 1, "x-maxUtf8Bytes": publication.ReplacePatternLimit},
+		"replacement":  map[string]any{"type": "string", "x-maxUtf8Bytes": publication.ContentTextLimit},
+		"expectedHits": map[string]any{"type": "integer", "minimum": 0, "maximum": publication.ReplaceHitsLimit},
+	}, "mode", "pattern", "replacement", "expectedHits")
 	xhtmlOps := []Capability{
 		{ID: "xhtml.attribute.set", Mutates: true, Risk: "bounded_edit", InputSchema: xhtmlBase(map[string]any{
 			"namespace": xhtmlNamespace, "name": xhtmlName, "expectedOldValue": map[string]any{"type": "string", "x-maxUtf8Bytes": publication.AttributeValueLimit},
@@ -140,6 +146,7 @@ func Capabilities() []Capability {
 	for _, c := range append([]Capability{
 		{ID: "metadata.set", Mutates: true, Risk: "bounded_edit", InputSchema: metadataSchema, SupportedFeatures: []string{"unique existing dc:title/dc:creator simple text", "exact namespace/local name/optional ID", "expected old value", "local escaped byte replacement", "no-op preserves bytes; no automatic timestamp"}},
 		{ID: "content.text.set", Mutates: true, Risk: "bounded_edit", InputSchema: contentSchema, SupportedFeatures: []string{"request/plan schema 2; execution 2; operation 1", "accepted revision and original resource SHA-256 binding", "exact manifest XHTML and structural locator v1", "simple independently closed body text only; no mixed/foreign/script/style/head subtree", "escaped local byte replacement; no-op preserves bytes; no automatic timestamp"}},
+		{ID: "content.text.replace", Mutates: true, Risk: "bounded_edit", InputSchema: replaceSchema, SupportedFeatures: []string{"schema 5; accepted revision and frozen resource SHA-256 binding", "explicit locator scope; each XHTML element's own direct character data in the subtree is searched", "literal or Go RE2 pattern with $name capture expansion; matches never cross element or unwritable-run boundaries", "exact expectedHits required; empty matches, non-writable matches and hit-count mismatch refused", "escaped local byte replacement; a zero-hit operation keeps an empty write set"}},
 		{ID: "workspace.open", Commands: []string{"workspace open"}, InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"book", "output"}, "properties": map[string]any{"book": stringSchema, "output": stringSchema, "rootfile": stringSchema}}},
 		{ID: "plan", Commands: []string{"plan"}, InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "operations", "output"}, "properties": map[string]any{"workspace": stringSchema, "operations": stringSchema, "output": stringSchema}}},
 		{ID: "apply", Commands: []string{"apply"}, Mutates: true, Risk: "bounded_edit", InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "plan"}, "properties": map[string]any{"workspace": stringSchema, "plan": stringSchema}}},
@@ -147,7 +154,7 @@ func Capabilities() []Capability {
 		{ID: "workspace.export", Commands: []string{"workspace export"}, Risk: "external"},
 	}, xhtmlOps...) {
 		c.Version, c.Status = 1, "available"
-		c.Reason = "Explicit workspace directory; one metadata.set v1 (schema 1), one content.text.set v1 (schema 2), 2–256 mixed metadata.set/content.text.set v1 operations (schema 3), or schema 4 with 1–256 v1 operations that include xhtml.attribute.set/remove and xhtml.element.insert/replace/delete/move on a frozen accepted baseline with exact locators and a reference gate; apply remains review_required/conformance not_run; accept and formal export run pinned EPUBCheck (must be installed)"
+		c.Reason = "Explicit workspace directory; one metadata.set v1 (schema 1), one content.text.set v1 (schema 2), 2–256 mixed metadata.set/content.text.set v1 operations (schema 3), schema 4 with 1–256 v1 operations that include xhtml.attribute.set/remove and xhtml.element.insert/replace/delete/move, or schema 5 with 1–256 v1 operations that include content.text.replace (explicit-scope literal/regex batch replacement), on a frozen accepted baseline with exact locators and a reference gate; apply remains review_required/conformance not_run; accept and formal export run pinned EPUBCheck (must be installed)"
 		if c.Risk == "" {
 			c.Risk = "read_only"
 		}

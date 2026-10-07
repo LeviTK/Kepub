@@ -224,7 +224,7 @@ XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场�
 
 本批不新增 CLI 命令；`plan`／`apply` 的输入语法不变，只有请求文件内容使用 schema 3。首批已通过独立 high 审查、父本地 probe 与放行（固定提交与公开验证记录见 [T2_MULTI_OPERATION.md](verification/T2_MULTI_OPERATION.md)）；剩余 T2（结构编辑的后续范围、依赖同步、修复提案与诊断差异、字体混淆资格）不因首批放行而完成。
 
-### 2.8 T2 第二批 XHTML 结构编辑实施契约（本批已实现，待独立审查与父验收）
+### 2.8 T2 第二批 XHTML 结构编辑实施契约（已通过 medium 独立审查与父验收并本地集成；公开记录见 docs/verification/T2_MULTI_OPERATION.md）
 
 本批在 schema 3 事务底座上增加**版本化 XHTML 结构编辑**：混合内容与属性写入、元素插入／替换／删除／同资源移动，以及 ID／链接／资源依赖门禁。它**不是完整 T2**：FixProposal、ValidationDelta、批量替换、字体混淆资格与跨资源移动仍属剩余范围，`content.text.set` v1 的含义与 schema 1／2／3 编码不变。旧二进制遇到 schema 4 请求允许安全拒绝，不丢记录、不改已发布摘要含义。
 
@@ -237,7 +237,19 @@ XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场�
 - **审核增量：** schema 4 的 `task diff` 在 `operations` 数组中为属性操作给出 `attribute`（计划值与**实际候选值**，缺失即 `null`，不可观测时 `unavailable`），为元素操作给出 `element`（动作、锚点、位置与候选观测）；`content.text.set`／属性目标按**计划树路径**在候选中定位，避免同事务插入／删除造成的 locator 位移被误读为旧值或缺失。文件级 `diff` 仍是权威视图。
 - **限制：** 单资源 8 MiB XML、片段 8 MiB、属性值 1 MiB、请求文件 32 MiB 与既有 token／深度预算不变；一次事务内同锚点同位置只允许一次插入，替换区间边界不允许共享偏移的插入（可用 `xhtml.element.replace` 表达替换语义）。
 
-本批不新增 CLI 命令；`plan`／`apply`／`task diff` 的输入语法不变，只有请求文件内容使用 schema 4 与新操作 ID。通过独立审查与父验收前，不得把剩余 T2 标记为完成。
+本批不新增 CLI 命令；`plan`／`apply`／`task diff` 的输入语法不变，只有请求文件内容使用 schema 4 与新操作 ID。本批已通过独立审查与父验收并本地集成（固定提交 79a4548，公开记录见 [T2_MULTI_OPERATION.md](verification/T2_MULTI_OPERATION.md)）；剩余 T2 仍不得标记为完成。
+
+### 2.9 T2 第三批显式范围字面／正则批量文本替换实施契约（本批实现中）
+
+本批在 schema 3／4 事务底座上增加 `content.text.replace` v1：在一个**显式 locator 范围**内按字面或正则把**全部**命中替换为新文本。它**不是完整 T2**：FixProposal、ValidationDelta、字体混淆资格与跨资源移动仍属剩余范围；`content.text.set` v1 与 schema 1～4 的含义不变，旧二进制遇到 schema 5 允许安全拒绝。
+
+- **请求 schema 5：** `schemaVersion:5` 携带 1–256 个 v1 操作，其中至少一个为 `content.text.replace` v1，可同时携带既有 `metadata.set`／`content.text.set`／`xhtml.*` v1 操作；不含 `content.text.replace` 的请求继续使用 schema 1～4，不静默升级。策略摘要为 `kepub-content-text-replace-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;explicit-hits;no-timestamp;review-required;conformance-not-run`。
+- **操作参数：** `bookPath`、`revisionId`、`resourceSha256`、`locatorVersion:1`、`locator`、`mode`（`literal`／`regex`）、`pattern`、`replacement`、`expectedHits`。绑定与错误码沿用：资源漂移 `INPUT_DRIFT`（exit 4）、旧值／命中数不符 `INVALID_OPERATIONS`（exit 2）、陈旧 revision `INPUT_DRIFT`。
+- **范围（显式）：** locator 指向的目标元素必须属于选定 manifest 的 `application/xhtml+xml` 资源，且位于 body 内、非 `html`／`head`／`script`／`style`、非外来命名空间。搜索范围为**该元素子树内每个 XHTML 命名空间元素自身的直接字符数据**；外来命名空间子树与 `head`／`script`／`style` 子树不搜索也不写入，计划事实报告 skipped 元素计数。文本按元素自身直接字符数据匹配，**不合并后代文本**，因此命中不跨元素边界；同一元素内跨实体引用、CDATA 等不可写片段的命中整体拒绝，不静默跳过。
+- **匹配语义：** `literal` 为区分大小写的精确子串；`regex` 为 Go RE2（无回溯引用／环视），逐元素直接文本求左起非重叠命中。`pattern` 非空、≤64 KiB、合法 UTF-8；能匹配空串的模式（含空字面量）在 plan 阶段拒绝；`replacement` ≤1 MiB 且必须是合法 XML 文本；`regex` 替换支持 `$name`／`${name}` 展开（字面 `$` 写作 `$$`），展开结果按文本转义写入。
+- **命中数与写集合：** `expectedHits` 为 0–10000 的精确期望；实际命中数不等即拒绝（`INVALID_OPERATIONS`），无部分写。每处命中必须是同一可写字面区间内的物理区间替换，区间由冻结字节独立重算；不可写（实体生成、CDATA、未知来源）即拒绝。`expectedHits:0` 且无命中为 no-op，不贡献写集合。实体来源、UTF-8／UTF-16 编码、未改字节与失败无正式产物规则不变；单资源 8 MiB、每处替换与受影响元素直接文本 1 MiB 预算沿用。
+- **全链：** plan／apply／checkpoint／restore／journal／diff／accept／历史来源重算都从冻结基线重算规则、命中与完整写集合；`task diff` 的 `operations` 为每个替换操作给出 `replace`（`mode`、`expectedHits`、实际 `hits`、每个受影响元素的 locator 与**实际候选直接文本**，不可观测时 `unavailable`）。accept 仍以固定 EPUBCheck 与冻结树为准。
+- **验证：** 不对称正反例（跨元素边界不命中、同元素跨内联子元素命中拒绝、空匹配拒绝、命中数不符拒绝、实体／CDATA 拒绝、UTF-16 与 CRLF 保真、regex 捕获展开）、有效事务独立字节 oracle、live fuzz 与真实 checker 闭环；不扩大 `content.text.set` v1 权限。
 
 ## 3. 目标选择与全局约定
 
