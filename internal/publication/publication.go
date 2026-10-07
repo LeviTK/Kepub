@@ -5,7 +5,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/LeviTK/Kepub/internal/archive"
 	"github.com/LeviTK/Kepub/internal/bookpath"
 	"github.com/LeviTK/Kepub/internal/fault"
 	"github.com/LeviTK/Kepub/internal/xmltext"
@@ -67,7 +66,7 @@ func one(e *Element, ns, name string) (*Element, error) {
 }
 
 // ReadXML shares the bounded, non-networked parser with read-only indexes.
-func ReadXML(a *archive.Archive, p bookpath.BookPath, profile xmltext.Profile) (*Element, error) {
+func ReadXML(a ResourceReader, p bookpath.BookPath, profile xmltext.Profile) (*Element, error) {
 	b, err := a.Read(p, XMLLimit)
 	if err != nil {
 		return nil, err

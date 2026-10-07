@@ -13,6 +13,7 @@ import (
 	"path"
 	"path/filepath"
 	"slices"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/LeviTK/Kepub/internal/bookpath"
@@ -49,6 +50,42 @@ func (o *Operation) UnmarshalJSON(b []byte) error {
 		o.Params = p
 	case "content.text.set":
 		var p publication.TextSet
+		if err := decodeStrict(wire.Params, &p); err != nil {
+			return err
+		}
+		o.Params = p
+	case "xhtml.attribute.set":
+		var p publication.AttributeSet
+		if err := decodeStrict(wire.Params, &p); err != nil {
+			return err
+		}
+		o.Params = p
+	case "xhtml.attribute.remove":
+		var p publication.AttributeRemove
+		if err := decodeStrict(wire.Params, &p); err != nil {
+			return err
+		}
+		o.Params = p
+	case "xhtml.element.delete":
+		var p publication.ElementDelete
+		if err := decodeStrict(wire.Params, &p); err != nil {
+			return err
+		}
+		o.Params = p
+	case "xhtml.element.insert":
+		var p publication.ElementInsert
+		if err := decodeStrict(wire.Params, &p); err != nil {
+			return err
+		}
+		o.Params = p
+	case "xhtml.element.replace":
+		var p publication.ElementReplace
+		if err := decodeStrict(wire.Params, &p); err != nil {
+			return err
+		}
+		o.Params = p
+	case "xhtml.element.move":
+		var p publication.ElementMove
 		if err := decodeStrict(wire.Params, &p); err != nil {
 			return err
 		}
@@ -183,9 +220,11 @@ const legacyEditPolicy = "kepub-metadata-v1:initial-only;single-set;simple-text;
 const editPolicy = "kepub-metadata-v2:accepted-baseline;single-set;simple-text;no-timestamp;review-required;conformance-not-run"
 const contentEditPolicy = "kepub-content-text-v1:accepted-baseline;single-set;locator-v1;simple-text;no-timestamp;review-required;conformance-not-run"
 const multiEditPolicy = "kepub-multi-v1:accepted-baseline;multi-operation;multi-resource;frozen-baseline;simple-text;no-timestamp;review-required;conformance-not-run"
+const structurePolicy = "kepub-xhtml-structure-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;reference-gate;no-timestamp;review-required;conformance-not-run"
 
-// maxPlanOperations bounds one version 3 transaction. Each operation may parse
-// its target resource, so the request file size alone is not a work bound.
+// maxPlanOperations bounds one version 3 or version 4 transaction. Each
+// operation may parse its target resource, so the request file size alone is
+// not a work bound.
 const maxPlanOperations = 256
 
 // derivation is the complete deterministic effect of one plan against the frozen
@@ -194,6 +233,9 @@ const maxPlanOperations = 256
 type derivation struct {
 	outputs map[string][]byte
 	writes  []string
+	// edits carries each resource's planned structural edits, so review can
+	// locate a planned target in the candidate without guessing.
+	edits map[string][]*publication.StructureEdit
 }
 
 func singleDerivation(path string, out []byte, changed bool) derivation {
@@ -203,7 +245,97 @@ func singleDerivation(path string, out []byte, changed bool) derivation {
 	return derivation{outputs: map[string][]byte{path: out}, writes: []string{path}}
 }
 
+// structureOperation reports whether a request carries a versioned XHTML
+// structural operation. Such requests use schema 4; single metadata/content
+// requests keep their frozen schema 1/2/3 encodings.
+func structureOperation(ops []Operation) bool {
+	for _, op := range ops {
+		if strings.HasPrefix(op.ID, "xhtml.") {
+			return true
+		}
+	}
+	return false
+}
+
+func validateStructureOperation(op Operation) error {
+	if op.Version != 1 {
+		return fmt.Errorf("structure operations require version 1")
+	}
+	switch p := op.Params.(type) {
+	case metadata.Set:
+		return nil
+	case publication.TextSet:
+		if err := p.Validate(); err != nil {
+			return fmt.Errorf("content params: %v", err)
+		}
+		if p.RevisionID != "initial" && !validID(p.RevisionID) {
+			return fmt.Errorf("invalid revisionId")
+		}
+		return nil
+	case publication.AttributeSet:
+		if err := p.Validate(); err != nil {
+			return fmt.Errorf("xhtml params: %v", err)
+		}
+		if p.RevisionID != "initial" && !validID(p.RevisionID) {
+			return fmt.Errorf("invalid revisionId")
+		}
+		return nil
+	case publication.AttributeRemove:
+		if err := p.Validate(); err != nil {
+			return fmt.Errorf("xhtml params: %v", err)
+		}
+		if p.RevisionID != "initial" && !validID(p.RevisionID) {
+			return fmt.Errorf("invalid revisionId")
+		}
+		return nil
+	case publication.ElementDelete:
+		if err := p.Validate(); err != nil {
+			return fmt.Errorf("xhtml params: %v", err)
+		}
+		if p.RevisionID != "initial" && !validID(p.RevisionID) {
+			return fmt.Errorf("invalid revisionId")
+		}
+		return nil
+	case publication.ElementInsert:
+		if err := p.Validate(); err != nil {
+			return fmt.Errorf("xhtml params: %v", err)
+		}
+		if p.RevisionID != "initial" && !validID(p.RevisionID) {
+			return fmt.Errorf("invalid revisionId")
+		}
+		return nil
+	case publication.ElementReplace:
+		if err := p.Validate(); err != nil {
+			return fmt.Errorf("xhtml params: %v", err)
+		}
+		if p.RevisionID != "initial" && !validID(p.RevisionID) {
+			return fmt.Errorf("invalid revisionId")
+		}
+		return nil
+	case publication.ElementMove:
+		if err := p.Validate(); err != nil {
+			return fmt.Errorf("xhtml params: %v", err)
+		}
+		if p.RevisionID != "initial" && !validID(p.RevisionID) {
+			return fmt.Errorf("invalid revisionId")
+		}
+		return nil
+	}
+	return fmt.Errorf("unsupported operation params")
+}
+
 func operationSchema(ops []Operation) (int, error) {
+	if structureOperation(ops) {
+		if len(ops) == 0 || len(ops) > maxPlanOperations {
+			return 0, fmt.Errorf("operation count exceeds %d", maxPlanOperations)
+		}
+		for _, op := range ops {
+			if err := validateStructureOperation(op); err != nil {
+				return 0, err
+			}
+		}
+		return 4, nil
+	}
 	if len(ops) == 1 {
 		if ops[0].Version != 1 {
 			return 0, fmt.Errorf("requires one supported version 1 operation")
@@ -265,6 +397,8 @@ func policyFor(version int) string {
 		return contentEditPolicy
 	case 3:
 		return multiEditPolicy
+	case 4:
+		return structurePolicy
 	}
 	return editPolicy
 }
@@ -380,6 +514,9 @@ func (w *Workspace) recomputeAt(ops []Operation, baseDir, revision string) (deri
 	}
 	defer r.Close()
 	a := publicationRoot{r}
+	if version == 4 {
+		return w.recomputeStructure(a, ops, revision)
+	}
 	if version == 3 {
 		return w.recomputeMulti(a, ops, revision)
 	}
@@ -529,7 +666,7 @@ func (w *Workspace) recomputeMulti(a publicationRoot, ops []Operation, revision 
 		writes = append(writes, path)
 	}
 	slices.Sort(writes)
-	return derivation{outputs, writes}, nil
+	return derivation{outputs: outputs, writes: writes}, nil
 }
 
 // Plan reads the immutable accepted snapshot and persists only a plan report.

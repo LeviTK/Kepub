@@ -92,6 +92,64 @@ func (s source) literalRange(start, end int) (int, int, bool) {
 	return s.original.offset(span.from + start - span.start), s.original.offset(span.from + end - span.start), true
 }
 
+// sourceRange maps an expanded-stream interval to original bytes when its
+// boundaries come from literal source syntax. Non-linear pieces (serialized
+// attribute values whose spelling may differ from the source) are accepted only
+// at their exact boundaries, so callers replace whole pieces and never interior
+// offsets. strict additionally refuses any entity-generated piece inside the
+// interval; loose intervals (a whole tag being removed or moved) may contain
+// generated defaults because those bytes are not written back.
+func (s source) sourceRange(start, end int, strict bool) (int, int, bool) {
+	if end <= start {
+		return 0, 0, false
+	}
+	i := sort.Search(len(s.spans), func(i int) bool { return s.spans[i].end > start })
+	if i == len(s.spans) {
+		return 0, 0, false
+	}
+	from, ok := s.boundaryOffset(start, true)
+	to, ok2 := s.boundaryOffset(end, false)
+	if !ok || !ok2 {
+		return 0, 0, false
+	}
+	if strict {
+		for j := i; j < len(s.spans) && s.spans[j].start < end; j++ {
+			if s.spans[j].generated {
+				return 0, 0, false
+			}
+		}
+	}
+	return from, to, true
+}
+
+func (s source) boundaryOffset(n int, start bool) (int, bool) {
+	// A range start looks at the span containing the position; a range end
+	// looks at the span containing the preceding byte, so a boundary exactly at
+	// a span junction prefers the literal piece being spliced.
+	probe := n
+	if !start {
+		probe = n - 1
+	}
+	i := sort.Search(len(s.spans), func(i int) bool { return s.spans[i].end > probe })
+	if i == len(s.spans) {
+		return 0, false
+	}
+	span := s.spans[i]
+	if span.generated {
+		return 0, false
+	}
+	if span.linear {
+		return s.original.offset(span.from + n - span.start), true
+	}
+	if start && n == span.start {
+		return s.original.offset(span.from), true
+	}
+	if !start && n == span.end {
+		return s.original.offset(span.to), true
+	}
+	return 0, false
+}
+
 // Character references are interpreted when constructing EntityValue. A CR
 // produced there is not another physical line ending. Keep CDATA token shape
 // through RawToken, restoring only indexed markers (literal U+E000 is untouched).

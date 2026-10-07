@@ -54,7 +54,8 @@ type Graph struct {
 }
 
 type builder struct {
-	a       *archive.Archive
+	src     publication.ResourceReader
+	files   map[bookpath.BookPath]int64
 	p       *publication.Publication
 	g       Graph
 	covered map[string]int
@@ -66,7 +67,13 @@ type builder struct {
 // Build inspects the entire safe archive, including unmanifested resources.
 // No remote target is fetched and no input resource is modified.
 func Build(a *archive.Archive, p *publication.Publication) Graph {
-	b := builder{a: a, p: p, covered: map[string]int{}, ids: map[bookpath.BookPath]map[string]int{}, items: map[string]publication.Item{}, g: Graph{
+	return BuildSource(a, a.Files, p)
+}
+
+// BuildSource builds the same index over an explicit frozen inventory, so a
+// locked workspace revision can be inspected without copying an archive.
+func BuildSource(src publication.ResourceReader, files map[bookpath.BookPath]int64, p *publication.Publication) Graph {
+	b := builder{src: src, files: files, p: p, covered: map[string]int{}, ids: map[bookpath.BookPath]map[string]int{}, items: map[string]publication.Item{}, g: Graph{
 		Status: "complete", Scope: "archive resources; selected rootfile only; extraction is not conformance validation",
 		Direction: "both", Edges: []Edge{}, Coverage: []Coverage{}, Diagnostics: []publication.Diagnostic{}, ParserVersion: ParserVersion, XMLCoverage: p.XMLCoverage,
 	}}
@@ -85,8 +92,8 @@ func Build(a *archive.Archive, p *publication.Publication) Graph {
 			b.cover(item.Path, "script", "blocked", "manifest declares scripted content; dynamic references are not analyzed")
 		}
 	}
-	paths := make([]bookpath.BookPath, 0, len(a.Files))
-	for bp := range a.Files {
+	paths := make([]bookpath.BookPath, 0, len(files))
+	for bp := range files {
 		paths = append(paths, bp)
 	}
 	slices.Sort(paths)
@@ -128,7 +135,7 @@ func Build(a *archive.Archive, p *publication.Publication) Graph {
 			}
 			b.scanXML(bp, kind)
 		case "text/css":
-			data, err := a.Read(bp, publication.XMLLimit)
+			data, err := src.Read(bp, publication.XMLLimit)
 			if err != nil {
 				b.block(bp, []string{"css.url", "css.import"}, err)
 			} else {
@@ -158,6 +165,43 @@ func Build(a *archive.Archive, p *publication.Publication) Graph {
 		}
 	}
 	return b.g
+}
+
+// CertainIncoming returns the known edges that target resource#fragment and the
+// coverage entries that could hide another such reference. A dependency-removing
+// write may proceed only when no edge targets the fragment and no blocker
+// remains: partial or blocked extraction elsewhere is not proof of absence.
+func (g Graph) CertainIncoming(resource bookpath.BookPath, fragment string) ([]Edge, []Coverage) {
+	edges := []Edge{}
+	for _, e := range g.Edges {
+		if e.Target != nil && !e.Target.External && e.Target.Path == resource && e.Target.Fragment == fragment {
+			edges = append(edges, e)
+		}
+	}
+	blockers := []Coverage{}
+	for _, c := range g.Coverage {
+		if c.Status == "complete" || !referenceBlocker(c.Syntax, c.Status) {
+			continue
+		}
+		blockers = append(blockers, c)
+	}
+	return edges, blockers
+}
+
+// referenceBlocker reports whether a non-complete coverage entry could hide a
+// reference to a specific resource fragment. Fixed or opaque leaves cannot carry
+// a publication reference. Umbrella entries that only state the documented
+// literal-form limitation of the CSS lexer report their actual extraction
+// completeness through css.url/css.import, so a partial grammar entry blocks
+// nothing by itself; a blocked inline style means no extraction ran at all.
+func referenceBlocker(syntax, status string) bool {
+	switch syntax {
+	case "container.mimetype", "container.rootfile", "opaque-media", "unmanifested-resource", "xml.ids", "css.grammar":
+		return false
+	case "inline-style":
+		return status != "partial"
+	}
+	return true
 }
 
 // Filter limits edges only. Global coverage/diagnostics remain visible because
@@ -244,7 +288,7 @@ func (b *builder) addTarget(bp bookpath.BookPath, location, syntax string, href 
 	if r.External {
 		e.Status = "external"
 		e.FragmentStatus = "not_checked"
-	} else if _, ok := b.a.Files[r.Path]; !ok {
+	} else if _, ok := b.files[r.Path]; !ok {
 		e.Status = "missing"
 		e.FragmentStatus = "blocked"
 		b.diagnostic(bp, location, "MISSING_REFERENCE_TARGET", string(r.Path))
@@ -298,7 +342,7 @@ func (b *builder) scanXML(bp bookpath.BookPath, kind string) {
 	case "application/mathml+xml", "application/mathml-presentation+xml", "application/mathml-content+xml":
 		expected = xml.Name{Space: "http://www.w3.org/1998/Math/MathML", Local: "math"}
 	}
-	root, err := publication.ReadXML(b.a, bp, xmltext.Profile{Version: b.p.Version, MediaType: b.media[bp]})
+	root, err := publication.ReadXML(b.src, bp, xmltext.Profile{Version: b.p.Version, MediaType: b.media[bp]})
 	if err != nil {
 		b.block(bp, syntaxes, err)
 		return

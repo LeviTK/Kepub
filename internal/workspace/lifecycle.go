@@ -1,14 +1,18 @@
 package workspace
 
 import (
+	"bytes"
 	"context"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io/fs"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/LeviTK/Kepub/internal/archive"
+	"github.com/LeviTK/Kepub/internal/bookpath"
 	"github.com/LeviTK/Kepub/internal/fault"
 	"github.com/LeviTK/Kepub/internal/metadata"
 	"github.com/LeviTK/Kepub/internal/publication"
@@ -74,7 +78,7 @@ type ContentReview struct {
 	Unavailable    string  `json:"unavailable,omitempty"`
 }
 
-// OperationReview reports one version 3 operation's planned target and the
+// OperationReview reports one version 3/4 operation's planned target and the
 // actual candidate value observed for it, in operation order. It is additive:
 // schema 1/2 reviews keep their existing metadata/content fields.
 type OperationReview struct {
@@ -91,6 +95,29 @@ type OperationReview struct {
 	PlannedValue     string  `json:"plannedValue"`
 	NewValue         *string `json:"newValue"`
 	Unavailable      string  `json:"unavailable,omitempty"`
+
+	Attribute *AttributeReview `json:"attribute,omitempty"`
+	Element   *ElementReview   `json:"element,omitempty"`
+}
+
+// AttributeReview reports one attribute operation's actual candidate state.
+type AttributeReview struct {
+	Namespace    string  `json:"namespace,omitempty"`
+	Name         string  `json:"name"`
+	OldValue     *string `json:"oldValue,omitempty"`
+	PlannedValue *string `json:"plannedValue,omitempty"`
+	NewValue     *string `json:"newValue"`
+	Unavailable  string  `json:"unavailable,omitempty"`
+}
+
+// ElementReview reports one element operation's planned shape and what could be
+// observed in the candidate. The file diff remains the authoritative view.
+type ElementReview struct {
+	Action      string `json:"action"`
+	Anchor      string `json:"anchor,omitempty"`
+	Position    string `json:"position,omitempty"`
+	Candidate   string `json:"candidate,omitempty"`
+	Unavailable string `json:"unavailable,omitempty"`
 }
 
 func revisionPath(id string) string { return "revisions/" + id + "/pub" }
@@ -457,7 +484,7 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 		return Review{}, err2
 	}
 	r := Review{TaskID: id, BaseRevision: w.current, Diff: compareTrees(w.base, t), MatchesExecution: err == nil}
-	if e.Plan.SchemaVersion == 3 {
+	if e.Plan.SchemaVersion >= 3 {
 		r.Operations = plannedReviews(e.Plan.Operations)
 	} else if param, ok := e.Plan.Operations[0].Params.(publication.TextSet); ok {
 		r.Content = &ContentReview{BookPath: string(param.BookPath), LocatorVersion: param.LocatorVersion, Locator: param.Locator, OldValue: param.ExpectedOldValue, PlannedValue: param.NewValue}
@@ -480,6 +507,20 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 		return r, nil
 	}
 	if r.Operations != nil {
+		var base publicationRoot
+		if br, err := subdir(w.root, revisionPath(w.current)); err == nil {
+			base = publicationRoot{br}
+			defer br.Close()
+		}
+		cands := map[string][]byte{}
+		bases := map[string][]byte{}
+		docs := map[string]*publication.StructureDocument{}
+		var planned map[string][]*publication.StructureEdit
+		if e.Plan.SchemaVersion == 4 {
+			if d, derr := w.recomputeAt(e.Plan.Operations, revisionPath(w.current), w.current); derr == nil {
+				planned = d.edits
+			}
+		}
 		for i, op := range e.Plan.Operations {
 			switch param := op.Params.(type) {
 			case publication.TextSet:
@@ -495,6 +536,56 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 					r.Operations[i].Unavailable = err.Error()
 				} else {
 					r.Operations[i].NewValue = &value
+				}
+			case publication.AttributeSet:
+				value, err := candidateAttribute(a, p, cands, base, bases, docs, planned, param.BookPath, param.Locator, xml.Name{Space: param.Namespace, Local: param.Name})
+				if err != nil {
+					r.Operations[i].Unavailable = err.Error()
+					r.Operations[i].Attribute.Unavailable = err.Error()
+				} else {
+					r.Operations[i].NewValue = value
+					r.Operations[i].Attribute.NewValue = value
+				}
+			case publication.AttributeRemove:
+				value, err := candidateAttribute(a, p, cands, base, bases, docs, planned, param.BookPath, param.Locator, xml.Name{Space: param.Namespace, Local: param.Name})
+				if err != nil {
+					r.Operations[i].Unavailable = err.Error()
+					r.Operations[i].Attribute.Unavailable = err.Error()
+				} else {
+					r.Operations[i].NewValue = value
+					r.Operations[i].Attribute.NewValue = value
+				}
+			case publication.ElementDelete:
+				value, err := candidateElementEffect(a, p, base, bases, cands, docs, param.BookPath, op)
+				if err != nil {
+					r.Operations[i].Unavailable = err.Error()
+					r.Operations[i].Element.Unavailable = err.Error()
+				} else {
+					r.Operations[i].Element.Candidate = value
+				}
+			case publication.ElementInsert:
+				value, err := candidateElementEffect(a, p, base, bases, cands, docs, param.BookPath, op)
+				if err != nil {
+					r.Operations[i].Unavailable = err.Error()
+					r.Operations[i].Element.Unavailable = err.Error()
+				} else {
+					r.Operations[i].Element.Candidate = value
+				}
+			case publication.ElementReplace:
+				value, err := candidateElementEffect(a, p, base, bases, cands, docs, param.BookPath, op)
+				if err != nil {
+					r.Operations[i].Unavailable = err.Error()
+					r.Operations[i].Element.Unavailable = err.Error()
+				} else {
+					r.Operations[i].Element.Candidate = value
+				}
+			case publication.ElementMove:
+				value, err := candidateElementEffect(a, p, base, bases, cands, docs, param.BookPath, op)
+				if err != nil {
+					r.Operations[i].Unavailable = err.Error()
+					r.Operations[i].Element.Unavailable = err.Error()
+				} else {
+					r.Operations[i].Element.Candidate = value
 				}
 			}
 		}
@@ -520,8 +611,8 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 	return r, nil
 }
 
-// plannedReviews lists every version 3 operation's planned target in order. It
-// reports no actual candidate value; callers fill those from real bytes.
+// plannedReviews lists every version 3/4 operation's planned target in order.
+// It reports no actual candidate value; callers fill those from real bytes.
 func plannedReviews(ops []Operation) []OperationReview {
 	out := make([]OperationReview, 0, len(ops))
 	for i, op := range ops {
@@ -533,10 +624,37 @@ func plannedReviews(ops []Operation) []OperationReview {
 		case metadata.Set:
 			or.Namespace, or.LocalName, or.ID = param.Namespace, param.LocalName, param.ID
 			or.OldValue, or.PlannedValue = param.ExpectedOldValue, param.NewValue
+		case publication.AttributeSet:
+			or.BookPath, or.LocatorVersion, or.Locator = string(param.BookPath), param.LocatorVersion, param.Locator
+			or.OldValue, or.PlannedValue = derefString(param.ExpectedOldValue), param.Value
+			or.Attribute = &AttributeReview{Namespace: param.Namespace, Name: param.Name, OldValue: param.ExpectedOldValue, PlannedValue: &param.Value}
+		case publication.AttributeRemove:
+			or.BookPath, or.LocatorVersion, or.Locator = string(param.BookPath), param.LocatorVersion, param.Locator
+			or.OldValue = param.ExpectedOldValue
+			or.Attribute = &AttributeReview{Namespace: param.Namespace, Name: param.Name, OldValue: &param.ExpectedOldValue}
+		case publication.ElementDelete:
+			or.BookPath, or.LocatorVersion, or.Locator = string(param.BookPath), param.LocatorVersion, param.Locator
+			or.Element = &ElementReview{Action: "delete"}
+		case publication.ElementInsert:
+			or.BookPath, or.LocatorVersion, or.Locator = string(param.BookPath), param.LocatorVersion, param.Locator
+			or.Element = &ElementReview{Action: "insert", Anchor: param.Locator, Position: param.Position}
+		case publication.ElementReplace:
+			or.BookPath, or.LocatorVersion, or.Locator = string(param.BookPath), param.LocatorVersion, param.Locator
+			or.Element = &ElementReview{Action: "replace"}
+		case publication.ElementMove:
+			or.BookPath, or.LocatorVersion, or.Locator = string(param.BookPath), param.LocatorVersion, param.Locator
+			or.Element = &ElementReview{Action: "move", Anchor: param.Anchor, Position: param.Position}
 		}
 		out = append(out, or)
 	}
 	return out
+}
+
+func derefString(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
 }
 
 func unavailableReview(r *Review, reason string) {
@@ -599,6 +717,205 @@ func candidateMetadataValue(p *publication.Publication, param metadata.Set) (str
 		return "", fmt.Errorf("selected metadata is absent")
 	}
 	return value, nil
+}
+
+// candidateStructure parses one candidate XHTML resource for review. Bytes are
+// cached per resource; the parse reuses the same strictness as planning.
+func candidateStructure(a *archive.Archive, p *publication.Publication, cands map[string][]byte, bp bookpath.BookPath) (*publication.StructureDocument, error) {
+	media, err := xhtmlMediaType(p, bp)
+	if err != nil {
+		return nil, err
+	}
+	b, ok := cands[string(bp)]
+	if !ok {
+		var readErr error
+		b, readErr = a.Read(bp, publication.XMLLimit)
+		if readErr != nil {
+			return nil, readErr
+		}
+		cands[string(bp)] = b
+	}
+	return publication.ParseStructureDocument(b, bp, xmltext.Profile{Version: p.Version, MediaType: media})
+}
+
+// candidateAttribute observes one attribute operation's actual candidate value.
+// A nil value means the attribute is absent; an error means the candidate could
+// not be observed and must never be replaced by the planned value.
+func candidateAttribute(a *archive.Archive, p *publication.Publication, cands map[string][]byte, base publicationRoot, bases map[string][]byte, docs map[string]*publication.StructureDocument, planned map[string][]*publication.StructureEdit, bp bookpath.BookPath, locator string, name xml.Name) (*string, error) {
+	candDoc, err := candidateStructure(a, p, cands, bp)
+	if err != nil {
+		return nil, err
+	}
+	baseDoc, _, err := candidateBaseStructure(base, p, bp, bases, docs)
+	if err != nil {
+		return nil, err
+	}
+	e, err := candidateTargetElement(baseDoc, planned[string(bp)], candDoc, locator)
+	if err != nil {
+		return nil, err
+	}
+	for _, attr := range e.Attributes {
+		if attr.Name == name {
+			value := attr.Value
+			return &value, nil
+		}
+	}
+	return nil, nil
+}
+
+// candidateTargetElement follows the planned child path of a target into the
+// parsed candidate, so a locator shift caused by another operation in the same
+// transaction cannot be mistaken for the target itself.
+func candidateTargetElement(base *publication.StructureDocument, edits []*publication.StructureEdit, cand *publication.StructureDocument, locator string) (*xmltext.Element, error) {
+	if base == nil || edits == nil {
+		return nil, fmt.Errorf("planned structure is unavailable")
+	}
+	path, err := publication.PlannedTarget(base, edits, locator)
+	if err != nil {
+		return nil, err
+	}
+	n := cand.Doc.Root
+	for _, index := range path {
+		if index >= len(n.Children) {
+			return nil, fmt.Errorf("candidate structure is shorter than planned")
+		}
+		n = n.Children[index]
+	}
+	return n, nil
+}
+
+// candidateBaseStructure parses one frozen base resource for review, caching the
+// bytes and the parsed document.
+func candidateBaseStructure(base publicationRoot, p *publication.Publication, bp bookpath.BookPath, bases map[string][]byte, docs map[string]*publication.StructureDocument) (*publication.StructureDocument, []byte, error) {
+	if doc, ok := docs[string(bp)]; ok {
+		return doc, bases[string(bp)], nil
+	}
+	if base.root == nil {
+		return nil, nil, fmt.Errorf("base revision is unavailable")
+	}
+	media, err := xhtmlMediaType(p, bp)
+	if err != nil {
+		return nil, nil, err
+	}
+	b, err := base.Read(bp, publication.XMLLimit)
+	if err != nil {
+		return nil, nil, err
+	}
+	doc, err := publication.ParseStructureDocument(b, bp, xmltext.Profile{Version: p.Version, MediaType: media})
+	if err != nil {
+		return nil, nil, err
+	}
+	bases[string(bp)] = b
+	docs[string(bp)] = doc
+	return doc, b, nil
+}
+
+func xhtmlMediaType(p *publication.Publication, bp bookpath.BookPath) (string, error) {
+	for _, item := range p.Manifest {
+		if item.Path == bp {
+			if item.MediaType != "application/xhtml+xml" {
+				return "", fmt.Errorf("candidate target is not manifest XHTML")
+			}
+			return item.MediaType, nil
+		}
+	}
+	return "", fmt.Errorf("candidate target is not manifest XHTML")
+}
+
+// candidateElementEffect observes an element operation in the candidate. Exact
+// block bytes are counted against the frozen base, and a deletion's ids must be
+// absent. Placement is never claimed here; the file diff is authoritative.
+func candidateElementEffect(a *archive.Archive, p *publication.Publication, base publicationRoot, bases, cands map[string][]byte, docs map[string]*publication.StructureDocument, bp bookpath.BookPath, op Operation) (string, error) {
+	baseDoc, baseBytes, err := candidateBaseStructure(base, p, bp, bases, docs)
+	if err != nil {
+		return "", err
+	}
+	switch param := op.Params.(type) {
+	case publication.ElementDelete:
+		e, err := baseDoc.Locate(param.Locator)
+		if err != nil {
+			return "", err
+		}
+		ids := structureSubtreeIDs(e)
+		if len(ids) == 0 {
+			return "", fmt.Errorf("removed element has no id; review the file diff")
+		}
+		candDoc, err := candidateStructure(a, p, cands, bp)
+		if err != nil {
+			return "", err
+		}
+		candIDs := candDoc.IDs()
+		for _, id := range ids {
+			if candIDs[id] > 0 {
+				return fmt.Sprintf("removed id %q is still present", id), nil
+			}
+		}
+		return fmt.Sprintf("removed ids absent: %s", strings.Join(ids, ", ")), nil
+	case publication.ElementInsert:
+		block, err := baseDoc.Encode(param.Fragment)
+		if err != nil {
+			return "", err
+		}
+		return countBlockBytes(a, cands, bp, baseBytes, block, "present", "not observed verbatim")
+	case publication.ElementReplace:
+		block, err := baseDoc.Encode(param.Fragment)
+		if err != nil {
+			return "", err
+		}
+		return countBlockBytes(a, cands, bp, baseBytes, block, "present", "not observed verbatim")
+	case publication.ElementMove:
+		e, err := baseDoc.Locate(param.Locator)
+		if err != nil {
+			return "", err
+		}
+		start, end, ok := e.PhysicalMarkup()
+		if !ok {
+			return "", fmt.Errorf("moved element has no literal markup interval")
+		}
+		return countBlockBytes(a, cands, bp, baseBytes, baseBytes[start:end], "preserved", "missing")
+	}
+	return "", fmt.Errorf("unsupported operation params")
+}
+
+// countBlockBytes reports how the exact block bytes occur in the candidate
+// relative to the frozen base. It is evidence, not proof of placement.
+func countBlockBytes(a *archive.Archive, cands map[string][]byte, bp bookpath.BookPath, baseBytes, block []byte, increased, equal string) (string, error) {
+	cand, ok := cands[string(bp)]
+	if !ok {
+		var err error
+		cand, err = a.Read(bp, publication.XMLLimit)
+		if err != nil {
+			return "", err
+		}
+		cands[string(bp)] = cand
+	}
+	before, after := bytes.Count(baseBytes, block), bytes.Count(cand, block)
+	switch {
+	case after > before:
+		return fmt.Sprintf("block bytes %s (occurrences %d→%d)", increased, before, after), nil
+	case after == before:
+		return fmt.Sprintf("block bytes %s (occurrences %d→%d)", equal, before, after), nil
+	default:
+		return fmt.Sprintf("block bytes decreased (occurrences %d→%d)", before, after), nil
+	}
+}
+
+// structureSubtreeIDs collects unprefixed id and xml:id values in one subtree.
+func structureSubtreeIDs(e *xmltext.Element) []string {
+	out := []string{}
+	var walk func(*xmltext.Element)
+	walk = func(e *xmltext.Element) {
+		for _, a := range e.Attributes {
+			if (a.Name.Space == "" || a.Name.Space == publication.XMLNamespace) && a.Name.Local == "id" {
+				out = append(out, a.Value)
+			}
+		}
+		for _, c := range e.Children {
+			walk(c)
+		}
+	}
+	walk(e)
+	return out
 }
 
 // AcceptedSnapshot freezes only the current accepted tree. Initial is a usable

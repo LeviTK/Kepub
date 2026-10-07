@@ -132,6 +132,12 @@ func simpleTextElement(input []byte, locator string, profile xmltext.Profile) (*
 	if err := doc.CheckProfile(profile); err != nil {
 		return nil, err
 	}
+	return simpleTextElementIn(doc, locator)
+}
+
+// simpleTextElementIn applies the v1 simple-text rules to an already parsed and
+// profile-checked document.
+func simpleTextElementIn(doc *xmltext.Document, locator string) (*xmltext.Element, error) {
 	if err := doc.RequireComplete(); err != nil {
 		return nil, err
 	}

@@ -25,6 +25,7 @@ import (
 // stable under re-encoding.
 func FuzzMultiOperationRequest(f *testing.F) {
 	f.Add([]byte(`{"schemaVersion":3,"operations":[{"operationId":"metadata.set","operationVersion":1,"params":{"namespace":"http://purl.org/dc/elements/1.1/","localName":"title","expectedOldValue":"a","newValue":"b"}},{"operationId":"content.text.set","operationVersion":1,"params":{"bookPath":"EPUB/a.xhtml","revisionId":"initial","resourceSha256":"0000000000000000000000000000000000000000000000000000000000000000","locatorVersion":1,"locator":"/html[1]/body[1]/p[1]","expectedOldValue":"a","newValue":"b"}}]}`))
+	f.Add([]byte(`{"schemaVersion":4,"operations":[{"operationId":"xhtml.attribute.set","operationVersion":1,"params":{"bookPath":"EPUB/a.xhtml","revisionId":"initial","resourceSha256":"0000000000000000000000000000000000000000000000000000000000000000","locatorVersion":1,"locator":"/html[1]/body[1]/p[1]","name":"dir","value":"rtl"}},{"operationId":"xhtml.element.insert","operationVersion":1,"params":{"bookPath":"EPUB/a.xhtml","revisionId":"initial","resourceSha256":"0000000000000000000000000000000000000000000000000000000000000000","locatorVersion":1,"locator":"/html[1]/body[1]/p[1]","position":"after","fragment":"<p>a</p>"}},{"operationId":"xhtml.element.move","operationVersion":1,"params":{"bookPath":"EPUB/a.xhtml","revisionId":"initial","resourceSha256":"0000000000000000000000000000000000000000000000000000000000000000","locatorVersion":1,"locator":"/html[1]/body[1]/p[1]","anchor":"/html[1]/body[1]/p[2]","position":"before"}},{"operationId":"xhtml.element.delete","operationVersion":1,"params":{"bookPath":"EPUB/a.xhtml","revisionId":"initial","resourceSha256":"0000000000000000000000000000000000000000000000000000000000000000","locatorVersion":1,"locator":"/html[1]/body[1]/p[2]"}}]}`))
 	f.Fuzz(func(t *testing.T, b []byte) {
 		var req Request
 		if err := decodeStrict(b, &req); err != nil {
@@ -45,7 +46,8 @@ func FuzzMultiOperationRequest(f *testing.F) {
 				t.Fatalf("accepted operation version %d", op.Version)
 			}
 			switch op.Params.(type) {
-			case metadata.Set, publication.TextSet:
+			case metadata.Set, publication.TextSet, publication.AttributeSet, publication.AttributeRemove,
+				publication.ElementDelete, publication.ElementInsert, publication.ElementReplace, publication.ElementMove:
 			default:
 				t.Fatalf("accepted untyped params %T", op.Params)
 			}

@@ -210,7 +210,7 @@ XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场�
 
 本节只是接口语义设计，不声明这些字段或修复规则当前可用。新增回归与阶段条件见[开发方案 §11.9](DEVELOPMENT_PLAN.md#119-issue-4-的阶段落点与落实条件)。S0 按 §11.8 的有限清单验收，负责 checker 2026 增量核对，未知已证规则基线使用 `specBaseline: unknown`，目标规范 URI 另记；计划复审无阻塞问题后按用户授权实施，不跳过 S0 或将 planned 当 available。
 
-### 2.7 T2 首批多操作／多资源事务实施契约（本批已实现，待独立审查与父验收）
+### 2.7 T2 首批多操作／多资源事务实施契约（已本地验收，父已放行；公开记录见 docs/verification/T2_MULTI_OPERATION.md）
 
 本批按 [开发方案 §11.7](DEVELOPMENT_PLAN.md#117-v010-独立-cli-批次与完成标准) 先交付**版本化多操作／多资源事务底座**：把 plan／apply／checkpoint／restore／journal／diff／accept／历史来源重算从单操作单输出扩展为完整的冻结输入事务。它**不是完整 T2**：不新增操作类型、不开放混合内容／结构编辑、不做 OPF／nav／ID／链接依赖同步，FixProposal 与 ValidationDelta 仍为设计。旧 `metadata.set` v1（schema 1）与 `content.text.set` v1（schema 2）的含义、规范编码摘要与旧计划兼容规则不变；新增能力只使用新的版本号，不静默升级。
 
@@ -222,7 +222,22 @@ XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场�
 - **审核与历史：** v3 的 `task diff` 在既有 `diff`（实际候选树）之外增量返回 `operations` 数组，按操作顺序给出计划目标与**实际候选值**（不可读取时为 `unavailable`，不用计划值冒充）。accept 对冻结树运行真实固定 EPUBCheck，settlement／revision／历史状态重新推导 v3 完整写集合与预期差异；未改资源字节、原书 hash、失败无正式产物与输出不覆盖规则不变。
 - **限制：** 请求文件仍为 32 MiB 上限；单操作解析沿用每资源 XML 8 MiB 与既有 token／深度／索引预算，不因多操作放宽。
 
-本批不新增 CLI 命令；`plan`／`apply` 的输入语法不变，只有请求文件内容使用 schema 3。通过独立审查与父验收前，不得把剩余 T2（结构编辑、依赖同步、修复提案与诊断差异、字体混淆资格）标记为完成。
+本批不新增 CLI 命令；`plan`／`apply` 的输入语法不变，只有请求文件内容使用 schema 3。首批已通过独立 high 审查、父本地 probe 与放行（固定提交与公开验证记录见 [T2_MULTI_OPERATION.md](verification/T2_MULTI_OPERATION.md)）；剩余 T2（结构编辑的后续范围、依赖同步、修复提案与诊断差异、字体混淆资格）不因首批放行而完成。
+
+### 2.8 T2 第二批 XHTML 结构编辑实施契约（本批已实现，待独立审查与父验收）
+
+本批在 schema 3 事务底座上增加**版本化 XHTML 结构编辑**：混合内容与属性写入、元素插入／替换／删除／同资源移动，以及 ID／链接／资源依赖门禁。它**不是完整 T2**：FixProposal、ValidationDelta、批量替换、字体混淆资格与跨资源移动仍属剩余范围，`content.text.set` v1 的含义与 schema 1／2／3 编码不变。旧二进制遇到 schema 4 请求允许安全拒绝，不丢记录、不改已发布摘要含义。
+
+- **请求 schema 4：** `schemaVersion:4` 携带 1–256 个 v1 操作，可为 `metadata.set`、`content.text.set` 与六个新操作 `xhtml.attribute.set`／`xhtml.attribute.remove`／`xhtml.element.insert`／`xhtml.element.replace`／`xhtml.element.delete`／`xhtml.element.move`；至少一个 `xhtml.*` 操作才使用 schema 4，单操作旧请求继续使用 schema 1／2／3，不静默升级。策略摘要为 `kepub-xhtml-structure-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;reference-gate;no-timestamp;review-required;conformance-not-run`。
+- **冻结绑定：** 每个结构操作绑定 `bookPath`、`revisionId`、`resourceSha256` 与 `locatorVersion:1` 的精确结构 locator；全部字节编辑都对照**冻结基线**计算，前一个操作的输出不放松后一个操作的旧值期望或目标位置。旧值与 `resourceSha256` 不符时分别拒绝陈旧计划（`INPUT_DRIFT`）与旧值不匹配（`INVALID_OPERATIONS`）。
+- **编辑模型：** 每个操作对冻结字节产生「区间替换」或「插入点」；同一资源的区间必须两两不相交，插入点不得落在任何替换区间内或与其边界重合，插入点之间不得重合（同锚点同位置只允许一次插入）。目标元素的物理标签／内容区间缺失（实体生成或合成默认属性）时拒绝，不伪造 byte offset。`content.text.set` 在同一模型下作为元素内容区间替换，语义不变。
+- **目标与片段规则：** 属性写入限定 XHTML 元素，拒绝 `style`、`on*`、`srcset`／`imagesrcset`、`http-equiv`、命名空间声明与 `xml:base`；元素删除／替换／移动拒绝 `html`／`head`／`body` 与文档根，子插入拒绝 `html`／`head`。片段只接受 XHTML 命名空间元素，在**插入点的命名空间上下文**中解析校验后按作者原始字节插入（按目标资源编码），拒绝 `script`／`style`／`base`、事件属性、注释／CDATA／声明与处理指令；外来语法与 ruby／表格／脚注／方向／混合内容只在未被目标区间覆盖时原字节保留。
+- **依赖门禁：** 移除或改名 id／`xml:id` 时，已知入站引用（如 nav／NCX／XHTML 链接）存在即拒绝（`REFERENCE_CONFLICT`，exit 1）；引用提取覆盖不足以证明无引用时同样拒绝（`REFERENCE_COVERAGE_INCOMPLETE`，exit 1）。新增 id 必须是合法 NCName、在冻结资源内唯一；新增 `href`／`src` 拒绝 `javascript:`／`data:`，内部目标必须存在于冻结清单，fragment 必须唯一可解析（目标资源若在同事务被编辑，则按其计划结果判定）。同一事务内先添加的 id 可被后续链接引用。
+- **验证：** 拼接结果重新解析（profile＋complete）并与独立的树域模拟逐节点比较（名称、有序属性、直接文本、子节点数），移动／替换块还核对目的位置的精确字节；模拟与字节不一致时拒绝写入。移动限同资源，跨资源移动与资源级依赖同步仍属剩余范围。
+- **审核增量：** schema 4 的 `task diff` 在 `operations` 数组中为属性操作给出 `attribute`（计划值与**实际候选值**，缺失即 `null`，不可观测时 `unavailable`），为元素操作给出 `element`（动作、锚点、位置与候选观测）；目标元素按计划的树路径在候选中定位，避免同事务插入／删除造成的 locator 位移被误读为旧值。文件级 `diff` 仍是权威视图。
+- **限制：** 单资源 8 MiB XML、片段 8 MiB、属性值 1 MiB、请求文件 32 MiB 与既有 token／深度预算不变；一次事务内同锚点同位置只允许一次插入，替换区间边界不允许共享偏移的插入（可用 `xhtml.element.replace` 表达替换语义）。
+
+本批不新增 CLI 命令；`plan`／`apply`／`task diff` 的输入语法不变，只有请求文件内容使用 schema 4 与新操作 ID。通过独立审查与父验收前，不得把剩余 T2 标记为完成。
 
 ## 3. 目标选择与全局约定
 

@@ -100,7 +100,43 @@ func Capabilities() []Capability {
 		"locatorVersion": map[string]any{"const": 1}, "locator": map[string]any{"type": "string", "minLength": 1, "x-maxUtf8Bytes": 4096},
 		"expectedOldValue": map[string]any{"type": "string", "x-maxUtf8Bytes": publication.ContentTextLimit}, "newValue": map[string]any{"type": "string", "x-maxUtf8Bytes": publication.ContentTextLimit},
 	}}
-	for _, c := range []Capability{
+	xhtmlBase := func(extra map[string]any, required ...string) map[string]any {
+		props := map[string]any{
+			"bookPath": stringSchema, "revisionId": stringSchema,
+			"resourceSha256": map[string]any{"type": "string", "pattern": "^[0-9a-f]{64}$"},
+			"locatorVersion": map[string]any{"const": 1},
+			"locator":        map[string]any{"type": "string", "minLength": 1, "x-maxUtf8Bytes": 4096},
+		}
+		for k, v := range extra {
+			props[k] = v
+		}
+		return map[string]any{"type": "object", "additionalProperties": false,
+			"required": append([]string{"bookPath", "revisionId", "resourceSha256", "locatorVersion", "locator"}, required...), "properties": props}
+	}
+	xhtmlName := map[string]any{"type": "string", "pattern": "^[A-Za-z_][-A-Za-z0-9._]*$", "x-maxUtf8Bytes": 1024}
+	xhtmlNamespace := map[string]any{"enum": []string{"", "http://www.w3.org/XML/1998/namespace", "http://www.idpf.org/2007/ops"}}
+	xhtmlPosition := map[string]any{"enum": []string{"before", "after", "first-child", "last-child"}}
+	xhtmlFragment := map[string]any{"type": "string", "minLength": 1, "x-maxUtf8Bytes": publication.XMLLimit}
+	xhtmlOps := []Capability{
+		{ID: "xhtml.attribute.set", Mutates: true, Risk: "bounded_edit", InputSchema: xhtmlBase(map[string]any{
+			"namespace": xhtmlNamespace, "name": xhtmlName, "expectedOldValue": map[string]any{"type": "string", "x-maxUtf8Bytes": publication.AttributeValueLimit},
+			"value": map[string]any{"type": "string", "x-maxUtf8Bytes": publication.AttributeValueLimit}}, "name", "value"),
+			SupportedFeatures: []string{"schema 4; accepted revision and frozen resource SHA-256 binding", "exact structural locator v1 on an XHTML element", "absent attribute insertion or expected-old-value replacement", "style/on*/srcset/http-equiv and namespace declarations refused", "attribute identity changes run the reference gate"}},
+		{ID: "xhtml.attribute.remove", Mutates: true, Risk: "bounded_edit", InputSchema: xhtmlBase(map[string]any{
+			"namespace": xhtmlNamespace, "name": xhtmlName, "expectedOldValue": map[string]any{"type": "string", "x-maxUtf8Bytes": publication.AttributeValueLimit}}, "name", "expectedOldValue"),
+			SupportedFeatures: []string{"schema 4; frozen resource binding and exact locator", "literal attribute bytes removed with the expected old value", "id and xml:id removal run the reference gate"}},
+		{ID: "xhtml.element.delete", Mutates: true, Risk: "bounded_edit", InputSchema: xhtmlBase(nil),
+			SupportedFeatures: []string{"schema 4; frozen resource binding and exact locator", "whole literal element markup removed", "html/head/body and entity-generated tags refused", "removed ids require proven reference coverage"}},
+		{ID: "xhtml.element.insert", Mutates: true, Risk: "bounded_edit", InputSchema: xhtmlBase(map[string]any{
+			"position": xhtmlPosition, "fragment": xhtmlFragment}, "position", "fragment"),
+			SupportedFeatures: []string{"schema 4; frozen resource binding and exact locator", "XHTML-namespace fragment validated in the insertion namespace scope and inserted as authored bytes", "one insertion point per anchor position and per transaction", "new ids and href/src values run the reference gate"}},
+		{ID: "xhtml.element.replace", Mutates: true, Risk: "bounded_edit", InputSchema: xhtmlBase(map[string]any{"fragment": xhtmlFragment}, "fragment"),
+			SupportedFeatures: []string{"schema 4; frozen resource binding and exact locator", "whole literal element markup replaced by the validated fragment", "html/head/body refused; removed ids require proven reference coverage"}},
+		{ID: "xhtml.element.move", Mutates: true, Risk: "bounded_edit", InputSchema: xhtmlBase(map[string]any{
+			"anchor": xhtmlName, "position": xhtmlPosition}, "anchor", "position"),
+			SupportedFeatures: []string{"schema 4; frozen resource binding and both locators", "same-resource subtree move preserving exact bytes and ids", "moving into itself or onto another target's range refused", "cross-resource moves remain outside this batch"}},
+	}
+	for _, c := range append([]Capability{
 		{ID: "metadata.set", Mutates: true, Risk: "bounded_edit", InputSchema: metadataSchema, SupportedFeatures: []string{"unique existing dc:title/dc:creator simple text", "exact namespace/local name/optional ID", "expected old value", "local escaped byte replacement", "no-op preserves bytes; no automatic timestamp"}},
 		{ID: "content.text.set", Mutates: true, Risk: "bounded_edit", InputSchema: contentSchema, SupportedFeatures: []string{"request/plan schema 2; execution 2; operation 1", "accepted revision and original resource SHA-256 binding", "exact manifest XHTML and structural locator v1", "simple independently closed body text only; no mixed/foreign/script/style/head subtree", "escaped local byte replacement; no-op preserves bytes; no automatic timestamp"}},
 		{ID: "workspace.open", Commands: []string{"workspace open"}, InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"book", "output"}, "properties": map[string]any{"book": stringSchema, "output": stringSchema, "rootfile": stringSchema}}},
@@ -108,9 +144,9 @@ func Capabilities() []Capability {
 		{ID: "apply", Commands: []string{"apply"}, Mutates: true, Risk: "bounded_edit", InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace", "plan"}, "properties": map[string]any{"workspace": stringSchema, "plan": stringSchema}}},
 		{ID: "task.status", Commands: []string{"task status"}}, {ID: "task.diff", Commands: []string{"task diff"}}, {ID: "task.accept", Commands: []string{"task accept"}, Mutates: true, Risk: "external"}, {ID: "task.reject", Commands: []string{"task reject"}},
 		{ID: "workspace.export", Commands: []string{"workspace export"}, Risk: "external"},
-	} {
+	}, xhtmlOps...) {
 		c.Version, c.Status = 1, "available"
-		c.Reason = "Explicit workspace directory; one metadata.set v1 (schema 1), one content.text.set v1 (schema 2), or 2–256 mixed metadata.set/content.text.set v1 operations (schema 3); apply remains review_required/conformance not_run; accept and formal export run pinned EPUBCheck (must be installed)"
+		c.Reason = "Explicit workspace directory; one metadata.set v1 (schema 1), one content.text.set v1 (schema 2), 2–256 mixed metadata.set/content.text.set v1 operations (schema 3), or schema 4 with 1–256 v1 operations that include xhtml.attribute.set/remove and xhtml.element.insert/replace/delete/move on a frozen accepted baseline with exact locators and a reference gate; apply remains review_required/conformance not_run; accept and formal export run pinned EPUBCheck (must be installed)"
 		if c.Risk == "" {
 			c.Risk = "read_only"
 		}

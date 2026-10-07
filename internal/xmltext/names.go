@@ -107,6 +107,68 @@ type lexicalName struct {
 	Start int
 }
 
+// ValidNCName reports whether s is a legal XML Name that contains no colon, as
+// required for an unprefixed element or attribute name.
+func ValidNCName(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i, r := range s {
+		if r == ':' || !nameChar(r) || i == 0 && !nameStart(r) {
+			return false
+		}
+	}
+	return true
+}
+
+// attrSpan records expanded-stream intervals of one lexical attribute in a start
+// tag: the whole attribute including preceding whitespace, and the value between
+// the quotes.
+type attrSpan struct {
+	start, end           int
+	nameStart, nameEnd   int
+	valueStart, valueEnd int
+}
+
+// lexAttributes re-lexes one serialized start tag. Callers map the positions to
+// original bytes and reject entity-generated pieces.
+func lexAttributes(text string) ([]attrSpan, error) {
+	l := dtdLex{text: text, pos: 1}
+	if _, err := l.name(false); err != nil {
+		return nil, err
+	}
+	var out []attrSpan
+	for {
+		start := l.pos
+		space := l.space()
+		if l.take(">") || l.take("/>") {
+			return out, nil
+		}
+		if !space {
+			return nil, malformed("invalid XML tag")
+		}
+		nameStart := l.pos
+		if _, err := l.name(false); err != nil {
+			return nil, err
+		}
+		nameEnd := l.pos
+		l.space()
+		if !l.take("=") {
+			return nil, malformed("XML attribute requires '='")
+		}
+		l.space()
+		if l.pos == len(l.text) || l.text[l.pos] != '\'' && l.text[l.pos] != '"' {
+			return nil, malformed("expected quoted XML literal")
+		}
+		valueStart := l.pos + 1
+		if _, err := l.literal(); err != nil {
+			return nil, err
+		}
+		valueEnd := l.pos - 1
+		out = append(out, attrSpan{start: start, end: l.pos, nameStart: nameStart, nameEnd: nameEnd, valueStart: valueStart, valueEnd: valueEnd})
+	}
+}
+
 func lexicalTokenNames(text []byte) ([]lexicalName, error) {
 	s := string(text)
 	var names []lexicalName

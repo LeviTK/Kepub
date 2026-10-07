@@ -17,31 +17,125 @@ import (
 const Limit = 8 << 20
 
 type Element struct {
-	Name                xml.Name
-	Attributes          []xml.Attr
-	ID                  string
-	Start, End          int
-	Text                string
-	DirectText          string
-	ContentUnknown      bool // Descendant content contains an unread entity.
-	ChildrenUnknown     bool // Direct content may introduce unknown child nodes.
-	KnownDirectText     bool // Known direct character data includes non-whitespace.
-	Complex             bool
-	Uncertain           bool // An attribute depends on an unread entity.
-	Location            string
-	Parent              *Element
-	Children            []*Element
-	rawName             xml.Name
-	text                strings.Builder
-	direct              strings.Builder
-	order               binary.ByteOrder
-	ns                  map[string]string
-	uncertainNS         map[string]bool
-	uncertainAttributes map[xml.Name]bool
-	counts              map[string]int
-	streamStart         int
-	profile             Profile
-	unknownDefaults     bool
+	Name            xml.Name
+	Attributes      []xml.Attr
+	ID              string
+	Start, End      int
+	Text            string
+	DirectText      string
+	ContentUnknown  bool // Descendant content contains an unread entity.
+	ChildrenUnknown bool // Direct content may introduce unknown child nodes.
+	KnownDirectText bool // Known direct character data includes non-whitespace.
+	Complex         bool
+	Uncertain       bool // An attribute depends on an unread entity.
+	Location        string
+	Parent          *Element
+	Children        []*Element
+	// Physical markup byte ranges in the original resource. OpenStart/OpenEnd
+	// delimit a literal start tag; CloseStart/CloseEnd a literal end tag. For an
+	// empty-element tag CloseStart == CloseEnd == OpenEnd. A -1 boundary is
+	// entity-generated or synthetic and must not be spliced.
+	OpenStart, OpenEnd   int
+	CloseStart, CloseEnd int
+	SelfClosing          bool
+	rawName              xml.Name
+	text                 strings.Builder
+	direct               strings.Builder
+	order                binary.ByteOrder
+	ns                   map[string]string
+	uncertainNS          map[string]bool
+	uncertainAttributes  map[xml.Name]bool
+	counts               map[string]int
+	streamStart          int
+	profile              Profile
+	unknownDefaults      bool
+	attributeMarkup      []AttributeMarkup
+}
+
+// AttributeMarkup is the original byte interval of one literal attribute: the
+// whole attribute including preceding whitespace, and the value between the
+// quotes. Entity-generated values and synthesized DTD defaults have none.
+type AttributeMarkup struct {
+	Name                 xml.Name
+	Start, End           int
+	ValueStart, ValueEnd int
+}
+
+// AttributeBytes returns the literal source interval of the attribute with the
+// exact resolved name.
+func (e *Element) AttributeBytes(name xml.Name) (AttributeMarkup, bool) {
+	for _, m := range e.attributeMarkup {
+		if m.Name == name {
+			return m, true
+		}
+	}
+	return AttributeMarkup{}, false
+}
+
+// TagEnd returns the original offset just before the start tag's closing
+// delimiter, where a new attribute may be inserted. The delimiter is one code
+// unit wide, which is two bytes in a UTF-16 resource.
+func (e *Element) TagEnd() (int, bool) {
+	if e.OpenEnd < 0 {
+		return 0, false
+	}
+	width := 1
+	if e.order != nil {
+		width = 2
+	}
+	if e.SelfClosing {
+		return e.OpenEnd - 2*width, true
+	}
+	return e.OpenEnd - width, true
+}
+
+// EncodeMarkup encodes literal markup or text for this document's original
+// encoding. It validates XML characters and performs no escaping.
+func (e *Element) EncodeMarkup(text string) ([]byte, error) {
+	if len(text) > Limit {
+		return nil, fmt.Errorf("XML size limit")
+	}
+	for _, r := range text {
+		if !xmlChar(r) {
+			return nil, fmt.Errorf("invalid XML character")
+		}
+	}
+	return encode([]byte(text), e.order), nil
+}
+
+// PhysicalMarkup reports the exact original byte interval of an element's
+// complete markup when both tags are literal. Callers must not treat entity
+// expansions or synthesized defaults as writable source bytes.
+func (e *Element) PhysicalMarkup() (start, end int, ok bool) {
+	if e.OpenStart < 0 || e.CloseEnd < 0 {
+		return 0, 0, false
+	}
+	return e.OpenStart, e.CloseEnd, true
+}
+
+// PhysicalContent reports the byte interval between the literal tags, where
+// child content may be inserted. Empty-element tags have no such interval.
+func (e *Element) PhysicalContent() (start, end int, ok bool) {
+	if e.OpenEnd < 0 || e.CloseStart < 0 || e.SelfClosing {
+		return 0, 0, false
+	}
+	return e.OpenEnd, e.CloseStart, true
+}
+
+// NamespaceScope returns the in-scope prefix bindings at the element, including
+// the default namespace under "". Nearest declarations win.
+func (e *Element) NamespaceScope() map[string]string {
+	chain := []*Element{}
+	for c := e; c != nil; c = c.Parent {
+		chain = append(chain, c)
+	}
+	out := map[string]string{"xml": "http://www.w3.org/XML/1998/namespace"}
+	for i := len(chain) - 1; i >= 0; i-- {
+		for prefix, uri := range chain[i].ns {
+			out[prefix] = uri
+		}
+	}
+	return out
 }
 
 // AttributeKnown distinguishes an explicit known value from an unread entity
@@ -158,6 +252,11 @@ func Parse(input []byte) (*Document, error) {
 			_, _, physicalOpen := s.literalRange(before, before+1)
 			_, start, physicalTail := s.literalRange(int(d.InputOffset())-1, int(d.InputOffset()))
 			e := &Element{rawName: t.Name, Start: s.offset(int(d.InputOffset())), ns: ns, counts: map[string]int{}, Parent: parent, order: s.order, streamStart: int(d.InputOffset()), Complex: !physicalOpen || !physicalTail}
+			e.OpenStart, e.OpenEnd = -1, -1
+			if openStart, openEnd, ok := s.sourceRange(before, int(d.InputOffset()), false); ok {
+				e.OpenStart, e.OpenEnd = openStart, openEnd
+			}
+			e.SelfClosing = bytes.HasSuffix(s.text[before:int(d.InputOffset())], []byte("/>"))
 			if physicalTail {
 				e.Start = start
 			}
@@ -195,6 +294,25 @@ func Parse(input []byte) (*Document, error) {
 				}
 			}
 			e.Attributes = t.Attr
+			spans, err := lexAttributes(string(s.text[before:int(d.InputOffset())]))
+			if err != nil {
+				return nil, err
+			}
+			for i, span := range spans {
+				if i >= len(t.Attr) {
+					return nil, fmt.Errorf("attribute token mismatch")
+				}
+				markup := AttributeMarkup{Name: t.Attr[i].Name, Start: -1, End: -1, ValueStart: -1, ValueEnd: -1}
+				if from, to, ok := s.sourceRange(before+span.start, before+span.end, true); ok {
+					markup.Start, markup.End = from, to
+				}
+				if from, to, ok := s.sourceRange(before+span.valueStart, before+span.valueEnd, true); ok {
+					markup.ValueStart, markup.ValueEnd = from, to
+				}
+				if markup.Start >= 0 && markup.ValueStart >= 0 {
+					e.attributeMarkup = append(e.attributeMarkup, markup)
+				}
+			}
 			if parent == nil {
 				if doc.Root != nil {
 					return nil, fmt.Errorf("multiple XML roots")
@@ -218,6 +336,15 @@ func Parse(input []byte) (*Document, error) {
 			end, _, physicalClose := s.literalRange(before, int(d.InputOffset()))
 			if physicalClose {
 				e.End = end
+			}
+			e.CloseStart, e.CloseEnd = -1, -1
+			if int(d.InputOffset()) > before {
+				if closeStart, closeEnd, ok := s.sourceRange(before, int(d.InputOffset()), false); ok {
+					e.CloseStart, e.CloseEnd = closeStart, closeEnd
+				}
+			} else if e.OpenEnd >= 0 {
+				// RawToken synthesizes an end element for an empty-element tag.
+				e.CloseStart, e.CloseEnd = e.OpenEnd, e.OpenEnd
 			}
 			e.Complex = e.Complex || !physicalClose || s.uncertain(e.streamStart, before)
 			t.Name = e.rawName // RawToken's synthetic end for an empty-element tag.
@@ -326,6 +453,20 @@ func resolveName(name xml.Name, scope *Element, defaultNS bool) (xml.Name, error
 	return name, nil
 }
 
+// ReplaceBytes returns the escaped, resource-encoded character data bytes for
+// new text in this element's document. It does not verify the old value or
+// splice the result.
+func (e *Element) ReplaceBytes(new string) ([]byte, error) {
+	if len(new) > Limit || !utf8.ValidString(new) {
+		return nil, fmt.Errorf("XML size/UTF-8 limit")
+	}
+	var escaped bytes.Buffer
+	if err := xml.EscapeText(&escaped, []byte(new)); err != nil {
+		return nil, err
+	}
+	return encode(escaped.Bytes(), e.order), nil
+}
+
 // Replace is only for an element from Parse of this input. Escaping and reparsing
 // prove the decoded new text; this does not decide which elements may be edited.
 func Replace(input []byte, e *Element, old, new string) ([]byte, bool, error) {
@@ -338,12 +479,11 @@ func Replace(input []byte, e *Element, old, new string) ([]byte, bool, error) {
 	if new == old {
 		return bytes.Clone(input), false, nil
 	}
-	var escaped bytes.Buffer
-	if err := xml.EscapeText(&escaped, []byte(new)); err != nil {
+	replacement, err := e.ReplaceBytes(new)
+	if err != nil {
 		return nil, false, err
 	}
-	replacement := encode(escaped.Bytes(), e.order)
-	out := make([]byte, 0, len(input)+escaped.Len())
+	out := make([]byte, 0, len(input)+len(replacement))
 	out = append(out, input[:e.Start]...)
 	out = append(out, replacement...)
 	out = append(out, input[e.End:]...)

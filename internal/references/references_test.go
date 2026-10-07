@@ -295,3 +295,51 @@ func TestT1BXMLPartialAndBusinessBlocksAreIndependent(t *testing.T) {
 		}
 	}
 }
+
+// TestCertainIncomingCoverage proves the dependency gate's blocker rules: a
+// clean stylesheet's documented literal-form grammar entry blocks nothing
+// because css.url/css.import report the extraction completeness, an escape that
+// could hide a url() blocks, and a scripted resource blocks. The target id has
+// no known incoming edge in every case.
+func TestCertainIncomingCoverage(t *testing.T) {
+	target := bookpath.BookPath("书/Text/第二 章.xhtml")
+	chapter := func(script bool) []byte {
+		data := `<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><body><p id="note">第二章</p><p id="other">Other</p></body></html>`
+		if script {
+			data = strings.Replace(data, "</body>", `<script>var x = 1;</script></body>`, 1)
+		}
+		return []byte(data)
+	}
+	for _, tc := range []struct {
+		name    string
+		css     string
+		script  bool
+		blocked bool
+	}{
+		{"clean-stylesheet", `p { background: url(../Images/cover.svg#shape); }`, false, false},
+		{"escaped-function", `p { background: u\72l(hidden.xhtml#shape); }`, false, true},
+		{"scripted-resource", `p { color: red; }`, true, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			entries := testfixture.EPUB("3.0", false)
+			kept := entries[:0]
+			for _, entry := range entries {
+				if entry.Name != "unlisted.bin" {
+					kept = append(kept, entry)
+				}
+			}
+			entries = kept
+			entries[2].Data = []byte(strings.Replace(string(entries[2].Data), "</manifest>", `<item id="css" href="../Styles/main.css" media-type="text/css"/></manifest>`, 1))
+			entries[3].Data = chapter(tc.script)
+			entries = append(entries, testfixture.Entry{Name: "书/Styles/main.css", Data: []byte(tc.css)})
+			g := graphFixture(t, entries)
+			edges, blockers := g.CertainIncoming(target, "other")
+			if len(edges) != 0 {
+				t.Fatalf("unexpected edges: %+v", edges)
+			}
+			if (len(blockers) > 0) != tc.blocked {
+				t.Fatalf("blockers=%+v want blocked=%t", blockers, tc.blocked)
+			}
+		})
+	}
+}
