@@ -251,6 +251,80 @@ XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场�
 - **全链：** plan／apply／checkpoint／restore／journal／diff／accept／历史来源重算都从冻结基线重算规则、命中与完整写集合；`task diff` 的 `operations` 为每个替换操作给出 `replace`（`mode`、`expectedHits`、实际 `hits`、每个受影响元素的 locator 与**实际候选直接文本**，不可观测时 `unavailable`）。accept 仍以固定 EPUBCheck 与冻结树为准。
 - **验证：** 不对称正反例（跨元素边界不命中、同元素跨内联子元素命中拒绝、空匹配拒绝、命中数不符拒绝、实体／CDATA 拒绝、UTF-16 与 CRLF 保真、regex 捕获展开）、有效事务独立字节 oracle、live fuzz 与真实 checker 闭环；不扩大 `content.text.set` v1 权限。
 
+### 2.10 T2 第四批跨资源显式子树移动与依赖同步实施契约（本批实现中）
+
+本批在 schema 3／4／5 事务底座上增加 `xhtml.element.move` **v2**：把一个 manifest
+XHTML 资源中的显式子树移动到另一个 manifest XHTML 资源中的显式位置，并对受影
+响的同文档身份、fragment 与链接依赖做**证明范围内**的同步。它**不是完整 T2**：
+FixProposal、ValidationDelta、字体混淆资格、OPF／spine 资源关系变更、资源增删改
+名与其余依赖重写仍属剩余范围；`xhtml.element.move` v1 与 schema 1～5 的含义不变，
+旧二进制遇到 schema 6 允许安全拒绝，不丢记录、不改已发布摘要含义。
+
+- **请求 schema 6：** `schemaVersion:6` 携带 1–256 个 v1／v2 操作，至少一个
+  `xhtml.element.move` v2，可同时携带既有 v1 操作（`metadata.set`、
+  `content.text.set`、`xhtml.*` v1、`content.text.replace`）。不含 v2 move 的请
+  求继续使用 schema 1～5，不静默升级。策略摘要为
+  `kepub-xhtml-move-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;cross-resource;reference-sync;no-timestamp;review-required;conformance-not-run`。
+- **操作参数：** `source` 与 `destination` 各带 `bookPath`、`revisionId`、
+  `resourceSha256`、`locatorVersion:1`、`locator`，加顶层 `position`
+  （`before`／`after`／`first-child`／`last-child`）。`source.locator` 指向被移动
+  的 XHTML 元素，`destination.locator` 指向插入锚点；两个 `bookPath` 必须不同且
+  均为选定 manifest 的 `application/xhtml+xml` 条目。绑定与错误码沿用：资源漂移
+  `INPUT_DRIFT`（exit 4）、旧值／目标／碰撞不符 `INVALID_OPERATIONS`（exit 2）、
+  陈旧 revision `INPUT_DRIFT`。
+- **冻结绑定：** source 与 destination 的 `resourceSha256` 对照各自冻结资源校验；
+  被移动块、被同步的引用资源与目的插入点全部按**冻结基线**计算，前一个操作的输
+  出不放松后一个操作的期望。派生改写的引用资源不需要在请求里声明，但它们同样
+  按冻结字节重算，并进入计划写集合。
+- **字节保真与命名空间：** 被移动子树必须来自源资源的**字面物理区间**（实体生成
+  或合成默认区间拒绝），且满足片段插入规则（纯 XHTML 命名空间；拒绝
+  `script`／`style`／`base` 等嵌套上下文与仅限 head 的元素、事件属性、`style`／
+  `srcset`／`xml:base` 等本批无法维护的属性、注释／CDATA／声明与处理指令）。块
+  按源资源物理编码解码、按目的资源编码重编码，只有本契约列明的 URL 属性值被重
+  写；目的插入点的命名空间上下文必须把块解析为与源文档相同的已解析元素名、属性
+  名与属性值，否则拒绝（不做前缀重写）。
+- **块内相对 URL 重基准：** 块内 XHTML `href`／`src` 的相对 URL 从源资源目录重
+  基准到目的资源目录，查询串与 fragment 保留；仅 fragment（或自指路径）的引用，
+  若 fragment 指向**块内**身份则保持本地（显式自指路径改为本地 `#fragment`），
+  若指向留在源资源的身份则重写为源资源的相对 URL + 原 fragment；外部／绝对 URL
+  不变。重写值按 URL 规范转义；不能唯一解析的 fragment 或不可解析的 URL 拒绝。
+- **入站依赖同步：** 对块内每个身份（按元素去重的 id／`xml:id`）：指向
+  `源#身份` 的已知入站边必须被同步——XHTML `href`／`nav.href` 从引用资源目录重
+  基准为指向目的资源的相对 URL（fragment 与查询串保留），被重写的引用资源必须是
+  可编辑的 manifest XHTML 且属性值有字面区间；来自被移动块内部的入站边随块移动、
+  保持本地，不重写。`xhtml.idref` 是**同文档**引用，不能改成跨资源 URL：块内
+  IDREF 指向块外身份、或块外 IDREF 指向被移动身份，均拒绝；NCX `ncx.src`、
+  SVG `svg.href`、OPF、CSS 与其他未实现语法出现即拒绝并给出语法与位置。覆盖不足
+  以证明无引用（partial／blocked coverage）时拒绝
+  （`REFERENCE_COVERAGE_INCOMPLETE`，exit 1）；已知但不可同步的引用拒绝
+  （`REFERENCE_CONFLICT`，exit 1）。
+- **身份与碰撞（全事务最终状态）：** 移动的身份从源资源最终计数移除、加入目的资
+  源最终计数，按元素去重；块内身份在源文档必须唯一，目的资源仍存在的同值身份、
+  块内重复身份或同事务另一操作产生的碰撞即拒绝（`INVALID_OPERATIONS`）。既有
+  IDREF 词表、新链接解析、fragment 唯一性、`headers`／ARIA 等 IDREF 校验与最终
+  图计数沿用现有门禁语义。
+- **本批不变：** OPF／spine 资源关系、manifest 增删改名、NCX／SVG／CSS 重写、
+  `xml:base` 与 HTML `base` 文档、`srcset` 候选列表、字体混淆资格不实现；有关联
+  但不适用／不可表达的引用保守拒绝，不声称全覆盖。
+- **全链：** plan／apply／checkpoint／restore／journal／diff／accept／历史来源重
+  算都从冻结基线重算移动、同步与完整写集合；`task diff` 为 v2 move 在
+  `operations` 中给出 `element`（动作 `move`、`source`／`destination` bookPath、
+  源 locator、position、`movedIds`、候选块位置与源出现次数观测）与
+  `synchronized`（每个被同步引用的 bookPath、locator、属性、计划旧值与**实际候
+  选新值**，不可观测时 `unavailable`）；文件级 `diff` 仍是权威视图。
+- **限制：** 单资源 8 MiB XML、16 MiB 解码／展开、深度 128、tokens 200,000、片
+  段 8 MiB 与既有预算不变；一次事务内同一资源的区间不得重叠（沿用
+  `ValidateEdits`），目的插入点不得落在任何替换区间内。
+- **验证：** 不对称多目录／URL 编码／查询 fragment 正反例、内部与外部链接、
+  alias／碰撞、nav 依赖、三编码混合、操作反序与真正重叠、多个派生资源中途失败与
+  恢复再次中断；有效事务 live fuzz 与真实 CLI + EPUBCheck／ZIP 字节对照；不扩大
+  既有 v1 操作权限。
+
+本批不新增 CLI 命令；`plan`／`apply`／`task diff` 的输入语法不变，只有请求文件内
+容使用 schema 6 与 v2 参数形状。本批固定提交与公开验证记录见
+[T2_MULTI_OPERATION.md](verification/T2_MULTI_OPERATION.md)；剩余 T2 仍不得标记为
+完成。
+
 ## 3. 目标选择与全局约定
 
 ### 3.1 明确目标

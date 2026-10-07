@@ -85,3 +85,34 @@ func Resolve(base BookPath, h Href) (BookPath, error) {
 	}
 	return Parse(path.Join(path.Dir(string(base)), decoded))
 }
+
+// RelativeHref renders the canonical relative URL from the directory of one
+// resource to another BookPath. It only generates rewritten references, so the
+// escaping is canonical: every segment is escaped as a URL path segment, and
+// parent segments are emitted only while they stay inside the container.
+func RelativeHref(from, to BookPath) (Href, error) {
+	if _, err := Parse(string(from)); err != nil {
+		return "", err
+	}
+	if _, err := Parse(string(to)); err != nil {
+		return "", err
+	}
+	fromDir := path.Dir(string(from))
+	fromSegments := []string{}
+	if fromDir != "." && fromDir != "/" {
+		fromSegments = strings.Split(fromDir, "/")
+	}
+	toSegments := strings.Split(string(to), "/")
+	common := 0
+	for common < len(fromSegments) && common < len(toSegments)-1 && fromSegments[common] == toSegments[common] {
+		common++
+	}
+	segments := []string{}
+	for i := common; i < len(fromSegments); i++ {
+		segments = append(segments, "..")
+	}
+	for _, segment := range toSegments[common:] {
+		segments = append(segments, url.PathEscape(segment))
+	}
+	return Href(strings.Join(segments, "/")), nil
+}

@@ -397,6 +397,20 @@ func (d *StructureDocument) Encode(text string) ([]byte, error) {
 	return d.Doc.Root.EncodeMarkup(text)
 }
 
+// DecodeMarkup decodes literal markup or text from the document's original
+// encoding, the inverse of Encode. A block taken from the middle of a resource
+// carries no BOM.
+func (d *StructureDocument) DecodeMarkup(b []byte) (string, error) {
+	return d.Doc.Root.DecodeMarkup(b)
+}
+
+// EncodeAttributeValue escapes and encodes one attribute value for the
+// document's original encoding. A rewritten frozen attribute value uses the same
+// escaping the structural attribute writes use.
+func (d *StructureDocument) EncodeAttributeValue(v string) ([]byte, error) {
+	return d.encodeAttributeValue(v)
+}
+
 // EditSpan replaces the original byte interval [Start, End) with Bytes.
 type EditSpan struct {
 	Start, End int
@@ -1187,6 +1201,13 @@ func expectedBlockOffset(offset int, edits []*StructureEdit) int {
 	return offset + delta
 }
 
+// ExpectedBlockOffset maps a frozen insertion point to its byte offset in the
+// spliced output. Review uses it to observe a planned block in the candidate;
+// the verifier recomputes the same accumulated size change independently.
+func ExpectedBlockOffset(offset int, edits []*StructureEdit) int {
+	return expectedBlockOffset(offset, edits)
+}
+
 func buildSim(e *xmltext.Element) *simNode {
 	n := &simNode{name: e.Name, attrs: e.Attributes, direct: e.DirectText, loc: e.Location}
 	for _, c := range e.Children {
@@ -1322,13 +1343,13 @@ func SimulateStructure(doc *StructureDocument, edits []*StructureEdit) (*simNode
 				return nil, nil, fmt.Errorf("simulation lost target %s", ch.Locator)
 			}
 			n.direct = ch.Text
-		case "element-delete":
+		case "element-delete", "element-move-out":
 			n := byLoc[ch.Locator]
 			if n == nil {
 				return nil, nil, fmt.Errorf("simulation lost target %s", ch.Locator)
 			}
 			n.detach()
-		case "element-insert":
+		case "element-insert", "element-move-in":
 			anchor := byLoc[ch.Locator]
 			if anchor == nil {
 				return nil, nil, fmt.Errorf("simulation lost anchor %s", ch.Locator)
@@ -1339,7 +1360,11 @@ func SimulateStructure(doc *StructureDocument, edits []*StructureEdit) (*simNode
 			}
 			if len(nodes) > 0 {
 				nodes[0].blockAt = ch.At
-				nodes[0].loc = blockLocator("insert", e.OpIndex)
+				kind := "insert"
+				if ch.Kind == "element-move-in" {
+					kind = "move"
+				}
+				nodes[0].loc = blockLocator(kind, e.OpIndex)
 				byLoc[nodes[0].loc] = nodes[0]
 			}
 		case "element-replace":

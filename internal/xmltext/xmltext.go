@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"unicode/utf16"
 	"unicode/utf8"
 
 	"github.com/LeviTK/Kepub/internal/fault"
@@ -125,6 +126,43 @@ func (e *Element) EncodeMarkup(text string) ([]byte, error) {
 		}
 	}
 	return encode([]byte(text), e.order), nil
+}
+
+// DecodeMarkup decodes literal markup or text from this document's original
+// encoding, the inverse of EncodeMarkup. A byte slice taken from the middle of a
+// resource has no BOM, so only the byte order applies.
+func (e *Element) DecodeMarkup(b []byte) (string, error) {
+	if len(b) > Limit {
+		return "", fmt.Errorf("XML size limit")
+	}
+	if e.order == nil {
+		if !utf8.Valid(b) {
+			return "", fmt.Errorf("markup is not valid UTF-8")
+		}
+		return string(b), nil
+	}
+	if len(b)%2 != 0 {
+		return "", fmt.Errorf("markup is not a whole number of UTF-16 code units")
+	}
+	out := make([]rune, 0, len(b)/2)
+	for i := 0; i < len(b); {
+		u := e.order.Uint16(b[i:])
+		i += 2
+		r := rune(u)
+		if utf16.IsSurrogate(r) {
+			if u < 0xd800 || u > 0xdbff || i == len(b) {
+				return "", fmt.Errorf("invalid UTF-16 surrogate")
+			}
+			v := e.order.Uint16(b[i:])
+			i += 2
+			if v < 0xdc00 || v > 0xdfff {
+				return "", fmt.Errorf("invalid UTF-16 surrogate pair")
+			}
+			r = utf16.DecodeRune(r, rune(v))
+		}
+		out = append(out, r)
+	}
+	return string(out), nil
 }
 
 // PhysicalMarkup reports the exact original byte interval of an element's

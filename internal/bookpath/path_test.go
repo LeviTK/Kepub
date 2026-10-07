@@ -88,3 +88,33 @@ func FuzzResolve(f *testing.F) {
 		}
 	})
 }
+
+// TestRelativeHref keeps rewritten references resolvable: the generated URL must
+// resolve back to the same BookPath, escape segment-unsafe characters, and use
+// parent segments only to reach a sibling or ancestor directory.
+func TestRelativeHref(t *testing.T) {
+	for _, c := range []struct{ from, to, want string }{
+		{"EPUB/chapter1.xhtml", "EPUB/chapter2.xhtml", "chapter2.xhtml"},
+		{"EPUB/chapter1.xhtml", "EPUB/text/chapter3.xhtml", "text/chapter3.xhtml"},
+		{"EPUB/text/chapter3.xhtml", "EPUB/chapter1.xhtml", "../chapter1.xhtml"},
+		{"EPUB/text/deep/a.xhtml", "EPUB/b.xhtml", "../../b.xhtml"},
+		{"a.xhtml", "b.xhtml", "b.xhtml"},
+		{"EPUB/a.xhtml", "OEBPS/text/b.xhtml", "../OEBPS/text/b.xhtml"},
+		{"EPUB/a.xhtml", "EPUB/a b#c.xhtml", "a%20b%23c.xhtml"},
+	} {
+		got, err := RelativeHref(BookPath(c.from), BookPath(c.to))
+		if err != nil {
+			t.Fatalf("%s -> %s: %v", c.from, c.to, err)
+		}
+		if string(got) != c.want {
+			t.Fatalf("%s -> %s: got %q want %q", c.from, c.to, got, c.want)
+		}
+		resolved, err := Resolve(BookPath(c.from), got)
+		if err != nil {
+			t.Fatalf("%s -> %s does not resolve: %v", c.from, got, err)
+		}
+		if resolved != BookPath(c.to) {
+			t.Fatalf("%s -> %s resolves to %s", c.from, got, resolved)
+		}
+	}
+}

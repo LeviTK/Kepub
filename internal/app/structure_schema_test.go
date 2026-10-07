@@ -26,7 +26,15 @@ func TestStructureCapabilitySchemaAcceptsLocators(t *testing.T) {
 			continue
 		}
 		seen[c.ID] = true
-		properties := c.InputSchema.(map[string]any)["properties"].(map[string]any)
+		properties, ok := c.InputSchema.(map[string]any)["properties"].(map[string]any)
+		if !ok {
+			continue
+		}
+		if _, ok := properties[fields[0]]; !ok {
+			// A newer operation version carries a different shape; the version 2
+			// cross-resource move is checked below.
+			continue
+		}
 		for _, field := range fields {
 			schema, ok := properties[field].(map[string]any)
 			if !ok {
@@ -50,6 +58,28 @@ func TestStructureCapabilitySchemaAcceptsLocators(t *testing.T) {
 		if !seen[id] {
 			t.Fatalf("missing capability %s", id)
 		}
+	}
+	// The version 2 cross-resource move advertises both endpoint bindings.
+	checkedMoveV2 := false
+	for _, c := range Capabilities() {
+		if c.ID != "xhtml.element.move" || c.Version != 2 {
+			continue
+		}
+		checkedMoveV2 = true
+		properties := c.InputSchema.(map[string]any)["properties"].(map[string]any)
+		for _, field := range []string{"source", "destination"} {
+			endpoint, ok := properties[field].(map[string]any)
+			if !ok {
+				t.Fatalf("move v2: missing %s endpoint", field)
+			}
+			endpointProps := endpoint["properties"].(map[string]any)
+			if endpointProps["locator"].(map[string]any)["minLength"] != 1 {
+				t.Fatalf("move v2 %s locator: %+v", field, endpointProps["locator"])
+			}
+		}
+	}
+	if !checkedMoveV2 {
+		t.Fatal("move version 2 capability missing")
 	}
 	// An attribute name stays a plain XML name without a namespace prefix.
 	for _, c := range Capabilities() {

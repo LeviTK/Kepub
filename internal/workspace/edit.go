@@ -85,6 +85,14 @@ func (o *Operation) UnmarshalJSON(b []byte) error {
 		}
 		o.Params = p
 	case "xhtml.element.move":
+		if wire.Version == 2 {
+			var p publication.ElementMoveCross
+			if err := decodeStrict(wire.Params, &p); err != nil {
+				return err
+			}
+			o.Params = p
+			return nil
+		}
 		var p publication.ElementMove
 		if err := decodeStrict(wire.Params, &p); err != nil {
 			return err
@@ -228,6 +236,7 @@ const contentEditPolicy = "kepub-content-text-v1:accepted-baseline;single-set;lo
 const multiEditPolicy = "kepub-multi-v1:accepted-baseline;multi-operation;multi-resource;frozen-baseline;simple-text;no-timestamp;review-required;conformance-not-run"
 const structurePolicy = "kepub-xhtml-structure-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;reference-gate;no-timestamp;review-required;conformance-not-run"
 const replacePolicy = "kepub-content-text-replace-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;explicit-hits;no-timestamp;review-required;conformance-not-run"
+const movePolicy = "kepub-xhtml-move-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;cross-resource;reference-sync;no-timestamp;review-required;conformance-not-run"
 
 // maxPlanOperations bounds one version 3 or version 4 transaction. Each
 // operation may parse its target resource, so the request file size alone is
@@ -245,6 +254,11 @@ type derivation struct {
 	edits map[string][]*publication.StructureEdit
 	// replaces carries each batch replace operation's facts by operation index.
 	replaces map[int]publication.ReplaceFacts
+	// moves carries each cross-resource move's derived facts by operation index.
+	moves map[int]*publication.CrossMoveEdit
+	// sync carries each cross-resource move's synchronized references by
+	// operation index.
+	sync map[int][]moveSyncRewrite
 }
 
 func singleDerivation(path string, out []byte, changed bool) derivation {
@@ -279,7 +293,7 @@ func replaceOperation(ops []Operation) bool {
 }
 
 func validateStructureOperation(op Operation) error {
-	if op.Version != 1 {
+	if op.Version != 1 && !(op.ID == "xhtml.element.move" && op.Version == 2) {
 		return fmt.Errorf("structure operations require version 1")
 	}
 	switch p := op.Params.(type) {
@@ -341,6 +355,16 @@ func validateStructureOperation(op Operation) error {
 			return fmt.Errorf("invalid revisionId")
 		}
 		return nil
+	case publication.ElementMoveCross:
+		if err := p.Validate(); err != nil {
+			return fmt.Errorf("xhtml params: %v", err)
+		}
+		for _, endpoint := range []publication.MoveEndpoint{p.Source, p.Destination} {
+			if endpoint.RevisionID != "initial" && !validID(endpoint.RevisionID) {
+				return fmt.Errorf("invalid revisionId")
+			}
+		}
+		return nil
 	case publication.TextReplace:
 		if err := p.Validate(); err != nil {
 			return fmt.Errorf("replace params: %v", err)
@@ -353,7 +377,30 @@ func validateStructureOperation(op Operation) error {
 	return fmt.Errorf("unsupported operation params")
 }
 
+// crossMoveOperation reports whether a request carries a cross-resource move.
+// Such requests use schema 6, which may also carry the frozen v1 operations;
+// requests without it keep schema 1/2/3/4/5.
+func crossMoveOperation(ops []Operation) bool {
+	for _, op := range ops {
+		if op.ID == "xhtml.element.move" && op.Version == 2 {
+			return true
+		}
+	}
+	return false
+}
+
 func operationSchema(ops []Operation) (int, error) {
+	if crossMoveOperation(ops) {
+		if len(ops) == 0 || len(ops) > maxPlanOperations {
+			return 0, fmt.Errorf("operation count exceeds %d", maxPlanOperations)
+		}
+		for _, op := range ops {
+			if err := validateStructureOperation(op); err != nil {
+				return 0, err
+			}
+		}
+		return 6, nil
+	}
 	if replaceOperation(ops) {
 		if len(ops) == 0 || len(ops) > maxPlanOperations {
 			return 0, fmt.Errorf("operation count exceeds %d", maxPlanOperations)
@@ -441,6 +488,8 @@ func policyFor(version int) string {
 		return structurePolicy
 	case 5:
 		return replacePolicy
+	case 6:
+		return movePolicy
 	}
 	return editPolicy
 }
@@ -556,7 +605,7 @@ func (w *Workspace) recomputeAt(ops []Operation, baseDir, revision string) (deri
 	}
 	defer r.Close()
 	a := publicationRoot{r}
-	if version == 4 || version == 5 {
+	if version == 4 || version == 5 || version == 6 {
 		return w.recomputeStructure(a, ops, revision)
 	}
 	if version == 3 {

@@ -27,6 +27,14 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 		return derivation{}, err
 	}
 	profile := xmltext.Profile{Version: pub.Version, MediaType: "application/xhtml+xml"}
+	// Phase 0 derives every cross-resource move and its incoming reference
+	// synchronization from the frozen bytes, before any resource group is
+	// assembled: a move's edits and the references it rewrites must be visible
+	// to the whole transaction's overlap and dependency checks.
+	moveContrib, moves, moveGraph, moveInventory, err := w.deriveCrossMoves(a, pub, profile, ops, revision)
+	if err != nil {
+		return derivation{}, err
+	}
 	outputs := map[string][]byte{}
 	planned := map[string][]*publication.StructureEdit{}
 	rootCurrent, rootTouched := []byte(nil), false
@@ -92,6 +100,12 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 			path = string(param.BookPath)
 		case publication.TextReplace:
 			path = string(param.BookPath)
+		case publication.ElementMoveCross:
+			// A cross-resource move is distributed by Phase 0: its source,
+			// destination and synchronized resources each join the derivation
+			// with the edits that belong to them, so it never forms one
+			// single-resource group of its own.
+			continue
 		default:
 			return derivation{}, fmt.Errorf("unsupported operation params")
 		}
@@ -107,11 +121,25 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 		g.index = append(g.index, i)
 		g.ops = append(g.ops, op)
 	}
+	// A cross-resource move can touch resources no operation names: the
+	// destination and every resource whose reference it rewrites. They join the
+	// derivation with their frozen bytes like any other edited resource.
+	movePaths := make([]string, 0, len(moveContrib))
+	for path := range moveContrib {
+		movePaths = append(movePaths, path)
+	}
+	slices.Sort(movePaths)
+	for _, path := range movePaths {
+		if _, ok := groups[path]; !ok {
+			groups[path] = &group{path: path}
+			order = append(order, path)
+		}
+	}
 
 	// Phase 1 derives every resource's edits and binding checks. Dependency
 	// facts are only collected here: identity and link validation must see the
 	// whole transaction, never a partially processed group.
-	gate := &structureGate{a: a, pub: pub, baseIDs: map[bookpath.BookPath]map[string]int{}, removed: map[bookpath.BookPath]map[string]int{}, added: map[bookpath.BookPath]map[string]int{}}
+	gate := &structureGate{a: a, pub: pub, inventory: moveInventory, graph: moveGraph, baseIDs: map[bookpath.BookPath]map[string]int{}, removed: map[bookpath.BookPath]map[string]int{}, added: map[bookpath.BookPath]map[string]int{}, synchronized: map[bookpath.BookPath]map[string]map[string]bool{}}
 	type groupEdit struct {
 		path     string
 		bp       bookpath.BookPath
@@ -234,6 +262,7 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 			edit.OpIndex = index
 			edits = append(edits, edit)
 		}
+		edits = append(edits, moveContrib[path]...)
 		if err := publication.ValidateEdits(edits); err != nil {
 			return derivation{}, fault.New(2, "INVALID_OPERATIONS", "%v", err)
 		}
@@ -301,6 +330,17 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 			}
 		}
 	}
+	// A cross-resource move synchronizes the known incoming references of every
+	// identity it removes from the source resource; the gate re-proves that no
+	// known edge and no coverage gap escaped that synchronization.
+	for _, plan := range moves {
+		for id, covered := range plan.covered[string(plan.edit.SourcePath)] {
+			if gate.synchronized[plan.edit.SourcePath] == nil {
+				gate.synchronized[plan.edit.SourcePath] = map[string]map[string]bool{}
+			}
+			gate.synchronized[plan.edit.SourcePath][id] = covered
+		}
+	}
 	for _, ge := range derived {
 		for id := range gate.added[ge.bp] {
 			// A new identity may only be written when every frozen instance is
@@ -314,6 +354,12 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 			// Only an identity that disappears entirely can dangle an existing
 			// reference; a remaining or re-added instance still resolves.
 			if gate.finalCount(ge.bp, id) > 0 {
+				continue
+			}
+			if covered, ok := gate.synchronized[ge.bp][id]; ok {
+				if err := gate.checkSynchronizedID(ge.bp, id, covered); err != nil {
+					return derivation{}, err
+				}
 				continue
 			}
 			if err := gate.checkRemovedID(ge.bp, id); err != nil {
@@ -366,7 +412,13 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 			replaces[index] = facts
 		}
 	}
-	return derivation{outputs: final, writes: writes, edits: planned, replaces: replaces}, nil
+	moveEdits := map[int]*publication.CrossMoveEdit{}
+	moveSync := map[int][]moveSyncRewrite{}
+	for _, plan := range moves {
+		moveEdits[plan.index] = plan.edit
+		moveSync[plan.index] = plan.sync
+	}
+	return derivation{outputs: final, writes: writes, edits: planned, replaces: replaces, moves: moveEdits, sync: moveSync}, nil
 }
 
 func checkStructureHash(base []byte, sha string) error {
@@ -394,6 +446,8 @@ func structureTargetKey(op Operation) (string, string) {
 		return "element\x00" + string(param.BookPath) + "\x00" + param.Locator, "element target"
 	case publication.ElementMove:
 		return "element\x00" + string(param.BookPath) + "\x00" + param.Locator, "element target"
+	case publication.ElementMoveCross:
+		return "move\x00" + string(param.Source.BookPath) + "\x00" + param.Source.Locator + "\x00" + string(param.Destination.BookPath) + "\x00" + param.Destination.Locator + "\x00" + param.Position, "move target"
 	case publication.TextReplace:
 		return "replace\x00" + string(param.BookPath) + "\x00" + param.Locator, "replace target"
 	case publication.ElementInsert:
@@ -412,6 +466,10 @@ type structureGate struct {
 	baseIDs   map[bookpath.BookPath]map[string]int
 	removed   map[bookpath.BookPath]map[string]int
 	added     map[bookpath.BookPath]map[string]int
+	// synchronized records, per source resource and identity, the exact incoming
+	// edge locations a cross-resource move accounted for, so the gate can
+	// re-prove that the move did not leave a dangling reference behind.
+	synchronized map[bookpath.BookPath]map[string]map[string]bool
 }
 
 func (g *structureGate) inventoryOnce() (map[bookpath.BookPath]int64, error) {
@@ -454,6 +512,28 @@ func (g *structureGate) checkRemovedID(resource bookpath.BookPath, id string) er
 	if len(blockers) > 0 {
 		b := blockers[0]
 		return fault.New(1, "REFERENCE_COVERAGE_INCOMPLETE", "cannot prove id %q in %s is unreferenced: %s %s is %s", id, resource, b.Resource, b.Syntax, b.Status)
+	}
+	return nil
+}
+
+// checkSynchronizedID re-proves a cross-resource move: every known incoming edge
+// to an identity the move removed from this resource must be one of the edges the
+// move accounted for (it moved with the block or was rewritten to the
+// destination), and no coverage gap may hide another reference.
+func (g *structureGate) checkSynchronizedID(resource bookpath.BookPath, id string, covered map[string]bool) error {
+	graph, err := g.graphOnce()
+	if err != nil {
+		return err
+	}
+	edges, blockers := graph.CertainIncoming(resource, id)
+	if len(blockers) > 0 {
+		b := blockers[0]
+		return fault.New(1, "REFERENCE_COVERAGE_INCOMPLETE", "cannot prove id %q in %s is unreferenced: %s %s is %s", id, resource, b.Resource, b.Syntax, b.Status)
+	}
+	for _, e := range edges {
+		if !covered[e.Location] {
+			return fault.New(1, "REFERENCE_CONFLICT", "reference to %q in %s from %s (%s) was not synchronized", id, resource, e.Source, e.Location)
+		}
 	}
 	return nil
 }

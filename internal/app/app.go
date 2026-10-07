@@ -124,6 +124,16 @@ func Capabilities() []Capability {
 		"replacement":  map[string]any{"type": "string", "x-maxUtf8Bytes": publication.ContentTextLimit},
 		"expectedHits": map[string]any{"type": "integer", "minimum": 0, "maximum": publication.ReplaceHitsLimit},
 	}, "mode", "pattern", "replacement", "expectedHits")
+	moveEndpointSchema := map[string]any{"type": "object", "additionalProperties": false,
+		"required": []string{"bookPath", "revisionId", "resourceSha256", "locatorVersion", "locator"},
+		"properties": map[string]any{
+			"bookPath": stringSchema, "revisionId": stringSchema,
+			"resourceSha256": map[string]any{"type": "string", "pattern": "^[0-9a-f]{64}$"},
+			"locatorVersion": map[string]any{"const": 1}, "locator": xhtmlLocator,
+		}}
+	moveCrossSchema := map[string]any{"type": "object", "additionalProperties": false,
+		"required":   []string{"source", "destination", "position"},
+		"properties": map[string]any{"source": moveEndpointSchema, "destination": moveEndpointSchema, "position": xhtmlPosition}}
 	xhtmlOps := []Capability{
 		{ID: "xhtml.attribute.set", Mutates: true, Risk: "bounded_edit", InputSchema: xhtmlBase(map[string]any{
 			"namespace": xhtmlNamespace, "name": xhtmlName, "expectedOldValue": map[string]any{"type": "string", "x-maxUtf8Bytes": publication.AttributeValueLimit},
@@ -141,7 +151,9 @@ func Capabilities() []Capability {
 			SupportedFeatures: []string{"schema 4; frozen resource binding and exact locator", "whole literal element markup replaced by the validated fragment", "html/head/body refused; removed ids require proven reference coverage"}},
 		{ID: "xhtml.element.move", Mutates: true, Risk: "bounded_edit", InputSchema: xhtmlBase(map[string]any{
 			"anchor": xhtmlLocator, "position": xhtmlPosition}, "anchor", "position"),
-			SupportedFeatures: []string{"schema 4; frozen resource binding and both locators", "same-resource subtree move preserving exact bytes and ids", "moving into itself or onto another target's range refused", "cross-resource moves remain outside this batch"}},
+			SupportedFeatures: []string{"schema 4; frozen resource binding and both locators", "same-resource subtree move preserving exact bytes and ids", "moving into itself or onto another target's range refused"}},
+		{ID: "xhtml.element.move", Version: 2, Mutates: true, Risk: "bounded_edit", InputSchema: moveCrossSchema,
+			SupportedFeatures: []string{"schema 6; explicit cross-resource move between two manifest XHTML resources with frozen source/destination bindings", "block re-encoded from the source physical encoding; only listed URL attribute values are rebased", "known incoming href/nav references to moved ids are synchronized; IDREF, NCX, SVG, OPF and CSS references refuse instead of dangling", "identity collisions, coverage gaps and namespace context mismatches refused"}},
 	}
 	for _, c := range append([]Capability{
 		{ID: "metadata.set", Mutates: true, Risk: "bounded_edit", InputSchema: metadataSchema, SupportedFeatures: []string{"unique existing dc:title/dc:creator simple text", "exact namespace/local name/optional ID", "expected old value", "local escaped byte replacement", "no-op preserves bytes; no automatic timestamp"}},
@@ -153,8 +165,11 @@ func Capabilities() []Capability {
 		{ID: "task.status", Commands: []string{"task status"}}, {ID: "task.diff", Commands: []string{"task diff"}}, {ID: "task.accept", Commands: []string{"task accept"}, Mutates: true, Risk: "external"}, {ID: "task.reject", Commands: []string{"task reject"}},
 		{ID: "workspace.export", Commands: []string{"workspace export"}, Risk: "external"},
 	}, xhtmlOps...) {
-		c.Version, c.Status = 1, "available"
-		c.Reason = "Explicit workspace directory; one metadata.set v1 (schema 1), one content.text.set v1 (schema 2), 2–256 mixed metadata.set/content.text.set v1 operations (schema 3), schema 4 with 1–256 v1 operations that include xhtml.attribute.set/remove and xhtml.element.insert/replace/delete/move, or schema 5 with 1–256 v1 operations that include content.text.replace (explicit-scope literal/regex batch replacement), on a frozen accepted baseline with exact locators and a reference gate; apply remains review_required/conformance not_run; accept and formal export run pinned EPUBCheck (must be installed)"
+		if c.Version == 0 {
+			c.Version = 1
+		}
+		c.Status = "available"
+		c.Reason = "Explicit workspace directory; one metadata.set v1 (schema 1), one content.text.set v1 (schema 2), 2–256 mixed metadata.set/content.text.set v1 operations (schema 3), schema 4 with 1–256 v1 operations that include xhtml.attribute.set/remove and xhtml.element.insert/replace/delete/move, schema 5 with 1–256 v1 operations that include content.text.replace (explicit-scope literal/regex batch replacement), or schema 6 with 1–256 v1/v2 operations that include xhtml.element.move v2 (cross-resource subtree move with reference synchronization), on a frozen accepted baseline with exact locators and a reference gate; apply remains review_required/conformance not_run; accept and formal export run pinned EPUBCheck (must be installed)"
 		if c.Risk == "" {
 			c.Risk = "read_only"
 		}

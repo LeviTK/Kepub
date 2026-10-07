@@ -5,15 +5,17 @@ which was never pushed. Batch 1 started from `origin/main`
 `18618fee6b89c6ef59594c99f18f385015e0fc05` and was released by the parent at
 fixed commit `23ba8f8c36b9ccf04138819acbea2af55caba832` (tree
 `545f1824eb1756a979b0a554808a2bc0c0fc5c63`). Batch 2 continues from that commit
-and stops at the fixed commit that introduces this section, awaiting independent
-medium review and parent acceptance; batch 2 was accepted at `79a4548` and
-released by the parent, and batch 3 (native literal/regex batch text
-replacement) is in progress. Batch 2's first four trees were rejected —
-`ff64188` and `f295f3f` by the high reviewer, `6f9980e` by the medium reviewer,
-`b301fb9` by the parent's acceptance verification and the medium reviewer — and
-every result stays bound to the reviewer and tree that produced it. Private
-books, audit raw evidence and local receipts are not part of Git; every fixture
-here is synthetic.
+and was accepted at `79a4548` and released by the parent. Batch 3 (native
+literal/regex batch text replacement) was rejected twice — `e8614fb` and
+`b9840cc` by the parent's acceptance verification and the medium reviewer — and
+was accepted at `d747c01` by the medium reviewer and the parent, who
+fast-forwarded local `main` to it. Batch 4 (explicit cross-resource subtree move
+with dependency synchronization) is in progress. Batch 2's first four trees were
+rejected — `ff64188` and `f295f3f` by the high reviewer, `6f9980e` by the medium
+reviewer, `b301fb9` by the parent's acceptance verification and the medium
+reviewer — and every result stays bound to the reviewer and tree that produced
+it. Private books, audit raw evidence and local receipts are not part of Git;
+every fixture here is synthetic.
 
 ## Batch 1 — versioned multi-operation / multi-resource transaction foundation
 
@@ -407,7 +409,7 @@ power-loss or release.
   product diff. The parent did not rerun the full race suite (focused race only)
   and does not claim macOS, power-loss or complete T2.
 
-## Batch 3 — explicit-scope literal/regex batch text replacement (in progress)
+## Batch 3 — explicit-scope literal/regex batch text replacement (two rejections; accepted and released at `d747c01`)
 
 Delivered: request schema 5 (`kepub-content-text-replace-v1`) with the new
 `content.text.replace` v1 operation on the frozen transaction base. One explicit
@@ -602,10 +604,10 @@ cross-reference match, and the product fuzz document now carries a
 generated-predefined paragraph and a long-numeric paragraph with dedicated
 seeds.
 
-### Verification of this revision
+### Verification of the accepted batch-3 revision (`d747c01`)
 
 This revision's runs are labelled by where they were taken; the product content
-was committed as the fixed commit that introduces this section.
+was committed as `d747c01`.
 
 - Repository ordinary suite with the pinned EPUBCheck 5.3.0 jar, taken from this
   revision's working tree before the commit (working-tree verification, not a
@@ -654,5 +656,120 @@ was committed as the fixed commit that introduces this section.
 - The medium rejection evidence pack `b9840cc-medium-rejected-evidence.tar.gz`
   and every earlier failure, pollution and race log are retained; no historical
   result was deleted.
+- The fixed commit, tree and bundle hashes are reported to the parent thread and
+  frozen in the next batch's record.
+
+### Acceptance of batch 3 (released)
+
+The fixed tree `d747c01ed6ec0ab8d12eb139269ceb142ade8165` (tree
+`9b45f953d8c60a2469cc99c20c2f9c9b7dd2cc89`, bundle
+`t2-multi-operation-foundation.bundle` SHA-256
+`98460457ffeafd5a666dc9fa78af0ac89f996cb885dc3d66aca13a47768c7ac8`) was
+accepted by the independent medium review and released by the parent, who
+fast-forwarded local `main` to the same commit (`origin/main` stayed at
+`18618fee`, eight commits ahead, nothing pushed). The acceptance covers only the
+limited schema 5 batch-replacement increment: not complete T2, macOS, power-loss
+or release.
+
+- Medium (independent evidence, not inherited from the author): the frozen
+  ordinary and focused race set passed (55 top-level tests, 398 test pass events,
+  20 fuzz/seed pass events), both earlier minimal seeds passed in ordinary and
+  race, the decoded-neighbour and same-value second-hit negative controls and the
+  real fixed-tree CLI/checker runs passed, the effective-transaction provenance
+  fuzz passed 706 executions in 60.229 s and the transaction target 750
+  executions in 62.029 s, and one clean sequential normal→race→vet run ended
+  exit 0 (cmd/workspace/validation ordinary 516.689/412.282/452.945 s, race
+  628.015/373.885/374.367 s). The CLI sub-binary is a plain `go build`; the race
+  claim covers the harness and libraries, not a race-instrumented binary.
+- Parent: the focused set (52 top-level, 393 test events), the original seeds in
+  ordinary and race, the permanent regressions, `vet` and the source trace
+  passed; the complete medium pack
+  `d747c01-medium-reviewed-evidence.tar.gz.received` (413,000 B, SHA-256
+  `71e291ea3914886752f8661b8dccbb5b6e65bbd1954e3e7de49fe9ef96c38061`, manifest
+  75 items, manifest SHA-256
+  `8699744a1755ce731f141b066d3bd771e259a875641b9f6b5aecb431d0733200`) was
+  verified; the earlier bundle mis-copy correction record, the original manifest
+  and the old snapshot are retained, and the current snapshot (142,815 B,
+  `98460457`) matches the fixed input. The parent did not rerun the old checks
+  and does not claim macOS, power-loss or complete T2.
+
+## Batch 4 — explicit cross-resource subtree move with dependency synchronization (in progress)
+
+Delivered: request schema 6 with `xhtml.element.move` **v2** on the frozen
+transaction base. One explicit XHTML subtree moves from one manifest XHTML
+resource to an explicit position in another; the block is decoded from the source
+physical encoding and re-encoded for the destination, only the listed URL
+attribute values are rebased, and the known incoming `href`/`nav.href` references
+to every moved identity are synchronized to the destination. IDREF, NCX, SVG,
+OPF and CSS references refuse instead of dangling; identity collisions, coverage
+gaps and namespace context mismatches refuse. The contract is frozen in
+`docs/CLI_CONTRACT.md` §2.10; v1 and schemas 1–5 are unchanged. Not delivered
+(remaining T2): FixProposal, ValidationDelta, OPF/spine resource relations,
+resource add/remove/rename, NCX/SVG/CSS rewriting, font-obfuscation eligibility
+and explicit old-workspace re-evaluation.
+
+- Implementation: the publication layer derives one move against two frozen
+  documents (`ElementMoveCrossEdit`: literal interval, fragment insertability,
+  namespace identity check, block-local URL rebasing, IDREF and fragment
+  refusals), and the workspace layer derives the incoming synchronization from
+  the frozen reference index, assembles the source removal, destination insertion
+  and referring-resource attribute rewrites into the per-resource edit model,
+  re-proves every synchronized identity in the gate, and reports the move in
+  `task diff`. The registry advertises the move as two versioned entries (v1
+  schema 4, v2 schema 6).
+- Tests: publication unit tests cover the rebase shapes, the refusals and the
+  physical re-encoding; workspace tests cover plan/apply/write set, review facts
+  with actual candidate values, eleven refusal shapes, three mixed encodings, an
+  interrupted apply with restore leftovers, the accept/history chain with the
+  pinned checker, and a live fuzz target over the shared fixture.
+
+### Verification of this revision
+
+This revision's runs are labelled by where they were taken; the product content
+was committed as the fixed commit that introduces this section.
+
+- Repository ordinary suite with the pinned EPUBCheck 5.3.0 jar, taken from this
+  revision's working tree before the commit (working-tree verification, not a
+  fresh checkout of the commit): all packages passed (cmd/kepub 381.036 s,
+  internal/validation 325.509 s, internal/workspace 291.557 s,
+  internal/publication 5.708 s, internal/xmltext 7.912 s, internal/references
+  0.145 s, experiments/amp-cli 5.193 s, internal/app 0.450 s, internal/archive
+  0.102 s, internal/bookpath 0.024 s, internal/metadata 0.507 s). The race suite
+  on the same tree also passed all packages (cmd/kepub 571.206 s,
+  internal/validation 321.335 s, internal/workspace 336.175 s,
+  internal/publication 106.795 s, internal/xmltext 95.218 s, internal/references
+  2.058 s, experiments/amp-cli 7.573 s, internal/app 2.047 s, internal/archive
+  1.405 s, internal/bookpath 1.019 s, internal/metadata 5.715 s) with no data
+  race. `go vet ./...` and `gofmt` are clean on the same tree.
+- The complete earlier frozen probe set was rerun unchanged on this revision,
+  ordinary and focused race: 44 top-level test functions, 311 assertions
+  including subtests, no failures and no skips, no data race. The registry
+  advertises the move as two versioned entries and the frozen schema probe still
+  reads the version 1 shape unchanged.
+- Batch-4 tests on the same tree: the publication rebase/refusal/encoding units
+  and the workspace plan/apply/write set, review facts with actual candidate
+  values, eleven refusal shapes (IDREF inside the block, incoming IDREF,
+  namespace mismatch, collision, coverage gap, non-XHTML destination,
+  same-resource, body target, duplicate target, stale revision, resource drift),
+  three mixed encodings, the interrupted apply with restore leftovers and the
+  accept/history chain with the pinned checker all passed.
+- Fuzz on this revision's working tree before the commit: the cross-resource
+  move target planned, re-planned and applied moves over the shared fixture and
+  checked the reverse operation order, 3,989 executions in 60.135 s with no
+  failing input; the earlier product replace target and the medium provenance
+  target remain unchanged.
+- Real CLI smoke on the working-tree binary built before the commit, with the
+  pinned checker: a schema 6 v2 move planned, applied and reported in `task diff`
+  (`action: move`, `candidate: moved to EPUB/text/chapter3.xhtml at planned block
+  offset 145; source occurrences 1→0`, moved ids `moveblock`/`inner`, and the
+  synchronized nav reference `chapter1.xhtml#inner` → `text/chapter3.xhtml#inner`
+  read from the actual candidate); the strict accept passed (revision
+  `d465eba57a63c3394caca198560a6636`) and the strict export passed (archive
+  SHA-256 `3ad09c20110709e3337d3aa92f24328d2a5fa533eea2279e06b191f19e6f070c`).
+  The exported candidate lost the block from chapter1, gained it in
+  `EPUB/text/chapter3.xhtml` with `text/chapter3.xhtml#three` rebased to
+  `chapter3.xhtml#three`, `#start` rebased to `../chapter1.xhtml#start` and
+  `#inner` kept local, and the nav synchronized; the original book bytes were
+  unchanged.
 - The fixed commit, tree and bundle hashes are reported to the parent thread and
   frozen in the next batch's record.

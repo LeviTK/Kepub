@@ -138,6 +138,22 @@ type ElementReview struct {
 	Position    string `json:"position,omitempty"`
 	Candidate   string `json:"candidate,omitempty"`
 	Unavailable string `json:"unavailable,omitempty"`
+	// Cross-resource move facts (xhtml.element.move v2).
+	Source       string           `json:"source,omitempty"`
+	Destination  string           `json:"destination,omitempty"`
+	MovedIDs     []string         `json:"movedIds,omitempty"`
+	Synchronized []MoveSyncReview `json:"synchronized,omitempty"`
+}
+
+// MoveSyncReview is one incoming reference a cross-resource move synchronized
+// and its actual candidate value in the referring resource.
+type MoveSyncReview struct {
+	BookPath    string  `json:"bookPath"`
+	Locator     string  `json:"locator"`
+	Name        string  `json:"name"`
+	OldValue    string  `json:"oldValue"`
+	NewValue    *string `json:"newValue,omitempty"`
+	Unavailable string  `json:"unavailable,omitempty"`
 }
 
 func revisionPath(id string) string { return "revisions/" + id + "/pub" }
@@ -537,10 +553,14 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 		docs := map[string]*publication.StructureDocument{}
 		var planned map[string][]*publication.StructureEdit
 		replaceFacts := map[int]publication.ReplaceFacts{}
+		moveFacts := map[int]*publication.CrossMoveEdit{}
+		syncFacts := map[int][]moveSyncRewrite{}
 		if e.Plan.SchemaVersion >= 4 {
 			if d, derr := w.recomputeAt(e.Plan.Operations, revisionPath(w.current), w.current); derr == nil {
 				planned = d.edits
 				replaceFacts = d.replaces
+				moveFacts = d.moves
+				syncFacts = d.sync
 			}
 		}
 		for i, op := range e.Plan.Operations {
@@ -608,6 +628,31 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 					r.Operations[i].Element.Unavailable = err.Error()
 				} else {
 					r.Operations[i].Element.Candidate = value
+				}
+			case publication.ElementMoveCross:
+				edit := moveFacts[i]
+				if edit == nil {
+					r.Operations[i].Unavailable = "planned move facts are unavailable"
+					r.Operations[i].Element.Unavailable = "planned move facts are unavailable"
+					break
+				}
+				r.Operations[i].Element.MovedIDs = edit.MovedIDs
+				value, err := candidateCrossMove(a, p, base, bases, cands, docs, planned, edit)
+				if err != nil {
+					r.Operations[i].Unavailable = err.Error()
+					r.Operations[i].Element.Unavailable = err.Error()
+				} else {
+					r.Operations[i].Element.Candidate = value
+				}
+				for _, s := range syncFacts[i] {
+					entry := MoveSyncReview{BookPath: s.path, Locator: s.locator, Name: s.name, OldValue: s.old}
+					v, err := candidateAttribute(a, p, cands, base, bases, docs, planned, bookpath.BookPath(s.path), s.locator, xml.Name{Local: s.name})
+					if err != nil {
+						entry.Unavailable = err.Error()
+					} else {
+						entry.NewValue = v
+					}
+					r.Operations[i].Element.Synchronized = append(r.Operations[i].Element.Synchronized, entry)
 				}
 			case publication.TextReplace:
 				facts := replaceFacts[i]
@@ -680,6 +725,9 @@ func plannedReviews(ops []Operation) []OperationReview {
 		case publication.ElementMove:
 			or.BookPath, or.LocatorVersion, or.Locator = string(param.BookPath), param.LocatorVersion, param.Locator
 			or.Element = &ElementReview{Action: "move", Anchor: param.Anchor, Position: param.Position}
+		case publication.ElementMoveCross:
+			or.BookPath, or.LocatorVersion, or.Locator = string(param.Source.BookPath), param.Source.LocatorVersion, param.Source.Locator
+			or.Element = &ElementReview{Action: "move", Source: string(param.Source.BookPath), Destination: string(param.Destination.BookPath), Position: param.Position}
 		case publication.TextReplace:
 			or.BookPath, or.LocatorVersion, or.Locator = string(param.BookPath), param.LocatorVersion, param.Locator
 			or.OldValue, or.PlannedValue = param.Pattern, param.Replacement
@@ -950,6 +998,50 @@ func candidateElementEffect(a *archive.Archive, p *publication.Publication, base
 		return countBlockBytes(a, cands, bp, baseBytes, baseBytes[start:end], "preserved", "preserved", "missing")
 	}
 	return "", fmt.Errorf("unsupported operation params")
+}
+
+// candidateCrossMove observes one cross-resource move in the actual candidate:
+// the destination must carry the planned block bytes at the offset the frozen
+// edits imply, the source must have lost one occurrence, and the caller reads
+// every synchronized reference from its actual candidate resource.
+func candidateCrossMove(a *archive.Archive, p *publication.Publication, base publicationRoot, bases, cands map[string][]byte, docs map[string]*publication.StructureDocument, planned map[string][]*publication.StructureEdit, edit *publication.CrossMoveEdit) (string, error) {
+	dest, err := candidateBytes(a, cands, edit.DestinationPath)
+	if err != nil {
+		return "", err
+	}
+	offset := publication.ExpectedBlockOffset(edit.InsertAt, planned[string(edit.DestinationPath)])
+	if offset < 0 || offset+len(edit.Block) > len(dest) || !bytes.Equal(dest[offset:offset+len(edit.Block)], edit.Block) {
+		return "", fmt.Errorf("moved block is not at the planned destination position")
+	}
+	_, baseSource, err := candidateBaseStructure(base, p, edit.SourcePath, bases, docs)
+	if err != nil {
+		return "", err
+	}
+	source, err := candidateBytes(a, cands, edit.SourcePath)
+	if err != nil {
+		return "", err
+	}
+	// The source never carried the destination spelling: the block's frozen
+	// interval is the authored source bytes before any rebasing.
+	sourceBlock := baseSource[edit.SourceSpan.Start:edit.SourceSpan.End]
+	before, after := bytes.Count(baseSource, sourceBlock), bytes.Count(source, sourceBlock)
+	if after >= before {
+		return "", fmt.Errorf("source occurrences did not decrease (%d→%d)", before, after)
+	}
+	return fmt.Sprintf("moved to %s at planned block offset %d; source occurrences %d→%d", edit.DestinationPath, offset, before, after), nil
+}
+
+// candidateBytes caches one candidate resource's exact bytes for review.
+func candidateBytes(a *archive.Archive, cands map[string][]byte, bp bookpath.BookPath) ([]byte, error) {
+	if b, ok := cands[string(bp)]; ok {
+		return b, nil
+	}
+	b, err := a.Read(bp, publication.XMLLimit)
+	if err != nil {
+		return nil, err
+	}
+	cands[string(bp)] = b
+	return b, nil
 }
 
 // countBlockBytes reports how the exact block bytes occur in the candidate
