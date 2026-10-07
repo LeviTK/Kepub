@@ -114,6 +114,7 @@ func Capabilities() []Capability {
 			"required": append([]string{"bookPath", "revisionId", "resourceSha256", "locatorVersion", "locator"}, required...), "properties": props}
 	}
 	xhtmlName := map[string]any{"type": "string", "pattern": "^[A-Za-z_][-A-Za-z0-9._]*$", "x-maxUtf8Bytes": 1024}
+	xhtmlLocator := map[string]any{"type": "string", "minLength": 1, "x-maxUtf8Bytes": 4096}
 	xhtmlNamespace := map[string]any{"enum": []string{"", "http://www.w3.org/XML/1998/namespace", "http://www.idpf.org/2007/ops"}}
 	xhtmlPosition := map[string]any{"enum": []string{"before", "after", "first-child", "last-child"}}
 	xhtmlFragment := map[string]any{"type": "string", "minLength": 1, "x-maxUtf8Bytes": publication.XMLLimit}
@@ -133,7 +134,7 @@ func Capabilities() []Capability {
 		{ID: "xhtml.element.replace", Mutates: true, Risk: "bounded_edit", InputSchema: xhtmlBase(map[string]any{"fragment": xhtmlFragment}, "fragment"),
 			SupportedFeatures: []string{"schema 4; frozen resource binding and exact locator", "whole literal element markup replaced by the validated fragment", "html/head/body refused; removed ids require proven reference coverage"}},
 		{ID: "xhtml.element.move", Mutates: true, Risk: "bounded_edit", InputSchema: xhtmlBase(map[string]any{
-			"anchor": xhtmlName, "position": xhtmlPosition}, "anchor", "position"),
+			"anchor": xhtmlLocator, "position": xhtmlPosition}, "anchor", "position"),
 			SupportedFeatures: []string{"schema 4; frozen resource binding and both locators", "same-resource subtree move preserving exact bytes and ids", "moving into itself or onto another target's range refused", "cross-resource moves remain outside this batch"}},
 	}
 	for _, c := range append([]Capability{

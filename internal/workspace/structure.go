@@ -106,10 +106,24 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 		g.ops = append(g.ops, op)
 	}
 
+	// Phase 1 derives every resource's edits and binding checks. Dependency
+	// facts are only collected here: identity and link validation must see the
+	// whole transaction, never a partially processed group.
 	gate := &structureGate{a: a, pub: pub, baseIDs: map[bookpath.BookPath]map[string]int{}, removed: map[bookpath.BookPath]map[string]bool{}, added: map[bookpath.BookPath]map[string]bool{}}
+	type groupEdit struct {
+		path  string
+		bp    bookpath.BookPath
+		base  []byte
+		doc   *publication.StructureDocument
+		edits []*publication.StructureEdit
+	}
+	derived := make([]*groupEdit, 0, len(order))
 	for _, path := range order {
 		g := groups[path]
 		bp := bookpath.BookPath(path)
+		if err := publication.CheckXHTMLTarget(pub, bp); err != nil {
+			return derivation{}, err
+		}
 		base, err := a.Read(bp, publication.XMLLimit)
 		if err != nil {
 			return derivation{}, err
@@ -200,48 +214,60 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 		if err := publication.ValidateEdits(edits); err != nil {
 			return derivation{}, fault.New(2, "INVALID_OPERATIONS", "%v", err)
 		}
-		gate.baseIDs[bp] = doc.IDs()
-		for _, edit := range edits {
+		derived = append(derived, &groupEdit{path: path, bp: bp, base: base, doc: doc, edits: edits})
+	}
+	// Phase 2 collects every identity fact of the whole transaction before any
+	// dependency check, so operation order cannot change the outcome.
+	for _, ge := range derived {
+		gate.baseIDs[ge.bp] = ge.doc.IDs()
+		for _, edit := range ge.edits {
 			for _, id := range edit.RemovedIDs {
-				if gate.removed[bp] == nil {
-					gate.removed[bp] = map[string]bool{}
+				if gate.removed[ge.bp] == nil {
+					gate.removed[ge.bp] = map[string]bool{}
 				}
-				gate.removed[bp][id] = true
+				gate.removed[ge.bp][id] = true
 			}
 			for _, id := range edit.AddedIDs {
-				if gate.added[bp] == nil {
-					gate.added[bp] = map[string]bool{}
+				if gate.added[ge.bp] == nil {
+					gate.added[ge.bp] = map[string]bool{}
 				}
-				if gate.added[bp][id] {
-					return derivation{}, fault.New(2, "INVALID_OPERATIONS", "duplicate new id %q in %s", id, path)
+				if gate.added[ge.bp][id] {
+					return derivation{}, fault.New(2, "INVALID_OPERATIONS", "duplicate new id %q in %s", id, ge.path)
 				}
-				gate.added[bp][id] = true
+				gate.added[ge.bp][id] = true
 			}
+		}
+	}
+	for _, ge := range derived {
+		for id := range gate.added[ge.bp] {
+			if gate.baseIDs[ge.bp][id] > 0 && !gate.removed[ge.bp][id] {
+				return derivation{}, fault.New(2, "INVALID_OPERATIONS", "new id %q already exists in %s", id, ge.path)
+			}
+		}
+		for id := range gate.removed[ge.bp] {
+			if gate.added[ge.bp][id] {
+				continue
+			}
+			if err := gate.checkRemovedID(ge.bp, id); err != nil {
+				return derivation{}, err
+			}
+		}
+		for _, edit := range ge.edits {
 			for _, link := range edit.Links {
-				if err := gate.checkLink(bp, link.Value); err != nil {
+				if err := gate.checkLink(ge.bp, link.Value); err != nil {
 					return derivation{}, err
 				}
 			}
 		}
-		for id := range gate.added[bp] {
-			if gate.baseIDs[bp][id] > 0 && !gate.removed[bp][id] {
-				return derivation{}, fault.New(2, "INVALID_OPERATIONS", "new id %q already exists in %s", id, path)
-			}
-		}
-		for id := range gate.removed[bp] {
-			if gate.added[bp][id] {
-				continue
-			}
-			if err := gate.checkRemovedID(bp, id); err != nil {
-				return derivation{}, err
-			}
-		}
-		output := publication.ApplyEdits(base, edits)
-		if err := publication.VerifyStructure(doc, edits, output); err != nil {
+	}
+	// Phase 3 applies and independently verifies each resource's bytes.
+	for _, ge := range derived {
+		output := publication.ApplyEdits(ge.base, ge.edits)
+		if err := publication.VerifyStructure(ge.doc, ge.edits, output); err != nil {
 			return derivation{}, fmt.Errorf("structural verification: %v", err)
 		}
-		outputs[path] = output
-		planned[path] = edits
+		outputs[ge.path] = output
+		planned[ge.path] = ge.edits
 	}
 	writes := make([]string, 0, len(outputs))
 	for path, out := range outputs {

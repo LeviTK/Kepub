@@ -98,6 +98,12 @@ func applyTextTarget(input []byte, p *Publication, s TextSet) ([]byte, bool, err
 	return xmltext.Replace(input, e, s.ExpectedOldValue, s.NewValue)
 }
 
+// CheckXHTMLTarget exposes the single-operation manifest permission boundary so
+// structural operations cannot widen it.
+func CheckXHTMLTarget(p *Publication, bp bookpath.BookPath) error {
+	return checkTextTarget(p, bp)
+}
+
 func checkTextTarget(p *Publication, bp bookpath.BookPath) error {
 	found := false
 	for _, item := range p.Manifest {

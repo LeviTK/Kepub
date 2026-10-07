@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -29,11 +30,19 @@ const (
 // is maintained by explicit publication operations, not by deleting it.
 var structureTargetDenied = []string{"html", "head", "body"}
 
-// Attribute writes that belong to other batches or enable dynamic content.
-var structureAttributeDenied = []string{"style", "srcset", "imagesrcset", "http-equiv"}
+// Attribute writes that belong to other batches, open dynamic content, or carry
+// URL semantics this batch cannot maintain. The URL set mirrors the reference
+// index's unsupported URL-bearing attributes.
+var structureAttributeDenied = []string{
+	"style", "srcset", "imagesrcset", "http-equiv", "srcdoc",
+	"poster", "data", "action", "formaction", "ping", "longdesc", "archive",
+	"codebase", "background", "profile", "cite", "usemap", "manifest",
+	"itemid", "itemtype", "classid",
+}
 
-// Fragment elements that are never inserted by this batch.
-var fragmentElementDenied = []string{"script", "style", "base"}
+// Fragment elements that are never inserted by this batch: script/style/base,
+// nested browsing contexts, plugin content and head-only elements.
+var fragmentElementDenied = []string{"script", "style", "base", "iframe", "frame", "frameset", "object", "embed", "applet", "portal", "link", "meta", "title"}
 
 func validateBinding(bp bookpath.BookPath, revision, sha string, locatorVersion int, locator string) error {
 	if _, err := bookpath.Parse(string(bp)); err != nil {
@@ -351,6 +360,14 @@ type StructureChange struct {
 	Text     string
 	Fragment *Fragment
 	Block    []byte // exact inserted or moved bytes, checked at the destination
+	// Before/After are the frozen bytes immediately surrounding a replaced
+	// element's markup, so verification can require the block to appear with
+	// that exact character-data context.
+	Before []byte
+	After  []byte
+	// Decls are namespace declarations written together with a new attribute,
+	// in tag order before it.
+	Decls []xml.Attr
 }
 
 // Fragment is a validated insertion block. Bytes are encoded for the target
@@ -442,6 +459,9 @@ func validateFragmentElement(e *xmltext.Element) error {
 		if err := validAttributeName(a.Name.Space, a.Name.Local); err != nil {
 			return err
 		}
+		if isIDAttribute(a.Name) && !xmltext.ValidNCName(a.Value) {
+			return fmt.Errorf("fragment id %q is not a legal XML name", a.Value)
+		}
 	}
 	for _, c := range e.Children {
 		if err := validateFragmentElement(c); err != nil {
@@ -478,6 +498,8 @@ func escapeAttributeValue(v string) string {
 			b.WriteString("&lt;")
 		case '"':
 			b.WriteString("&quot;")
+		case '\'':
+			b.WriteString("&#39;")
 		case '\t':
 			b.WriteString("&#x9;")
 		case '\n':
@@ -496,16 +518,74 @@ func (d *StructureDocument) encodeAttributeValue(v string) ([]byte, error) {
 	return d.Encode(escapeAttributeValue(v))
 }
 
-func attributeNameBytes(name xml.Name) (string, bool) {
+// attributeName renders one resolved attribute name with the prefix to use. An
+// unprefixed name is in no namespace; xml: is predeclared.
+func attributeName(name xml.Name, prefix string) (string, bool) {
 	switch name.Space {
 	case "":
 		return name.Local, true
 	case XMLNamespace:
 		return "xml:" + name.Local, true
 	case OpsNamespace:
-		return "epub:" + name.Local, true
+		if prefix == "" {
+			return "", false
+		}
+		return prefix + ":" + name.Local, true
 	}
 	return "", false
+}
+
+// opsPrefix returns an in-scope non-empty prefix bound to the operations
+// namespace, so an existing declaration is reused instead of duplicated.
+func opsPrefix(scope map[string]string) string {
+	for _, prefix := range sortedKeys(scope) {
+		if prefix != "" && prefix != "xml" && scope[prefix] == OpsNamespace {
+			return prefix
+		}
+	}
+	return ""
+}
+
+// freePrefix returns an unused prefix for a new operations namespace
+// declaration.
+func freePrefix(scope map[string]string) string {
+	if _, taken := scope["epub"]; !taken {
+		return "epub"
+	}
+	for i := 2; ; i++ {
+		prefix := "epub" + strconv.Itoa(i)
+		if _, taken := scope[prefix]; !taken {
+			return prefix
+		}
+	}
+}
+
+// attributeInsertion builds the bytes that declare (when needed) and write one
+// new attribute, separated correctly from the existing tag content.
+func (d *StructureDocument) attributeInsertion(e *xmltext.Element, name xml.Name, value string) ([]byte, []xml.Attr, error) {
+	scope := e.NamespaceScope()
+	prefix := ""
+	decls := []xml.Attr{}
+	parts := []string{}
+	if name.Space == OpsNamespace {
+		if existing := opsPrefix(scope); existing != "" {
+			prefix = existing
+		} else {
+			prefix = freePrefix(scope)
+			parts = append(parts, `xmlns:`+prefix+`="`+OpsNamespace+`"`)
+			decls = append(decls, xml.Attr{Name: xml.Name{Space: "xmlns", Local: prefix}, Value: OpsNamespace})
+		}
+	}
+	rendered, ok := attributeName(name, prefix)
+	if !ok {
+		return nil, nil, fault.New(2, "INVALID_OPERATIONS", "unsupported attribute namespace")
+	}
+	parts = append(parts, rendered+`="`+escapeAttributeValue(value)+`"`)
+	inserted, err := d.Encode(" " + strings.Join(parts, " "))
+	if err != nil {
+		return nil, nil, err
+	}
+	return inserted, decls, nil
 }
 
 // subtreeIDs collects unprefixed id and xml:id values in one subtree.
@@ -623,18 +703,11 @@ func (d *StructureDocument) AttributeSetEdit(op AttributeSet) (*StructureEdit, e
 	if !ok {
 		return nil, fault.New(2, "INVALID_OPERATIONS", "element %s has no literal start tag", op.Locator)
 	}
-	prefix, ok := attributeNameBytes(name)
-	if !ok {
-		return nil, fault.New(2, "INVALID_OPERATIONS", "unsupported attribute namespace")
-	}
-	decl := ""
-	if name.Space == OpsNamespace && e.NamespaceScope()["epub"] != OpsNamespace {
-		decl = ` xmlns:epub="` + OpsNamespace + `"`
-	}
-	inserted, err := d.Encode(" " + decl + prefix + `="` + escapeAttributeValue(op.Value) + `"`)
+	inserted, decls, err := d.attributeInsertion(e, name, op.Value)
 	if err != nil {
 		return nil, err
 	}
+	edit.Change.Decls = decls
 	edit.Points = append(edit.Points, EditPoint{At: at, Bytes: inserted})
 	return edit, nil
 }
@@ -798,7 +871,8 @@ func (d *StructureDocument) ElementReplaceEdit(op ElementReplace) (*StructureEdi
 		return nil, err
 	}
 	ids, links := fragmentFacts(fragment.Nodes)
-	edit := &StructureEdit{RemovedIDs: subtreeIDs(target), AddedIDs: ids, Links: links, Change: StructureChange{Kind: "element-replace", Locator: op.Locator, Fragment: fragment, Block: fragment.Bytes}}
+	before, after := d.replaceContext(target, start, end)
+	edit := &StructureEdit{RemovedIDs: subtreeIDs(target), AddedIDs: ids, Links: links, Change: StructureChange{Kind: "element-replace", Locator: op.Locator, Fragment: fragment, Block: fragment.Bytes, Before: before, After: after}}
 	edit.Spans = append(edit.Spans, EditSpan{Start: start, End: end, Bytes: fragment.Bytes})
 	return edit, nil
 }
@@ -850,6 +924,39 @@ func elementAttribute(e *xmltext.Element, name xml.Name) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// replaceContext returns the frozen bytes immediately surrounding an element's
+// markup inside its parent: from the previous element sibling's end tag (or the
+// parent's start tag) and to the next element sibling's start tag (or the
+// parent's end tag). Those bytes are not writable by the replacement itself.
+func (d *StructureDocument) replaceContext(e *xmltext.Element, start, end int) (before, after []byte) {
+	lower, upper := 0, len(d.Input)
+	if e.Parent != nil {
+		if s, u, ok := e.Parent.PhysicalContent(); ok {
+			lower, upper = s, u
+		}
+		for i, c := range e.Parent.Children {
+			if c != e {
+				continue
+			}
+			if i > 0 {
+				if _, prevEnd, ok := e.Parent.Children[i-1].PhysicalMarkup(); ok {
+					lower = prevEnd
+				}
+			}
+			if i+1 < len(e.Parent.Children) {
+				if nextStart, _, ok := e.Parent.Children[i+1].PhysicalMarkup(); ok {
+					upper = nextStart
+				}
+			}
+			break
+		}
+	}
+	if lower < 0 || lower > start || upper < end || upper > len(d.Input) {
+		return nil, nil
+	}
+	return d.Input[lower:start], d.Input[end:upper]
 }
 
 // isIDAttribute reports whether a resolved attribute name carries document
@@ -959,16 +1066,43 @@ func ApplyEdits(input []byte, edits []*StructureEdit) []byte {
 // ---- independent verification of a spliced result ----
 
 type simNode struct {
-	name       xml.Name
-	attrs      []xml.Attr
-	direct     string
-	children   []*simNode
-	parent     *simNode
-	loc        string
-	block      []byte
-	blockNodes int
-	position   string
-	anchor     string
+	name         xml.Name
+	attrs        []xml.Attr
+	direct       string
+	children     []*simNode
+	parent       *simNode
+	loc          string
+	block        []byte
+	blockNodes   int
+	position     string
+	anchor       string
+	blockBefore  []byte
+	blockAfter   []byte
+	blockGapUsed bool
+}
+
+// blockLocator names a block node that has no frozen locator, so verification
+// still checks its exact bytes at its final position.
+func blockLocator(kind string, opIndex int) string {
+	return "@" + kind + ":" + strconv.Itoa(opIndex)
+}
+
+// replaceContextUsed reports whether another operation inserts a point inside a
+// replaced element's surrounding character data, which changes that context.
+func replaceContextUsed(edit *StructureEdit, edits []*StructureEdit) bool {
+	if len(edit.Spans) == 0 {
+		return true
+	}
+	start, end := edit.Spans[0].Start, edit.Spans[0].End
+	before, after := len(edit.Change.Before), len(edit.Change.After)
+	for _, other := range edits {
+		for _, p := range other.Points {
+			if p.At >= start-before && p.At < start || p.At > end && p.At <= end+after {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func buildSim(e *xmltext.Element) *simNode {
@@ -1090,6 +1224,9 @@ func SimulateStructure(doc *StructureDocument, edits []*StructureEdit) (*simNode
 			if n == nil {
 				return nil, nil, fmt.Errorf("simulation lost target %s", ch.Locator)
 			}
+			for _, decl := range ch.Decls {
+				n.attrs = setAttribute(n.attrs, decl)
+			}
 			n.attrs = setAttribute(n.attrs, *ch.Attr)
 		case "attribute-remove":
 			n := byLoc[ch.Locator]
@@ -1114,8 +1251,13 @@ func SimulateStructure(doc *StructureDocument, edits []*StructureEdit) (*simNode
 			if anchor == nil {
 				return nil, nil, fmt.Errorf("simulation lost anchor %s", ch.Locator)
 			}
-			if err := insertRelative(anchor, ch.Position, convertFragmentNodes(ch.Fragment.Nodes), ch.Block); err != nil {
+			nodes := convertFragmentNodes(ch.Fragment.Nodes)
+			if err := insertRelative(anchor, ch.Position, nodes, ch.Block); err != nil {
 				return nil, nil, err
+			}
+			if len(nodes) > 0 {
+				nodes[0].loc = blockLocator("insert", e.OpIndex)
+				byLoc[nodes[0].loc] = nodes[0]
 			}
 		case "element-replace":
 			target := byLoc[ch.Locator]
@@ -1138,6 +1280,10 @@ func SimulateStructure(doc *StructureDocument, edits []*StructureEdit) (*simNode
 			}
 			if len(nodes) > 0 {
 				nodes[0].block, nodes[0].blockNodes, nodes[0].position = ch.Block, len(nodes), "replace"
+				nodes[0].blockBefore, nodes[0].blockAfter = ch.Before, ch.After
+				nodes[0].blockGapUsed = replaceContextUsed(e, edits)
+				nodes[0].loc = blockLocator("replace", e.OpIndex)
+				byLoc[nodes[0].loc] = nodes[0]
 			}
 		case "element-move":
 			moved := byLoc[ch.Locator]
@@ -1177,6 +1323,7 @@ func VerifyStructure(doc *StructureDocument, edits []*StructureEdit, output []by
 	if err := compareStructure(expected, check.Root, output, actualByLoc); err != nil {
 		return err
 	}
+	checked := 0
 	for loc, exp := range expectedByLoc {
 		if exp.block == nil {
 			continue
@@ -1188,6 +1335,18 @@ func VerifyStructure(doc *StructureDocument, edits []*StructureEdit, output []by
 		if err := checkBlockPlacement(output, exp, act, actualByLoc); err != nil {
 			return err
 		}
+		checked++
+	}
+	// Every operation that produced a block must be checked: a block without a
+	// locator would silently skip its byte placement check.
+	want := 0
+	for _, e := range edits {
+		if e.Change.Block != nil {
+			want++
+		}
+	}
+	if checked != want {
+		return fmt.Errorf("verified %d of %d inserted blocks", checked, want)
 	}
 	return nil
 }
@@ -1259,13 +1418,21 @@ func checkBlockPlacement(output []byte, exp *simNode, act *xmltext.Element, byLo
 		if index < 0 {
 			return fmt.Errorf("replacement block is not a child of its parent")
 		}
-		next := index + countBlockNodes(exp)
-		if next < len(parent.Children) {
-			if !bytes.HasPrefix(output[parent.Children[next].OpenStart:], exp.block) {
-				return fmt.Errorf("replacement block is not immediately before its next sibling")
+		if exp.blockGapUsed {
+			// Another operation inserts into the surrounding character data, so
+			// the exact context cannot be required; the structural comparison
+			// still pins the block's parent and sibling order.
+			if !bytes.Contains(output, exp.block) {
+				return fmt.Errorf("replacement block bytes are absent")
 			}
-		} else if !bytes.HasSuffix(output[:parent.CloseStart], exp.block) {
-			return fmt.Errorf("replacement block is not at the end of its parent")
+			return nil
+		}
+		context := make([]byte, 0, len(exp.blockBefore)+len(exp.block)+len(exp.blockAfter))
+		context = append(context, exp.blockBefore...)
+		context = append(context, exp.block...)
+		context = append(context, exp.blockAfter...)
+		if !bytes.Contains(output, context) {
+			return fmt.Errorf("replacement block is not at the replaced element's position")
 		}
 	default:
 		return fmt.Errorf("unsupported block position %q", exp.position)

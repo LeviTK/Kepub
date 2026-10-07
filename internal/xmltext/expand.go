@@ -100,8 +100,18 @@ func (s source) literalRange(start, end int) (int, int, bool) {
 // interval; loose intervals (a whole tag being removed or moved) may contain
 // generated defaults because those bytes are not written back.
 func (s source) sourceRange(start, end int, strict bool) (int, int, bool) {
-	if end <= start {
+	if end < start {
 		return 0, 0, false
+	}
+	// An empty interval is writable when both boundaries resolve to one offset:
+	// an empty attribute value still has a place for a replacement.
+	if end == start {
+		from, ok := s.boundaryOffset(start, true)
+		to, ok2 := s.boundaryOffset(start, false)
+		if !ok || !ok2 || from != to {
+			return 0, 0, false
+		}
+		return from, to, true
 	}
 	i := sort.Search(len(s.spans), func(i int) bool { return s.spans[i].end > start })
 	if i == len(s.spans) {

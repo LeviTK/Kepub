@@ -264,6 +264,17 @@ func (b *builder) diagnostic(bp bookpath.BookPath, location, code, message strin
 	b.g.Diagnostics = append(b.g.Diagnostics, publication.Diagnostic{Source: "kepub", Code: code, Severity: "error", BookPath: bp, Location: location, Message: message})
 }
 
+// idrefAttributes are XHTML/SVG attributes whose value is one IDREF or a
+// whitespace-separated IDREF list resolved inside the same document. ARIA and
+// table-header attributes are included because removing a referenced identity
+// would leave them dangling.
+var idrefAttributes = map[string]bool{
+	"headers": true, "for": true, "list": true, "form": true, "itemref": true,
+	"aria-activedescendant": true, "aria-controls": true, "aria-describedby": true,
+	"aria-details": true, "aria-errormessage": true, "aria-flowto": true,
+	"aria-labelledby": true, "aria-owns": true,
+}
+
 func (b *builder) add(bp bookpath.BookPath, location, syntax, href string) {
 	resolvedHref := href
 	if syntax == "xhtml.href" || syntax == "xhtml.src" || syntax == "nav.href" {
@@ -328,10 +339,10 @@ func (b *builder) scanXML(bp bookpath.BookPath, kind string) {
 	expected := xml.Name{}
 	switch kind {
 	case "application/xhtml+xml":
-		syntaxes = append(syntaxes, "xhtml.href", "xhtml.src", "nav.href", "inline-style")
+		syntaxes = append(syntaxes, "xhtml.href", "xhtml.src", "nav.href", "xhtml.idref", "inline-style")
 		expected = xml.Name{Space: publication.XHTMLNamespace, Local: "html"}
 	case "image/svg+xml":
-		syntaxes = append(syntaxes, "svg.href", "inline-style")
+		syntaxes = append(syntaxes, "svg.href", "xhtml.idref", "inline-style")
 		expected = xml.Name{Space: svgNS, Local: "svg"}
 	case "application/x-dtbncx+xml":
 		syntaxes = append(syntaxes, "ncx.src")
@@ -443,6 +454,16 @@ func (b *builder) walkXML(bp bookpath.BookPath, e *publication.Element, inNav, i
 			if !incomplete && ns == svgNS && a.Name.Space == "" && slices.Contains([]string{"fill", "stroke", "filter", "clip-path", "mask", "marker", "marker-start", "marker-mid", "marker-end", "cursor"}, a.Name.Local) {
 				b.css(bp, location, a.Value)
 			}
+		}
+		// IDREF attributes are same-document references even though they carry no
+		// URL: a removed target would leave them dangling.
+		if a.Name.Space == "" && idrefAttributes[a.Name.Local] && (ns == publication.XHTMLNamespace || ns == svgNS) {
+			if !incomplete {
+				for _, token := range strings.Fields(a.Value) {
+					b.add(bp, location, "xhtml.idref", "#"+token)
+				}
+			}
+			continue
 		}
 		syntax := ""
 		switch {

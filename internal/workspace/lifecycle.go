@@ -524,7 +524,7 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 		for i, op := range e.Plan.Operations {
 			switch param := op.Params.(type) {
 			case publication.TextSet:
-				value, err := candidateContentValue(a, p, param)
+				value, err := candidateContentValue(a, p, cands, base, bases, docs, planned, param)
 				if err != nil {
 					r.Operations[i].Unavailable = err.Error()
 				} else {
@@ -593,7 +593,7 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 	}
 	if r.Content != nil {
 		param := e.Plan.Operations[0].Params.(publication.TextSet)
-		value, err := candidateContentValue(a, p, param)
+		value, err := candidateContentValue(a, p, map[string][]byte{}, publicationRoot{}, nil, nil, nil, param)
 		if err != nil {
 			r.Content.Unavailable = err.Error()
 		} else {
@@ -670,23 +670,32 @@ func unavailableReview(r *Review, reason string) {
 	}
 }
 
-// candidateContentValue observes the actual candidate simple-text target. It
-// never substitutes the planned value for unreadable candidate content.
-func candidateContentValue(a *archive.Archive, p *publication.Publication, param publication.TextSet) (string, error) {
-	media := ""
-	for _, item := range p.Manifest {
-		if item.Path == param.BookPath {
-			media = item.MediaType
-		}
-	}
-	if media != "application/xhtml+xml" {
-		return "", fmt.Errorf("candidate target is not manifest XHTML")
-	}
-	b, err := a.Read(param.BookPath, publication.XMLLimit)
+// candidateContentValue observes the actual candidate simple-text target. In a
+// schema 4 transaction the target is located by its planned tree path, so a
+// sibling inserted earlier in the same transaction cannot make the frozen
+// locator read a different element. It never substitutes the planned value for
+// unreadable candidate content.
+func candidateContentValue(a *archive.Archive, p *publication.Publication, cands map[string][]byte, base publicationRoot, bases map[string][]byte, docs map[string]*publication.StructureDocument, planned map[string][]*publication.StructureEdit, param publication.TextSet) (string, error) {
+	candDoc, err := candidateStructure(a, p, cands, param.BookPath)
 	if err != nil {
 		return "", err
 	}
-	return publication.ContentText(b, param.Locator, xmltext.Profile{Version: p.Version, MediaType: media})
+	var e *xmltext.Element
+	if edits := planned[string(param.BookPath)]; edits != nil {
+		baseDoc, _, err := candidateBaseStructure(base, p, param.BookPath, bases, docs)
+		if err != nil {
+			return "", err
+		}
+		if e, err = candidateTargetElement(baseDoc, edits, candDoc, param.Locator); err != nil {
+			return "", err
+		}
+	} else if e, err = candDoc.Locate(param.Locator); err != nil {
+		return "", err
+	}
+	if e.Complex || len(e.Children) != 0 {
+		return "", fmt.Errorf("candidate target is not simple text")
+	}
+	return e.Text, nil
 }
 
 // candidateMetadataValue observes the actual candidate metadata target.
@@ -722,6 +731,9 @@ func candidateMetadataValue(p *publication.Publication, param metadata.Set) (str
 // candidateStructure parses one candidate XHTML resource for review. Bytes are
 // cached per resource; the parse reuses the same strictness as planning.
 func candidateStructure(a *archive.Archive, p *publication.Publication, cands map[string][]byte, bp bookpath.BookPath) (*publication.StructureDocument, error) {
+	if cands == nil {
+		cands = map[string][]byte{}
+	}
 	media, err := xhtmlMediaType(p, bp)
 	if err != nil {
 		return nil, err
@@ -856,13 +868,13 @@ func candidateElementEffect(a *archive.Archive, p *publication.Publication, base
 		if err != nil {
 			return "", err
 		}
-		return countBlockBytes(a, cands, bp, baseBytes, block, "present", "not observed verbatim")
+		return countBlockBytes(a, cands, bp, baseBytes, block, "present", "not observed verbatim", "decreased")
 	case publication.ElementReplace:
 		block, err := baseDoc.Encode(param.Fragment)
 		if err != nil {
 			return "", err
 		}
-		return countBlockBytes(a, cands, bp, baseBytes, block, "present", "not observed verbatim")
+		return countBlockBytes(a, cands, bp, baseBytes, block, "present", "not observed verbatim", "decreased")
 	case publication.ElementMove:
 		e, err := baseDoc.Locate(param.Locator)
 		if err != nil {
@@ -872,14 +884,15 @@ func candidateElementEffect(a *archive.Archive, p *publication.Publication, base
 		if !ok {
 			return "", fmt.Errorf("moved element has no literal markup interval")
 		}
-		return countBlockBytes(a, cands, bp, baseBytes, baseBytes[start:end], "preserved", "missing")
+		return countBlockBytes(a, cands, bp, baseBytes, baseBytes[start:end], "preserved", "preserved", "missing")
 	}
 	return "", fmt.Errorf("unsupported operation params")
 }
 
 // countBlockBytes reports how the exact block bytes occur in the candidate
-// relative to the frozen base. It is evidence, not proof of placement.
-func countBlockBytes(a *archive.Archive, cands map[string][]byte, bp bookpath.BookPath, baseBytes, block []byte, increased, equal string) (string, error) {
+// relative to the frozen base. It is evidence, not proof of placement; a moved
+// block keeps its occurrence count, so only a decrease is a loss.
+func countBlockBytes(a *archive.Archive, cands map[string][]byte, bp bookpath.BookPath, baseBytes, block []byte, increased, equal, decreased string) (string, error) {
 	cand, ok := cands[string(bp)]
 	if !ok {
 		var err error
@@ -896,7 +909,7 @@ func countBlockBytes(a *archive.Archive, cands map[string][]byte, bp bookpath.Bo
 	case after == before:
 		return fmt.Sprintf("block bytes %s (occurrences %d→%d)", equal, before, after), nil
 	default:
-		return fmt.Sprintf("block bytes decreased (occurrences %d→%d)", before, after), nil
+		return fmt.Sprintf("block bytes %s (occurrences %d→%d)", decreased, before, after), nil
 	}
 }
 

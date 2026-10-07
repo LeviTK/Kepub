@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/LeviTK/Kepub/internal/archive"
@@ -49,7 +50,13 @@ const structureOPF = `<?xml version="1.0"?><package xmlns="http://www.idpf.org/2
 // reference-coverage-blocked variant without touching the shared fixture.
 func structureWorkspace(t *testing.T, extra map[string]string) (*Workspace, string, string) {
 	t.Helper()
-	dir := t.TempDir()
+	return structureWorkspaceAt(t, t.TempDir(), extra)
+}
+
+// structureWorkspaceAt builds the fixture in an existing directory, so a fuzz
+// target can reuse one imported baseline instead of importing per execution.
+func structureWorkspaceAt(t *testing.T, dir string, extra map[string]string) (*Workspace, string, string) {
+	t.Helper()
 	pub := filepath.Join(dir, "pub")
 	files := map[string]string{
 		"mimetype":               "application/epub+zip",
@@ -701,4 +708,373 @@ func TestStructureNoOpMixedAndStalePlan(t *testing.T) {
 	if err != nil || st.Status != "accepted" || st.Decision == nil || st.Decision.RevisionID != d.RevisionID {
 		t.Fatalf("history: %+v %v", st, err)
 	}
+}
+
+// TestStructureReferenceGateOrderIndependent proves the dependency gate
+// validates the whole transaction's final identity and link state: neither
+// operation order can create a dangling link, in one resource or across two.
+func TestStructureReferenceGateOrderIndependent(t *testing.T) {
+	for _, linkFirst := range []bool{true, false} {
+		name := "link-first"
+		if !linkFirst {
+			name = "target-first"
+		}
+		t.Run("cross-resource-delete-"+name, func(t *testing.T) {
+			w, _, _ := structureWorkspace(t, nil)
+			defer w.Close()
+			ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+			ch2 := structureBinding(t, w, "EPUB/chapter2.xhtml")
+			link := ch2.elemInsert(ch2.locator(t, "p", 0), "after", `<p><a href="chapter1.xhtml#unreferenced">new link</a></p>`)
+			remove := ch1.elemDelete(ch1.locatorID(t, "unreferenced"))
+			ops := []Operation{link, remove}
+			if !linkFirst {
+				ops = []Operation{remove, link}
+			}
+			planRefused(t, w, ops, "INVALID_OPERATIONS")
+			if exists(w.root, candidate) {
+				t.Fatal("refused cross-resource link created a candidate")
+			}
+		})
+		t.Run("same-resource-relink-"+name, func(t *testing.T) {
+			w, _, _ := structureWorkspace(t, nil)
+			defer w.Close()
+			ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+			relink := ch1.attrSet(ch1.locator(t, "a", 0), "href", strPtr("chapter2.xhtml#start2"), "#unreferenced")
+			remove := ch1.elemDelete(ch1.locatorID(t, "unreferenced"))
+			ops := []Operation{relink, remove}
+			if !linkFirst {
+				ops = []Operation{remove, relink}
+			}
+			planRefused(t, w, ops, "INVALID_OPERATIONS")
+		})
+		t.Run("cross-resource-old-name-"+name, func(t *testing.T) {
+			w, _, _ := structureWorkspace(t, nil)
+			defer w.Close()
+			ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+			ch2 := structureBinding(t, w, "EPUB/chapter2.xhtml")
+			rename := ch1.attrSet(ch1.locatorID(t, "unreferenced"), "id", strPtr("unreferenced"), "renamed")
+			link := ch2.elemInsert(ch2.locator(t, "p", 0), "after", `<p><a href="chapter1.xhtml#unreferenced">stale</a></p>`)
+			ops := []Operation{rename, link}
+			if !linkFirst {
+				ops = []Operation{link, rename}
+			}
+			planRefused(t, w, ops, "INVALID_OPERATIONS")
+		})
+	}
+}
+
+// TestStructureCrossResourceIdentitySync proves legitimate identity work still
+// plans in either order: an identity added in one resource can be referenced
+// from another, a rename can be referenced by its new name, and an unreferenced
+// removal stays allowed.
+func TestStructureCrossResourceIdentitySync(t *testing.T) {
+	for _, addFirst := range []bool{true, false} {
+		name := "add-first"
+		if !addFirst {
+			name = "link-first"
+		}
+		t.Run("new-id-"+name, func(t *testing.T) {
+			w, dir, _ := structureWorkspace(t, nil)
+			defer w.Close()
+			ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+			ch2 := structureBinding(t, w, "EPUB/chapter2.xhtml")
+			add := ch1.attrSet(ch1.locator(t, "td", 0), "id", nil, "fresh")
+			link := ch2.elemInsert(ch2.locator(t, "p", 0), "after", `<p><a href="chapter1.xhtml#fresh">fresh</a></p>`)
+			ops := []Operation{add, link}
+			if !addFirst {
+				ops = []Operation{link, add}
+			}
+			p := structurePlan(t, w, ops)
+			e := applyPlan(t, w, p)
+			if !bytes.Contains(readResource(t, filepath.Join(dir, candidate, "EPUB/chapter1.xhtml")), []byte(`id="fresh"`)) {
+				t.Fatal("new identity missing from the candidate")
+			}
+			if !bytes.Contains(readResource(t, filepath.Join(dir, candidate, "EPUB/chapter2.xhtml")), []byte(`href="chapter1.xhtml#fresh"`)) {
+				t.Fatal("new link missing from the candidate")
+			}
+			if _, err := w.Reject(e.TaskID); err != nil {
+				t.Fatal(err)
+			}
+		})
+		t.Run("rename-target-"+name, func(t *testing.T) {
+			w, dir, _ := structureWorkspace(t, nil)
+			defer w.Close()
+			ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+			ch2 := structureBinding(t, w, "EPUB/chapter2.xhtml")
+			rename := ch1.attrSet(ch1.locatorID(t, "unreferenced"), "id", strPtr("unreferenced"), "renamed")
+			link := ch2.elemInsert(ch2.locator(t, "p", 0), "after", `<p><a href="chapter1.xhtml#renamed">renamed</a></p>`)
+			ops := []Operation{rename, link}
+			if !addFirst {
+				ops = []Operation{link, rename}
+			}
+			p := structurePlan(t, w, ops)
+			e := applyPlan(t, w, p)
+			if !bytes.Contains(readResource(t, filepath.Join(dir, candidate, "EPUB/chapter1.xhtml")), []byte(`id="renamed"`)) {
+				t.Fatal("renamed identity missing from the candidate")
+			}
+			if _, err := w.Reject(e.TaskID); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+	// Removing an identity nothing references remains allowed with no new links.
+	w, dir, _ := structureWorkspace(t, nil)
+	defer w.Close()
+	ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+	p := structurePlan(t, w, []Operation{ch1.elemDelete(ch1.locatorID(t, "unreferenced"))})
+	e := applyPlan(t, w, p)
+	cand := readResource(t, filepath.Join(dir, candidate, "EPUB/chapter1.xhtml"))
+	if bytes.Contains(cand, []byte(`id="unreferenced"`)) {
+		t.Fatalf("unreferenced identity survived: %q", cand)
+	}
+	if _, err := w.Reject(e.TaskID); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestStructureIDREFGate keeps table-header and ARIA IDREF references from being
+// removed silently: they are references even though they carry no URL.
+func TestStructureIDREFGate(t *testing.T) {
+	chapter := strings.Replace(structureChapter1, `<table id="tbl"><tr><td>cell</td></tr></table>`, `<table id="tbl"><tr><th id="col">Heading</th></tr><tr><td headers="col">cell</td></tr></table><p id="labelled" aria-labelledby="labelled">x</p>`, 1)
+	w, _, _ := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": chapter})
+	defer w.Close()
+	ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+	planRefused(t, w, []Operation{ch1.attrRemove(ch1.locatorID(t, "col"), "id", "col")}, "REFERENCE_CONFLICT")
+	planRefused(t, w, []Operation{ch1.elemDelete(ch1.locatorID(t, "labelled"))}, "REFERENCE_CONFLICT")
+	// An identity that only a URL link names is still gated, and an unreferenced
+	// table identity can be removed.
+	planRefused(t, w, []Operation{ch1.elemDelete(ch1.locatorID(t, "start"))}, "REFERENCE_CONFLICT")
+	if p, err := w.Plan(editJSON(t, Request{4, []Operation{ch1.elemDelete(ch1.locatorID(t, "tbl"))}})); err == nil {
+		t.Fatalf("unreferenced table removal refused: %v", p.WriteSet)
+	}
+}
+
+// TestStructureManifestPermissionBoundary keeps schema 4 from widening the
+// single-operation manifest permission to unregistered resources.
+func TestStructureManifestPermissionBoundary(t *testing.T) {
+	raw := `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>T</title></head><body><p>private</p></body></html>`
+	w, dir, _ := structureWorkspace(t, map[string]string{"EPUB/extra.xhtml": raw})
+	defer w.Close()
+	sum := sha256.Sum256([]byte(raw))
+	textOp := Operation{"content.text.set", 1, publication.TextSet{BookPath: "EPUB/extra.xhtml", RevisionID: "initial", ResourceSHA256: hex.EncodeToString(sum[:]), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", ExpectedOldValue: "private", NewValue: "changed"}}
+	if _, err := w.Plan(editJSON(t, Request{2, []Operation{textOp}})); err == nil {
+		t.Fatal("control: schema 2 accepted a non-manifest resource")
+	}
+	ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+	planRefused(t, w, []Operation{textOp, ch1.attrSet(ch1.locatorID(t, "dir"), "dir", strPtr("rtl"), "ltr")}, "INVALID_OPERATIONS")
+	// The same text write on a manifest XHTML resource stays allowed.
+	manifest := Operation{"content.text.set", 1, publication.TextSet{BookPath: bookpath.BookPath(ch1.bookPath), RevisionID: ch1.revision, ResourceSHA256: ch1.sha, LocatorVersion: 1, Locator: ch1.locatorID(t, "unreferenced"), ExpectedOldValue: "Plain.", NewValue: "Updated"}}
+	p := structurePlan(t, w, []Operation{manifest, ch1.attrSet(ch1.locatorID(t, "dir"), "dir", strPtr("rtl"), "ltr")})
+	if !reflect.DeepEqual(p.WriteSet, []string{"EPUB/chapter1.xhtml"}) {
+		t.Fatalf("manifest write set %v", p.WriteSet)
+	}
+	e := applyPlan(t, w, p)
+	cand := readResource(t, filepath.Join(dir, candidate, "EPUB/chapter1.xhtml"))
+	if !bytes.Contains(cand, []byte(">Updated</p>")) || !bytes.Contains(cand, []byte(`dir="ltr"`)) {
+		t.Fatalf("manifest candidate: %q", cand)
+	}
+	if _, err := w.Reject(e.TaskID); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestStructureAttributePositivePlans keeps the supported attribute writes
+// plannable end to end, including an empty old value, an apostrophe in a
+// single-quoted value and a first operations-namespace declaration.
+func TestStructureAttributePositivePlans(t *testing.T) {
+	for _, scenario := range []string{"empty-value", "single-quote", "new-namespace"} {
+		t.Run(scenario, func(t *testing.T) {
+			chapter := strings.Replace(structureChapter2, `<p>`, `<p title="">`, 1)
+			if scenario == "single-quote" {
+				chapter = strings.Replace(structureChapter2, `<p>`, `<p title='old'>`, 1)
+			}
+			w, dir, _ := structureWorkspace(t, map[string]string{"EPUB/chapter2.xhtml": chapter})
+			defer w.Close()
+			ch2 := structureBinding(t, w, "EPUB/chapter2.xhtml")
+			op := ch2.attrSet(ch2.locator(t, "p", 0), "title", strPtr(""), "new")
+			if scenario == "single-quote" {
+				op = ch2.attrSet(ch2.locator(t, "p", 0), "title", strPtr("old"), "reader's note")
+			}
+			if scenario == "new-namespace" {
+				op = ch2.attrSetNS(ch2.locator(t, "p", 0), publication.OpsNamespace, "type", nil, "footnote")
+			}
+			p := structurePlan(t, w, []Operation{op})
+			e := applyPlan(t, w, p)
+			cand := readResource(t, filepath.Join(dir, candidate, "EPUB/chapter2.xhtml"))
+			switch scenario {
+			case "empty-value":
+				if !bytes.Contains(cand, []byte(`title="new"`)) {
+					t.Fatalf("candidate: %q", cand)
+				}
+			case "single-quote":
+				if !bytes.Contains(cand, []byte(`title='reader&#39;s note'`)) {
+					t.Fatalf("candidate: %q", cand)
+				}
+			case "new-namespace":
+				if !bytes.Contains(cand, []byte(`xmlns:epub="http://www.idpf.org/2007/ops" epub:type="footnote"`)) {
+					t.Fatalf("candidate: %q", cand)
+				}
+			}
+			if _, err := w.Reject(e.TaskID); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+// TestStructureReviewFollowsPlannedTargets keeps task diff on the planned
+// element after another operation shifts its locator, for text and move
+// observations.
+func TestStructureReviewFollowsPlannedTargets(t *testing.T) {
+	w, _, _ := structureWorkspace(t, nil)
+	defer w.Close()
+	ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+	text := Operation{"content.text.set", 1, publication.TextSet{BookPath: bookpath.BookPath(ch1.bookPath), RevisionID: ch1.revision, ResourceSHA256: ch1.sha, LocatorVersion: 1, Locator: ch1.locatorID(t, "unreferenced"), ExpectedOldValue: "Plain.", NewValue: "Updated"}}
+	p := structurePlan(t, w, []Operation{ch1.elemInsert(ch1.locatorID(t, "mixed"), "before", `<p>Inserted</p>`), text})
+	e := applyPlan(t, w, p)
+	r, err := w.TaskDiff(e.TaskID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !r.MatchesExecution || r.Operations[1].NewValue == nil || *r.Operations[1].NewValue != "Updated" {
+		t.Fatalf("shifted text review: %+v", r.Operations[1])
+	}
+	if _, err := w.Reject(e.TaskID); err != nil {
+		t.Fatal(err)
+	}
+	p = structurePlan(t, w, []Operation{ch1.elemMove(ch1.locatorID(t, "dir"), ch1.locatorID(t, "last"), "after")})
+	e = applyPlan(t, w, p)
+	r, err = w.TaskDiff(e.TaskID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !r.MatchesExecution || r.Operations[0].Element == nil || strings.Contains(r.Operations[0].Element.Candidate, "missing") {
+		t.Fatalf("move review: %+v", r.Operations[0])
+	}
+	if _, err := w.Reject(e.TaskID); err != nil {
+		t.Fatal(err)
+	}
+}
+
+var (
+	fuzzWorkspaceOnce sync.Once
+	fuzzWorkspaceDir  string
+	fuzzWorkspaceErr  error
+)
+
+// fuzzStructureDir imports one baseline workspace for the plan fuzz target.
+func fuzzStructureDir(t *testing.T) string {
+	t.Helper()
+	fuzzWorkspaceOnce.Do(func() {
+		dir, err := os.MkdirTemp("", "kepub-structure-fuzz-")
+		if err != nil {
+			fuzzWorkspaceErr = err
+			return
+		}
+		w, _, _ := structureWorkspaceAt(t, dir, nil)
+		if err := w.Close(); err != nil {
+			fuzzWorkspaceErr = err
+			return
+		}
+		fuzzWorkspaceDir = filepath.Join(dir, "workspace")
+	})
+	if fuzzWorkspaceErr != nil {
+		t.Fatal(fuzzWorkspaceErr)
+	}
+	return fuzzWorkspaceDir
+}
+
+// fuzzStructureOperation builds one structural operation from a small menu, so
+// the fuzz target exercises real edit and dependency work rather than random
+// JSON rejection. A nil result means the input cannot form an operation.
+func fuzzStructureOperation(t *testing.T, ch1 binding, kind, target string) *Operation {
+	t.Helper()
+	switch kind {
+	case "attr":
+		op := ch1.attrSet(ch1.locatorID(t, "unreferenced"), "class", nil, "note")
+		return &op
+	case "link":
+		if !fuzzName(target) {
+			return nil
+		}
+		op := ch1.elemInsert(ch1.locatorID(t, "mixed"), "after", `<p><a href="#`+target+`">x</a></p>`)
+		return &op
+	case "delete":
+		if target != "unreferenced" && target != "last" {
+			return nil
+		}
+		op := ch1.elemDelete(ch1.locatorID(t, target))
+		return &op
+	case "rename":
+		if !fuzzName(target) {
+			return nil
+		}
+		op := ch1.attrSet(ch1.locatorID(t, "unreferenced"), "id", strPtr("unreferenced"), target)
+		return &op
+	case "add-id":
+		if !fuzzName(target) {
+			return nil
+		}
+		op := ch1.attrSet(ch1.locator(t, "td", 0), "id", nil, target)
+		return &op
+	}
+	return nil
+}
+
+func fuzzName(name string) bool {
+	if name == "" || len(name) > 64 {
+		return false
+	}
+	for _, r := range name {
+		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '-' || r == '_' {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+// FuzzStructurePlanOrderIndependence requires the dependency gate to depend only
+// on the transaction's final state: two operations must be accepted or refused
+// together in either order, with the same write set, and the same request must
+// plan deterministically.
+func FuzzStructurePlanOrderIndependence(f *testing.F) {
+	f.Add("link", "delete", "unreferenced")
+	f.Add("link", "add-id", "fresh")
+	f.Add("link", "rename", "fresh")
+	f.Add("add-id", "delete", "fresh")
+	f.Add("attr", "link", "start")
+	f.Add("attr", "delete", "last")
+	f.Fuzz(func(t *testing.T, kindA, kindB, target string) {
+		dir := fuzzStructureDir(t)
+		w, err := Open(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer w.Close()
+		ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+		a := fuzzStructureOperation(t, ch1, kindA, target)
+		b := fuzzStructureOperation(t, ch1, kindB, target)
+		if a == nil || b == nil {
+			return
+		}
+		planAB, errAB := w.Plan(editJSON(t, Request{4, []Operation{*a, *b}}))
+		planBA, errBA := w.Plan(editJSON(t, Request{4, []Operation{*b, *a}}))
+		if (errAB == nil) != (errBA == nil) {
+			t.Fatalf("order-dependent outcome for %s/%s %q: %v vs %v", kindA, kindB, target, errAB, errBA)
+		}
+		if errAB == nil && !reflect.DeepEqual(planAB.WriteSet, planBA.WriteSet) {
+			t.Fatalf("order-dependent write set for %s/%s %q: %v vs %v", kindA, kindB, target, planAB.WriteSet, planBA.WriteSet)
+		}
+		again, err := w.Plan(editJSON(t, Request{4, []Operation{*a, *b}}))
+		if (err == nil) != (errAB == nil) {
+			t.Fatalf("nondeterministic refusal for %s/%s %q", kindA, kindB, target)
+		}
+		if errAB == nil && (again.OperationSetSHA256 != planAB.OperationSetSHA256 || !reflect.DeepEqual(again.WriteSet, planAB.WriteSet)) {
+			t.Fatalf("nondeterministic plan for %s/%s %q", kindA, kindB, target)
+		}
+		if errAB != nil && exists(w.root, candidate) {
+			t.Fatalf("refused plan created a candidate for %s/%s %q", kindA, kindB, target)
+		}
+	})
 }

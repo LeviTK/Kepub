@@ -343,3 +343,45 @@ func TestCertainIncomingCoverage(t *testing.T) {
 		})
 	}
 }
+
+// TestCertainIncomingIDREF proves table-header and ARIA IDREF attributes are
+// same-document references: they produce edges, and their coverage is complete
+// for a fully parsed document so no "no reference" claim is fabricated.
+func TestCertainIncomingIDREF(t *testing.T) {
+	entries := testfixture.EPUB("3.0", false)
+	kept := entries[:0]
+	for _, entry := range entries {
+		if entry.Name != "unlisted.bin" {
+			kept = append(kept, entry)
+		}
+	}
+	entries = kept
+	entries[3].Data = []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><body><table><tr><th id="col">H</th></tr><tr><td headers="col">c</td></tr></table><p id="aria" aria-labelledby="col aria">x</p><label for="aria">L</label></body></html>`)
+	g := graphFixture(t, entries)
+	requireCoverage(t, g, "书/Text/第二 章.xhtml", "xhtml.idref", "complete")
+	edges, blockers := g.CertainIncoming("书/Text/第二 章.xhtml", "col")
+	if len(edges) != 2 || len(blockers) != 0 {
+		t.Fatalf("headers/aria-labelledby edges: %+v blockers=%+v", edges, blockers)
+	}
+	for _, e := range edges {
+		if e.Syntax != "xhtml.idref" || e.Target == nil || e.Target.Fragment != "col" || string(e.Target.Path) != "书/Text/第二 章.xhtml" {
+			t.Fatalf("wrong IDREF edge: %+v", e)
+		}
+	}
+	edges, _ = g.CertainIncoming("书/Text/第二 章.xhtml", "aria")
+	if len(edges) != 2 {
+		t.Fatalf("aria-labelledby token and label for edges: %+v", edges)
+	}
+	found := false
+	for _, e := range edges {
+		if e.Href != "#aria" {
+			t.Fatalf("IDREF href must keep the authored identity: %+v", e)
+		}
+		if strings.Contains(e.Location, "/label[1]/@for") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("missing label for edge: %+v", edges)
+	}
+}

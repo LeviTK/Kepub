@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/xml"
+	"fmt"
 	"strings"
 	"testing"
 	"unicode/utf16"
@@ -248,5 +249,273 @@ func TestPlannedTargetFollowsInsertions(t *testing.T) {
 	// frozen locator alone would have matched the inserted sibling.
 	if n.Location != "/html[1]/body[1]/p[2]" {
 		t.Fatalf("candidate location %q", n.Location)
+	}
+}
+
+// TestVerifyStructureRejectsMisplacedBlock keeps the independent verifier from
+// accepting a block that is byte-identical but placed before trailing text.
+func TestVerifyStructureRejectsMisplacedBlock(t *testing.T) {
+	input := `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>T</title></head><body><p>before<em>x</em>after</p></body></html>`
+	doc, err := ParseStructureDocument([]byte(input), "EPUB/a.xhtml", xmltext.Profile{Version: "3.0", MediaType: "application/xhtml+xml"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, err := doc.ElementInsertEdit(ElementInsert{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", Position: "last-child", Fragment: `<strong>N</strong>`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	edits := []*StructureEdit{e}
+	good := ApplyEdits([]byte(input), edits)
+	if err := VerifyStructure(doc, edits, good); err != nil {
+		t.Fatal(err)
+	}
+	bad := strings.Replace(string(good), `after<strong>N</strong>`, `<strong>N</strong>after`, 1)
+	if bad == string(good) {
+		t.Fatal("bad fixture did not change")
+	}
+	if err := VerifyStructure(doc, edits, []byte(bad)); err == nil {
+		t.Fatal("accepted a last-child insertion placed before trailing text")
+	}
+	// A first-child block must stay immediately after the start tag.
+	first, err := doc.ElementInsertEdit(ElementInsert{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", Position: "first-child", Fragment: `<strong>F</strong>`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstGood := ApplyEdits([]byte(input), []*StructureEdit{first})
+	if err := VerifyStructure(doc, []*StructureEdit{first}, firstGood); err != nil {
+		t.Fatal(err)
+	}
+	firstBad := strings.Replace(string(firstGood), `<p><strong>F</strong>before`, `<p>before<strong>F</strong>`, 1)
+	if firstBad == string(firstGood) {
+		t.Fatal("bad first-child fixture did not change")
+	}
+	if err := VerifyStructure(doc, []*StructureEdit{first}, []byte(firstBad)); err == nil {
+		t.Fatal("accepted a first-child insertion after leading text")
+	}
+}
+
+// TestVerifyStructureRejectsMisplacedReplace keeps the replaced element's
+// surrounding character data part of the verification.
+func TestVerifyStructureRejectsMisplacedReplace(t *testing.T) {
+	input := `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>T</title></head><body><div>head<p id="t">T</p>tail</div></body></html>`
+	doc, err := ParseStructureDocument([]byte(input), "EPUB/a.xhtml", xmltext.Profile{Version: "3.0", MediaType: "application/xhtml+xml"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, err := doc.ElementReplaceEdit(ElementReplace{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/div[1]/p[1]", Fragment: `<blockquote id="q">Q</blockquote>`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	edits := []*StructureEdit{e}
+	good := ApplyEdits([]byte(input), edits)
+	if err := VerifyStructure(doc, edits, good); err != nil {
+		t.Fatal(err)
+	}
+	bad := strings.Replace(string(good), `head<blockquote id="q">Q</blockquote>tail`, `headtail<blockquote id="q">Q</blockquote>`, 1)
+	if bad == string(good) {
+		t.Fatal("bad replace fixture did not change")
+	}
+	if err := VerifyStructure(doc, edits, []byte(bad)); err == nil {
+		t.Fatal("accepted a replacement block outside its character-data context")
+	}
+}
+
+// TestAttributeInsertionSeparators covers the supported positive cases that must
+// not corrupt the start tag: empty values, apostrophes in single-quoted values,
+// a first operations-namespace declaration, a reused prefix and a taken prefix.
+func TestAttributeInsertionSeparators(t *testing.T) {
+	profile := xmltext.Profile{Version: "3.0", MediaType: "application/xhtml+xml"}
+	for _, tc := range []struct {
+		name, input, locator, namespace, attr, old, value, want string
+	}{
+		{"empty-value", `<html xmlns="http://www.w3.org/1999/xhtml"><body><p title="">x</p></body></html>`, "/html[1]/body[1]/p[1]", "", "title", "", "new", `<p title="new">`},
+		{"single-quote", `<html xmlns="http://www.w3.org/1999/xhtml"><body><p title='old'>x</p></body></html>`, "/html[1]/body[1]/p[1]", "", "title", "old", "reader's note", `<p title='reader&#39;s note'>`},
+		{"double-quote", `<html xmlns="http://www.w3.org/1999/xhtml"><body><p title="old">x</p></body></html>`, "/html[1]/body[1]/p[1]", "", "title", "old", `say "hi"`, `<p title="say &quot;hi&quot;">`},
+		{"new-namespace", `<html xmlns="http://www.w3.org/1999/xhtml"><body><p>x</p></body></html>`, "/html[1]/body[1]/p[1]", OpsNamespace, "type", "", "footnote", `<p xmlns:epub="http://www.idpf.org/2007/ops" epub:type="footnote">`},
+		{"reused-prefix", `<html xmlns="http://www.w3.org/1999/xhtml" xmlns:ops="http://www.idpf.org/2007/ops"><body><p>x</p></body></html>`, "/html[1]/body[1]/p[1]", OpsNamespace, "type", "", "footnote", `<p ops:type="footnote">`},
+		{"taken-prefix", `<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://example.invalid/other"><body><p>x</p></body></html>`, "/html[1]/body[1]/p[1]", OpsNamespace, "type", "", "footnote", `<p xmlns:epub2="http://www.idpf.org/2007/ops" epub2:type="footnote">`},
+		{"xml-namespace", `<html xmlns="http://www.w3.org/1999/xhtml"><body><p>x</p></body></html>`, "/html[1]/body[1]/p[1]", XMLNamespace, "lang", "", "zh", `<p xml:lang="zh">`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			doc, err := ParseStructureDocument([]byte(tc.input), "EPUB/a.xhtml", profile)
+			if err != nil {
+				t.Fatal(err)
+			}
+			op := AttributeSet{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: tc.locator, Namespace: tc.namespace, Name: tc.attr, Value: tc.value}
+			if tc.old != "" || tc.name == "empty-value" {
+				op.ExpectedOldValue = &tc.old
+			}
+			edit, err := doc.AttributeSetEdit(op)
+			if err != nil {
+				t.Fatalf("refused: %v", err)
+			}
+			out := ApplyEdits([]byte(tc.input), []*StructureEdit{edit})
+			if err := VerifyStructure(doc, []*StructureEdit{edit}, out); err != nil {
+				t.Fatalf("verify: %v", err)
+			}
+			if !strings.Contains(string(out), tc.want) {
+				t.Fatalf("spliced tag %q missing %q", out, tc.want)
+			}
+		})
+	}
+	// A fragment identity must be a legal XML name.
+	doc, err := ParseStructureDocument([]byte(structureInput), "EPUB/a.xhtml", profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scope := doc.Doc.Root.NamespaceScope()
+	for _, fragment := range []string{`<p id="bad id">x</p>`, `<p id="">x</p>`, `<p xml:id="1bad">x</p>`} {
+		if _, err := ParseFragment(fragment, scope, doc); err == nil {
+			t.Fatalf("accepted fragment with invalid id: %s", fragment)
+		}
+	}
+}
+
+// TestFragmentDynamicContentRefused keeps the batch from writing dynamic
+// content or URL semantics it cannot maintain: scriptable inline documents,
+// nested browsing contexts, plugin content and unsupported URL attributes.
+func TestFragmentDynamicContentRefused(t *testing.T) {
+	doc := structureFixture(t)
+	scope := doc.Doc.Root.NamespaceScope()
+	for _, fragment := range []string{
+		`<iframe srcdoc="&lt;script>bad()&lt;/script>"></iframe>`,
+		`<iframe src="https://example.invalid/frame"></iframe>`,
+		`<object data="https://example.invalid/x"></object>`,
+		`<embed src="https://example.invalid/x"/>`,
+		`<applet code="x"></applet>`,
+		`<form action="https://example.invalid/post"></form>`,
+		`<meta http-equiv="refresh" content="0;url=https://example.invalid/"/>`,
+		`<link rel="stylesheet" href="https://example.invalid/x.css"/>`,
+		`<p srcdoc="x">y</p>`,
+		`<p data="https://example.invalid/x">y</p>`,
+		`<p action="https://example.invalid/post">y</p>`,
+		`<p poster="https://example.invalid/x.png">y</p>`,
+		`<p ping="https://example.invalid/p">y</p>`,
+		`<p cite="https://example.invalid/c">y</p>`,
+		`<p usemap="#m">y</p>`,
+		`<p itemid="https://example.invalid/i">y</p>`,
+		`<p classid="https://example.invalid/c">y</p>`,
+	} {
+		if _, err := ParseFragment(fragment, scope, doc); err == nil {
+			t.Fatalf("accepted dynamic content: %s", fragment)
+		}
+	}
+	// Static, gated references stay writable.
+	if _, err := ParseFragment(`<p><a href="https://example.invalid/ok">ok</a></p>`, scope, doc); err != nil {
+		t.Fatalf("refused a gated static reference: %v", err)
+	}
+}
+
+// fuzzStructureInput is the fixed document the structural fuzz edits. It carries
+// mixed content, a single-quoted attribute, simple text and an unreferenced id.
+const fuzzStructureInput = `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>T</title></head><body><h1 id="start">One</h1><p id="mixed">A <em>em</em> B</p><p title='old'>Plain.</p><p id="last">Last.</p></body></html>`
+
+// FuzzStructureEditRoundTrip drives valid structural edits over UTF-8 and
+// BOM-marked UTF-16 documents. Any accepted edit must be deterministic, must
+// verify against the independent tree simulation and must keep the resource's
+// encoding intact, so a model or encoding inconsistency fails the fuzz instead
+// of only producing a rejection.
+func FuzzStructureEditRoundTrip(f *testing.F) {
+	f.Add("utf8", "insert", "before", "<p>x</p>")
+	f.Add("utf8", "insert", "last-child", `<p>reader's "note"</p>`)
+	f.Add("utf16le", "insert", "first-child", "<em>e</em>")
+	f.Add("utf16be", "attribute-new", "after", "reader's note")
+	f.Add("utf8", "attribute-old", "before", `say "hi" & <ok>`)
+	f.Add("utf16le", "replace", "", "<p>r</p>")
+	f.Add("utf8", "text", "", "updated")
+	f.Add("utf16be", "move", "after", "")
+	f.Add("utf8", "delete", "", "")
+	f.Fuzz(func(t *testing.T, enc, kind, position, payload string) {
+		if len(payload) > 2048 || len(position) > 32 {
+			return
+		}
+		input, err := encodeFuzzDocument(fuzzStructureInput, enc)
+		if err != nil {
+			return
+		}
+		doc, err := ParseStructureDocument(input, "EPUB/a.xhtml", xmltext.Profile{Version: "3.0", MediaType: "application/xhtml+xml"})
+		if err != nil {
+			t.Skip()
+		}
+		base := AttributeSet{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1}
+		var edit *StructureEdit
+		switch kind {
+		case "insert":
+			base.Locator = "/html[1]/body[1]/p[1]"
+			edit, err = doc.ElementInsertEdit(ElementInsert{BookPath: base.BookPath, RevisionID: base.RevisionID, ResourceSHA256: base.ResourceSHA256, LocatorVersion: 1, Locator: base.Locator, Position: position, Fragment: payload})
+		case "replace":
+			base.Locator = "/html[1]/body[1]/p[2]"
+			edit, err = doc.ElementReplaceEdit(ElementReplace{BookPath: base.BookPath, RevisionID: base.RevisionID, ResourceSHA256: base.ResourceSHA256, LocatorVersion: 1, Locator: base.Locator, Fragment: payload})
+		case "attribute-new":
+			base.Locator = "/html[1]/body[1]/p[2]"
+			base.Name, base.Value = "lang", payload
+			edit, err = doc.AttributeSetEdit(base)
+		case "attribute-old":
+			base.Locator = "/html[1]/body[1]/p[2]"
+			old := "old"
+			base.Name, base.Value, base.ExpectedOldValue = "title", payload, &old
+			edit, err = doc.AttributeSetEdit(base)
+		case "text":
+			base.Locator = "/html[1]/body[1]/p[3]"
+			edit, err = doc.TextSetEdit(TextSet{BookPath: base.BookPath, RevisionID: base.RevisionID, ResourceSHA256: base.ResourceSHA256, LocatorVersion: 1, Locator: base.Locator, ExpectedOldValue: "Last.", NewValue: payload}, payload)
+		case "move":
+			base.Locator = "/html[1]/body[1]/p[3]"
+			edit, err = doc.ElementMoveEdit(ElementMove{BookPath: base.BookPath, RevisionID: base.RevisionID, ResourceSHA256: base.ResourceSHA256, LocatorVersion: 1, Locator: base.Locator, Anchor: "/html[1]/body[1]/h1[1]", Position: position})
+		case "delete":
+			base.Locator = "/html[1]/body[1]/p[3]"
+			edit, err = doc.ElementDeleteEdit(ElementDelete{BookPath: base.BookPath, RevisionID: base.RevisionID, ResourceSHA256: base.ResourceSHA256, LocatorVersion: 1, Locator: base.Locator})
+		default:
+			return
+		}
+		if err != nil {
+			return // refusals are expected for invalid positions, values and fragments
+		}
+		edit.OpIndex = 0
+		edits := []*StructureEdit{edit}
+		if err := ValidateEdits(edits); err != nil {
+			t.Fatalf("%s %q %q: single edit refused: %v", kind, position, payload, err)
+		}
+		out := ApplyEdits(input, edits)
+		if again := ApplyEdits(input, edits); !bytes.Equal(out, again) {
+			t.Fatalf("%s: nondeterministic splice", kind)
+		}
+		if err := VerifyStructure(doc, edits, out); err != nil {
+			t.Fatalf("%s %q %q: model inconsistency: %v", kind, position, payload, err)
+		}
+		if _, err := xmltext.Parse(out); err != nil {
+			t.Fatalf("%s: spliced output is not well formed: %v", kind, err)
+		}
+		switch enc {
+		case "utf16le", "utf16be":
+			if len(out)%2 != 0 || !bytes.Equal(out[:2], input[:2]) {
+				t.Fatalf("%s: UTF-16 boundary broken (%d bytes)", kind, len(out))
+			}
+		}
+	})
+}
+
+// encodeFuzzDocument renders the fixed document in one supported encoding.
+func encodeFuzzDocument(text, enc string) ([]byte, error) {
+	switch enc {
+	case "utf8":
+		return []byte(text), nil
+	case "utf16le", "utf16be":
+		units := utf16.Encode([]rune(text))
+		out := make([]byte, 0, 2+len(units)*2)
+		if enc == "utf16le" {
+			out = append(out, 0xFF, 0xFE)
+		} else {
+			out = append(out, 0xFE, 0xFF)
+		}
+		for _, u := range units {
+			if enc == "utf16le" {
+				out = binary.LittleEndian.AppendUint16(out, u)
+			} else {
+				out = binary.BigEndian.AppendUint16(out, u)
+			}
+		}
+		return out, nil
+	default:
+		return nil, fmt.Errorf("unsupported encoding %q", enc)
 	}
 }
