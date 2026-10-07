@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"unicode/utf16"
 
 	"github.com/LeviTK/Kepub/internal/archive"
 	"github.com/LeviTK/Kepub/internal/bookpath"
@@ -1077,4 +1079,189 @@ func FuzzStructurePlanOrderIndependence(f *testing.F) {
 			t.Fatalf("refused plan created a candidate for %s/%s %q", kindA, kindB, target)
 		}
 	})
+}
+
+// TestStructureNewIDREFGate validates IDREF facts written by this transaction
+// against the final identity state: a new headers or ARIA IDREF value may not
+// point at an identity that is missing, removed in the same transaction, or
+// ambiguous, in either operation order.
+func TestStructureNewIDREFGate(t *testing.T) {
+	chapter := strings.Replace(structureChapter1,
+		`<table id="tbl"><tr><td>cell</td></tr></table>`,
+		`<table id="tbl"><tr><th id="col">Heading</th><td>cell</td></tr></table>`, 1)
+	for _, refFirst := range []bool{true, false} {
+		name := "reference-first"
+		if !refFirst {
+			name = "remove-first"
+		}
+		t.Run("headers-removed-"+name, func(t *testing.T) {
+			w, _, _ := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": chapter})
+			defer w.Close()
+			ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+			ref := ch1.attrSet(ch1.locator(t, "td", 0), "headers", nil, "col")
+			remove := ch1.attrRemove(ch1.locatorID(t, "col"), "id", "col")
+			ops := []Operation{ref, remove}
+			if !refFirst {
+				ops = []Operation{remove, ref}
+			}
+			planRefused(t, w, ops, "INVALID_OPERATIONS")
+			if exists(w.root, candidate) {
+				t.Fatal("refused IDREF write created a candidate")
+			}
+		})
+	}
+	for _, kind := range []string{"attribute", "fragment"} {
+		for _, remove := range []bool{false, true} {
+			name := kind + "-missing"
+			if remove {
+				name = kind + "-removed"
+			}
+			t.Run(name, func(t *testing.T) {
+				w, _, _ := structureWorkspace(t, nil)
+				defer w.Close()
+				ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+				id := "does-not-exist"
+				if remove {
+					id = "unreferenced"
+				}
+				op := ch1.attrSet(ch1.locatorID(t, "dir"), "aria-labelledby", nil, id)
+				if kind == "fragment" {
+					op = ch1.elemInsert(ch1.locatorID(t, "last"), "after", `<p aria-labelledby="`+id+`">new</p>`)
+				}
+				ops := []Operation{op}
+				if remove {
+					ops = append(ops, ch1.elemDelete(ch1.locatorID(t, "unreferenced")))
+				}
+				planRefused(t, w, ops, "INVALID_OPERATIONS")
+			})
+		}
+	}
+	// A multi-token list is validated per token, and one missing token refuses
+	// the whole write.
+	w, _, _ := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": chapter})
+	defer w.Close()
+	ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+	planRefused(t, w, []Operation{ch1.attrSet(ch1.locator(t, "td", 0), "headers", nil, "col nope")}, "INVALID_OPERATIONS")
+	// Positive: present identities, multi-token lists, an identity added earlier
+	// in the same transaction, a fragment IDREF and an empty value are legal.
+	for _, addFirst := range []bool{true, false} {
+		t.Run("new-id-target-"+map[bool]string{true: "add-first", false: "ref-first"}[addFirst], func(t *testing.T) {
+			w, dir, _ := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": chapter})
+			defer w.Close()
+			ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+			add := ch1.attrSet(ch1.locator(t, "td", 0), "id", nil, "cell")
+			ref := ch1.attrSet(ch1.locatorID(t, "last"), "aria-describedby", nil, "col cell")
+			ops := []Operation{add, ref}
+			if !addFirst {
+				ops = []Operation{ref, add}
+			}
+			p := structurePlan(t, w, ops)
+			e := applyPlan(t, w, p)
+			cand := readResource(t, filepath.Join(dir, candidate, "EPUB/chapter1.xhtml"))
+			if !bytes.Contains(cand, []byte(`aria-describedby="col cell"`)) {
+				t.Fatalf("candidate: %q", cand)
+			}
+			if _, err := w.Reject(e.TaskID); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+	p := structurePlan(t, w, []Operation{
+		ch1.attrSet(ch1.locator(t, "td", 0), "headers", nil, "col"),
+		ch1.attrSet(ch1.locatorID(t, "dir"), "aria-describedby", nil, ""),
+		ch1.elemInsert(ch1.locatorID(t, "last"), "after", `<p aria-labelledby="col">note</p>`),
+	})
+	if _, err := w.Reject(applyPlan(t, w, p).TaskID); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestStructureAttributePositiveByteControls keeps the byte-exact attribute
+// writes that the review exercised as positive controls: every supported
+// encoding, an empty single-quoted value, quotes/apostrophes/CJK/surrogate
+// pairs, and an operations-namespace prefix that is already taken.
+func TestStructureAttributePositiveByteControls(t *testing.T) {
+	for _, enc := range []string{"utf8", "utf16le", "utf16be"} {
+		t.Run("empty-single-quoted-"+enc, func(t *testing.T) {
+			chapter := strings.Replace(structureChapter2, `<p>`, `<p title=''>`, 1)
+			w, dir, _ := structureWorkspace(t, map[string]string{"EPUB/chapter2.xhtml": encodeChapter(chapter, enc)})
+			defer w.Close()
+			ch2 := structureBinding(t, w, "EPUB/chapter2.xhtml")
+			p := structurePlan(t, w, []Operation{ch2.attrSet(ch2.locator(t, "p", 0), "title", strPtr(""), `reader's "note" 中文 😀`)})
+			e := applyPlan(t, w, p)
+			cand := readResource(t, filepath.Join(dir, candidate, "EPUB/chapter2.xhtml"))
+			decoded, err := decodeChapter(cand, enc)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(decoded, `title='reader&#39;s &quot;note&quot; 中文 😀'`) {
+				t.Fatalf("candidate: %q", decoded)
+			}
+			if _, err := w.Reject(e.TaskID); err != nil {
+				t.Fatal(err)
+			}
+		})
+		t.Run("taken-prefix-"+enc, func(t *testing.T) {
+			chapter := strings.Replace(structureChapter2, `<html xmlns="http://www.w3.org/1999/xhtml"`, `<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://example.invalid/other"`, 1)
+			w, dir, _ := structureWorkspace(t, map[string]string{"EPUB/chapter2.xhtml": encodeChapter(chapter, enc)})
+			defer w.Close()
+			ch2 := structureBinding(t, w, "EPUB/chapter2.xhtml")
+			p := structurePlan(t, w, []Operation{ch2.attrSetNS(ch2.locator(t, "p", 0), publication.OpsNamespace, "type", nil, "footnote")})
+			e := applyPlan(t, w, p)
+			cand := readResource(t, filepath.Join(dir, candidate, "EPUB/chapter2.xhtml"))
+			decoded, err := decodeChapter(cand, enc)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(decoded, `<p xmlns:epub2="http://www.idpf.org/2007/ops" epub2:type="footnote">`) {
+				t.Fatalf("candidate: %q", decoded)
+			}
+			if _, err := w.Reject(e.TaskID); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+// encodeChapter renders one chapter in a supported encoding; decodeChapter
+// reverses it so assertions read as authored text.
+func encodeChapter(text, enc string) string {
+	switch enc {
+	case "utf16le", "utf16be":
+		text = strings.Replace(text, `encoding="utf-8"`, `encoding="utf-16"`, 1)
+		units := utf16.Encode([]rune(text))
+		out := make([]byte, 0, 2+len(units)*2)
+		if enc == "utf16le" {
+			out = append(out, 0xFF, 0xFE)
+		} else {
+			out = append(out, 0xFE, 0xFF)
+		}
+		for _, u := range units {
+			if enc == "utf16le" {
+				out = binary.LittleEndian.AppendUint16(out, u)
+			} else {
+				out = binary.BigEndian.AppendUint16(out, u)
+			}
+		}
+		return string(out)
+	}
+	return text
+}
+
+func decodeChapter(data []byte, enc string) (string, error) {
+	if enc == "utf8" {
+		return string(data), nil
+	}
+	if len(data) < 2 || len(data)%2 != 0 {
+		return "", errors.New("not UTF-16")
+	}
+	units := make([]uint16, 0, len(data)/2)
+	for i := 2; i+1 < len(data); i += 2 {
+		if enc == "utf16le" {
+			units = append(units, binary.LittleEndian.Uint16(data[i:]))
+		} else {
+			units = append(units, binary.BigEndian.Uint16(data[i:]))
+		}
+	}
+	return string(utf16.Decode(units)), nil
 }

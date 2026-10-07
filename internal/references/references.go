@@ -264,17 +264,6 @@ func (b *builder) diagnostic(bp bookpath.BookPath, location, code, message strin
 	b.g.Diagnostics = append(b.g.Diagnostics, publication.Diagnostic{Source: "kepub", Code: code, Severity: "error", BookPath: bp, Location: location, Message: message})
 }
 
-// idrefAttributes are XHTML/SVG attributes whose value is one IDREF or a
-// whitespace-separated IDREF list resolved inside the same document. ARIA and
-// table-header attributes are included because removing a referenced identity
-// would leave them dangling.
-var idrefAttributes = map[string]bool{
-	"headers": true, "for": true, "list": true, "form": true, "itemref": true,
-	"aria-activedescendant": true, "aria-controls": true, "aria-describedby": true,
-	"aria-details": true, "aria-errormessage": true, "aria-flowto": true,
-	"aria-labelledby": true, "aria-owns": true,
-}
-
 func (b *builder) add(bp bookpath.BookPath, location, syntax, href string) {
 	resolvedHref := href
 	if syntax == "xhtml.href" || syntax == "xhtml.src" || syntax == "nav.href" {
@@ -457,9 +446,9 @@ func (b *builder) walkXML(bp bookpath.BookPath, e *publication.Element, inNav, i
 		}
 		// IDREF attributes are same-document references even though they carry no
 		// URL: a removed target would leave them dangling.
-		if a.Name.Space == "" && idrefAttributes[a.Name.Local] && (ns == publication.XHTMLNamespace || ns == svgNS) {
+		if a.Name.Space == "" && publication.IsIDREFAttribute(a.Name.Local) && (ns == publication.XHTMLNamespace || ns == svgNS) {
 			if !incomplete {
-				for _, token := range strings.Fields(a.Value) {
+				for _, token := range publication.IDREFs(a.Value) {
 					b.add(bp, location, "xhtml.idref", "#"+token)
 				}
 			}

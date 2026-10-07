@@ -519,3 +519,175 @@ func encodeFuzzDocument(text, enc string) ([]byte, error) {
 		return nil, fmt.Errorf("unsupported encoding %q", enc)
 	}
 }
+
+// TestVerifyStructureRejectsMisplacedReplaceWithContext keeps replacement blocks
+// at their planned offset: neither an insertion into the surrounding gap nor a
+// second identical context elsewhere in the document may hide a misplaced block.
+func TestVerifyStructureRejectsMisplacedReplaceWithContext(t *testing.T) {
+	profile := xmltext.Profile{Version: "3.0", MediaType: "application/xhtml+xml"}
+	for _, mode := range []string{"gap-insertion", "duplicate-context"} {
+		t.Run(mode, func(t *testing.T) {
+			body := `<div>head<p>T</p>tail<em>E</em></div>`
+			if mode == "duplicate-context" {
+				body = `<div>head<p>T</p>tail</div><div>head<blockquote>Q</blockquote>tail</div>`
+			}
+			input := `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>T</title></head><body>` + body + `</body></html>`
+			doc, err := ParseStructureDocument([]byte(input), "EPUB/a.xhtml", profile)
+			if err != nil {
+				t.Fatal(err)
+			}
+			r, err := doc.ElementReplaceEdit(ElementReplace{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/div[1]/p[1]", Fragment: `<blockquote>Q</blockquote>`})
+			if err != nil {
+				t.Fatal(err)
+			}
+			edits := []*StructureEdit{r}
+			if mode == "gap-insertion" {
+				i, err := doc.ElementInsertEdit(ElementInsert{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/div[1]/em[1]", Position: "before", Fragment: `<strong>N</strong>`})
+				if err != nil {
+					t.Fatal(err)
+				}
+				i.OpIndex = 1
+				edits = append(edits, i)
+			}
+			if err := ValidateEdits(edits); err != nil {
+				t.Fatal(err)
+			}
+			good := ApplyEdits([]byte(input), edits)
+			if err := VerifyStructure(doc, edits, good); err != nil {
+				t.Fatalf("positive control: %v", err)
+			}
+			bad := strings.Replace(string(good), `head<blockquote>Q</blockquote>tail`, `headtail<blockquote>Q</blockquote>`, 1)
+			if bad == string(good) {
+				t.Fatal("fixture unchanged")
+			}
+			if err := VerifyStructure(doc, edits, []byte(bad)); err == nil {
+				t.Fatalf("accepted a replacement after trailing text: %s", bad)
+			}
+		})
+	}
+	// Adjacent insertions around a replaced element stay legal and exact.
+	input := `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>T</title></head><body><div>head<p id="t">T</p>tail</div></body></html>`
+	doc, err := ParseStructureDocument([]byte(input), "EPUB/a.xhtml", profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := doc.ElementReplaceEdit(ElementReplace{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/div[1]/p[1]", Fragment: `<blockquote>Q</blockquote>`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, err := doc.ElementInsertEdit(ElementInsert{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/div[1]/p[1]", Position: "before", Fragment: `<strong>B</strong>`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	after, err := doc.ElementInsertEdit(ElementInsert{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/div[1]/p[1]", Position: "after", Fragment: `<strong>A</strong>`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// "before"/"after" the replaced element share its boundaries, which the
+	// frozen edit model refuses rather than ordering silently.
+	if err := ValidateEdits([]*StructureEdit{r, before, after}); err == nil {
+		t.Fatal("boundary insertions around a replaced element were accepted")
+	}
+	// Adjacent insertions at distinct offsets around an untouched element pass.
+	other, err := doc.ElementInsertEdit(ElementInsert{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/div[1]/p[1]", Position: "first-child", Fragment: `<strong>F</strong>`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := doc.ElementInsertEdit(ElementInsert{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/div[1]/p[1]", Position: "last-child", Fragment: `<strong>L</strong>`})
+	if err != nil {
+		t.Fatal(err)
+	}
+	other.OpIndex, first.OpIndex = 0, 1
+	adjacent := []*StructureEdit{other, first}
+	if err := ValidateEdits(adjacent); err != nil {
+		t.Fatal(err)
+	}
+	out := ApplyEdits([]byte(input), adjacent)
+	if err := VerifyStructure(doc, adjacent, out); err != nil {
+		t.Fatalf("adjacent insertions: %v", err)
+	}
+	if !strings.Contains(string(out), `<p id="t"><strong>F</strong>T<strong>L</strong></p>`) {
+		t.Fatalf("adjacent insertions output: %s", out)
+	}
+}
+
+// TestAttributePositiveByteControlsAcrossEncodings keeps the byte-exact positive
+// controls for every supported encoding: an empty single-quoted value and a new
+// value with quotes, an apostrophe, CJK and a surrogate pair, plus an operations
+// namespace prefix that is already taken.
+func TestAttributePositiveByteControlsAcrossEncodings(t *testing.T) {
+	profile := xmltext.Profile{Version: "3.0", MediaType: "application/xhtml+xml"}
+	base := `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>T</title></head><body><p title=''>x</p></body></html>`
+	for _, enc := range []string{"utf8", "utf16le", "utf16be"} {
+		t.Run("empty-single-quoted-"+enc, func(t *testing.T) {
+			input, err := encodeFuzzDocument(base, enc)
+			if err != nil {
+				t.Fatal(err)
+			}
+			doc, err := ParseStructureDocument(input, "EPUB/a.xhtml", profile)
+			if err != nil {
+				t.Fatal(err)
+			}
+			old := ""
+			edit, err := doc.AttributeSetEdit(AttributeSet{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", Name: "title", ExpectedOldValue: &old, Value: `reader's "note" 中文 😀`})
+			if err != nil {
+				t.Fatal(err)
+			}
+			out := ApplyEdits(input, []*StructureEdit{edit})
+			if err := VerifyStructure(doc, []*StructureEdit{edit}, out); err != nil {
+				t.Fatal(err)
+			}
+			decoded, err := decodeFuzzDocument(out, enc)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(decoded, `title='reader&#39;s &quot;note&quot; 中文 😀'`) {
+				t.Fatalf("candidate: %q", decoded)
+			}
+		})
+		t.Run("taken-prefix-"+enc, func(t *testing.T) {
+			input, err := encodeFuzzDocument(strings.Replace(base, `<html xmlns="http://www.w3.org/1999/xhtml"`, `<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://example.invalid/other"`, 1), enc)
+			if err != nil {
+				t.Fatal(err)
+			}
+			doc, err := ParseStructureDocument(input, "EPUB/a.xhtml", profile)
+			if err != nil {
+				t.Fatal(err)
+			}
+			edit, err := doc.AttributeSetEdit(AttributeSet{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", Namespace: OpsNamespace, Name: "type", Value: "footnote"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			out := ApplyEdits(input, []*StructureEdit{edit})
+			if err := VerifyStructure(doc, []*StructureEdit{edit}, out); err != nil {
+				t.Fatal(err)
+			}
+			decoded, err := decodeFuzzDocument(out, enc)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(decoded, `<p title='' xmlns:epub2="http://www.idpf.org/2007/ops" epub2:type="footnote">`) {
+				t.Fatalf("candidate: %q", decoded)
+			}
+		})
+	}
+}
+
+// decodeFuzzDocument reverses encodeFuzzDocument so assertions read as text.
+func decodeFuzzDocument(data []byte, enc string) (string, error) {
+	if enc == "utf8" {
+		return string(data), nil
+	}
+	if len(data) < 2 || len(data)%2 != 0 {
+		return "", fmt.Errorf("not UTF-16")
+	}
+	units := make([]uint16, 0, len(data)/2)
+	for i := 2; i+1 < len(data); i += 2 {
+		if enc == "utf16le" {
+			units = append(units, binary.LittleEndian.Uint16(data[i:]))
+		} else {
+			units = append(units, binary.BigEndian.Uint16(data[i:]))
+		}
+	}
+	return string(utf16.Decode(units)), nil
+}

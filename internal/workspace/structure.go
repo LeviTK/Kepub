@@ -258,6 +258,11 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 					return derivation{}, err
 				}
 			}
+			for _, ref := range edit.IDREFs {
+				if err := gate.checkIDREF(ge.bp, ref); err != nil {
+					return derivation{}, err
+				}
+			}
 		}
 	}
 	// Phase 3 applies and independently verifies each resource's bytes.
@@ -412,6 +417,25 @@ func (g *structureGate) checkLink(resource bookpath.BookPath, value string) erro
 		return fault.New(2, "INVALID_OPERATIONS", "fragment %q is not present in %s", ref.Fragment, ref.Path)
 	default:
 		return fault.New(2, "INVALID_OPERATIONS", "fragment %q is ambiguous in %s", ref.Fragment, ref.Path)
+	}
+}
+
+// checkIDREF validates a new same-document IDREF against the transaction's
+// final identity state: the referenced identity must exist exactly once. The
+// shared IDREF vocabulary means an existing attribute and a new write cannot
+// disagree about what is a reference.
+func (g *structureGate) checkIDREF(resource bookpath.BookPath, ref publication.StructureIDREF) error {
+	ids, err := g.idsFor(resource)
+	if err != nil {
+		return err
+	}
+	switch ids[ref.Value] {
+	case 1:
+		return nil
+	case 0:
+		return fault.New(2, "INVALID_OPERATIONS", "IDREF %s=%q is not present in %s", ref.Name, ref.Value, resource)
+	default:
+		return fault.New(2, "INVALID_OPERATIONS", "IDREF %s=%q is ambiguous in %s", ref.Name, ref.Value, resource)
 	}
 }
 

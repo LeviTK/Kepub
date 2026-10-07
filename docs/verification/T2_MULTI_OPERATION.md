@@ -132,6 +132,37 @@ failures.
   legal XML names for identities.
 - `xhtml.element.move` advertises a locator for its anchor.
 
+### Second rejection (this round) and reviewer handover
+
+The corrected tree `f295f3f` was itself rejected by the independent high review
+after the parent reproduced its findings. Two blocker groups remained, and the
+high reviewer's clean suites on that tree (ordinary `cmd/kepub` 309.699 s,
+`internal/workspace` 216.502 s, `internal/validation` 259.478 s; race
+`cmd/kepub` 507.167 s, `internal/workspace` 275.164 s, `internal/validation`
+279.907 s; vet and `git diff --check` clean) do not offset them:
+
+1. **New IDREF facts were not gated.** `xhtml.attribute.set` and fragments could
+   write `headers` or ARIA IDREF values that point at an identity which is
+   missing or removed in the same transaction, in either operation order
+   (`TestParentStructureNewIDREFToRemovedID`, `TestReviewerR2NewIDREF`). The fix
+   shares one IDREF vocabulary between the reference index and the structural
+   edit facts, collects IDREF tokens from new attribute values and fragments, and
+   validates every token against the transaction's final identity state of that
+   resource. ARIA IDREF behaviour is now empirically reproduced, not inferred.
+2. **Replacement blocks were not positionally verified.** The gap-insertion
+   fallback and the whole-output `Contains` check accepted a replacement placed
+   after trailing text, including when another context elsewhere in the document
+   carried the same surrounding text (`TestReviewerR2ReplacePlacement`). The fix
+   requires every block at the offset the frozen edit facts independently imply
+   (accumulated size changes of earlier edits), with no `Contains` search and no
+   degraded branch; point insertions additionally keep their parent/anchor
+   adjacency checks.
+
+The reviewer role then changed: the original high reviewer stopped taking new
+reviews after handing over its evidence and finishing the in-flight race run, and
+an independent reviewer on the user's configured medium mode took over. Records
+keep the two roles separate; earlier high results are not relabelled.
+
 ### Verification of this revision
 
 - The parent probe and all ten reviewer probes now pass, with their expectations
@@ -142,9 +173,16 @@ failures.
   refusals, schema locator advertisement).
 - Targeted fuzz targets were added and actually run: physical interval
   invariants (943,012 executions in 61 s), structural edit round trip over UTF-8
-  and BOM-marked UTF-16 (2,801,688 executions in 61 s), and plan order
-  independence over real structural operations (58,497 executions in 61 s). All
-  three passed with no failing input.
+  and BOM-marked UTF-16 (1,464,358 executions in 61 s after the positional
+  verification), and plan order independence over real structural operations
+  (48,047 executions in 61 s). All three passed with no failing input.
+- The frozen probe set was rerun unchanged on this revision: the parent probes
+  for cross-resource links and new IDREFs, the reviewer probes for the final
+  reference gate, IDREF coverage, manifest permission, attribute positives, text
+  review shift, misplaced blocks, unsupported URL writes, move review, fragment
+  identities, the schema locator advertisement and both R2 probes all pass. The
+  attribute byte controls were additionally reproduced across UTF-8, UTF-16LE and
+  UTF-16BE at the publication layer, including the taken-prefix case.
 - Repository ordinary suite with the pinned EPUBCheck 5.3.0 jar: all packages
   passed (cmd/kepub 307.456 s, internal/validation 260.150 s,
   internal/workspace 213.876 s, internal/publication 4.674 s,
@@ -162,6 +200,12 @@ failures.
   unregistered-resource `content.text.set` widened by a structural operation
   (exit 2), a `headers` IDREF removal (exit 1 `REFERENCE_CONFLICT`) and an
   `iframe srcdoc` fragment (exit 2); a move with a locator anchor planned and its
-  review reported `block bytes preserved`.
+  review reported `block bytes preserved`. For this revision the smoke also
+  refused a new `headers` IDREF pointing at an identity removed in the same
+  transaction in both orders, a fragment `aria-labelledby` naming a missing
+  identity, and a multi-token IDREF list with one missing token (all exit 2),
+  while an existing-identity no-op write, an all-present multi-token list and a
+  fragment IDREF to a present identity planned, reviewed with their actual
+  values, passed the pinned checker and exported.
 - The fixed commit, tree and bundle hashes are reported to the parent thread and
   frozen in the next batch's record.
