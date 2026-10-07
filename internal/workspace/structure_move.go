@@ -52,22 +52,31 @@ func (w *Workspace) deriveCrossMoves(a publicationRoot, pub *publication.Publica
 		return contrib, moves, nil, nil, nil
 	}
 	docs := map[string]*publication.StructureDocument{}
+	bases := map[string][]byte{}
 	load := func(path string, sha string) (*publication.StructureDocument, error) {
-		if doc, ok := docs[path]; ok {
-			return doc, nil
-		}
 		bp := bookpath.BookPath(path)
-		if err := publication.CheckXHTMLTarget(pub, bp); err != nil {
-			return nil, err
+		base, ok := bases[path]
+		if !ok {
+			if err := publication.CheckXHTMLTarget(pub, bp); err != nil {
+				return nil, err
+			}
+			var err error
+			base, err = a.Read(bp, publication.XMLLimit)
+			if err != nil {
+				return nil, err
+			}
+			bases[path] = base
 		}
-		base, err := a.Read(bp, publication.XMLLimit)
-		if err != nil {
-			return nil, err
-		}
+		// Every endpoint validates its own frozen hash against the frozen bytes
+		// on every use: a cached parse or an earlier implicit load for reference
+		// synchronization must never relax a later explicit binding.
 		if sha != "" {
 			if err := checkStructureHash(base, sha); err != nil {
 				return nil, err
 			}
+		}
+		if doc, ok := docs[path]; ok {
+			return doc, nil
 		}
 		doc, err := publication.ParseStructureDocument(base, bp, profile)
 		if err != nil {
@@ -148,7 +157,7 @@ func (w *Workspace) deriveCrossMoves(a publicationRoot, pub *publication.Publica
 						return nil, nil, nil, nil, err
 					}
 					value := string(target)
-					if edge.Target.Query != "" {
+					if edge.Target.Query != "" || edge.Target.ForceQuery {
 						value += "?" + edge.Target.Query
 					}
 					value += "#" + edge.Target.Fragment

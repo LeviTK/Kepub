@@ -667,7 +667,7 @@ The fixed tree `d747c01ed6ec0ab8d12eb139269ceb142ade8165` (tree
 `98460457ffeafd5a666dc9fa78af0ac89f996cb885dc3d66aca13a47768c7ac8`) was
 accepted by the independent medium review and released by the parent, who
 fast-forwarded local `main` to the same commit (`origin/main` stayed at
-`18618fee`, eight commits ahead, nothing pushed). The acceptance covers only the
+`18618fee`, ten commits ahead, nothing pushed). The acceptance covers only the
 limited schema 5 batch-replacement increment: not complete T2, macOS, power-loss
 or release.
 
@@ -723,10 +723,14 @@ and explicit old-workspace re-evaluation.
   interrupted apply with restore leftovers, the accept/history chain with the
   pinned checker, and a live fuzz target over the shared fixture.
 
-### Verification of this revision
+### Verification of the rejected batch-4 tree (`9f3d1c3`)
 
-This revision's runs are labelled by where they were taken; the product content
-was committed as the fixed commit that introduces this section.
+The rejected tree's runs are labelled by where they were taken; the product
+content was committed as `9f3d1c3`. Its fuzz target compared the candidate only
+through the plan facts and compared two operation orders by write set, so the
+"byte oracle" wording below was stronger than the evidence; the fixed revision
+replaces it with the independent complete-resource oracle and actual-output
+comparison described in its own section.
 
 - Repository ordinary suite with the pinned EPUBCheck 5.3.0 jar, taken from this
   revision's working tree before the commit (working-tree verification, not a
@@ -771,5 +775,103 @@ was committed as the fixed commit that introduces this section.
   `chapter3.xhtml#three`, `#start` rebased to `../chapter1.xhtml#start` and
   `#inner` kept local, and the nav synchronized; the original book bytes were
   unchanged.
+- The fixed commit, tree and bundle hashes are reported to the parent thread and
+  frozen in the next batch's record.
+
+### Rejection of the batch-4 tree (`9f3d1c3`) and fixes
+
+The parent's acceptance verification and the medium review rejected `9f3d1c3`
+with three reproduced root causes; the medium rejection evidence pack
+`9f3d1c3-medium-rejected-evidence.tar.gz.received` (505,592 B, SHA-256
+`1fd7a62854275c7dfa0028dd7964c074c0e15d7f571800589503d8c35f208dcd`, unpacked
+`evidence.sha256` `f9cc2eb33fd06345df1d8c03fe7c23348dd1a54e941ffd841cbb6226a62d4457`,
+98 items) and the parent's pack
+`9f3d1c3-parent-rejected-evidence.tar.gz.received` (240,139 B, SHA-256
+`8b8e8584fae33e5463d940fe674c970499bc4e7d3fc3cec11764b2194d31653b`) are
+retained.
+
+1. **A cached resource skipped its endpoint hash.** The move derivation cached a
+   parsed resource by path and returned it without re-checking the endpoint's
+   `resourceSha256`, so the second of two disjoint legal moves over the same
+   resources accepted a zeroed source or destination hash. Every explicit
+   endpoint now validates its own frozen hash against the frozen bytes on every
+   use, whether the parse was cached or the resource was first loaded implicitly
+   for reference synchronization.
+2. **A rewritten self URL lost its query.** Making an explicit self path local
+   returned only `#fragment`, dropping the query, and the canonical suffix
+   ignored an empty query written as `?`. Every rewrite path (self made local,
+   source-resource targets, other-resource targets) and the incoming
+   synchronization now keep `RawQuery` and `ForceQuery` together with the
+   fragment; `bookpath.Reference` carries `ForceQuery`.
+3. **Unchanged block URLs escaped the link gate.** Only rewritten values were
+   recorded as link facts, so a moved block without identity carried
+   `javascript:` or `data:` URLs to the destination unverified. Every `href`/`src`
+   that moves with the block is now a gate fact in its final form, so the shared
+   link gate refuses blocked schemes and unprovable internal targets while legal
+   external and resolvable local URLs stay allowed.
+
+Permanent regressions: `TestStructureCrossMoveEndpointHashBinding` (both
+endpoints, both operation orders, legal control),
+`TestStructureCrossMovePreservesQuery` (self query, local query control, explicit
+self without query, empty-query other resource, incoming sync empty query, three
+mixed encodings with complete-resource byte oracles) and
+`TestStructureCrossMoveNewLinkGate` (`https` allowed; missing target,
+`javascript:` and `data:` refused; local fragment allowed). The product
+cross-move fuzz now compares one accepted move against an independent
+complete-resource oracle and compares two-move plans by their actual candidate
+bytes in both operation orders; the earlier weaker fuzz is retained in the
+rejected tree's section above.
+
+### Verification of this revision
+
+This revision's runs are labelled by where they were taken; the product content
+was committed as the fixed commit that introduces this section.
+
+- Repository ordinary suite with the pinned EPUBCheck 5.3.0 jar, taken from this
+  revision's working tree before the commit (working-tree verification, not a
+  fresh checkout of the commit): all packages passed (cmd/kepub 345.455 s,
+  internal/validation 287.175 s, internal/workspace 255.785 s,
+  internal/publication 5.211 s, internal/xmltext 7.381 s, internal/references
+  0.141 s, experiments/amp-cli 4.974 s, internal/app 0.297 s, internal/archive
+  0.090 s, internal/bookpath 0.003 s, internal/metadata 0.594 s). The race suite
+  on the same tree also passed all packages (cmd/kepub 549.664 s,
+  internal/validation 303.545 s, internal/workspace 319.881 s,
+  internal/publication 101.686 s, internal/xmltext 91.518 s, internal/references
+  2.096 s, experiments/amp-cli 7.357 s, internal/app 1.892 s, internal/archive
+  1.288 s, internal/bookpath 1.016 s, internal/metadata 5.575 s) with no data
+  race. `go vet ./...` and `gofmt` are clean on the same tree.
+- The complete frozen probe set was rerun unchanged on this revision, ordinary
+  and focused race: the parent's endpoint-hash and self-query probes, the medium
+  review's endpoint-binding, query-bytes and encoding/namespace-bytes probes with
+  the new-link gate, and every earlier frozen probe — 50 top-level test
+  functions, 399 assertions including subtests, no failures and no skips, no data
+  race.
+- Batch-4 tests on the same tree: the permanent regressions for the three
+  rejected root causes (endpoint hash binding in both operation orders, query
+  preservation across three mixed encodings with complete-resource oracles, the
+  moved-URL link gate) and the earlier plan/apply/review/refusal/encoding/
+  recovery/accept tests all passed.
+- Fuzz on this revision's working tree before the commit: the cross-move target
+  compares one accepted move against an independent complete-resource oracle and
+  compares two-move plans by their actual candidate bytes in both operation
+  orders, 1,558 executions in 60.117 s with no failing input; the medium
+  effective-transaction target (36 encoding/position cases as seeds, whole-byte
+  oracle) ran 1,141 executions in 62.011 s with no failing input.
+- Real CLI smoke on the working-tree binary built before the commit (a plain
+  `go build`; the race claim covers the harness and libraries, not a
+  race-instrumented binary), with the pinned checker: the schema 6 v2 move
+  planned, applied, reported the synchronized nav value in `task diff`, passed
+  the strict accept (revision `bbd58ae3d661e5b6ff6b886942c6ca14`) and the strict
+  export (archive SHA-256
+  `3ad09c20110709e3337d3aa92f24328d2a5fa533eea2279e06b191f19e6f070c`, identical
+  to the pre-fix accepted output); a moved block without identity whose
+  `javascript:` URL is unchanged was refused by the shared link gate
+  (`INVALID_OPERATIONS`, exit 2, no plan file). The original book bytes were
+  unchanged.
+- Boundaries: the recovery tests materialize on-disk interruption boundaries and
+  restore leftovers; they are not power-loss or synchronized re-interruption
+  tests. The medium rejection packs and every earlier failure, including the
+  medium ZIP-oracle directory omission and the manifest cwd error source and log,
+  are retained; no historical result was deleted.
 - The fixed commit, tree and bundle hashes are reported to the parent thread and
   frozen in the next batch's record.

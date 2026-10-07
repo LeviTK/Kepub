@@ -53,8 +53,14 @@ func TestElementMoveCrossRebasesBlockURLs(t *testing.T) {
 	if edit.Rewrites[1].Old != "#stay" || edit.Rewrites[1].New != "../a.xhtml#stay" {
 		t.Fatalf("rewrite[1]: %+v", edit.Rewrites[1])
 	}
-	if len(edit.Links) != 2 {
+	if len(edit.Links) != 4 {
 		t.Fatalf("links: %+v", edit.Links)
+	}
+	// Every URL that moves with the block is a gate fact in its final form,
+	// including the local fragment and the external URL this batch does not
+	// rewrite.
+	if edit.Links[0].Value != "../sub/other.xhtml?q=1#f" || edit.Links[1].Value != "../a.xhtml#stay" || edit.Links[2].Value != "#inner" || edit.Links[3].Value != "https://example.com/x" {
+		t.Fatalf("link facts: %+v", edit.Links)
 	}
 	if edit.SourceSpan.Start != bytes.Index(source.Input, []byte(`<div id="b">`)) || string(source.Input[edit.SourceSpan.Start:edit.SourceSpan.End]) != `<div id="b"><p id="inner">x</p><a href="sub/other.xhtml?q=1#f">o</a><a href="#stay">s</a><a href="#inner">i</a><a href="https://example.com/x">e</a></div>` {
 		t.Fatalf("source span: %d %d", edit.SourceSpan.Start, edit.SourceSpan.End)

@@ -18,11 +18,14 @@ type Href string
 
 // Reference separates URL components from the exact container filename. Raw
 // spelling belongs to the caller's Href; Query and Fragment are never filenames.
+// ForceQuery records an empty query written as "?" so a rewritten reference can
+// keep the same meaning.
 type Reference struct {
-	Path     BookPath `json:"bookPath"`
-	Fragment string   `json:"fragment"`
-	Query    string   `json:"query"`
-	External bool     `json:"external"`
+	Path       BookPath `json:"bookPath"`
+	Fragment   string   `json:"fragment"`
+	Query      string   `json:"query"`
+	ForceQuery bool     `json:"forceQuery,omitempty"`
+	External   bool     `json:"external"`
 }
 
 // ResolveReference also accepts same-document and external URLs. External URLs
@@ -35,7 +38,7 @@ func ResolveReference(base BookPath, h Href) (Reference, error) {
 	if err != nil || u == nil {
 		return Reference{}, fault.New(1, "INVALID_HREF", "invalid URL reference %q", h)
 	}
-	r := Reference{Fragment: u.Fragment, Query: u.RawQuery}
+	r := Reference{Fragment: u.Fragment, Query: u.RawQuery, ForceQuery: u.ForceQuery}
 	if u.IsAbs() || u.Host != "" || u.Opaque != "" || strings.HasPrefix(string(h), "//") {
 		r.External = true
 		return r, nil

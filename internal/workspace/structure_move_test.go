@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -450,18 +451,247 @@ func TestStructureCrossMoveAcceptAndHistory(t *testing.T) {
 	}
 }
 
-// FuzzCrossMovePlanApply plans and applies cross-resource moves over the shared
-// fixture and checks the byte oracle whenever the engine accepts: the block must
-// leave the source, arrive in the destination at the planned offset, and every
-// accepted plan must be deterministic.
+// TestStructureCrossMoveEndpointHashBinding keeps every endpoint's frozen hash
+// enforced on every use: two disjoint legal moves over the same resources must
+// still refuse a stale source or destination hash on either operation, in both
+// operation orders, while the legal control applies both moves.
+func TestStructureCrossMoveEndpointHashBinding(t *testing.T) {
+	for _, endpoint := range []string{"control", "source", "destination"} {
+		for _, reverse := range []bool{false, true} {
+			t.Run(endpoint+"/reverse-"+strconv.FormatBool(reverse), func(t *testing.T) {
+				w, _, _ := moveCrossFixture(t, nil)
+				defer w.Close()
+				src := structureBinding(t, w, "EPUB/chapter1.xhtml")
+				dst := structureBinding(t, w, "EPUB/text/chapter3.xhtml")
+				first := src.elemMoveCross(dst, src.locatorID(t, "moveblock"), dst.locatorID(t, "three"), "after")
+				second := src.elemMoveCross(dst, src.locatorID(t, "unreferenced"), dst.locatorID(t, "three"), "before")
+				param := second.Params.(publication.ElementMoveCross)
+				switch endpoint {
+				case "source":
+					param.Source.ResourceSHA256 = strings.Repeat("0", 64)
+				case "destination":
+					param.Destination.ResourceSHA256 = strings.Repeat("0", 64)
+				}
+				second.Params = param
+				ops := []Operation{first, second}
+				if reverse {
+					ops = []Operation{second, first}
+				}
+				plan, err := w.Plan(editJSON(t, Request{6, ops}))
+				if endpoint != "control" {
+					if err == nil {
+						t.Fatalf("stale %s hash accepted after a cached load: %+v", endpoint, plan.WriteSet)
+					}
+					var f *fault.Error
+					if !errors.As(err, &f) || f.Code != "INPUT_DRIFT" || f.Exit != 4 {
+						t.Fatalf("stale %s hash must report INPUT_DRIFT/4, got %v", endpoint, err)
+					}
+					return
+				}
+				if err != nil {
+					t.Fatalf("legal two-move control refused: %v", err)
+				}
+				e := applyPlan(t, w, plan)
+				actual := structureCandidate(t, w, "EPUB/text/chapter3.xhtml").IDs()
+				for _, id := range []string{"moveblock", "inner", "unreferenced", "three"} {
+					if actual[id] != 1 {
+						t.Fatalf("control final identity %q: %v", id, actual)
+					}
+				}
+				if _, err := w.Reject(e.TaskID); err != nil {
+					t.Fatal(err)
+				}
+			})
+		}
+	}
+}
+
+// TestStructureCrossMovePreservesQuery keeps the query meaning of every rewritten
+// URL: a self path made local keeps its query (including an empty "?"), an
+// other-resource query is re-based, and an incoming reference keeps its query
+// when synchronized, in every mixed encoding.
+func TestStructureCrossMovePreservesQuery(t *testing.T) {
+	const originalBlock = `<div id="moveblock"><p id="inner">Inner.</p><a href="chapter2.xhtml#start2">Two</a> <a href="#start">Start</a> <a href="#inner">Inner</a> <a href="https://example.com/x">Ext</a> <img src="images/pic.png"/></div>`
+	for _, c := range []struct{ name, input, want string }{
+		{"explicit-self-query", `chapter1.xhtml?mode=read&amp;step=2#inner`, `?mode=read&amp;step=2#inner`},
+		{"local-query-control", `?mode=read&amp;step=2#inner`, `?mode=read&amp;step=2#inner`},
+		{"explicit-self-no-query", `chapter1.xhtml#inner`, `#inner`},
+		{"empty-query-other", `chapter2.xhtml?#start2`, `../chapter2.xhtml?#start2`},
+	} {
+		for _, enc := range []string{"utf8", "utf16le", "utf16be"} {
+			t.Run(c.name+"/"+enc, func(t *testing.T) {
+				block := `<div id="moveblock"><p id="inner">文😀 &amp; x</p><a href="` + c.input + `">Self</a></div>`
+				chapter := strings.Replace(structureMoveChapter1, originalBlock, block, 1)
+				w, dir, source := moveCrossFixture(t, map[string]string{
+					"EPUB/chapter1.xhtml":      encodeChapter(chapter, enc),
+					"EPUB/text/chapter3.xhtml": encodeChapter(structureChapter3, enc),
+				})
+				defer w.Close()
+				original := readResource(t, source)
+				src := structureBinding(t, w, "EPUB/chapter1.xhtml")
+				dst := structureBinding(t, w, "EPUB/text/chapter3.xhtml")
+				p := moveCrossPlan(t, w, []Operation{src.elemMoveCross(dst, src.locatorID(t, "moveblock"), dst.locatorID(t, "three"), "after")})
+				e := applyPlan(t, w, p)
+				wantBlock := `<div id="moveblock"><p id="inner">文😀 &amp; x</p><a href="` + c.want + `">Self</a></div>`
+				wantDest := []byte(encodeChapter(strings.Replace(structureChapter3, `<p id="three">Three.</p>`, `<p id="three">Three.</p>`+wantBlock, 1), enc))
+				if got := readResource(t, filepath.Join(dir, candidate, "EPUB/text/chapter3.xhtml")); !bytes.Equal(got, wantDest) {
+					t.Fatalf("destination byte oracle:\n got %q\nwant %q", got, wantDest)
+				}
+				wantSource := []byte(encodeChapter(strings.Replace(chapter, block, "", 1), enc))
+				if got := readResource(t, filepath.Join(dir, candidate, "EPUB/chapter1.xhtml")); !bytes.Equal(got, wantSource) {
+					t.Fatalf("source byte oracle:\n got %q\nwant %q", got, wantSource)
+				}
+				if !bytes.Equal(readResource(t, source), original) {
+					t.Fatal("original book changed")
+				}
+				if _, err := w.Reject(e.TaskID); err != nil {
+					t.Fatal(err)
+				}
+			})
+		}
+	}
+	// An incoming reference keeps its query, including an empty "?".
+	w, dir, _ := moveCrossFixture(t, map[string]string{
+		"EPUB/nav.xhtml": `<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><head><title>Contents</title></head><body><nav epub:type="toc"><ol><li><a href="chapter1.xhtml?#inner">Inner</a></li></ol></nav></body></html>`,
+	})
+	defer w.Close()
+	src := structureBinding(t, w, "EPUB/chapter1.xhtml")
+	dst := structureBinding(t, w, "EPUB/text/chapter3.xhtml")
+	p := moveCrossPlan(t, w, []Operation{src.elemMoveCross(dst, src.locatorID(t, "moveblock"), dst.locatorID(t, "three"), "after")})
+	e := applyPlan(t, w, p)
+	nav := readResource(t, filepath.Join(dir, candidate, "EPUB/nav.xhtml"))
+	if !bytes.Contains(nav, []byte(`href="text/chapter3.xhtml?#inner"`)) {
+		t.Fatalf("incoming sync lost the empty query: %s", nav)
+	}
+	if _, err := w.Reject(e.TaskID); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// moveOracleBlock returns the authored block and its rewritten destination form
+// for one fixture element. The expected bytes are authored here, so the fuzz
+// compares the product against an independent complete-resource oracle instead
+// of the product's own plan facts.
+func moveOracleBlock(source string) (block, rewritten string, ok bool) {
+	switch source {
+	case "moveblock":
+		block = `<div id="moveblock"><p id="inner">Inner.</p><a href="chapter2.xhtml#start2">Two</a> <a href="#start">Start</a> <a href="#inner">Inner</a> <a href="https://example.com/x">Ext</a> <img src="images/pic.png"/></div>`
+		rewritten = `<div id="moveblock"><p id="inner">Inner.</p><a href="../chapter2.xhtml#start2">Two</a> <a href="../chapter1.xhtml#start">Start</a> <a href="#inner">Inner</a> <a href="https://example.com/x">Ext</a> <img src="../images/pic.png"/></div>`
+	case "unreferenced":
+		block, rewritten = `<p id="unreferenced">Plain.</p>`, `<p id="unreferenced">Plain.</p>`
+	case "last":
+		block, rewritten = `<p id="last">Last.</p>`, `<p id="last">Last.</p>`
+	case "start":
+		block, rewritten = `<h1 id="start">One</h1>`, `<h1 id="start">One</h1>`
+	default:
+		return "", "", false
+	}
+	return block, rewritten, true
+}
+
+// moveOracleDestination inserts the rewritten block at the position the fixture
+// anchor and position imply, by string surgery on the frozen destination bytes.
+func moveOracleDestination(position, rewritten string) (string, bool) {
+	dest := structureChapter3
+	anchor := `<p id="three">Three.</p>`
+	switch position {
+	case "after":
+		i := strings.Index(dest, anchor)
+		return dest[:i+len(anchor)] + rewritten + dest[i+len(anchor):], true
+	case "before":
+		i := strings.Index(dest, anchor)
+		return dest[:i] + rewritten + dest[i:], true
+	case "first-child":
+		i := strings.Index(dest, anchor)
+		j := i + len(`<p id="three">`)
+		return dest[:j] + rewritten + dest[j:], true
+	case "last-child":
+		i := strings.Index(dest, anchor)
+		j := i + len(anchor) - len(`</p>`)
+		return dest[:j] + rewritten + dest[j:], true
+	}
+	return "", false
+}
+
+// applyMoveCandidate applies one plan and returns every candidate resource's
+// bytes before rejecting the task, so two operation orders can be compared on
+// actual output rather than on the write set.
+func applyMoveCandidate(t *testing.T, w *Workspace, dir string, p Plan) map[string][]byte {
+	t.Helper()
+	e, err := w.Apply(editJSON(t, p))
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := map[string][]byte{}
+	for _, path := range p.WriteSet {
+		b, err := os.ReadFile(filepath.Join(dir, candidate, filepath.FromSlash(path)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		out[path] = b
+	}
+	if _, err := w.Reject(e.TaskID); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// TestStructureCrossMoveNewLinkGate keeps every URL that moves with the block in
+// the shared final link gate: an unchanged blocked scheme or an unprovable
+// internal target refuses even when the block carries no identity, while legal
+// external and resolvable local URLs stay allowed.
+func TestStructureCrossMoveNewLinkGate(t *testing.T) {
+	for _, c := range []struct {
+		name, href, want string
+		allowed          bool
+	}{
+		{"https-control", "https://example.invalid/x", "https://example.invalid/x", true},
+		{"missing-control", "absent.xhtml", "", false},
+		{"javascript", "javascript:alert(1)", "", false},
+		{"data", "data:text/plain,hello", "", false},
+		{"local-fragment-control", "#start", "../chapter1.xhtml#start", true},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			block := `<div><a href="` + c.href + `">Link</a></div>`
+			source := `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>One</title></head><body><h1 id="start">One</h1>` + block + `</body></html>`
+			w, dir, _ := moveCrossFixture(t, map[string]string{"EPUB/chapter1.xhtml": source})
+			defer w.Close()
+			src, dst := structureBinding(t, w, "EPUB/chapter1.xhtml"), structureBinding(t, w, "EPUB/text/chapter3.xhtml")
+			p, err := w.Plan(editJSON(t, Request{6, []Operation{src.elemMoveCross(dst, "/html[1]/body[1]/div[1]", dst.locatorID(t, "three"), "after")}}))
+			if err != nil {
+				if c.allowed {
+					t.Fatalf("legal moved URL refused: %v", err)
+				}
+				return
+			}
+			e := applyPlan(t, w, p)
+			actual := readResource(t, filepath.Join(dir, candidate, "EPUB/text/chapter3.xhtml"))
+			if !bytes.Contains(actual, []byte(`href="`+c.want+`"`)) {
+				t.Fatalf("candidate: %s", actual)
+			}
+			if _, err := w.Reject(e.TaskID); err != nil {
+				t.Fatal(err)
+			}
+			if !c.allowed {
+				t.Fatalf("moved URL %q escaped the shared link gate", c.href)
+			}
+		})
+	}
+}
+
+// FuzzCrossMovePlanApply compares one accepted move against an independent
+// complete-resource byte oracle (the authored source, destination and nav bytes
+// after the known rewrite) and compares two-move plans by their actual candidate
+// bytes in both operation orders.
 func FuzzCrossMovePlanApply(f *testing.F) {
 	f.Add(uint8(0), uint8(0), uint8(0), uint8(0))
 	f.Add(uint8(1), uint8(1), uint8(1), uint8(0))
 	f.Add(uint8(2), uint8(2), uint8(2), uint8(1))
 	f.Fuzz(func(t *testing.T, source, anchor, position, second uint8) {
 		sources := []string{"moveblock", "unreferenced", "last", "start"}
-		anchors := []string{"three", "three", "three", "three"}
 		positions := []string{"after", "before", "first-child", "last-child"}
+		sourceName := sources[int(source)%len(sources)]
+		positionName := positions[int(position)%len(positions)]
 		dir := fuzzMoveDir(t)
 		w, err := Open(dir)
 		if err != nil {
@@ -470,46 +700,77 @@ func FuzzCrossMovePlanApply(f *testing.F) {
 		defer w.Close()
 		ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
 		ch3 := structureBinding(t, w, "EPUB/text/chapter3.xhtml")
-		op := ch1.elemMoveCross(ch3, ch1.locatorID(t, sources[int(source)%len(sources)]), ch3.locatorID(t, anchors[int(anchor)%len(anchors)]), positions[int(position)%len(positions)])
-		ops := []Operation{op}
+		op := ch1.elemMoveCross(ch3, ch1.locatorID(t, sourceName), ch3.locatorID(t, "three"), positionName)
+		if plan, err := w.Plan(editJSON(t, Request{6, []Operation{op}})); err == nil {
+			e, err := w.Apply(editJSON(t, plan))
+			if err != nil {
+				t.Fatal(err)
+			}
+			block, rewritten, ok := moveOracleBlock(sourceName)
+			if !ok {
+				t.Fatalf("oracle menu for %s", sourceName)
+			}
+			wantDest, ok := moveOracleDestination(positionName, rewritten)
+			if !ok {
+				t.Fatalf("oracle position %s", positionName)
+			}
+			wantSource := strings.Replace(structureMoveChapter1, block, "", 1)
+			wantNav := moveCrossFiles()["EPUB/nav.xhtml"]
+			switch sourceName {
+			case "moveblock":
+				wantNav = strings.Replace(wantNav, "chapter1.xhtml#inner", "text/chapter3.xhtml#inner", 1)
+			case "start":
+				// The block that stays in chapter1 keeps a link to the moved
+				// identity, so it is synchronized to the destination.
+				wantSource = strings.Replace(wantSource, `href="#start"`, `href="text/chapter3.xhtml#start"`, 1)
+			}
+			for path, want := range map[string]string{
+				"EPUB/chapter1.xhtml":      wantSource,
+				"EPUB/text/chapter3.xhtml": wantDest,
+				"EPUB/nav.xhtml":           wantNav,
+			} {
+				got, err := os.ReadFile(filepath.Join(dir, candidate, filepath.FromSlash(path)))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !bytes.Equal(got, []byte(want)) {
+					t.Fatalf("independent oracle for %s: got %q want %q", path, got, want)
+				}
+			}
+			again, err := w.Plan(editJSON(t, Request{6, []Operation{op}}))
+			if err != nil || again.OperationSetSHA256 != plan.OperationSetSHA256 || strings.Join(again.WriteSet, ",") != strings.Join(plan.WriteSet, ",") {
+				t.Fatalf("nondeterministic plan: %v", err)
+			}
+			rev, err := w.TaskDiff(e.TaskID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if rev.Operations[0].Element == nil || rev.Operations[0].Element.Unavailable != "" {
+				t.Fatalf("move review unavailable: %+v", rev.Operations[0])
+			}
+			if _, err := w.Reject(e.TaskID); err != nil {
+				t.Fatal(err)
+			}
+		}
 		if second%2 == 1 {
-			ops = append(ops, ch3.elemMoveCross(ch1, ch3.locatorID(t, "three"), ch1.locatorID(t, "last"), "after"))
-		}
-		p, err := w.Plan(editJSON(t, Request{6, ops}))
-		if err != nil {
-			return
-		}
-		if len(ops) == 2 {
-			// A second move must not change the outcome or the write set when
-			// the two operations are planned in reverse order.
-			reverse := []Operation{ops[1], ops[0]}
-			other, err := w.Plan(editJSON(t, Request{6, reverse}))
-			if err != nil || strings.Join(other.WriteSet, ",") != strings.Join(p.WriteSet, ",") {
-				t.Fatalf("order-dependent move plan: %v vs %v", err, other.WriteSet)
+			move2 := ch3.elemMoveCross(ch1, ch3.locatorID(t, "three"), ch1.locatorID(t, "last"), "after")
+			ab, errAB := w.Plan(editJSON(t, Request{6, []Operation{op, move2}}))
+			ba, errBA := w.Plan(editJSON(t, Request{6, []Operation{move2, op}}))
+			if (errAB == nil) != (errBA == nil) {
+				t.Fatalf("order-dependent move outcome: %v vs %v", errAB, errBA)
 			}
-		}
-		again, err := w.Plan(editJSON(t, Request{6, ops}))
-		if err != nil || again.OperationSetSHA256 != p.OperationSetSHA256 || strings.Join(again.WriteSet, ",") != strings.Join(p.WriteSet, ",") {
-			t.Fatalf("nondeterministic plan: %v", err)
-		}
-		e, err := w.Apply(editJSON(t, p))
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, path := range p.WriteSet {
-			if _, err := os.ReadFile(filepath.Join(dir, candidate, path)); err != nil {
-				t.Fatalf("candidate %s: %v", path, err)
+			if errAB == nil {
+				bytesAB := applyMoveCandidate(t, w, dir, ab)
+				bytesBA := applyMoveCandidate(t, w, dir, ba)
+				if len(bytesAB) != len(bytesBA) {
+					t.Fatalf("order-dependent candidate resources: %v vs %v", bytesAB, bytesBA)
+				}
+				for path, a := range bytesAB {
+					if !bytes.Equal(a, bytesBA[path]) {
+						t.Fatalf("order-dependent candidate bytes for %s", path)
+					}
+				}
 			}
-		}
-		rev, err := w.TaskDiff(e.TaskID)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if rev.Operations[0].Element == nil || rev.Operations[0].Element.Unavailable != "" {
-			t.Fatalf("move review unavailable: %+v", rev.Operations[0])
-		}
-		if _, err := w.Reject(e.TaskID); err != nil {
-			t.Fatal(err)
 		}
 	})
 }

@@ -178,19 +178,22 @@ func (d *StructureDocument) rebaseMoveBlock(moved *xmltext.Element, sourcePath, 
 				if err != nil {
 					return err
 				}
-				if !changed {
-					continue
+				if changed {
+					markup, ok := e.AttributeBytes(a.Name)
+					if !ok {
+						return fault.New(2, "INVALID_OPERATIONS", "move block attribute %s has no writable source interval", a.Name.Local)
+					}
+					encoded, err := d.encodeAttributeValue(value)
+					if err != nil {
+						return err
+					}
+					spans = append(spans, moveValueSpan{Start: markup.ValueStart, End: markup.ValueEnd, Bytes: encoded})
+					rewrites = append(rewrites, MoveRewrite{Locator: e.Location, Name: a.Name.Local, Old: a.Value, New: value})
 				}
-				markup, ok := e.AttributeBytes(a.Name)
-				if !ok {
-					return fault.New(2, "INVALID_OPERATIONS", "move block attribute %s has no writable source interval", a.Name.Local)
-				}
-				encoded, err := d.encodeAttributeValue(value)
-				if err != nil {
-					return err
-				}
-				spans = append(spans, moveValueSpan{Start: markup.ValueStart, End: markup.ValueEnd, Bytes: encoded})
-				rewrites = append(rewrites, MoveRewrite{Locator: e.Location, Name: a.Name.Local, Old: a.Value, New: value})
+				// Every URL that moves with the block is validated by the shared
+				// link gate in its final form, including values this batch does
+				// not rewrite: a blocked scheme or an unprovable internal target
+				// must refuse instead of arriving at the destination unverified.
 				links = append(links, StructureLink{Locator: e.Location, Name: a.Name.Local, Value: value})
 			}
 			if a.Name.Space == "" && IsIDREFAttribute(a.Name.Local) {
@@ -257,8 +260,8 @@ func (d *StructureDocument) rebaseMoveValue(moved *xmltext.Element, value string
 			return value, false, nil
 		}
 		// An explicit path to the source document whose fragment moves with the
-		// block becomes a local fragment reference in the destination.
-		return "#" + u.EscapedFragment(), true, nil
+		// block becomes a local reference in the destination; its query stays.
+		return urlSuffix(u), true, nil
 	}
 	target, err := bookpath.RelativeHref(destPath, sourcePath)
 	if err != nil {
@@ -267,10 +270,12 @@ func (d *StructureDocument) rebaseMoveValue(moved *xmltext.Element, value string
 	return string(target) + urlSuffix(u), true, nil
 }
 
-// urlSuffix renders the query and fragment of one parsed URL canonically.
+// urlSuffix renders the query and fragment of one parsed URL canonically. An
+// empty query that was written as "?" keeps its "?" so the rewritten reference
+// has the same meaning as the authored one.
 func urlSuffix(u *url.URL) string {
 	out := ""
-	if u.RawQuery != "" {
+	if u.RawQuery != "" || u.ForceQuery {
 		out += "?" + u.RawQuery
 	}
 	if u.Fragment != "" {
