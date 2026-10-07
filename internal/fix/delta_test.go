@@ -1,6 +1,9 @@
 package fix
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func upstreamSide(status string, ruleset string, diags ...UpstreamDiagnostic) DeltaSide {
 	return DeltaSide{
@@ -141,5 +144,79 @@ func TestClassifyDeltaNativeCoverage(t *testing.T) {
 	}
 	if e := single(t, ClassifyDelta(nativeSide("partial"), nativeSide("complete", fact)), Checker); e.Classification != "newly_checkable" {
 		t.Fatalf("native newly checkable: %+v", e)
+	}
+}
+
+// Persist equal severities first, pair only the remaining instances, and keep
+// every surplus. Three severities also exercise consumption across groups.
+func TestClassifyDeltaSeverityMultiplicity(t *testing.T) {
+	w := upstreamDiag("RSC-033", "warning", "EPUB/chapter1.xhtml", 8, "query component")
+	e := w
+	e.Severity = "error"
+	f := w
+	f.Severity = "fatal"
+	for _, tc := range []struct {
+		name          string
+		before, after []UpstreamDiagnostic
+		want          map[string][2]int
+	}{
+		{"before-surplus", []UpstreamDiagnostic{w, w}, []UpstreamDiagnostic{e}, map[string][2]int{"upgraded": {1, 1}, "resolved": {1, 0}}},
+		{"after-surplus", []UpstreamDiagnostic{w}, []UpstreamDiagnostic{e, e}, map[string][2]int{"upgraded": {1, 1}, "added": {0, 1}}},
+		{"persisted-before-surplus", []UpstreamDiagnostic{w, w, e}, []UpstreamDiagnostic{e, e}, map[string][2]int{"persisted": {1, 1}, "upgraded": {1, 1}, "resolved": {1, 0}}},
+		{"persisted-after-surplus", []UpstreamDiagnostic{w, e}, []UpstreamDiagnostic{e, e, e}, map[string][2]int{"persisted": {1, 1}, "upgraded": {1, 1}, "added": {0, 1}}},
+		{"multiple-addition-groups", []UpstreamDiagnostic{w, w}, []UpstreamDiagnostic{e, f}, map[string][2]int{"upgraded": {2, 2}}},
+		{"multiple-removal-groups", []UpstreamDiagnostic{w, e}, []UpstreamDiagnostic{f, f}, map[string][2]int{"upgraded": {2, 2}}},
+		{"single-control", []UpstreamDiagnostic{w}, []UpstreamDiagnostic{e}, map[string][2]int{"upgraded": {1, 1}}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			entries := ClassifyDelta(upstreamSide("completed", "3.3", tc.before...), upstreamSide("completed", "3.3", tc.after...))
+			got := map[string][2]int{}
+			for _, entry := range entries {
+				if entry.Classification == "persisted" || entry.Classification == "upgraded" {
+					if len(entry.Before) != len(entry.After) {
+						t.Fatalf("unequal pair: %+v", entry)
+					}
+				}
+				n := got[entry.Classification]
+				got[entry.Classification] = [2]int{n[0] + len(entry.Before), n[1] + len(entry.After)}
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("instances: got %v want %v; %+v", got, tc.want, entries)
+			}
+		})
+	}
+}
+
+func TestClassifyDeltaNativeMultiplicity(t *testing.T) {
+	first := nativeFact("EPUB/chapter1.xhtml")
+	first.Target.ExpectedOldValue = "first"
+	second := first
+	second.Target.ExpectedOldValue = "second"
+	for _, tc := range []struct {
+		name   string
+		before DeltaSide
+		after  DeltaSide
+		class  string
+	}{
+		{"decrease", nativeSide("complete", first, second), nativeSide("complete", first), "resolved"},
+		{"increase", nativeSide("complete", first), nativeSide("complete", first, second), "added"},
+		{"partial-decrease", nativeSide("partial", first, second), nativeSide("complete", first), "incomparable"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			entries := ClassifyDelta(tc.before, tc.after)
+			if len(entries) != 2 || entries[0].Classification != "persisted" || entries[1].Classification != tc.class {
+				t.Fatalf("split: %+v", entries)
+			}
+			if !reflect.DeepEqual(entries[0].Before, []any{first}) || !reflect.DeepEqual(entries[0].After, []any{first}) {
+				t.Fatalf("persisted instance: %+v", entries[0])
+			}
+			b, a := []any{second}, []any{}
+			if tc.class == "added" {
+				b, a = a, b
+			}
+			if !reflect.DeepEqual(entries[1].Before, b) || !reflect.DeepEqual(entries[1].After, a) {
+				t.Fatalf("surplus instance (not reused persisted): %+v", entries[1])
+			}
+		})
 	}
 }

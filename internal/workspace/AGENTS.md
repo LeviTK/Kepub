@@ -31,6 +31,9 @@
 - schema 7 的保存来源在每个消费阶段（Plan/Apply/执行/恢复/diff/accept/history）都按 **plan 自身**
   `BaseRevision` 的冻结 revision 重推完整提案并核 operations 多重集；提交的 plan 与 `plans/<id>.json`
   都是不可信输入，digest 相等不构成重推豁免。旧 schema 1–6 的 shape/校验不变。
+- `taskDigests` 是 settlement 与已结算历史共用的来源消费边界；rejected 也必须重推，不把只在
+  accepted revision 尾部验证当作完整覆盖。永久入口 `TestFixRejectedSourceRevalidation` 核实际
+  TaskStatus/Open、accepted 推进后的合法旧历史、journal 尚在但 task 已归档的 recovery 正反例。
 - 每个快照（revision/task）绑定自己的已核 tree/inventory；历史 initial 不得继承当前 accepted 的
   `InputTreeSHA256`。native facts 与 checker 必须消费**同一份**已核私有快照（`archive.SnapshotDirectory`
   + `Unpack` 到私有目录），live 目录只是身份证据，不是检查输入；drift/I-O fault 保留。

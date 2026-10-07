@@ -5,11 +5,13 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/LeviTK/Kepub/internal/fix"
+	"github.com/LeviTK/Kepub/internal/publication"
 	"github.com/LeviTK/Kepub/internal/validation"
 )
 
@@ -91,5 +93,98 @@ func TestFixProposalEncodingLayering(t *testing.T) {
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+// Empty new href is a physical edit, not a missing fact or a no-op. The
+// no-fragment cross-resource case must bind the existence dependency too.
+func TestFixRelativeURLQueryBytes(t *testing.T) {
+	for _, enc := range []string{"utf8", "utf16le", "utf16be"} {
+		for _, tc := range []struct{ old, value string }{
+			{"?x=1", ""}, {"?", ""}, {"chapter2.xhtml?q=1", "chapter2.xhtml"},
+		} {
+			t.Run(enc+"/"+tc.old, func(t *testing.T) {
+				src := `<?xml version="1.0" encoding="utf-8"?>` + "\r\n" +
+					strings.Replace(strings.Replace(fixSource, "chapter2.xhtml?q=1#start2", tc.old, 1), "One</title>", "字😀 &amp; One</title>", 1) + "\r\n"
+				w, dir, _ := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": encodeChapter(src, enc)})
+				defer w.Close()
+				// The independently chosen seven-resource set never comes from a
+				// product WriteSet. Only the explicit href literal may change.
+				want := map[string][]byte{}
+				for _, name := range []string{"mimetype", "META-INF/container.xml", "EPUB/package.opf", "EPUB/chapter1.xhtml", "EPUB/chapter2.xhtml", "EPUB/style.css", "EPUB/nav.xhtml"} {
+					want[name] = readResource(t, filepath.Join(dir, revision, filepath.FromSlash(name)))
+				}
+				want["EPUB/chapter1.xhtml"] = []byte(encodeChapter(strings.Replace(src, `href="`+tc.old+`"`, `href="`+tc.value+`"`, 1), enc))
+				check := func(t *testing.T) {
+					t.Helper()
+					for name, expected := range want {
+						got := readResource(t, filepath.Join(dir, candidate, filepath.FromSlash(name)))
+						if !bytes.Equal(got, expected) {
+							t.Fatalf("complete %s %s bytes mismatch", enc, name)
+						}
+					}
+				}
+				b := structureBinding(t, w, "EPUB/chapter1.xhtml")
+				op := b.attrSet(b.locator(t, "a", 0), "href", &tc.old, tc.value)
+				legacy, err := w.Plan(editJSON(t, map[string]any{"schemaVersion": 4, "operations": []Operation{op}}))
+				if err != nil {
+					t.Fatalf("legacy gate control: %v", err)
+				}
+				e := applyPlan(t, w, legacy)
+				check(t)
+				if _, err := w.Reject(e.TaskID); err != nil {
+					t.Fatal(err)
+				}
+				s, err := w.FixSnapshot()
+				if err != nil {
+					t.Fatal(err)
+				}
+				all := fixSourceProposal(t, w)
+				if len(all.Repairs) != 2 || len(all.Limitations) != 0 || len(fix.NativeDiagnostics(s)) != 2 {
+					t.Fatalf("query/native facts: %+v", all)
+				}
+				r := all.Repairs[1]
+				if r.Operation == nil {
+					t.Fatalf("legal query has no operation: %+v", r)
+				}
+				set, ok := r.Operation.Params.(publication.AttributeSet)
+				if !ok || r.Status != fix.StatusFixable || set.Value != tc.value || r.Target.ExpectedOldValue != tc.old {
+					t.Fatalf("query repair: %+v", r)
+				}
+				read := []string{"EPUB/chapter1.xhtml", "EPUB/package.opf", "META-INF/container.xml"}
+				if tc.value != "" {
+					read = []string{"EPUB/chapter1.xhtml", "EPUB/chapter2.xhtml", "EPUB/package.opf", "META-INF/container.xml"}
+				}
+				p, err := fix.Propose(s, fix.Selection{Mode: fix.ModeExplicit, RepairIDs: []string{r.RepairID}})
+				if err != nil || !slices.Equal(r.ReadSet, read) || !slices.Equal(p.Derived.ReadSet, read) {
+					t.Fatalf("semantic dependencies: repair=%v derived=%v want=%v err=%v", r.ReadSet, p.Derived.ReadSet, read, err)
+				}
+				plan, err := w.Plan(fixSchema7JSON(t, p))
+				if err != nil {
+					t.Fatal(err)
+				}
+				e = applyPlan(t, w, plan)
+				check(t)
+				if _, err := w.Reject(e.TaskID); err != nil {
+					t.Fatal(err)
+				}
+				// Mixed FR1+FR2 must execute both legal permutations, each against
+				// an independent byte oracle rather than just against the other.
+				want["EPUB/chapter1.xhtml"] = []byte(encodeChapter(strings.Replace(strings.Replace(src, `href="`+tc.old+`"`, `href="`+tc.value+`"`, 1), ` epub:type="secrecy"`, "", 1), enc))
+				ops := slices.Clone(all.Derived.Operations)
+				for order := 0; order < 2; order++ {
+					plan, err := w.Plan(editJSON(t, map[string]any{"schemaVersion": 7, "proposal": all, "operations": ops}))
+					if err != nil {
+						t.Fatalf("mixed order %d: %v", order, err)
+					}
+					e = applyPlan(t, w, plan)
+					check(t)
+					if _, err := w.Reject(e.TaskID); err != nil {
+						t.Fatal(err)
+					}
+					slices.Reverse(ops)
+				}
+			})
+		}
 	}
 }

@@ -83,6 +83,15 @@
 
 ## G-QUALIFY：事实、来源与真实旧门禁资格分离
 
+- PK1 残余消费边界：仅在 accepted revision 重推 schema 7 → rejected history/settlement recovery
+  接受一致重签的伪 risk → 共用 `taskDigests` 重推自身 BaseRevision；永久入口
+  `TestFixRejectedSourceRevalidation`（含 accepted 推进后的合法旧历史和归档中断恢复）。
+- severity 配对一次消费整组、native 两边非空就全 persisted → 非对称 surplus 消失或复用已配对实例 →
+  equal severity 先配对、剩余切片逐实例消费；永久入口 `TestClassifyDeltaSeverityMultiplicity`、
+  `TestClassifyDeltaNativeMultiplicity`，保持 generic/coverage 既有不可比较规则。
+- FR2 空新值快捷跳过、仅 fragment 成功才收目标依赖 → `?x=1`／`?` 漏 repair/native fact、无 fragment
+  漏 readSet → `TestFixRelativeURLQueryBytes`：三编码、七资源完整字节、旧 schema 4 实际 Plan+Apply
+  正控与 schema 7 消费；不修改外侧空白的真实旧 gate 资格或原强删除 oracle 的历史 FAIL。
 - **规则→失效模式→永久回归**：保存的 schema 7 来源只在 Plan 时重推 → Apply/执行/恢复/diff/accept/history
   信任 digest 相等的伪造来源（改 risk 重签、裁 operation 并重算 ordered digest）→
   `TestFixSavedSourceRevalidation`、`TestFixDeltaFrozenSide`、reviewer 的 `TestMediumFixSavedSourceRevalidated`。

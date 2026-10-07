@@ -243,9 +243,6 @@ func removeQuery(value string) (string, bool) {
 		return "", false
 	}
 	stripped := head[:i] + tail
-	if stripped == "" || stripped == trimmed {
-		return "", false
-	}
 	lead := len(value) - len(strings.TrimLeft(value, " \t\n\r\f"))
 	trail := len(value) - len(strings.TrimRight(value, " \t\n\r\f"))
 	return value[:lead] + stripped + value[len(value)-trail:], true
@@ -354,6 +351,8 @@ func deriveRelativeURLQuery(s Snapshot) ([]Repair, []Limitation) {
 				repairs = append(repairs, repair)
 				continue
 			}
+			// Target existence is a semantic dependency even without a fragment.
+			repair.ReadSet = sortedUnique(append(repair.ReadSet, string(ref.Path)))
 			if ref.Fragment != "" {
 				targetRes, ok := s.resource(ref.Path)
 				if !ok {
@@ -371,7 +370,6 @@ func deriveRelativeURLQuery(s Snapshot) ([]Repair, []Limitation) {
 					repairs = append(repairs, repair)
 					continue
 				}
-				repair.ReadSet = sortedUnique(append(repair.ReadSet, string(ref.Path)))
 			}
 			repair.Status = StatusFixable
 			repair.Operation = &Operation{ID: "xhtml.attribute.set", Version: 1, Params: publication.AttributeSet{

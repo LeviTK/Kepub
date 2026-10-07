@@ -3,6 +3,7 @@ package workspace
 import (
 	"bytes"
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -167,4 +168,107 @@ func TestFixSavedSourceRevalidation(t *testing.T) {
 			t.Fatal("forged source passed the frozen-baseline re-derivation")
 		}
 	})
+}
+
+// Re-sign all stored copies and journal digests, leaving operations and legal
+// bytes untouched. Test the real consumers, not just verifyFixPlan directly.
+func TestFixRejectedSourceRevalidation(t *testing.T) {
+	for _, boundary := range []string{"history", "history-advanced", "recovery", "recovery-archived"} {
+		for _, forged := range []bool{false, true} {
+			name := "legal"
+			if forged {
+				name = "resigned-risk"
+			}
+			t.Run(boundary+"/"+name, func(t *testing.T) {
+				if boundary == "history-advanced" && os.Getenv("KEPUB_EPUBCHECK_JAR") == "" {
+					t.Skip("real pinned EPUBCheck required to advance accepted")
+				}
+				src := fixSourceSVG()
+				w, dir, _ := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": src})
+				plan, err := w.Plan(fixSchema7JSON(t, fixSourceProposal(t, w)))
+				if err != nil {
+					t.Fatal(err)
+				}
+				e := applyPlan(t, w, plan)
+				taskDir := "tasks/active"
+				j := settlement{Version: 1, WorkspaceID: w.id, Decision: Decision{Version: 1, TaskID: e.TaskID, Status: "rejected", BaseRevision: plan.BaseRevision, TreeSHA256: e.Diff.AfterSHA256}}
+				if err := w.taskDigests(taskDir, &j); err != nil {
+					t.Fatal(err)
+				}
+				if strings.HasPrefix(boundary, "history") {
+					if _, err := w.Reject(e.TaskID); err != nil {
+						t.Fatal(err)
+					}
+					taskDir = "tasks/" + e.TaskID
+					if boundary == "history-advanced" {
+						next, err := w.Plan(fixSchema7JSON(t, fixSourceProposal(t, w)))
+						if err != nil {
+							t.Fatal(err)
+						}
+						applied := applyPlan(t, w, next)
+						if _, err := w.Accept(context.Background(), applied.TaskID, validation.Options{Timeout: 2 * time.Minute}); err != nil {
+							t.Fatal(err)
+						}
+						if w.current == plan.BaseRevision {
+							t.Fatal("accepted did not advance")
+						}
+					}
+				}
+				if forged {
+					plan.Proposal.Repairs[0].Risk = "forged safe approved repair"
+					if err := plan.Proposal.Sign(); err != nil {
+						t.Fatal(err)
+					}
+					var start, result Execution
+					if err := readEditJSON(w.root, taskDir+"/edit-start.json", &start); err != nil {
+						t.Fatal(err)
+					}
+					if err := readEditJSON(w.root, taskDir+"/edit-result.json", &result); err != nil {
+						t.Fatal(err)
+					}
+					start.Plan, result.Plan = plan, plan
+					for path, record := range map[string]any{
+						taskDir + "/edit-intent.json": plan, taskDir + "/edit-start.json": start, taskDir + "/edit-result.json": result,
+						"plans/" + plan.ID + ".json": plan, "plans/" + plan.ID + ".used.json": planUse{1, e.TaskID, digest(plan)},
+					} {
+						put(t, filepath.Join(dir, filepath.FromSlash(path)), editJSON(t, record))
+					}
+					j.IntentSHA256, j.StartSHA256, j.ResultSHA256 = digest(plan), digest(start), digest(result)
+				}
+				if strings.HasPrefix(boundary, "recovery") {
+					if err := writeJSON(w.root, settlementJournal, j); err != nil {
+						t.Fatal(err)
+					}
+					if boundary == "recovery-archived" {
+						if err := w.root.Rename("tasks/active", "tasks/"+e.TaskID); err != nil {
+							t.Fatal(err)
+						}
+					}
+				}
+				w.Close()
+				w, err = Open(dir)
+				if err == nil {
+					defer w.Close()
+					var status TaskStatus
+					status, err = w.TaskStatus(e.TaskID)
+					if !forged && (err != nil || status.Status != "rejected" || status.BaseRevision != plan.BaseRevision) {
+						t.Fatalf("legal historical consumer: %+v %v", status, err)
+					}
+				} else if !forged {
+					t.Fatalf("legal recovery: %v", err)
+				}
+				if forged && !errors.Is(err, ErrStalePlan) {
+					t.Fatalf("complete-source forgery must fail re-derivation, got %v", err)
+				}
+				if got := readResource(t, filepath.Join(dir, revision, "EPUB/chapter1.xhtml")); !bytes.Equal(got, []byte(src)) {
+					t.Fatal("frozen baseline changed")
+				}
+				if forged && strings.HasPrefix(boundary, "recovery") {
+					if _, err := os.Stat(filepath.Join(dir, settlementJournal)); err != nil {
+						t.Fatal("rejected provenance must not consume the recovery journal")
+					}
+				}
+			})
+		}
+	}
 }

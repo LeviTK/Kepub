@@ -293,9 +293,6 @@ func (w *Workspace) revisionSource(r Revision) (string, error) {
 	if digest(e) != r.ExecutionSHA256 || e.Status != "review_required" || !e.ReviewRequired || e.Conformance != "not_run" || e.TaskID != r.TaskID || e.Diff.AfterSHA256 != r.Tree.SHA256 || digest(stored) != digest(e.Plan) || used.Version != 1 || used.TaskID != r.TaskID || used.PlanSHA256 != digest(e.Plan) {
 		return "", fmt.Errorf("revision execution mismatch")
 	}
-	if err := w.verifyFixPlan(e.Plan); err != nil {
-		return "", fmt.Errorf("revision execution source mismatch")
-	}
 	return e.Plan.InputTreeSHA256, nil
 }
 
@@ -1387,6 +1384,11 @@ func (w *Workspace) taskDigests(dir string, j *settlement) error {
 	}
 	if !validPlanOperation(p) || p.Rootfile != w.state.Rootfile || p.OperationSetSHA256 != digest(p.Operations) || s.Version != p.SchemaVersion || e.Version != s.Version || s.TaskID != e.TaskID || s.TaskID != id && !(id == "active" && s.TaskID == "") || (s.Status != "running" && s.Status != "unstarted") || (s.Status == "unstarted" && e.Status != "failed") || s.ReviewRequired || s.Conformance != "not_run" || digest(s.Diff) != digest(compareTrees(tree, tree)) || e.Conformance != "not_run" || e.Diff.Changes == nil {
 		return fmt.Errorf("settlement operation/execution version mismatch")
+	}
+	// Digests bind copies, not source truth. History and recovery must re-derive
+	// schema 7 from the plan's own revision, even after accepted has advanced.
+	if err := w.verifyFixPlan(p); err != nil {
+		return err
 	}
 	d, err := w.recomputeAt(p.Operations, dir+"/checkpoints/"+s.Checkpoint+"/pub", p.BaseRevision)
 	if err != nil {
