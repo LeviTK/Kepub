@@ -513,10 +513,10 @@ The fixes keep the old-value, byte-interval, encoding and scope constraints, and
 all positive controls (encoded CRLF/CJK/surrogate fixtures, `\bPlain\b`,
 entity-adjacent literals, ordinary descendants) are retained.
 
-### Verification of this revision
+### Verification of the rejected batch-3 revision (`b9840cc`)
 
-This revision's runs are labelled by where they were taken; the product content
-was committed as the fixed commit that introduces this section.
+The rejected revision's runs are labelled by where they were taken; the product
+content was committed as `b9840cc`.
 
 - Repository ordinary suite with the pinned EPUBCheck 5.3.0 jar, taken from this
   revision's working tree before the commit (working-tree verification, not a
@@ -562,5 +562,97 @@ was committed as the fixed commit that introduces this section.
   and a zero-width `\b` pattern were refused (exit 2, no plan file) and the
   anchored `\bOne\b` positive planned. The original book bytes were unchanged and
   the export ZIPs intact.
+- The fixed commit, tree and bundle hashes are reported to the parent thread and
+  frozen in the next batch's record.
+
+### Second rejection and fixes (batch 3)
+
+The parent's acceptance verification and the medium review rejected `b9840cc`:
+the complete earlier frozen set and the clean suites still passed, but authored
+literals beside a generated entity were refused when the entity's replacement
+text spelled a predefined reference, and a legal long numeric reference was
+refused as well.
+
+1. **A generated piece was compared by its source spelling.** A direct
+   character-data token holds decoded text, while a generated span holds the
+   spelling of its own replacement text, so `&amp;` was compared with `&` and
+   the whole token fell back to one non-writable fragment. The generated or
+   serialized piece is now decoded to its character-data semantics before
+   alignment, so the non-writable fragment matches the decoded token text and
+   the authored literals on both sides keep their byte intervals. The generated
+   text itself stays non-writable, a cross-reference match is still refused, and
+   an uncertain token still falls back whole.
+2. **An undefined 64-byte reference-length cap.** A legal numeric reference with
+   61 or 80 leading zeros was rejected because the terminating semicolon was
+   searched only within 64 bytes. The cap is removed; the semicolon inside the
+   piece bounds the reference and a spelling that does not decode still falls
+   back whole, so the 59/60-zero boundary cases keep passing.
+
+The frozen probes are retained and rerun unchanged: the parent's
+`parent_replace_adjacent_publication_test.go.received`,
+`parent_replace_adjacent_workspace_test.go.received` and
+`parent_replace_numeric_workspace_test.go.received`, the medium review's
+`reviewer_medium_replace_fragment_adjacent_test.go.received` and
+`reviewer_medium_replace_fragment_workspace_test.go.received`, and the effective
+transaction fuzz minimal seed `267ee5f836be007e` in ordinary and race replays.
+Permanent regressions: `TestReplaceGeneratedDecodedNeighbors` covers the
+predefined, nested and long-numeric shapes in three encodings with both
+neighbours and keeps the refusal of the generated decoded text and of a
+cross-reference match, and the product fuzz document now carries a
+generated-predefined paragraph and a long-numeric paragraph with dedicated
+seeds.
+
+### Verification of this revision
+
+This revision's runs are labelled by where they were taken; the product content
+was committed as the fixed commit that introduces this section.
+
+- Repository ordinary suite with the pinned EPUBCheck 5.3.0 jar, taken from this
+  revision's working tree before the commit (working-tree verification, not a
+  fresh checkout of the commit): all packages passed (cmd/kepub 311.225 s,
+  internal/validation 261.861 s, internal/workspace 222.944 s,
+  internal/publication 4.623 s, internal/xmltext 6.105 s, internal/references
+  0.118 s, experiments/amp-cli 5.116 s, internal/app 0.323 s, internal/archive
+  0.135 s, internal/metadata 0.467 s, internal/bookpath 0.025 s). The race suite
+  on the same tree also passed all packages (cmd/kepub 528.876 s,
+  internal/validation 292.719 s, internal/workspace 295.136 s,
+  internal/publication 95.031 s, internal/xmltext 88.349 s, internal/references
+  1.971 s, experiments/amp-cli 7.258 s, internal/app 1.894 s, internal/archive
+  1.353 s, internal/bookpath 1.019 s, internal/metadata 5.303 s). `go vet ./...`
+  and `gofmt` are clean on the same tree.
+- The complete frozen probe set was rerun unchanged on this revision, first in
+  the working tree before the commit and then again from a fresh fetch of the
+  fixed bundle into a new repository at the base commit: the parent's adjacent
+  publication, adjacent workspace and long-numeric workspace probes, the medium
+  review's fragment-adjacent publication and fragment workspace probes (including
+  the effective-transaction fuzz minimal seed `267ee5f836be007e`), and every
+  earlier frozen probe (replace boundary and empty-entity, workspace replace and
+  lifecycle, joint-alias and cross-resource/IDREF, identity and diagnostic,
+  reference gate, IDREF coverage, manifest permission, attribute positives, text
+  review shift, misplaced blocks, unsupported URL writes, move review, fragment
+  identities, schema locator advertisement, both R2 probes and the UTF positive
+  control) — 44 top-level test functions, 311 assertions including subtests, no
+  failures and no skips, ordinary and focused race runs with no data race. The
+  generated-neighbour and long-numeric literals accept with the reference
+  spellings and the authored bytes preserved, the generated decoded text and a
+  cross-reference match stay refused, and the 59/60-zero boundary controls keep
+  passing.
+- Fuzz on this revision's working tree before the commit: the product replace
+  target ran 752,638 executions in 60.5 s against its independent
+  standard-library oracle with no failing input, and the medium provenance target
+  ran 2,995 executions in 60.1 s with no failing input after its initial seeds
+  and the captured minimal seed passed in ordinary and race replay.
+- Real CLI smoke on the working-tree binary built before the commit, with the
+  pinned checker: a literal beside `<!ENTITY word "&amp;">` used as `&word;`
+  planned, applied (`matchesExecution` true), passed the strict accept and
+  exported with the candidate `ALPHA&word;beta` (the entity spelling and every
+  other byte preserved); a literal beside a 61-zero `&#...65;` reference planned,
+  applied, passed the strict accept and exported with the reference bytes intact
+  and only `beta` replaced; replacing the generated decoded `&` and a match
+  crossing the reference were refused (`INVALID_OPERATIONS`, exit 2, no plan
+  file). The original book bytes were unchanged.
+- The medium rejection evidence pack `b9840cc-medium-rejected-evidence.tar.gz`
+  and every earlier failure, pollution and race log are retained; no historical
+  result was deleted.
 - The fixed commit, tree and bundle hashes are reported to the parent thread and
   frozen in the next batch's record.

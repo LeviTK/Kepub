@@ -219,6 +219,36 @@ func decodeEntityReference(ref string) (string, bool) {
 	return string(rune(value)), true
 }
 
+// decodeCharData decodes one expanded-stream slice the way the XML decoder
+// produces direct character data: literal bytes are copied and entity or
+// character references are decoded. It returns false when a slice contains a
+// reference that is not a decodable predefined or numeric character reference.
+func decodeCharData(stream string) (string, bool) {
+	if !strings.Contains(stream, "&") {
+		return stream, true
+	}
+	var out strings.Builder
+	out.Grow(len(stream))
+	for i := 0; i < len(stream); {
+		if stream[i] != '&' {
+			out.WriteByte(stream[i])
+			i++
+			continue
+		}
+		semi := strings.IndexByte(stream[i:], ';')
+		if semi < 0 {
+			return "", false
+		}
+		decoded, ok := decodeEntityReference(stream[i : i+semi+1])
+		if !ok {
+			return "", false
+		}
+		out.WriteString(decoded)
+		i += semi + 1
+	}
+	return out.String(), true
+}
+
 // literalFragments splits one literal span piece into writable literal pieces
 // and non-writable entity-reference pieces. Every literal piece keeps the
 // original byte interval of each of its decoded bytes through its own span.
@@ -240,7 +270,7 @@ func (s source) literalFragments(span sourceSpan, lo, hi int) ([]TextRun, bool) 
 			fragments = append(fragments, TextRun{Text: text, Writable: true, offsets: offsets})
 		}
 		semi := bytes.IndexByte(piece[amp:], ';')
-		if semi < 0 || semi > 64 {
+		if semi < 0 {
 			return nil, false
 		}
 		semi += amp
@@ -296,8 +326,16 @@ func (s source) textFragments(before, end int, text string, cdata bool) []TextRu
 		if lo >= hi {
 			continue
 		}
-		if !span.linear || span.generated || s.uncertain(lo, hi) {
-			if !appendPieces([]TextRun{{Text: string(s.text[lo:hi])}}) {
+		if s.uncertain(lo, hi) {
+			return []TextRun{{Text: text}}
+		}
+		if !span.linear || span.generated {
+			// A generated or serialized piece carries the spelling of its own
+			// references, not the decoded character data the token text holds.
+			// Decode the piece so its non-writable fragment aligns exactly and
+			// the neighbouring authored literals keep their byte intervals.
+			decoded, ok := decodeCharData(string(s.text[lo:hi]))
+			if !ok || !appendPieces([]TextRun{{Text: decoded}}) {
 				return []TextRun{{Text: text}}
 			}
 			continue

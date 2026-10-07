@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"unicode/utf16"
 	"unicode/utf8"
 
 	"github.com/LeviTK/Kepub/internal/xmltext"
@@ -175,6 +176,81 @@ func TestReplaceCRLFAndEncodingFidelity(t *testing.T) {
 	}
 }
 
+// replaceEncode returns a fixture in one of the three physical encodings the
+// product accepts, so the byte-level oracle can compare each encoding.
+func replaceEncode(text, enc string) []byte {
+	if enc == "utf8" {
+		return []byte(text)
+	}
+	out := []byte{0xff, 0xfe}
+	if enc == "utf16be" {
+		out = []byte{0xfe, 0xff}
+	}
+	put := func(u rune) {
+		if enc == "utf16le" {
+			out = append(out, byte(u), byte(u>>8))
+		} else {
+			out = append(out, byte(u>>8), byte(u))
+		}
+	}
+	for _, r := range text {
+		if r <= 0xffff {
+			put(r)
+			continue
+		}
+		hi, lo := utf16.EncodeRune(r)
+		put(hi)
+		put(lo)
+	}
+	return out
+}
+
+// TestReplaceGeneratedDecodedNeighbors keeps the second rejected boundary: a
+// generated entity whose replacement text spells a predefined reference (or
+// nests one) decodes to a different string than its own source spelling, and a
+// long numeric reference is still one reference. The generated piece stays
+// non-writable, but its decoded fragment must align exactly so the authored
+// literals beside it keep their byte intervals.
+func TestReplaceGeneratedDecodedNeighbors(t *testing.T) {
+	cases := []struct{ name, dtd, text string }{
+		{"predefined", `<!ENTITY word "&amp;">`, "left&word;right"},
+		{"nested", `<!ENTITY inner "&amp;"><!ENTITY word "&inner;">`, "left&word;right"},
+		{"long-numeric", "", "left&#" + strings.Repeat("0", 61) + "65;right"},
+	}
+	for _, enc := range []string{"utf8", "utf16le", "utf16be"} {
+		for _, c := range cases {
+			for _, pattern := range []string{"left", "right"} {
+				t.Run(c.name+"/"+enc+"/"+pattern, func(t *testing.T) {
+					input := `<!DOCTYPE html [` + c.dtd + `]><html xmlns="http://www.w3.org/1999/xhtml"><body><p>` + c.text + `</p></body></html>`
+					doc, err := ParseStructureDocument(replaceEncode(input, enc), "EPUB/a.xhtml", xmltext.Profile{Version: "3.0", MediaType: "application/xhtml+xml"})
+					if err != nil {
+						t.Fatal(err)
+					}
+					edits, facts, err := doc.ReplaceTextEdits(literalReplace("/html[1]/body[1]/p[1]", pattern, "CHANGED", 1))
+					if err != nil {
+						t.Fatalf("legal literal neighbor refused: %v", err)
+					}
+					if facts.Hits != 1 {
+						t.Fatalf("facts: %+v", facts)
+					}
+					out := ApplyEdits(doc.Input, edits)
+					want := strings.Replace(input, c.text, strings.Replace(c.text, pattern, "CHANGED", 1), 1)
+					if !bytes.Equal(out, replaceEncode(want, enc)) {
+						t.Fatalf("bytes: got=%q want=%q", out, replaceEncode(want, enc))
+					}
+					if err := VerifyStructure(doc, edits, out); err != nil {
+						t.Fatalf("verification: %v", err)
+					}
+				})
+			}
+		}
+	}
+	// The generated decoded text itself is never writable source.
+	doc := replaceDoc(t, `<!DOCTYPE html [<!ENTITY word "&amp;">]><html xmlns="http://www.w3.org/1999/xhtml"><body><p>left&word;right</p></body></html>`)
+	replaceRefused(t, doc, literalReplace("/html[1]/body[1]/p[1]", "&", "X", 1))
+	replaceRefused(t, doc, literalReplace("/html[1]/body[1]/p[1]", "left&right", "X", 1))
+}
+
 // FuzzReplaceTextEdits compares the batch replace with an independent standard
 // library oracle whenever the engine accepts: the candidate direct text must
 // equal the stdlib replacement, untouched elements must keep their text, and
@@ -184,16 +260,20 @@ func FuzzReplaceTextEdits(f *testing.F) {
 	f.Add(uint8(1), `([a-z]+)`, "$1!", uint8(1))
 	f.Add(uint8(0), "zz", "x", uint8(2))
 	f.Add(uint8(0), "o", "", uint8(4))
+	f.Add(uint8(0), "left", "L", uint8(5))
+	f.Add(uint8(0), "right", "R", uint8(5))
+	f.Add(uint8(0), "&", "amp", uint8(5))
+	f.Add(uint8(0), "right", "R", uint8(6))
 	f.Fuzz(func(t *testing.T, mode uint8, pattern, replacement string, target uint8) {
 		if len(pattern) > 64 || len(replacement) > 64 || !utf8.ValidString(pattern) || !utf8.ValidString(replacement) || pattern == "" {
 			return
 		}
-		input := []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><body><p id="a">alpha beta gamma</p><p id="b">one two</p><p id="c">x<em>mid</em>y</p><p id="d">a&amp;b</p><p id="e">crlf` + "\r\n" + `tail</p></body></html>`)
+		input := []byte(`<!DOCTYPE html [<!ENTITY word "&amp;">]><html xmlns="http://www.w3.org/1999/xhtml"><body><p id="a">alpha beta gamma</p><p id="b">one two</p><p id="c">x<em>mid</em>y</p><p id="d">a&amp;b</p><p id="e">crlf` + "\r\n" + `tail</p><p id="f">left&word;right</p><p id="g">left&#` + strings.Repeat("0", 61) + `65;right</p></body></html>`)
 		doc, err := ParseStructureDocument(input, "EPUB/a.xhtml", xmltext.Profile{Version: "3.0", MediaType: "application/xhtml+xml"})
 		if err != nil {
 			t.Fatal(err)
 		}
-		locators := []string{"/html[1]/body[1]/p[1]", "/html[1]/body[1]/p[2]", "/html[1]/body[1]/p[3]", "/html[1]/body[1]/p[4]", "/html[1]/body[1]/p[5]"}
+		locators := []string{"/html[1]/body[1]/p[1]", "/html[1]/body[1]/p[2]", "/html[1]/body[1]/p[3]", "/html[1]/body[1]/p[4]", "/html[1]/body[1]/p[5]", "/html[1]/body[1]/p[6]", "/html[1]/body[1]/p[7]"}
 		modeName := "literal"
 		if mode%2 == 1 {
 			modeName = "regex"
