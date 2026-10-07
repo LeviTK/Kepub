@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/LeviTK/Kepub/internal/archive"
 	"github.com/LeviTK/Kepub/internal/fix"
 )
 
@@ -12,11 +13,39 @@ import (
 // or Git identity is invented.
 type DeltaSnapshot struct {
 	Dir             string
+	Archive         *archive.Archive
+	Tree            archive.Tree
 	Snapshot        fix.Snapshot
 	RevisionID      string
 	TaskID          string
 	ExecutionSHA256 string
 	TreeSHA256      string
+}
+
+// Close removes the private frozen snapshot of one delta side.
+func (ds DeltaSnapshot) Close() {
+	if ds.Archive != nil {
+		ds.Archive.Close()
+	}
+}
+
+// freezeDelta captures one verified tree into a private archive so the native
+// facts and the checker read the same bytes, never the live path.
+func (w *Workspace) freezeDelta(dir string, wantTree, base string) (DeltaSnapshot, error) {
+	a, tree, err := archive.SnapshotDirectory(dir, archive.DefaultLimits)
+	if err != nil {
+		return DeltaSnapshot{}, err
+	}
+	if tree.SHA256 != wantTree {
+		a.Close()
+		return DeltaSnapshot{}, ErrStalePlan
+	}
+	s, err := w.fixSnapshotOfArchive(a, tree, base)
+	if err != nil {
+		a.Close()
+		return DeltaSnapshot{}, err
+	}
+	return DeltaSnapshot{Dir: dir, Archive: a, Tree: tree, Snapshot: s, TreeSHA256: tree.SHA256}, nil
 }
 
 // FixDeltaSnapshot resolves exactly one delta side: a frozen revision of this
@@ -40,19 +69,12 @@ func (w *Workspace) FixDeltaSnapshot(revision, task string) (DeltaSnapshot, erro
 			return DeltaSnapshot{}, err
 		}
 		dir := filepath.Join(w.dir, filepath.FromSlash(revisionPath(revision)))
-		t, err := HashTree(dir)
+		ds, err := w.freezeDelta(dir, r.Tree.SHA256, revision)
 		if err != nil {
 			return DeltaSnapshot{}, err
 		}
-		if t.SHA256 != r.Tree.SHA256 {
-			return DeltaSnapshot{}, ErrStalePlan
-		}
-		s, err := w.fixSnapshotAt(revisionPath(revision))
-		if err != nil {
-			return DeltaSnapshot{}, err
-		}
-		s.Workspace.BaseRevision = revision
-		return DeltaSnapshot{Dir: dir, Snapshot: s, RevisionID: revision, TreeSHA256: t.SHA256}, nil
+		ds.RevisionID = revision
+		return ds, nil
 	}
 	active, err := w.taskID()
 	if err != nil {
@@ -73,9 +95,11 @@ func (w *Workspace) FixDeltaSnapshot(revision, task string) (DeltaSnapshot, erro
 	if err != nil {
 		return DeltaSnapshot{}, err
 	}
-	s, err := w.fixSnapshotAt(candidate)
+	ds, err := w.freezeDelta(dir, t.SHA256, e.Plan.BaseRevision)
 	if err != nil {
 		return DeltaSnapshot{}, err
 	}
-	return DeltaSnapshot{Dir: dir, Snapshot: s, TaskID: task, ExecutionSHA256: digest(e), TreeSHA256: t.SHA256}, nil
+	ds.TaskID = task
+	ds.ExecutionSHA256 = digest(e)
+	return ds, nil
 }

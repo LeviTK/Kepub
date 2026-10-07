@@ -217,6 +217,16 @@ func ExportWorkspace(ctx context.Context, dir, output string, o validation.Optio
 	return WorkspaceExportResult{r.ID, packed}, WorkspaceError(err)
 }
 
+// outputPathError keeps an already classified output fault and reports the
+// remaining output path problems as argument errors.
+func outputPathError(err error) error {
+	var fe *fault.Error
+	if errors.As(err, &fe) {
+		return err
+	}
+	return fault.New(2, "INVALID_OUTPUT", "%v", err)
+}
+
 func editArgumentError(code string, err error) error {
 	mapped := WorkspaceError(err)
 	var f *fault.Error

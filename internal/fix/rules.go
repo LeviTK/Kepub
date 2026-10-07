@@ -21,6 +21,9 @@ type Snapshot struct {
 	Package   []byte     // the selected package document
 	Resources []Resource // manifest application/xhtml+xml entries, sorted by path
 	Inventory []string   // every container path, sorted
+	// ReadOnly carries the workspace's own read-only reasons. The native rules
+	// must not claim executability the legacy gates refuse.
+	ReadOnly []string
 }
 
 // Resource is one frozen XHTML resource of the manifest.
@@ -67,6 +70,19 @@ func (s Snapshot) epub3() bool {
 var metadataContentElements = map[string]bool{
 	"head": true, "base": true, "link": true, "meta": true,
 	"noscript": true, "script": true, "style": true, "template": true, "title": true,
+}
+
+// xhtmlElement reports whether one element and its complete ancestor chain stay
+// in the XHTML namespace. A foreign subtree can lexically re-enter the XHTML
+// namespace; such elements are not part of the XHTML document tree and the
+// native rules must not edit them.
+func xhtmlElement(e *xmltext.Element) bool {
+	for p := e; p != nil; p = p.Parent {
+		if p.Name.Space != publication.XHTMLNamespace {
+			return false
+		}
+	}
+	return true
 }
 
 // urlAttribute returns the no-namespace URL attribute the frozen FR-2 context
@@ -128,6 +144,30 @@ func deriveEpubType(s Snapshot) ([]Repair, []Limitation) {
 			}
 			value, present := elementAttribute(e, opsAttr)
 			if !present {
+				continue
+			}
+			if !xhtmlElement(e) {
+				limits = append(limits, Limitation{ruleEpubType, string(res.Path), e.Location, "the element re-enters the XHTML namespace below a foreign-namespace ancestor; the rule does not edit foreign subtrees"})
+				continue
+			}
+			if len(s.ReadOnly) > 0 {
+				repair := Repair{
+					RepairID: RepairID(ruleEpubType.ID, ruleEpubType.Version, res.Path, e.Location),
+					Rule:     ruleEpubType,
+					Basis:    Basis{Checker, CheckVersion, FactEpubTypeProhibited, epubTypeSpec()},
+					Target: Target{
+						BookPath: string(res.Path), ResourceSHA256: hash, LocatorVersion: 1,
+						Locator: e.Location, Element: e.Name.Local,
+						Attribute:        AttributeRef{Namespace: publication.OpsNamespace, Name: "type"},
+						ExpectedOldValue: value,
+					},
+					Status:          StatusUnfixable,
+					UnfixableReason: "the workspace is read-only; the legacy execution gates refuse every operation",
+					Risk:            RiskEpubTypeProhibited,
+					ReadSet:         contextReadSet(s, res.Path),
+					WriteSet:        []string{},
+				}
+				repairs = append(repairs, repair)
 				continue
 			}
 			target := Target{
@@ -251,6 +291,29 @@ func deriveRelativeURLQuery(s Snapshot) ([]Repair, []Limitation) {
 			if !ok {
 				continue
 			}
+			if !xhtmlElement(e) {
+				limits = append(limits, Limitation{ruleRelativeURL, string(res.Path), e.Location, "the element re-enters the XHTML namespace below a foreign-namespace ancestor; the rule does not edit foreign subtrees"})
+				continue
+			}
+			if len(s.ReadOnly) > 0 {
+				repairs = append(repairs, Repair{
+					RepairID: RepairID(ruleRelativeURL.ID, ruleRelativeURL.Version, res.Path, e.Location),
+					Rule:     ruleRelativeURL,
+					Basis:    Basis{Checker, CheckVersion, FactRelativeURLQuery, relativeURLSpec()},
+					Target: Target{
+						BookPath: string(res.Path), ResourceSHA256: hash, LocatorVersion: 1,
+						Locator: e.Location, Element: e.Name.Local,
+						Attribute:        AttributeRef{Namespace: "", Name: name},
+						ExpectedOldValue: value,
+					},
+					Status:          StatusUnfixable,
+					UnfixableReason: "the workspace is read-only; the legacy execution gates refuse every operation",
+					Risk:            RiskRelativeURLQuery,
+					ReadSet:         contextReadSet(s, res.Path),
+					WriteSet:        []string{},
+				})
+				continue
+			}
 			target := Target{
 				BookPath: string(res.Path), ResourceSHA256: hash, LocatorVersion: 1,
 				Locator: e.Location, Element: e.Name.Local,
@@ -273,19 +336,20 @@ func deriveRelativeURLQuery(s Snapshot) ([]Repair, []Limitation) {
 				repairs = append(repairs, repair)
 				continue
 			}
-			// The new value must resolve inside the frozen container with a
-			// unique fragment; otherwise the repair is not generated.
-			ref, err := bookpath.ResolveReference(res.Path, bookpath.Href(strings.Trim(stripped, " \t\n\r\f")))
+			// Every executable repair must satisfy the frozen gate exactly: the
+			// raw new value, not a trimmed form, must resolve inside the frozen
+			// container with a unique fragment.
+			ref, err := bookpath.ResolveReference(res.Path, bookpath.Href(stripped))
 			if err != nil || ref.External {
 				repair.Status = StatusUnfixable
-				repair.UnfixableReason = "the URL after query removal does not resolve to a container resource"
+				repair.UnfixableReason = "the exact new value does not resolve to a container resource under the frozen gate"
 				repair.WriteSet = []string{}
 				repairs = append(repairs, repair)
 				continue
 			}
 			if !s.hasPath(ref.Path) {
 				repair.Status = StatusUnfixable
-				repair.UnfixableReason = "the target after query removal is not present in the frozen container"
+				repair.UnfixableReason = "the exact new value does not resolve to an existing target under the frozen gate"
 				repair.WriteSet = []string{}
 				repairs = append(repairs, repair)
 				continue

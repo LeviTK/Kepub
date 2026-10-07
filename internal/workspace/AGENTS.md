@@ -26,4 +26,17 @@
 复审核它们与原冻结 red 的覆盖对应，不把入口存在当作整批批准。树外候选
 `TestCrossMoveFuzzCalibration` 尚不属于该固定树，须随下一身份核其断言与覆盖。
 
-对应开发注意事项：`G-FINAL`、`G-FACTS`、`G-BINDING`、`G-ORACLE`。
+## 第五批：schema 7 完整来源与快照身份
+
+- schema 7 的保存来源在每个消费阶段（Plan/Apply/执行/恢复/diff/accept/history）都按 **plan 自身**
+  `BaseRevision` 的冻结 revision 重推完整提案并核 operations 多重集；提交的 plan 与 `plans/<id>.json`
+  都是不可信输入，digest 相等不构成重推豁免。旧 schema 1–6 的 shape/校验不变。
+- 每个快照（revision/task）绑定自己的已核 tree/inventory；历史 initial 不得继承当前 accepted 的
+  `InputTreeSHA256`。native facts 与 checker 必须消费**同一份**已核私有快照（`archive.SnapshotDirectory`
+  + `Unpack` 到私有目录），live 目录只是身份证据，不是检查输入；drift/I-O fault 保留。
+- task diff 的 schema 7 review 携带经重推的完整提案（真实旧值在 target，计划新值在 operation 参数）；
+  旧 schema 输出 shape 不变。
+- 已有外部输出用 `OUTPUT_EXISTS`/2（单点分类在 `outputPath`，预检原样传播 fault，其余路径问题仍
+  `INVALID_OUTPUT`）；emit-request 在发布前执行既有 256 操作预算，超限 `INVALID_OPERATIONS`/2 且无产物。
+
+对应开发注意事项：`G-FINAL`、`G-FACTS`、`G-BINDING`、`G-ORACLE`、`G-QUALIFY`。

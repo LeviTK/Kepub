@@ -129,6 +129,13 @@ func TestRuleRelativeURLQuery(t *testing.T) {
 			}
 		}
 	}
+	// An executable repair must satisfy the frozen gate exactly: a value whose
+	// raw form does not resolve stays listed but unfixable.
+	spaced := `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>T</title></head><body><a href="  ch2.xhtml?q=1#sec  ">a</a></body></html>`
+	repairs, limits = deriveRelativeURLQuery(testSnapshot(spaced))
+	if len(limits) != 0 || len(repairs) != 1 || repairs[0].Status != StatusUnfixable || repairs[0].Operation != nil || repairs[0].UnfixableReason == "" {
+		t.Fatalf("whitespace-padded value: %+v %+v", repairs, limits)
+	}
 	// A base element makes the whole document unprovable for this rule.
 	based := `<html xmlns="http://www.w3.org/1999/xhtml"><head><base href="."/><title>T</title></head><body><a href="ch2.xhtml?q=1">a</a></body></html>`
 	repairs, limits = deriveRelativeURLQuery(testSnapshot(based))

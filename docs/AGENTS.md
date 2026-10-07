@@ -9,4 +9,7 @@
 - review 确认新不变量时更新最窄 AGENTS.md 和开发注意事项中的规则/回归入口；只写稳定可执行规则，不复制整段聊天、私有路径或敏感日志。未证实猜测不写成根因。
 - 不直接修改 `specs/` 的冻结原文、索引、hash 或历史收据来制造 green；这类变更须按既有资产生成和独立门禁流程处理。
 
-对应开发注意事项：`G-EVIDENCE` 与“Review 维护流程”。
+- 派生资产（text 摘录等）的 bytes/SHA-256 由实际文件生成并核验；`text/extract.py` 重生成后校验
+  manifest 与 ATTRIBUTION 的每一行，不一致即失败。只修派生元数据/生成流程，不改 raw 原文或 S0 身份。
+
+对应开发注意事项：`G-EVIDENCE`、`G-ASSET` 与“Review 维护流程”。

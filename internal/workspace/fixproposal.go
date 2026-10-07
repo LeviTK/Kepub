@@ -4,8 +4,10 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 
+	"github.com/LeviTK/Kepub/internal/archive"
 	"github.com/LeviTK/Kepub/internal/bookpath"
 	"github.com/LeviTK/Kepub/internal/fault"
 	"github.com/LeviTK/Kepub/internal/fix"
@@ -45,12 +47,12 @@ func (w *Workspace) fixSnapshotAt(baseDir string) (fix.Snapshot, error) {
 	}
 	s := fix.Snapshot{
 		Workspace: fix.WorkspaceRef{
-			WorkspaceID:     w.id,
-			Rootfile:        w.state.Rootfile,
-			BaseRevision:    w.current,
-			InputTreeSHA256: w.base.SHA256,
+			WorkspaceID:  w.id,
+			Rootfile:     w.state.Rootfile,
+			BaseRevision: w.current,
 		},
-		Version: pub.Version,
+		Version:  pub.Version,
+		ReadOnly: slices.Clone(w.state.ReadOnlyReasons),
 	}
 	if s.Container, err = a.Read("META-INF/container.xml", publication.XMLLimit); err != nil {
 		return fix.Snapshot{}, err
@@ -69,10 +71,54 @@ func (w *Workspace) fixSnapshotAt(baseDir string) (fix.Snapshot, error) {
 		s.Resources = append(s.Resources, fix.Resource{Path: item.Path, Bytes: b})
 	}
 	sort.Slice(s.Resources, func(i, j int) bool { return s.Resources[i].Path < s.Resources[j].Path })
+	// The inventory and its hash always come from this base directory, so an
+	// historical revision never inherits the current accepted identity.
 	if t, err := HashTree(filepath.Join(w.dir, filepath.FromSlash(baseDir))); err == nil {
+		s.Workspace.InputTreeSHA256 = t.SHA256
 		for _, e := range t.Entries {
 			s.Inventory = append(s.Inventory, e.Path)
 		}
+	}
+	sort.Strings(s.Inventory)
+	return s, nil
+}
+
+// fixSnapshotOfArchive builds the frozen proposal source from one verified
+// private archive snapshot, so a delta side never reads a live path.
+func (w *Workspace) fixSnapshotOfArchive(a *archive.Archive, tree archive.Tree, baseRevision string) (fix.Snapshot, error) {
+	pub, err := publication.Load(a, w.state.Rootfile)
+	if err != nil {
+		return fix.Snapshot{}, err
+	}
+	s := fix.Snapshot{
+		Workspace: fix.WorkspaceRef{
+			WorkspaceID:     w.id,
+			Rootfile:        w.state.Rootfile,
+			BaseRevision:    baseRevision,
+			InputTreeSHA256: tree.SHA256,
+		},
+		Version:  pub.Version,
+		ReadOnly: slices.Clone(w.state.ReadOnlyReasons),
+	}
+	if s.Container, err = a.Read("META-INF/container.xml", publication.XMLLimit); err != nil {
+		return fix.Snapshot{}, err
+	}
+	if s.Package, err = a.Read(bookpath.BookPath(w.state.Rootfile), publication.XMLLimit); err != nil {
+		return fix.Snapshot{}, err
+	}
+	for _, item := range pub.Manifest {
+		if item.MediaType != "application/xhtml+xml" || !item.Exists {
+			continue
+		}
+		b, err := a.Read(item.Path, publication.XMLLimit)
+		if err != nil {
+			return fix.Snapshot{}, err
+		}
+		s.Resources = append(s.Resources, fix.Resource{Path: item.Path, Bytes: b})
+	}
+	sort.Slice(s.Resources, func(i, j int) bool { return s.Resources[i].Path < s.Resources[j].Path })
+	for _, e := range tree.Entries {
+		s.Inventory = append(s.Inventory, e.Path)
 	}
 	sort.Strings(s.Inventory)
 	return s, nil

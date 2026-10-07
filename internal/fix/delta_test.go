@@ -72,6 +72,48 @@ func TestClassifyDeltaUpstreamVocabulary(t *testing.T) {
 	}
 }
 
+// TestClassifyDeltaInstanceAndComparability pins the frozen classifier rules
+// that the medium counterexamples exercised: instance pairing, real tool and
+// configuration identity, coverage direction and generic attribution.
+func TestClassifyDeltaInstanceAndComparability(t *testing.T) {
+	site := upstreamDiag("RSC-033", "error", "EPUB/chapter1.xhtml", 8, "query component")
+	// A duplicate decrease is one persisted pair plus one resolved instance.
+	entries := ClassifyDelta(upstreamSide("completed", "3.3", site, site), upstreamSide("completed", "3.3", site))
+	persisted, resolved := 0, 0
+	for _, e := range entries {
+		if e.Classification == "persisted" {
+			if len(e.Before) != len(e.After) {
+				t.Fatalf("persisted multiplicities: %+v", e)
+			}
+			persisted += len(e.After)
+		}
+		if e.Classification == "resolved" {
+			resolved += len(e.Before)
+		}
+	}
+	if persisted != 1 || resolved != 1 {
+		t.Fatalf("instance split: %+v", entries)
+	}
+	// Actual tool bytes and configuration are comparability evidence.
+	for _, mutate := range []func(*DeltaSide, *DeltaSide){
+		func(b, a *DeltaSide) { b.Checks[0].ToolSHA256, a.Checks[0].ToolSHA256 = "old-tool", "new-tool" },
+		func(b, a *DeltaSide) { b.Checks[0].ConfigHash, a.Checks[0].ConfigHash = "strict-false", "strict-true" },
+		func(b, a *DeltaSide) { a.Checks[0].Coverage = "only EPUB/chapter2.xhtml" },
+	} {
+		b, a := upstreamSide("completed", "3.3", site), upstreamSide("completed", "3.3")
+		mutate(&b, &a)
+		if e := single(t, ClassifyDelta(b, a), "epubcheck"); e.Classification != "incomparable" {
+			t.Fatalf("comparability: %+v", e)
+		}
+	}
+	// A generic schema code has no provable site, so it is never upgraded.
+	genericBefore := upstreamSide("completed", "3.3", upstreamDiag("RSC-005", "warning", "EPUB/chapter1.xhtml", 8, "schema mismatch"))
+	genericAfter := upstreamSide("completed", "3.3", upstreamDiag("RSC-005", "error", "EPUB/chapter1.xhtml", 8, "schema mismatch"))
+	if e := single(t, ClassifyDelta(genericBefore, genericAfter), "epubcheck"); e.Classification != "incomparable" {
+		t.Fatalf("generic attribution: %+v", e)
+	}
+}
+
 // TestClassifyDeltaCoverageDirection pins the reliable-coverage direction: a
 // diagnostic entering a reliable range is newly_checkable, and a checker that
 // did not run reliably never claims a resolution.

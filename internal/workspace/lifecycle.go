@@ -14,6 +14,7 @@ import (
 	"github.com/LeviTK/Kepub/internal/archive"
 	"github.com/LeviTK/Kepub/internal/bookpath"
 	"github.com/LeviTK/Kepub/internal/fault"
+	"github.com/LeviTK/Kepub/internal/fix"
 	"github.com/LeviTK/Kepub/internal/metadata"
 	"github.com/LeviTK/Kepub/internal/publication"
 	"github.com/LeviTK/Kepub/internal/validation"
@@ -66,6 +67,10 @@ type Review struct {
 	Metadata         MetadataReview    `json:"metadata"`
 	Content          *ContentReview    `json:"content,omitempty"`
 	Operations       []OperationReview `json:"operations,omitempty"`
+	// Proposal is the complete schema 7 source that verifyPlan re-derived from
+	// the frozen baseline; it carries the actual old values (targets) and the
+	// planned new values (operation parameters). Old schemas stay unchanged.
+	Proposal *fix.Proposal `json:"proposal,omitempty"`
 }
 
 type ContentReview struct {
@@ -287,6 +292,9 @@ func (w *Workspace) revisionSource(r Revision) (string, error) {
 	}
 	if digest(e) != r.ExecutionSHA256 || e.Status != "review_required" || !e.ReviewRequired || e.Conformance != "not_run" || e.TaskID != r.TaskID || e.Diff.AfterSHA256 != r.Tree.SHA256 || digest(stored) != digest(e.Plan) || used.Version != 1 || used.TaskID != r.TaskID || used.PlanSHA256 != digest(e.Plan) {
 		return "", fmt.Errorf("revision execution mismatch")
+	}
+	if err := w.verifyFixPlan(e.Plan); err != nil {
+		return "", fmt.Errorf("revision execution source mismatch")
 	}
 	return e.Plan.InputTreeSHA256, nil
 }
@@ -520,6 +528,9 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 		return Review{}, err2
 	}
 	r := Review{TaskID: id, BaseRevision: w.current, Diff: compareTrees(w.base, t), MatchesExecution: err == nil}
+	if e.Plan.SchemaVersion == 7 {
+		r.Proposal = e.Plan.Proposal
+	}
 	if e.Plan.SchemaVersion >= 3 {
 		r.Operations = plannedReviews(e.Plan.Operations)
 	} else if param, ok := e.Plan.Operations[0].Params.(publication.TextSet); ok {

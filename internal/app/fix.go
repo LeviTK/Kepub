@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/LeviTK/Kepub/internal/fault"
 	"github.com/LeviTK/Kepub/internal/fix"
@@ -27,7 +29,7 @@ func FixPropose(dir, selectValue string, emitRequest bool, output string, machin
 	defer w.Close()
 	if output != "" {
 		if _, err := w.OutputPath(output); err != nil {
-			return nil, fault.New(2, "INVALID_OUTPUT", "%v", err)
+			return nil, outputPathError(err)
 		}
 	}
 	s, err := w.FixSnapshot()
@@ -57,6 +59,9 @@ func FixPropose(dir, selectValue string, emitRequest bool, output string, machin
 		}
 		if len(p.Derived.Operations) == 0 {
 			return nil, fault.New(2, "INVALID_OPERATIONS", "proposal has no executable operations")
+		}
+		if len(p.Derived.Operations) > workspace.MaxPlanOperations {
+			return nil, fault.New(2, "INVALID_OPERATIONS", "emit-request exceeds the %d operation budget", workspace.MaxPlanOperations)
 		}
 		doc = map[string]any{"schemaVersion": 7, "proposal": p, "operations": p.Derived.Operations}
 		kind = "request"
@@ -97,17 +102,19 @@ func FixDelta(ctx context.Context, dir, before, afterRevision, afterTask, output
 	defer w.Close()
 	if output != "" {
 		if _, err := w.OutputPath(output); err != nil {
-			return nil, fault.New(2, "INVALID_OUTPUT", "%v", err)
+			return nil, outputPathError(err)
 		}
 	}
 	beforeSnap, err := w.FixDeltaSnapshot(before, "")
 	if err != nil {
 		return nil, editArgumentError("INPUT_DRIFT", err)
 	}
+	defer beforeSnap.Close()
 	afterSnap, err := w.FixDeltaSnapshot(afterRevision, afterTask)
 	if err != nil {
 		return nil, editArgumentError("INPUT_DRIFT", err)
 	}
+	defer afterSnap.Close()
 	beforeSide, beforeErr := buildDeltaSide(ctx, beforeSnap, o)
 	afterSide, afterErr := buildDeltaSide(ctx, afterSnap, o)
 	d := fix.Delta{
@@ -201,7 +208,12 @@ func nativeLimitations(s fix.DeltaSide) []fix.Limitation {
 // buildDeltaSide runs the pinned validation on one private snapshot and collects
 // the native and upstream diagnostic facts separately.
 func buildDeltaSide(ctx context.Context, ds workspace.DeltaSnapshot, o validation.Options) (fix.DeltaSide, error) {
-	report, verr := validation.Validate(ctx, ds.Dir, o)
+	dir, err := materializeDeltaSnapshot(ds)
+	if err != nil {
+		return fix.DeltaSide{}, err
+	}
+	defer os.RemoveAll(dir)
+	report, verr := validation.Validate(ctx, dir, o)
 	native := fix.NativeDiagnostics(ds.Snapshot)
 	coverage := fix.NativeCoverageOf(ds.Snapshot)
 	nativeHash := fix.NativeReportHash(coverage, native)
@@ -223,6 +235,21 @@ func buildDeltaSide(ctx context.Context, ds workspace.DeltaSnapshot, o validatio
 	}
 	side.Checks = deltaChecks(report, side.ReportHash, nativeHash, coverage, ds.TreeSHA256, verr)
 	return side, verr
+}
+
+// materializeDeltaSnapshot extracts the verified private snapshot of one delta
+// side so the checker reads exactly the frozen bytes, never the live path.
+func materializeDeltaSnapshot(ds workspace.DeltaSnapshot) (string, error) {
+	tmp, err := os.MkdirTemp("", "kepub-delta-")
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Join(tmp, "pub")
+	if err := ds.Archive.Unpack(dir); err != nil {
+		os.RemoveAll(tmp)
+		return "", err
+	}
+	return dir, nil
 }
 
 // upstreamDiagnostics preserves the checker diagnostics exactly as reported.
@@ -253,15 +280,15 @@ func deltaChecks(report validation.Report, reportHash, nativeHash string, covera
 	out := []fix.CheckMeta{}
 	for _, c := range report.Checks {
 		out = append(out, fix.CheckMeta{
-			CheckerID: c.ID, ToolVersion: c.Version, Ruleset: c.Rules,
-			SpecBaseline: "unknown", Profile: "", Flags: "",
+			CheckerID: c.ID, ToolVersion: c.Version, ToolSHA256: c.ToolSHA256, Ruleset: c.Rules,
+			SpecBaseline: "unknown", Profile: "unknown", Flags: "unknown",
 			InputHash: c.InputSHA256, ConfigHash: c.ConfigSHA256, ReportHash: reportHash,
 			RunStatus: deltaRunStatus(c.Status, verr), Coverage: c.Coverage,
 		})
 	}
 	out = append(out, fix.CheckMeta{
 		CheckerID: fix.Checker, ToolVersion: fmt.Sprint(fix.CheckVersion), Ruleset: "kepub-fix-native-v1",
-		SpecBaseline: fix.SpecVersion, Profile: "", Flags: "",
+		SpecBaseline: fix.SpecVersion, Profile: "unknown", Flags: "unknown",
 		InputHash: tree, ConfigHash: "", ReportHash: nativeHash,
 		RunStatus: "completed", Coverage: coverage,
 	})

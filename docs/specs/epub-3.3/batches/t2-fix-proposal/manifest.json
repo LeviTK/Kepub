@@ -65,7 +65,7 @@
       "version": "living-standard@2026-10-07",
       "downloadedAt": "2026-10-07",
       "path": "batches/t2-fix-proposal/text/html-dom-3.2.5.2.1.txt",
-      "bytes": 1475,
+      "bytes": 1515,
       "sha256": "df1da8fca1a3db0f6434c9e1921c6f4332fe76d295f24238e8b0ff316f16210a",
       "contentType": "text/plain; charset=utf-8",
       "requiredBy": ["T2-fix-proposal FR-1"],

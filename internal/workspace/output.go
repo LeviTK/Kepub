@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/LeviTK/Kepub/internal/fault"
 )
 
 // OutputPath requires an absent output outside the entire workspace, with a
@@ -38,7 +40,7 @@ func (w *Workspace) outputPath(output string) (string, error) {
 	defer r.Close()
 	if _, err := r.Lstat(filepath.Base(abs)); !os.IsNotExist(err) {
 		if err == nil {
-			err = os.ErrExist
+			return "", fault.New(2, "OUTPUT_EXISTS", "output already exists")
 		}
 		return "", err
 	}

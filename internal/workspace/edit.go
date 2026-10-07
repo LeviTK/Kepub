@@ -241,10 +241,12 @@ const structurePolicy = "kepub-xhtml-structure-v1:accepted-baseline;multi-operat
 const replacePolicy = "kepub-content-text-replace-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;explicit-hits;no-timestamp;review-required;conformance-not-run"
 const movePolicy = "kepub-xhtml-move-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;cross-resource;reference-sync;no-timestamp;review-required;conformance-not-run"
 
-// maxPlanOperations bounds one version 3 or version 4 transaction. Each
+// MaxPlanOperations bounds one version 3 or version 4 transaction. Each
 // operation may parse its target resource, so the request file size alone is
 // not a work bound.
-const maxPlanOperations = 256
+// MaxPlanOperations is the inherited bound of one plan transaction. It is
+// exported so output commands enforce the same budget before publishing.
+const MaxPlanOperations = 256
 
 // derivation is the complete deterministic effect of one plan against the frozen
 // baseline: every changed BookPath with its exact final bytes. No caller may
@@ -394,8 +396,8 @@ func crossMoveOperation(ops []Operation) bool {
 
 func operationSchema(ops []Operation) (int, error) {
 	if crossMoveOperation(ops) {
-		if len(ops) == 0 || len(ops) > maxPlanOperations {
-			return 0, fmt.Errorf("operation count exceeds %d", maxPlanOperations)
+		if len(ops) == 0 || len(ops) > MaxPlanOperations {
+			return 0, fmt.Errorf("operation count exceeds %d", MaxPlanOperations)
 		}
 		for _, op := range ops {
 			if err := validateStructureOperation(op); err != nil {
@@ -405,8 +407,8 @@ func operationSchema(ops []Operation) (int, error) {
 		return 6, nil
 	}
 	if replaceOperation(ops) {
-		if len(ops) == 0 || len(ops) > maxPlanOperations {
-			return 0, fmt.Errorf("operation count exceeds %d", maxPlanOperations)
+		if len(ops) == 0 || len(ops) > MaxPlanOperations {
+			return 0, fmt.Errorf("operation count exceeds %d", MaxPlanOperations)
 		}
 		for _, op := range ops {
 			if err := validateStructureOperation(op); err != nil {
@@ -416,8 +418,8 @@ func operationSchema(ops []Operation) (int, error) {
 		return 5, nil
 	}
 	if structureOperation(ops) {
-		if len(ops) == 0 || len(ops) > maxPlanOperations {
-			return 0, fmt.Errorf("operation count exceeds %d", maxPlanOperations)
+		if len(ops) == 0 || len(ops) > MaxPlanOperations {
+			return 0, fmt.Errorf("operation count exceeds %d", MaxPlanOperations)
 		}
 		for _, op := range ops {
 			if err := validateStructureOperation(op); err != nil {
@@ -449,8 +451,8 @@ func operationSchema(ops []Operation) (int, error) {
 		return 0, fmt.Errorf("unsupported operation params")
 	}
 	if len(ops) > 1 {
-		if len(ops) > maxPlanOperations {
-			return 0, fmt.Errorf("operation count exceeds %d", maxPlanOperations)
+		if len(ops) > MaxPlanOperations {
+			return 0, fmt.Errorf("operation count exceeds %d", MaxPlanOperations)
 		}
 		for _, op := range ops {
 			if op.Version != 1 {
@@ -876,6 +878,9 @@ func (w *Workspace) verifyPlan(p Plan, bindPath bool) (derivation, error) {
 	if digest(stored) != digest(p) {
 		return derivation{}, ErrStalePlan
 	}
+	if err := w.verifyFixPlan(p); err != nil {
+		return derivation{}, err
+	}
 	if err := w.verifyBaseline(); err != nil {
 		return derivation{}, errors.Join(ErrStalePlan, err)
 	}
@@ -887,6 +892,39 @@ func (w *Workspace) verifyPlan(p Plan, bindPath bool) (derivation, error) {
 		return derivation{}, ErrStalePlan
 	}
 	return d, nil
+}
+
+// verifyFixPlan re-derives the complete schema 7 proposal source from the
+// plan's own frozen baseline and checks the request operation multiset. Every
+// path that consumes a stored plan uses it, so a forged source cannot be
+// trusted just because its digest matches a stored copy.
+func (w *Workspace) verifyFixPlan(p Plan) error {
+	if p.SchemaVersion != 7 {
+		return nil
+	}
+	if p.Proposal == nil || p.Proposal.ProposalVersion != fix.ProposalVersion || p.Proposal.Workspace.BaseRevision != p.BaseRevision {
+		return ErrStalePlan
+	}
+	tree, err := HashTree(filepath.Join(w.dir, filepath.FromSlash(revisionPath(p.BaseRevision))))
+	if err != nil {
+		return errors.Join(ErrStalePlan, err)
+	}
+	s, err := w.fixSnapshotAt(revisionPath(p.BaseRevision))
+	if err != nil {
+		return errors.Join(ErrStalePlan, err)
+	}
+	s.Workspace.BaseRevision = p.BaseRevision
+	s.Workspace.InputTreeSHA256 = tree.SHA256
+	if err := fix.Validate(s, *p.Proposal); err != nil {
+		return errors.Join(ErrStalePlan, err)
+	}
+	if err := fix.RequestAllowed(*p.Proposal); err != nil {
+		return errors.Join(ErrStalePlan, err)
+	}
+	if !fix.OperationMultiset(fixOperations(p.Operations), p.Proposal.Derived.Operations) {
+		return ErrStalePlan
+	}
+	return nil
 }
 
 // Apply strictly reads a plan, re-derives its effects, then creates the sole

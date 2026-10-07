@@ -36,6 +36,12 @@ const fixDeltaNav = `<?xml version="1.0" encoding="utf-8"?>` + "\n" +
 // carries the two native rule facts.
 func fixDeltaFixture(t *testing.T) (*workspace.Workspace, string) {
 	t.Helper()
+	return fixDeltaFixtureWith(t, nil)
+}
+
+// fixDeltaFixtureWith builds the same fixture with extra or replaced files.
+func fixDeltaFixtureWith(t *testing.T, extra map[string]string) (*workspace.Workspace, string) {
+	t.Helper()
 	dir := t.TempDir()
 	pub := filepath.Join(dir, "pub")
 	files := map[string]string{
@@ -45,6 +51,9 @@ func fixDeltaFixture(t *testing.T) (*workspace.Workspace, string) {
 		"EPUB/chapter1.xhtml":    fixDeltaChapter1,
 		"EPUB/chapter2.xhtml":    fixDeltaChapter2,
 		"EPUB/nav.xhtml":         fixDeltaNav,
+	}
+	for name, b := range extra {
+		files[name] = b
 	}
 	for name, b := range files {
 		abs := filepath.Join(pub, filepath.FromSlash(name))

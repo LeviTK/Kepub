@@ -81,6 +81,35 @@
 
 输入身份、包/日志 hash、校准耗时和执行者写入 [T2 验证记录](verification/T2_MULTI_OPERATION.md)及对应封存清单；本文件只留可复用规则、失效模式和回归入口，不累积聊天或运行日志。
 
+## G-QUALIFY：事实、来源与真实旧门禁资格分离
+
+- **规则→失效模式→永久回归**：保存的 schema 7 来源只在 Plan 时重推 → Apply/执行/恢复/diff/accept/history
+  信任 digest 相等的伪造来源（改 risk 重签、裁 operation 并重算 ordered digest）→
+  `TestFixSavedSourceRevalidation`、`TestFixDeltaFrozenSide`、reviewer 的 `TestMediumFixSavedSourceRevalidated`。
+- 历史快照复用当前 accepted 的 inventory → initial 侧声明当前 tree → `TestFixDeltaFrozenSide`、
+  `TestMediumFixHistoricalSnapshotIdentity`。live 目录直接作为 checker 输入 → native facts 与报告 tree
+  不一致 → `TestFixDeltaFrozenSide`、`TestMediumFixDeltaSnapshotDrift`（owner 窗口边界，不称公共 CLI 并发）。
+- 规则只看当前节点 namespace/不查真实 gate/不查只读 → foreign 祖先重入被改写、外空白 URL 宣称可执行、
+  SIGNATURES 只读 workspace 宣称可执行 → `TestRuleForeignAncestry`、`TestFixReadOnlyQualification`、
+  `TestRuleRelativeURLQuery`（外空白 = 明确 unfixable）、`TestMediumFixReadOnlyQualification`。
+  资格必须由真实既有 gate 判定，不做全局硬拒绝，也不放宽旧权限。
+- Delta 分类不按实例多重集/不比真实 tool/config/coverage → 重复 2→1 全 persisted、tool/config/覆盖变化仍
+  resolved、generic RSC-005 被 upgraded → `TestClassifyDeltaInstanceAndComparability`、
+  `TestMediumDeltaMultisetAndCoverage`；真实 tool SHA-256 与未知 profile/flags 显式 `unknown` →
+  `TestFixDeltaFrozenSide`、`TestMediumFixDeltaMetadata`。
+- 发布边界：已存在输出统一包成 `INVALID_OUTPUT`、emit-request 不做预算 → F01/F10 →
+  `TestFixOutputExists`、`TestFixEmitRequestBudget`、父 `b5-parent-output-exists-repro.py`、
+  `medium_b5_budget_oracle.py`（256 成功 / 257 `INVALID_OPERATIONS`/2 无产物）。
+- 外空白 FR2 的原始 bytes 探针恒要求删 query，强于"门禁拒绝→unfixable"的冻结 §4；按 review 资格解释
+  校准：15 个可执行族继续两序完整 bytes，三个外空白族为明确 unfixable 负族，原 source/FAIL/seed 原样保留，
+  不改弱、不删菜单、不称 18 成功。
+
+## G-ASSET：派生资产元数据绑定
+
+- 派生 text 的 bytes 与 SHA-256 必须由实际文件生成并核验；登记值漂移（1475 vs 1515）→ `text/extract.py`
+  重生成后校验 manifest/ATTRIBUTION 全部行，不一致 exit 非 0。只修派生元数据/生成流程，不改 raw 原文、
+  S0 身份或历史 manifest。
+
 ## G-EVIDENCE：验证身份和范围不迁移
 
 - 每组结果注明 input commit/tree 或 working-tree 身份、runner、命令/timeout/parallel、exit、skip、artifact hash；fixed fresh-fetch 不能继承作者工作树 PASS。

@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"sort"
 )
 
@@ -203,7 +204,8 @@ func checksComparable(before, after DeltaSide) bool {
 				continue
 			}
 			matched = true
-			if b.ToolVersion != a.ToolVersion || b.Ruleset != a.Ruleset || b.SpecBaseline != a.SpecBaseline ||
+			if b.ToolVersion != a.ToolVersion || b.ToolSHA256 != a.ToolSHA256 || b.ConfigHash != a.ConfigHash ||
+				b.Ruleset != a.Ruleset || b.SpecBaseline != a.SpecBaseline ||
 				b.Profile != a.Profile || b.Flags != a.Flags || b.RunStatus != a.RunStatus {
 				return false
 			}
@@ -339,69 +341,74 @@ func classifyUpstream(before, after DeltaSide, comparable bool) []DeltaEntry {
 		return a.Code < b.Code
 	})
 	beforeReliable, afterReliable := upstreamReliable(before), upstreamReliable(after)
-	removals, additions := []upstreamKey{}, []upstreamKey{}
+	comparable = comparable && beforeReliable && afterReliable &&
+		upstreamCoverage(before) == upstreamCoverage(after)
+	type surplus struct {
+		key   upstreamKey
+		extra int
+	}
+	removals, additions := []surplus{}, []surplus{}
 	for _, k := range upstreamKeys {
 		b, a := beforeUp[k], afterUp[k]
-		switch {
-		case len(b) > 0 && len(a) > 0:
-			entries = append(entries, DeltaEntry{"persisted", "epubcheck", k, upstreamInstances(b), upstreamInstances(a), "the same checker diagnostic is present on both sides"})
-		case len(b) > 0:
-			removals = append(removals, k)
-		default:
-			additions = append(additions, k)
+		n := min(len(b), len(a))
+		if n > 0 {
+			entries = append(entries, DeltaEntry{"persisted", "epubcheck", k, upstreamInstances(b[:n]), upstreamInstances(a[:n]), "the same checker diagnostic is present on both sides"})
+		}
+		if len(b) > n {
+			removals = append(removals, surplus{k, len(b) - n})
+		}
+		if len(a) > n {
+			additions = append(additions, surplus{k, len(a) - n})
 		}
 	}
 	// A severity change on the same diagnostic site is one entry, never a
-	// removal plus an addition.
+	// removal plus an addition; a generic schema code has no provable site.
 	usedRemoval := make([]bool, len(removals))
 	usedAddition := make([]bool, len(additions))
-	for i, rk := range removals {
-		for j, ak := range additions {
-			if usedAddition[j] || upstreamSite(rk) != upstreamSite(ak) {
+	for i, r := range removals {
+		for j, a := range additions {
+			if usedAddition[j] || upstreamSite(r.key) != upstreamSite(a.key) {
 				continue
 			}
 			usedRemoval[i], usedAddition[j] = true, true
-			b, a := beforeUp[rk], afterUp[ak]
+			b, av := beforeUp[r.key], afterUp[a.key]
 			classification, reason := "incomparable", "the checker severity changed without a provable resolution"
-			if severityRank(a[0].Severity) > severityRank(b[0].Severity) {
+			if severityRank(av[0].Severity) > severityRank(b[0].Severity) && !genericSchemaCode(r.key.Code) {
 				classification, reason = "upgraded", "the checker severity increased on the same diagnostic site"
 			}
-			if !beforeReliable || !afterReliable || !comparable {
+			if !comparable {
 				classification, reason = "incomparable", "the checker configuration or coverage is not comparable"
 			}
-			entries = append(entries, DeltaEntry{classification, "epubcheck", rk, upstreamInstances(b), upstreamInstances(a), reason})
+			entries = append(entries, DeltaEntry{classification, "epubcheck", r.key, upstreamInstances(b[:r.extra]), upstreamInstances(av[:a.extra]), reason})
 			break
 		}
 	}
-	for i, k := range removals {
+	for i, r := range removals {
 		if usedRemoval[i] {
 			continue
 		}
-		b := beforeUp[k]
+		b := beforeUp[r.key]
 		classification, reason := "resolved", "the checker diagnostic is gone and the checker still covers the resource"
-		switch {
-		case !afterReliable || !beforeReliable:
-			classification, reason = "incomparable", "the checker did not reliably cover the resource on both sides"
-		case !comparable || genericSchemaCode(k.Code):
+		if !comparable || genericSchemaCode(r.key.Code) {
 			classification, reason = "incomparable", "a generic schema diagnostic has no provable unique attribution"
 		}
-		entries = append(entries, DeltaEntry{classification, "epubcheck", k, upstreamInstances(b), []any{}, reason})
+		entries = append(entries, DeltaEntry{classification, "epubcheck", r.key, upstreamInstances(b[:r.extra]), []any{}, reason})
 	}
-	for j, k := range additions {
+	for j, a := range additions {
 		if usedAddition[j] {
 			continue
 		}
-		a := afterUp[k]
+		av := afterUp[a.key]
 		classification, reason := "added", "a new checker diagnostic appears in the after snapshot"
 		switch {
 		case !afterReliable:
 			classification, reason = "incomparable", "the after checker did not reliably cover the resource"
 		case !beforeReliable:
 			classification, reason = "newly_checkable", "the after checker reliably covers a diagnostic the before side did not check"
-		case !comparable || genericSchemaCode(k.Code):
+		case !comparable || genericSchemaCode(a.key.Code):
 			classification, reason = "incomparable", "a generic schema diagnostic has no provable unique attribution"
 		}
-		entries = append(entries, DeltaEntry{classification, "epubcheck", k, []any{}, upstreamInstances(a), reason})
+		entries = append(entries, DeltaEntry{classification, "epubcheck", a.key, []any{}, upstreamInstances(av[:a.extra]), reason})
 	}
 	return entries
 }
@@ -436,6 +443,16 @@ func severityRank(s string) int {
 		return 1
 	}
 	return 0
+}
+
+// upstreamCoverage is the covered scope of the upstream checker on one side.
+func upstreamCoverage(s DeltaSide) string {
+	for _, c := range s.Checks {
+		if c.CheckerID == "epubcheck" {
+			return fmt.Sprint(c.Coverage)
+		}
+	}
+	return ""
 }
 
 func upstreamInstances(in []UpstreamDiagnostic) []any {

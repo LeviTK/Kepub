@@ -7,4 +7,7 @@
 - `go test -race` 中 helper 的普通 `go build` 子 binary 不带 race instrumentation；报告 harness/library race，不称 race CLI，除非确实另行 `go build -race`。
 - 新鲜进程重开、历史状态与 accepted revision 绑定按实际执行记录；原书只读，失败无部分正式导出。
 
-对应开发注意事项：`G-ORACLE`、`G-EVIDENCE`。
+- 已存在外部输出保留冻结 `OUTPUT_EXISTS`/2；emit-request 在写文件前执行 256 操作预算
+  （256 成功、257 `INVALID_OPERATIONS`/2 且无产物）；错误码断言按契约精确匹配，不接受两种 code 的宽松断言。
+
+对应开发注意事项：`G-ORACLE`、`G-EVIDENCE`、`G-QUALIFY`。

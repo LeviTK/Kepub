@@ -38,7 +38,7 @@ func FuzzMultiOperationRequest(f *testing.F) {
 		if req.SchemaVersion != v {
 			return
 		}
-		if len(req.Operations) == 0 || len(req.Operations) > maxPlanOperations {
+		if len(req.Operations) == 0 || len(req.Operations) > MaxPlanOperations {
 			t.Fatalf("accepted request with %d operations", len(req.Operations))
 		}
 		for _, op := range req.Operations {
@@ -380,8 +380,8 @@ func TestMultiOperationRejectsStaleDuplicateAndUnsupportedTargets(t *testing.T) 
 	if _, err := w.Plan(editJSON(t, Request{3, []Operation{metadataOp("title", "title", "Title", "A")}})); err == nil {
 		t.Fatal("single-operation schema 3 accepted")
 	}
-	over := make([]Operation, 0, maxPlanOperations+1)
-	for i := 0; i <= maxPlanOperations; i++ {
+	over := make([]Operation, 0, MaxPlanOperations+1)
+	for i := 0; i <= MaxPlanOperations; i++ {
 		over = append(over, metadataOp("title", "title", "Title", fmt.Sprintf("v%d", i)))
 	}
 	if _, err := w.Plan(editJSON(t, Request{3, over})); err == nil {
