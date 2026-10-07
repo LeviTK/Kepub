@@ -5,13 +5,13 @@ Metadata content is content that sets up the presentation or behavior of the
   rest of the content, or that sets up the relationship of the document with other documents, or
   that conveys other "out of band" information.
 
-  
+
   baselinkmetanoscriptscriptstyletemplatetitle
 
   Elements from other namespaces whose semantics are primarily metadata-related (e.g. RDF) are
   also metadata content.
 
-  
+
 
    Thus, in the XML serialization, one can use RDF, like this:
 
