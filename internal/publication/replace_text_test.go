@@ -253,3 +253,74 @@ func FuzzReplaceTextEdits(f *testing.F) {
 		}
 	})
 }
+
+// TestReplaceZeroWidthAndProvenance keeps the rejected boundaries: a real
+// zero-width match refuses instead of being dropped, a locator cannot enter an
+// excluded ancestor, literals beside entity references stay writable, and
+// entity-generated or entity-reference spellings are never literal source.
+func TestReplaceZeroWidthAndProvenance(t *testing.T) {
+	t.Run("zero-width", func(t *testing.T) {
+		doc := replaceDoc(t, `<html xmlns="http://www.w3.org/1999/xhtml"><body><p>alpha beta</p></body></html>`)
+		for _, pattern := range []string{`\b`, `alpha|\b`, `\b|beta`} {
+			op := literalReplace("/html[1]/body[1]/p[1]", pattern, "X", 0)
+			op.Mode = "regex"
+			if err := replaceRefused(t, doc, op); !strings.Contains(err.Error(), "zero-width") {
+				t.Fatalf("%s error: %v", pattern, err)
+			}
+		}
+		anchored := literalReplace("/html[1]/body[1]/p[1]", `^alpha beta$`, "X", 1)
+		anchored.Mode = "regex"
+		out, _ := applyReplace(t, doc, anchored)
+		if !bytes.Contains(out, []byte(`<p>X</p>`)) {
+			t.Fatalf("anchored positive: %s", out)
+		}
+	})
+	t.Run("excluded-ancestor", func(t *testing.T) {
+		for _, c := range []struct{ body, locator string }{
+			{`<script><p>alpha</p></script>`, "/html[1]/body[1]/script[1]/p[1]"},
+			{`<style><p>alpha</p></style>`, "/html[1]/body[1]/style[1]/p[1]"},
+			{`<svg xmlns="http://www.w3.org/2000/svg"><foreignObject><p xmlns="http://www.w3.org/1999/xhtml">alpha</p></foreignObject></svg>`, "/html[1]/body[1]/svg[1]/foreignObject[1]/p[1]"},
+		} {
+			doc := replaceDoc(t, `<html xmlns="http://www.w3.org/1999/xhtml"><body>`+c.body+`</body></html>`)
+			replaceRefused(t, doc, literalReplace(c.locator, "alpha", "CHANGED", 1))
+		}
+		ok := replaceDoc(t, `<html xmlns="http://www.w3.org/1999/xhtml"><body><section><p>alpha</p></section></body></html>`)
+		out, _ := applyReplace(t, ok, literalReplace("/html[1]/body[1]/section[1]/p[1]", "alpha", "CHANGED", 1))
+		if !bytes.Contains(out, []byte(`<p>CHANGED</p>`)) {
+			t.Fatalf("ordinary descendant: %s", out)
+		}
+	})
+	t.Run("literals-beside-entities", func(t *testing.T) {
+		for _, c := range []struct{ text, pattern, replacement, want string }{
+			{`alpha &amp; beta`, "alpha", "ALPHA", `ALPHA &amp; beta`},
+			{`alpha &amp; beta`, "beta", "BETA", `alpha &amp; BETA`},
+			{`alpha &#x1F600; beta`, "beta", "文😀", `alpha &#x1F600; 文😀`},
+		} {
+			input := `<html xmlns="http://www.w3.org/1999/xhtml"><body><p>` + c.text + `</p></body></html>`
+			doc := replaceDoc(t, input)
+			out, facts := applyReplace(t, doc, literalReplace("/html[1]/body[1]/p[1]", c.pattern, c.replacement, 1))
+			want := strings.Replace(input, c.text, c.want, 1)
+			if facts.Hits != 1 || string(out) != want {
+				t.Fatalf("entity neighbor %q: %+v %s", c.pattern, facts, out)
+			}
+		}
+		for _, pattern := range []string{"&", "a&b"} {
+			doc := replaceDoc(t, `<html xmlns="http://www.w3.org/1999/xhtml"><body><p>a&amp;b</p></body></html>`)
+			replaceRefused(t, doc, literalReplace("/html[1]/body[1]/p[1]", pattern, "X", 1))
+		}
+	})
+	t.Run("internal-entity-generated", func(t *testing.T) {
+		input := `<!DOCTYPE html [<!ENTITY word "word">]><html xmlns="http://www.w3.org/1999/xhtml"><body><p>&word;</p></body></html>`
+		doc := replaceDoc(t, input)
+		replaceRefused(t, doc, literalReplace("/html[1]/body[1]/p[1]", "word", "changed", 1))
+	})
+	t.Run("zero-length-entity-boundary", func(t *testing.T) {
+		input := `<!DOCTYPE html [<!ENTITY empty "">]><html xmlns="http://www.w3.org/1999/xhtml"><body><p>foo&empty;bar</p></body></html>`
+		doc := replaceDoc(t, input)
+		out, facts := applyReplace(t, doc, literalReplace("/html[1]/body[1]/p[1]", "bar", "X", 1))
+		if facts.Hits != 1 || !strings.Contains(string(out), "foo&empty;X") {
+			t.Fatalf("empty entity suffix: %+v %s", facts, out)
+		}
+		replaceRefused(t, doc, literalReplace("/html[1]/body[1]/p[1]", "foobar", "X", 1))
+	})
+}

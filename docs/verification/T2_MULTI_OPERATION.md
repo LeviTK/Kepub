@@ -421,10 +421,10 @@ Not delivered (remaining T2): FixProposal, ValidationDelta, cross-resource move
 and OPF/nav/ID/link synchronization, font-obfuscation eligibility and explicit
 old-workspace re-evaluation.
 
-### Verification of this revision
+### Verification of the rejected batch-3 tree (`e8614fb`)
 
-This revision's runs are labelled by where they were taken; the product content
-was committed as the fixed commit that introduces this section.
+The rejected tree's runs are labelled by where they were taken; the product
+content was committed as `e8614fb`.
 
 - Repository ordinary suite with the pinned EPUBCheck 5.3.0 jar, taken from this
   revision's working tree before the commit (working-tree verification, not a
@@ -462,5 +462,105 @@ was committed as the fixed commit that introduces this section.
   write set. Hit-count mismatch, an empty-match regex, a `head` target and a
   cross-run match were refused (exit 2, no plan file). The original book bytes
   were unchanged.
+- The fixed commit, tree and bundle hashes are reported to the parent thread and
+  frozen in the next batch's record.
+
+### First rejection and fixes (batch 3)
+
+The first batch-3 tree `e8614fb` (tree `7a39df5e`) was rejected by the parent's
+acceptance verification and the medium review, who reproduced four boundary
+groups in ordinary and focused race runs:
+
+1. **Contextual zero-width matches were dropped.** `regexp.MatchString("")` does
+   not catch a pattern like `\b` that only produces zero-width matches in real
+   text, and the engine silently skipped such matches, so `\b` with
+   `expectedHits:0` planned an empty write set and mixed alternations could
+   replace only part of the text. The engine now refuses a real zero-width match
+   (`INVALID_OPERATIONS`) while non-empty anchored patterns such as `\bPlain\b`
+   and `^alpha beta$` keep working.
+2. **An explicit locator could enter an excluded ancestor.** A target inside
+   `script`/`style` or an XHTML re-entry under SVG `foreignObject` passed the
+   target check and was written. The whole ancestor path to `body` is now
+   validated: every ancestor must be XHTML and none may be
+   `head`/`script`/`style`, so excluded subtrees and foreign re-entries are
+   refused while ordinary XHTML descendants stay editable.
+3. **Literals beside an entity reference were wrongly refused.** The XML decoder
+   itself expands predefined and numeric character references, so the whole
+   character-data token was treated as one unwritable run. Runs are now split
+   into provenance fragments: literal pieces stay writable with their original
+   byte intervals, while entity-reference spellings (and generated or CDATA
+   pieces) are not writable, and the fragments must concatenate to the decoded
+   text. `alpha`/`beta` beside `&amp;` or `&#x1F600;` are editable again in
+   UTF-8, UTF-16LE and UTF-16BE.
+4. **Internally expanded entity text was consumed as literal source.** A known
+   DTD entity (`<!ENTITY word "word">` used as `&word;`) is a generated span; the
+   old run model compared the expanded stream with the decoded text and marked it
+   writable, so a literal `word`→`changed` replacement overwrote the entity
+   reference. Provenance now comes from the span flags: only linear,
+   non-generated pieces are writable, and a fragment whose concatenation does not
+   match the decoded token text falls back to one non-writable fragment, so an
+   expanded-stream offset can never be mistaken for author-written bytes.
+5. **A zero-length generated entity shifted the following literal's interval.**
+   An empty entity (`<!ENTITY empty "">` used as `&empty;`) records a zero-length
+   generated span, and the stream-offset lookup preferred the preceding literal
+   span at that junction, so a `bar` match in `foo&empty;bar` replaced
+   `&empty;bar` instead of `bar`, and a `foobar` match crossing the reference was
+   still accepted. Literal piece offsets now come from the piece's own span, so
+   the reference bytes stay untouched and a match crossing the reference is
+   refused as a cross-fragment match.
+
+The fixes keep the old-value, byte-interval, encoding and scope constraints, and
+all positive controls (encoded CRLF/CJK/surrogate fixtures, `\bPlain\b`,
+entity-adjacent literals, ordinary descendants) are retained.
+
+### Verification of this revision
+
+This revision's runs are labelled by where they were taken; the product content
+was committed as the fixed commit that introduces this section.
+
+- Repository ordinary suite with the pinned EPUBCheck 5.3.0 jar, taken from this
+  revision's working tree before the commit (working-tree verification, not a
+  fresh checkout of the commit): all packages passed (cmd/kepub 321.978 s,
+  internal/validation 267.446 s, internal/workspace 223.102 s,
+  internal/publication 5.017 s, internal/xmltext 7.361 s, internal/references
+  0.126 s, experiments/amp-cli 5.010 s, internal/app 0.357 s, internal/archive
+  0.105 s, internal/metadata 0.525 s, internal/bookpath 0.004 s). The race suite
+  on the same tree also passed all packages (cmd/kepub 587.448 s,
+  internal/validation 324.045 s, internal/workspace 329.702 s,
+  internal/publication 106.365 s, internal/xmltext 95.353 s, internal/references
+  2.090 s, experiments/amp-cli 7.711 s, internal/app 2.065 s, internal/archive
+  1.323 s, internal/bookpath 1.013 s, internal/metadata 6.179 s). `go vet ./...`
+  and `gofmt` are clean on the same tree.
+- The complete frozen probe set was rerun unchanged on this revision, first in
+  the working tree before the commit and then again from a fresh fetch of the
+  fixed bundle into a new repository at the base commit: the parent replace
+  probe, the medium replace boundary and empty-entity probes (three encodings,
+  including the positive prefixes and the refused zero-length-entity
+  adjacencies), the medium workspace replace and lifecycle probes (empty-entity
+  Plan+Apply, disjoint direct scopes in both orders, interrupted transaction,
+  settlement/history), the parent joint-alias and cross-resource/IDREF probes,
+  the medium identity probes and their extended file, the medium joint-identity
+  and diagnostic probes, the reviewer probes for the final reference gate, IDREF
+  coverage, manifest permission, attribute positives, text review shift,
+  misplaced blocks, unsupported URL writes, move review, fragment identities, the
+  schema locator advertisement, both R2 probes and the UTF positive control —
+  37 top-level test functions, 206 assertions including subtests, no failures and
+  no skips, ordinary and focused race runs with no data race. The zero-width,
+  excluded-ancestor, entity-adjacent, generated-entity and zero-length-entity
+  cases refuse or accept exactly as their probes expect.
+- Fuzz runs on this revision's working tree before the commit (not from a fresh
+  checkout of the commit): the replace target compared 868,250 executions in
+  60.150 s against an independent standard-library oracle, the structural round
+  trip passed 1,044,707 executions in 61.063 s and plan order independence 38,304
+  executions in 61.025 s, all with no failing input.
+- Real CLI smoke on the working-tree binary built before the commit, with the
+  pinned checker: the literal and regex positives from the previous round still
+  planned, applied, reviewed and passed accept/export; an entity-adjacent literal
+  (`alpha` → `ALPHA` beside `&amp;`) was accepted by EPUBCheck 5.3.0 and exported
+  with `verified: true` and the candidate
+  `<p id="unreferenced">ALPHA &amp; beta</p>`; a generated DTD entity (`&word;`)
+  and a zero-width `\b` pattern were refused (exit 2, no plan file) and the
+  anchored `\bOne\b` positive planned. The original book bytes were unchanged and
+  the export ZIPs intact.
 - The fixed commit, tree and bundle hashes are reported to the parent thread and
   frozen in the next batch's record.

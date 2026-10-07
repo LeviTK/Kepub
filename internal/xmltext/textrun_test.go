@@ -39,8 +39,17 @@ func TestTextRunsKeepsWritableLiteralIntervals(t *testing.T) {
 	if entity == nil {
 		t.Fatalf("entity element missing: %v", keys(byText))
 	}
-	if runs := entity.TextRuns(); len(runs) != 1 || runs[0].Writable {
+	runs = entity.TextRuns()
+	if len(runs) != 3 || !runs[0].Writable || runs[0].Text != "a" || runs[1].Writable || runs[1].Text != "&" || !runs[2].Writable || runs[2].Text != "b" {
 		t.Fatalf("entity runs: %+v", runs)
+	}
+	start, end, ok = runs[0].Range(0, 1)
+	if !ok || string(input[start:end]) != "a" {
+		t.Fatalf("entity prefix range: %d %d %v %q", start, end, ok, input[start:end])
+	}
+	start, end, ok = runs[2].Range(0, 1)
+	if !ok || string(input[start:end]) != "b" {
+		t.Fatalf("entity suffix range: %d %d %v %q", start, end, ok, input[start:end])
 	}
 	crlf := byText["line\ntwo"]
 	if crlf == nil {

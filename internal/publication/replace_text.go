@@ -2,7 +2,6 @@ package publication
 
 import (
 	"encoding/hex"
-	"encoding/xml"
 	"fmt"
 	"regexp"
 	"strings"
@@ -145,8 +144,17 @@ func replaceTargetRefused(e *xmltext.Element) error {
 	case "html", "head", "script", "style":
 		return fault.New(2, "INVALID_OPERATIONS", "replace target %s is not editable text", e.Name.Local)
 	}
+	// The whole ancestor path to body decides editability: a foreign-namespace
+	// re-entry (for example foreignObject) or an excluded subtree must not be
+	// reachable through an explicit locator.
 	for p := e; p != nil; p = p.Parent {
-		if p.Name == (xml.Name{Space: XHTMLNamespace, Local: "body"}) {
+		if p.Name.Space != XHTMLNamespace {
+			return fault.New(2, "INVALID_OPERATIONS", "replace target is inside a foreign-namespace subtree")
+		}
+		switch p.Name.Local {
+		case "script", "style", "head":
+			return fault.New(2, "INVALID_OPERATIONS", "replace target is inside a %s subtree", p.Name.Local)
+		case "body":
 			return nil
 		}
 	}
@@ -183,8 +191,11 @@ type replaceMatch struct {
 }
 
 // findReplaceMatches returns the leftmost non-overlapping matches of one
-// element's direct text. Regex replacement supports $name/${name} expansion.
-func findReplaceMatches(text string, op TextReplace, re *regexp.Regexp) []replaceMatch {
+// element's direct text. A real zero-width match refuses the operation instead of
+// being silently dropped, so a context-dependent empty match can neither fake a
+// hit count nor leave a partial replacement. Regex replacement supports
+// $name/${name} expansion.
+func findReplaceMatches(text string, op TextReplace, re *regexp.Regexp) ([]replaceMatch, error) {
 	out := []replaceMatch{}
 	if op.Mode == "literal" {
 		for i := 0; i+len(op.Pattern) <= len(text); {
@@ -196,16 +207,16 @@ func findReplaceMatches(text string, op TextReplace, re *regexp.Regexp) []replac
 			out = append(out, replaceMatch{start, start + len(op.Pattern), op.Replacement})
 			i = start + len(op.Pattern)
 		}
-		return out
+		return out, nil
 	}
 	for _, m := range re.FindAllStringSubmatchIndex(text, -1) {
 		if m[0] == m[1] {
-			continue
+			return nil, fault.New(2, "INVALID_OPERATIONS", "pattern produces a zero-width match")
 		}
 		expanded := re.ExpandString(nil, op.Replacement, text, m)
 		out = append(out, replaceMatch{m[0], m[1], string(expanded)})
 	}
-	return out
+	return out, nil
 }
 
 func replaceElement(e *xmltext.Element, op TextReplace, re *regexp.Regexp) (*StructureEdit, ReplaceNode, int, error) {
@@ -221,7 +232,10 @@ func replaceElement(e *xmltext.Element, op TextReplace, re *regexp.Regexp) (*Str
 	if text == "" {
 		return nil, ReplaceNode{}, 0, nil
 	}
-	matches := findReplaceMatches(text, op, re)
+	matches, err := findReplaceMatches(text, op, re)
+	if err != nil {
+		return nil, ReplaceNode{}, 0, err
+	}
 	if len(matches) == 0 {
 		return nil, ReplaceNode{}, 0, nil
 	}

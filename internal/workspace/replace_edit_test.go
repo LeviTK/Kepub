@@ -156,6 +156,8 @@ func TestReplaceRefusals(t *testing.T) {
 		{"root-target", []Operation{ch1.replace("/html[1]", "literal", "One", "x", 0)}, "INVALID_OPERATIONS"},
 		{"duplicate-target", []Operation{ch1.replace(ch1.locatorID(t, "dir"), "literal", "RTL", "A", 1), ch1.replace(ch1.locatorID(t, "dir"), "literal", "text", "B", 1)}, "INVALID_OPERATIONS"},
 		{"cross-run", []Operation{ch1.replace(ch1.locatorID(t, "mixed"), "literal", "Alpha  & beta", "x", 1)}, "INVALID_OPERATIONS"},
+		{"zero-width-regex", []Operation{ch1.replace(ch1.locatorID(t, "dir"), "regex", `\b`, "x", 0)}, "INVALID_OPERATIONS"},
+		{"foreign-target", []Operation{ch1.replace(ch1.locator(t, "rect", 0), "literal", "x", "y", 0)}, "INVALID_OPERATIONS"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

@@ -409,13 +409,7 @@ func Parse(input []byte) (*Document, error) {
 				e.text.Write(t)
 				e.direct.Write(t)
 				end := int(d.InputOffset())
-				run := TextRun{Text: string(t)}
-				if !cdata && !s.uncertain(before, end) {
-					if offsets, ok := s.runOffsets(before, end, run.Text); ok {
-						run.Writable, run.offsets = true, offsets
-					}
-				}
-				e.textRuns = append(e.textRuns, run)
+				e.textRuns = append(e.textRuns, s.textFragments(before, end, string(t), cdata)...)
 				if s.uncertain(before, end) {
 					e.ContentUnknown, e.ChildrenUnknown = true, true
 					known, err := s.knownText(before, end)

@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode/utf16"
 	"unicode/utf8"
@@ -148,48 +149,168 @@ func (s source) offset(n int) int {
 	return int(s.offsets[n])
 }
 
-// runOffsets maps one literal character-data token to original byte offsets: one
-// entry per decoded byte plus the run end. XML line-ending normalization turns a
-// CRLF or CR in the source into one LF in the decoded text, so the stream and
-// the decoded text are walked together and a mismatch refuses the run.
-func (s source) runOffsets(before, end int, text string) ([]int, bool) {
-	stream := s.text[before:end]
-	offsets := make([]int, len(text)+1)
-	si, ti := 0, 0
-	for ti < len(text) {
-		if si >= len(stream) {
-			return nil, false
-		}
+// normalizeRun decodes one literal piece of a linear span with XML line-ending
+// normalization and returns the text plus the original byte offset of every
+// decoded byte and the piece end. The offsets come from the piece's own span, so
+// a stream junction (for example a zero-length entity reference) cannot move
+// them onto the neighbouring piece.
+func (s source) normalizeRun(span sourceSpan, lo, hi int) (string, []int, bool) {
+	stream := s.text[lo:hi]
+	offset := func(n int) int { return s.original.offset(span.from + n - span.start) }
+	out := make([]byte, 0, len(stream))
+	offsets := make([]int, 0, len(stream)+1)
+	si := 0
+	for si < len(stream) {
 		if stream[si] == '\r' {
-			if text[ti] != '\n' {
-				return nil, false
-			}
-			offsets[ti] = s.offset(before + si)
+			out = append(out, '\n')
+			offsets = append(offsets, offset(lo+si))
 			si++
 			if si < len(stream) && stream[si] == '\n' {
 				si++
 			}
-			ti++
 			continue
 		}
 		r, size := utf8.DecodeRune(stream[si:])
 		if r == utf8.RuneError && size <= 1 {
-			return nil, false
+			return "", nil, false
 		}
-		if ti+size > len(text) || string(stream[si:si+size]) != text[ti:ti+size] {
-			return nil, false
-		}
+		out = append(out, stream[si:si+size]...)
 		for k := 0; k < size; k++ {
-			offsets[ti+k] = s.offset(before + si + k)
+			offsets = append(offsets, offset(lo+si+k))
 		}
 		si += size
-		ti += size
 	}
-	if si != len(stream) {
-		return nil, false
+	offsets = append(offsets, offset(lo+si))
+	return string(out), offsets, true
+}
+
+// decodeEntityReference decodes one entity-reference spelling that the XML
+// decoder itself expands: the predefined names and numeric character references.
+// Internal entities are already expanded into generated spans and are not
+// writable literal source.
+func decodeEntityReference(ref string) (string, bool) {
+	switch ref {
+	case "&amp;":
+		return "&", true
+	case "&lt;":
+		return "<", true
+	case "&gt;":
+		return ">", true
+	case "&apos;":
+		return "'", true
+	case "&quot;":
+		return "\"", true
 	}
-	offsets[len(text)] = s.offset(before + si)
-	return offsets, true
+	if !strings.HasPrefix(ref, "&#") || !strings.HasSuffix(ref, ";") {
+		return "", false
+	}
+	body := ref[2 : len(ref)-1]
+	base := 10
+	if strings.HasPrefix(body, "x") || strings.HasPrefix(body, "X") {
+		base, body = 16, body[1:]
+	}
+	if body == "" {
+		return "", false
+	}
+	value, err := strconv.ParseInt(body, base, 32)
+	if err != nil || value <= 0 || value > 0x10FFFF || (value >= 0xD800 && value <= 0xDFFF) {
+		return "", false
+	}
+	return string(rune(value)), true
+}
+
+// literalFragments splits one literal span piece into writable literal pieces
+// and non-writable entity-reference pieces. Every literal piece keeps the
+// original byte interval of each of its decoded bytes through its own span.
+func (s source) literalFragments(span sourceSpan, lo, hi int) ([]TextRun, bool) {
+	piece := s.text[lo:hi]
+	fragments := []TextRun{}
+	start := 0
+	for {
+		amp := bytes.IndexByte(piece[start:], '&')
+		if amp < 0 {
+			break
+		}
+		amp += start
+		if amp > start {
+			text, offsets, ok := s.normalizeRun(span, lo+start, lo+amp)
+			if !ok {
+				return nil, false
+			}
+			fragments = append(fragments, TextRun{Text: text, Writable: true, offsets: offsets})
+		}
+		semi := bytes.IndexByte(piece[amp:], ';')
+		if semi < 0 || semi > 64 {
+			return nil, false
+		}
+		semi += amp
+		decoded, ok := decodeEntityReference(string(piece[amp : semi+1]))
+		if !ok {
+			return nil, false
+		}
+		fragments = append(fragments, TextRun{Text: decoded})
+		start = semi + 1
+	}
+	if start < len(piece) {
+		text, offsets, ok := s.normalizeRun(span, lo+start, lo+len(piece))
+		if !ok {
+			return nil, false
+		}
+		fragments = append(fragments, TextRun{Text: text, Writable: true, offsets: offsets})
+	}
+	return fragments, true
+}
+
+// textFragments splits one direct character-data token into provenance pieces:
+// literal source pieces are writable with their original byte intervals, while
+// entity-generated, non-linear, CDATA and entity-reference pieces are not
+// writable. The pieces must concatenate to the decoded token text, otherwise the
+// whole token falls back to one non-writable fragment, so an expanded-stream
+// offset or a decoded entity spelling can never be mistaken for author-written
+// literal source.
+func (s source) textFragments(before, end int, text string, cdata bool) []TextRun {
+	if cdata {
+		return []TextRun{{Text: text}}
+	}
+	fragments := []TextRun{}
+	cursor := 0
+	appendPieces := func(pieces []TextRun) bool {
+		for _, piece := range pieces {
+			if cursor+len(piece.Text) > len(text) || text[cursor:cursor+len(piece.Text)] != piece.Text {
+				return false
+			}
+			fragments = append(fragments, piece)
+			cursor += len(piece.Text)
+		}
+		return true
+	}
+	for index := sort.Search(len(s.spans), func(i int) bool { return s.spans[i].end > before }); index < len(s.spans) && s.spans[index].start < end; index++ {
+		span := s.spans[index]
+		lo, hi := before, end
+		if span.start > lo {
+			lo = span.start
+		}
+		if span.end < hi {
+			hi = span.end
+		}
+		if lo >= hi {
+			continue
+		}
+		if !span.linear || span.generated || s.uncertain(lo, hi) {
+			if !appendPieces([]TextRun{{Text: string(s.text[lo:hi])}}) {
+				return []TextRun{{Text: text}}
+			}
+			continue
+		}
+		pieces, ok := s.literalFragments(span, lo, hi)
+		if !ok || !appendPieces(pieces) {
+			return []TextRun{{Text: text}}
+		}
+	}
+	if cursor != len(text) {
+		return []TextRun{{Text: text}}
+	}
+	return fragments
 }
 
 func encode(text []byte, order binary.ByteOrder) []byte {
