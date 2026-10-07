@@ -330,6 +330,39 @@ FixProposal、ValidationDelta、字体混淆资格、OPF／spine 资源关系变
 [T2_MULTI_OPERATION.md](verification/T2_MULTI_OPERATION.md)；剩余 T2 仍不得标记为
 完成。
 
+### 2.11 T2 第五批原生修复提案与诊断差异实施契约（已冻结，待实现）
+
+2026-10-07 父审定编码线程 v2 草案，并修正 operationVersion、工作区与 Git 身份、
+规范 JSON、完整来源重算与选择／不可修复项歧义。完整字段、排序、hash、错误优先级、
+规则、Delta 与验证门槛冻结于 [协议附件](contracts/T2_FIX_PROPOSAL_V1.md)。该附件是
+本节的规范部分；旧草案与旧 golden 保留为历史，不作为实现依据。
+
+本批仅增加只读 `fix propose --workspace DIR` 与 `fix delta --workspace DIR`，
+FixProposal v1、ValidationDelta v1 及内嵌完整提案源的 request/plan schema 7。
+应用仍经既有 `plan → apply → task diff → task accept/reject → history/export`，
+无新写入口、任意 patch、自动修复循环或接受后反向修复。冻结不等于 available，
+未实现／独立验收前不得在 capabilities 提升能力或宣称完整 T2。
+
+首批原生规则是 `kepub.fix.epub-type-on-prohibited-element` v1（head 加 HTML 全部
+八项 metadata content 的 OpsNamespace type 删除）与
+`kepub.fix.relative-url-query-component` v1（限定真实 URL 属性的 query 删除）。
+后者明确披露可能丢失作者语义，须显式选择并审阅；只删 query，不顺手归一路径、
+fragment、百分号或编码。生成提案不依赖 EPUBCheck，也不冒充其上游 code。
+
+schema 7 逐次核完整来源、自身 hash 与 workspace/rootfile/revision/inventory；
+在冻结基线上重推整个提案而非只比操作。请求操作按多重集核验，合法排列可用，
+旧 operationSetSha256 的有序数组含义不变。完整源进入生命周期重算，外部文件
+删除后仍可验证。旧 schema 1～6、操作／权限／预算／摘要／历史格式不迁移。
+
+Delta 在两侧已核私有快照实际运行固定检查并绑定完整报告；native 与 upstream
+身份分开，按多重集与可靠位置／来源映射分类，未知、漏跑、覆盖缩小或同 code
+歧义不算解决。Delta 不批准 accept/export；正式 fatal/error/strict warning 门禁
+与三编码 native 编辑、UTF-16 XHTML 正式 HTM_058 拒绝的分层保持。
+
+标准字体混淆资格与旧工作区重评、OPF/spine、资源增删改名、NCX/SVG/CSS 重写仍属
+剩余 T2，本批不进入 T3～T6。输入基线是父本地 bb1b46f，origin/main 仍为旧远端
+跟踪状态；本节及附件由父冻结后传给现有编码线程，产品 fixed 树另行独立复审。
+
 ## 3. 目标选择与全局约定
 
 ### 3.1 明确目标
