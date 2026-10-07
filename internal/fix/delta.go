@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"sort"
 )
 
@@ -192,7 +191,7 @@ func genericSchemaCode(code string) bool {
 
 // checksComparable reports whether the two sides ran the same checker
 // configuration over a comparable scope. Checks are matched by checker
-// identity, never cross pairs.
+// identity, never cross pairs; coverage direction is classified separately.
 func checksComparable(before, after DeltaSide) bool {
 	if len(before.Checks) == 0 || len(after.Checks) == 0 {
 		return false
@@ -205,8 +204,7 @@ func checksComparable(before, after DeltaSide) bool {
 			}
 			matched = true
 			if b.ToolVersion != a.ToolVersion || b.Ruleset != a.Ruleset || b.SpecBaseline != a.SpecBaseline ||
-				b.Profile != a.Profile || b.Flags != a.Flags || b.RunStatus != a.RunStatus ||
-				fmt.Sprint(b.Coverage) != fmt.Sprint(a.Coverage) {
+				b.Profile != a.Profile || b.Flags != a.Flags || b.RunStatus != a.RunStatus {
 				return false
 			}
 		}
@@ -288,10 +286,11 @@ func ClassifyDelta(before, after DeltaSide) []DeltaEntry {
 			entries = append(entries, DeltaEntry{classification, Checker, k, nativeInstances(b), []any{}, reason})
 		case len(b) == 0 && len(a) > 0:
 			classification, reason := "added", "a new native fact appears in the after snapshot"
-			if !comparable {
+			switch {
+			case !comparable || afterStatus != "complete":
 				classification, reason = "incomparable", "the native scope or checker configuration is not comparable"
-			} else if beforeStatus != "complete" {
-				classification, reason = "newly_checkable", "the native scope did not cover this side before"
+			case beforeStatus != "complete":
+				classification, reason = "newly_checkable", "the after native scope reliably covers a fact the before scope did not"
 			}
 			entries = append(entries, DeltaEntry{classification, Checker, k, []any{}, nativeInstances(a), reason})
 		}
@@ -339,26 +338,104 @@ func classifyUpstream(before, after DeltaSide, comparable bool) []DeltaEntry {
 		}
 		return a.Code < b.Code
 	})
+	beforeReliable, afterReliable := upstreamReliable(before), upstreamReliable(after)
+	removals, additions := []upstreamKey{}, []upstreamKey{}
 	for _, k := range upstreamKeys {
 		b, a := beforeUp[k], afterUp[k]
 		switch {
 		case len(b) > 0 && len(a) > 0:
 			entries = append(entries, DeltaEntry{"persisted", "epubcheck", k, upstreamInstances(b), upstreamInstances(a), "the same checker diagnostic is present on both sides"})
-		case len(b) > 0 && len(a) == 0:
-			classification, reason := "resolved", "the checker diagnostic is gone and the checker still covers the resource"
-			if !comparable || genericSchemaCode(k.Code) {
-				classification, reason = "incomparable", "a generic schema diagnostic has no provable unique attribution"
-			}
-			entries = append(entries, DeltaEntry{classification, "epubcheck", k, upstreamInstances(b), []any{}, reason})
-		case len(b) == 0 && len(a) > 0:
-			classification, reason := "added", "a new checker diagnostic appears in the after snapshot"
-			if !comparable || genericSchemaCode(k.Code) {
-				classification, reason = "incomparable", "a generic schema diagnostic has no provable unique attribution"
-			}
-			entries = append(entries, DeltaEntry{classification, "epubcheck", k, []any{}, upstreamInstances(a), reason})
+		case len(b) > 0:
+			removals = append(removals, k)
+		default:
+			additions = append(additions, k)
 		}
 	}
+	// A severity change on the same diagnostic site is one entry, never a
+	// removal plus an addition.
+	usedRemoval := make([]bool, len(removals))
+	usedAddition := make([]bool, len(additions))
+	for i, rk := range removals {
+		for j, ak := range additions {
+			if usedAddition[j] || upstreamSite(rk) != upstreamSite(ak) {
+				continue
+			}
+			usedRemoval[i], usedAddition[j] = true, true
+			b, a := beforeUp[rk], afterUp[ak]
+			classification, reason := "incomparable", "the checker severity changed without a provable resolution"
+			if severityRank(a[0].Severity) > severityRank(b[0].Severity) {
+				classification, reason = "upgraded", "the checker severity increased on the same diagnostic site"
+			}
+			if !beforeReliable || !afterReliable || !comparable {
+				classification, reason = "incomparable", "the checker configuration or coverage is not comparable"
+			}
+			entries = append(entries, DeltaEntry{classification, "epubcheck", rk, upstreamInstances(b), upstreamInstances(a), reason})
+			break
+		}
+	}
+	for i, k := range removals {
+		if usedRemoval[i] {
+			continue
+		}
+		b := beforeUp[k]
+		classification, reason := "resolved", "the checker diagnostic is gone and the checker still covers the resource"
+		switch {
+		case !afterReliable || !beforeReliable:
+			classification, reason = "incomparable", "the checker did not reliably cover the resource on both sides"
+		case !comparable || genericSchemaCode(k.Code):
+			classification, reason = "incomparable", "a generic schema diagnostic has no provable unique attribution"
+		}
+		entries = append(entries, DeltaEntry{classification, "epubcheck", k, upstreamInstances(b), []any{}, reason})
+	}
+	for j, k := range additions {
+		if usedAddition[j] {
+			continue
+		}
+		a := afterUp[k]
+		classification, reason := "added", "a new checker diagnostic appears in the after snapshot"
+		switch {
+		case !afterReliable:
+			classification, reason = "incomparable", "the after checker did not reliably cover the resource"
+		case !beforeReliable:
+			classification, reason = "newly_checkable", "the after checker reliably covers a diagnostic the before side did not check"
+		case !comparable || genericSchemaCode(k.Code):
+			classification, reason = "incomparable", "a generic schema diagnostic has no provable unique attribution"
+		}
+		entries = append(entries, DeltaEntry{classification, "epubcheck", k, []any{}, upstreamInstances(a), reason})
+	}
 	return entries
+}
+
+// upstreamReliable reports whether one side ran the checker to a reliable
+// result. A normal compliance FAIL is still a reliable run.
+func upstreamReliable(s DeltaSide) bool {
+	for _, c := range s.Checks {
+		if c.CheckerID == "epubcheck" {
+			return c.RunStatus == "completed"
+		}
+	}
+	return false
+}
+
+// upstreamSite is the diagnostic identity without its severity.
+func upstreamSite(k upstreamKey) upstreamKey {
+	k.Severity = ""
+	return k
+}
+
+// severityRank orders the checker severities for the upgrade classification.
+func severityRank(s string) int {
+	switch s {
+	case "fatal":
+		return 4
+	case "error":
+		return 3
+	case "warning":
+		return 2
+	case "info":
+		return 1
+	}
+	return 0
 }
 
 func upstreamInstances(in []UpstreamDiagnostic) []any {
