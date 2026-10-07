@@ -97,6 +97,38 @@ func TestRuleRelativeURLQuery(t *testing.T) {
 			t.Fatalf("repair %d new value %q want %q", i, value, wantValues[i])
 		}
 	}
+	// Query removal preserves the path spelling, an explicit empty "#" and an
+	// empty query, and a missing image target stays unfixable.
+	extra := `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>T</title></head><body>` +
+		`<a href="ch2.xhtml?q=1#">empty-fragment</a>` +
+		`<a href="ch2.xhtml?">empty-query</a>` +
+		`<a href="ch2%2Exhtml?q=1#sec">percent-spelling</a>` +
+		`<img src="absent.png?y=2"/>` +
+		`</body></html>`
+	repairs, limits = deriveRelativeURLQuery(testSnapshot(extra))
+	if len(limits) != 0 || len(repairs) != 4 {
+		t.Fatalf("extra repairs %d limits %+v: %+v", len(repairs), limits, repairs)
+	}
+	wantExtra := []struct {
+		value  string
+		status string
+	}{
+		{"ch2.xhtml#", StatusFixable},
+		{"ch2.xhtml", StatusFixable},
+		{"ch2%2Exhtml#sec", StatusFixable},
+		{"", StatusUnfixable},
+	}
+	for i, w := range wantExtra {
+		if repairs[i].Status != w.status {
+			t.Fatalf("extra repair %d status %s want %s: %+v", i, repairs[i].Status, w.status, repairs[i])
+		}
+		if w.status == StatusFixable {
+			set, ok := repairs[i].Operation.Params.(publication.AttributeSet)
+			if !ok || set.Value != w.value {
+				t.Fatalf("extra repair %d value %+v want %q", i, repairs[i].Operation.Params, w.value)
+			}
+		}
+	}
 	// A base element makes the whole document unprovable for this rule.
 	based := `<html xmlns="http://www.w3.org/1999/xhtml"><head><base href="."/><title>T</title></head><body><a href="ch2.xhtml?q=1">a</a></body></html>`
 	repairs, limits = deriveRelativeURLQuery(testSnapshot(based))
