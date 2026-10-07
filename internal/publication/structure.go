@@ -315,18 +315,43 @@ func (d *StructureDocument) Locate(locator string) (*xmltext.Element, error) {
 	return e, nil
 }
 
-// IDs counts unprefixed id and xml:id values in the frozen document, matching
-// the reference index's identity rules.
-func (d *StructureDocument) IDs() map[string]int {
-	out := map[string]int{}
-	for _, e := range d.Doc.Elements {
-		for _, a := range e.Attributes {
-			if (a.Name.Space == "" || a.Name.Space == XMLNamespace) && a.Name.Local == "id" {
-				out[a.Value]++
-			}
+// IdentityValues returns the identity values carried by one attribute list, at
+// most once per value and in attribute order: an element that carries both id
+// and xml:id with the same value is one identity. The reference index and the
+// structural gate share this unit, so they cannot disagree about multiplicity.
+func IdentityValues(attrs []xml.Attr) []string {
+	out := []string{}
+	seen := map[string]bool{}
+	for _, a := range attrs {
+		if isIDAttribute(a.Name) && !seen[a.Value] {
+			seen[a.Value] = true
+			out = append(out, a.Value)
 		}
 	}
 	return out
+}
+
+// ElementIdentities is IdentityValues for a parsed document element.
+func ElementIdentities(e *xmltext.Element) []string {
+	return IdentityValues(e.Attributes)
+}
+
+// CountIDs counts document identities per element, the same unit the reference
+// index uses.
+func CountIDs(doc *xmltext.Document) map[string]int {
+	out := map[string]int{}
+	for _, e := range doc.Elements {
+		for _, value := range ElementIdentities(e) {
+			out[value]++
+		}
+	}
+	return out
+}
+
+// IDs counts unprefixed id and xml:id values in the frozen document, matching
+// the reference index's identity rules.
+func (d *StructureDocument) IDs() map[string]int {
+	return CountIDs(d.Doc)
 }
 
 // Encode encodes literal markup or text for the document's original encoding.
@@ -613,16 +638,13 @@ func (d *StructureDocument) attributeInsertion(e *xmltext.Element, name xml.Name
 	return inserted, decls, nil
 }
 
-// subtreeIDs collects unprefixed id and xml:id values in one subtree.
+// subtreeIDs collects one identity value per element in a subtree, matching the
+// reference index's per-element unit.
 func subtreeIDs(e *xmltext.Element) []string {
 	out := []string{}
 	var walk func(*xmltext.Element)
 	walk = func(e *xmltext.Element) {
-		for _, a := range e.Attributes {
-			if (a.Name.Space == "" || a.Name.Space == XMLNamespace) && a.Name.Local == "id" {
-				out = append(out, a.Value)
-			}
-		}
+		out = append(out, ElementIdentities(e)...)
 		for _, c := range e.Children {
 			walk(c)
 		}
@@ -647,8 +669,10 @@ func fragmentFacts(nodes []*FragmentNode) ([]string, []StructureLink, []Structur
 	refs := []StructureIDREF{}
 	var walk func(*FragmentNode)
 	walk = func(n *FragmentNode) {
+		seen := map[string]bool{}
 		for _, a := range n.Attrs {
-			if isIDAttribute(a.Name) {
+			if isIDAttribute(a.Name) && !seen[a.Value] {
+				seen[a.Value] = true
 				ids = append(ids, a.Value)
 			}
 			if n.Name.Space == XHTMLNamespace && a.Name.Space == "" && (a.Name.Local == "href" || a.Name.Local == "src") {
@@ -705,12 +729,22 @@ func (d *StructureDocument) AttributeSetEdit(op AttributeSet) (*StructureEdit, e
 		if op.Value == "" || !xmltext.ValidNCName(op.Value) {
 			return nil, fault.New(2, "INVALID_OPERATIONS", "new id must be a non-empty XML name")
 		}
-		if present && current != op.Value {
-			edit.RemovedIDs = append(edit.RemovedIDs, current)
+		// The element's identity set after the write decides which values are
+		// gained or lost: another id attribute carrying the same value keeps the
+		// identity, and writing a value the element already carries adds none.
+		before := elementIDSet(e)
+		after := map[string]bool{}
+		for _, a := range e.Attributes {
+			if a.Name == name {
+				continue
+			}
+			if isIDAttribute(a.Name) {
+				after[a.Value] = true
+			}
 		}
-		if !present || current != op.Value {
-			edit.AddedIDs = append(edit.AddedIDs, op.Value)
-		}
+		after[op.Value] = true
+		edit.RemovedIDs = append(edit.RemovedIDs, identityDelta(before, after)...)
+		edit.AddedIDs = append(edit.AddedIDs, identityDelta(after, before)...)
 	}
 	if e.Name.Space == XHTMLNamespace && name.Space == "" && (name.Local == "href" || name.Local == "src") {
 		edit.Links = append(edit.Links, StructureLink{Locator: op.Locator, Name: name.Local, Value: op.Value})
@@ -770,7 +804,17 @@ func (d *StructureDocument) AttributeRemoveEdit(op AttributeRemove) (*StructureE
 	}
 	edit := &StructureEdit{Change: StructureChange{Kind: "attribute-remove", Locator: op.Locator, Remove: true, Attr: &xml.Attr{Name: name}}}
 	if isIDAttribute(name) {
-		edit.RemovedIDs = append(edit.RemovedIDs, current)
+		before := elementIDSet(e)
+		after := map[string]bool{}
+		for _, a := range e.Attributes {
+			if a.Name == name {
+				continue
+			}
+			if isIDAttribute(a.Name) {
+				after[a.Value] = true
+			}
+		}
+		edit.RemovedIDs = append(edit.RemovedIDs, identityDelta(before, after)...)
 	}
 	edit.Spans = append(edit.Spans, EditSpan{Start: markup.Start, End: markup.End})
 	return edit, nil
@@ -959,6 +1003,28 @@ func elementAttribute(e *xmltext.Element, name xml.Name) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// elementIDSet is one element's identity values as a set.
+func elementIDSet(e *xmltext.Element) map[string]bool {
+	out := map[string]bool{}
+	for _, value := range ElementIdentities(e) {
+		out[value] = true
+	}
+	return out
+}
+
+// identityDelta returns the values in want that are absent from have, sorted so
+// identity facts stay deterministic.
+func identityDelta(want, have map[string]bool) []string {
+	out := []string{}
+	for value := range want {
+		if !have[value] {
+			out = append(out, value)
+		}
+	}
+	slices.Sort(out)
+	return out
 }
 
 // isIDAttribute reports whether a resolved attribute name carries document
@@ -1431,10 +1497,8 @@ func checkBlockPlacement(output []byte, exp *simNode, act *xmltext.Element, byLo
 		}
 	case "replace":
 		// checkBlockBytes already requires the block at the replaced range's
-		// mapped offset; the structural comparison pins its parent and order.
-		if !bytes.Contains(output, exp.block) {
-			return fmt.Errorf("replacement block bytes are absent")
-		}
+		// mapped offset and the structural comparison pins its parent and
+		// order, so no weaker global byte search is kept here.
 	default:
 		return fmt.Errorf("unsupported block position %q", exp.position)
 	}

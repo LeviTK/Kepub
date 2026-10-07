@@ -1265,3 +1265,113 @@ func decodeChapter(data []byte, enc string) (string, error) {
 	}
 	return string(utf16.Decode(units)), nil
 }
+
+// TestStructureIdentityMultiplicityModel keeps the dependency gate on the true
+// final identity count: a residual duplicate cannot hide behind a removal, and a
+// partial delete that leaves one instance still resolves.
+func TestStructureIdentityMultiplicityModel(t *testing.T) {
+	twoIDs := strings.Replace(structureChapter1, `<p id="unreferenced">Plain.</p>`, `<p id="unreferenced">Plain.</p><p id="unreferenced">Duplicate.</p>`, 1)
+	t.Run("residual-duplicate-refused", func(t *testing.T) {
+		w, _, _ := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": twoIDs})
+		defer w.Close()
+		ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+		planRefused(t, w, []Operation{
+			ch1.elemDelete(ch1.locatorID(t, "unreferenced")),
+			ch1.elemInsert(ch1.locatorID(t, "last"), "after", `<p id="unreferenced">Replacement.</p>`),
+			ch1.attrSet(ch1.locatorID(t, "dir"), "aria-labelledby", nil, "unreferenced"),
+		}, "INVALID_OPERATIONS")
+	})
+	t.Run("retained-alias-refused", func(t *testing.T) {
+		alias := strings.Replace(structureChapter1, `<p id="unreferenced">Plain.</p>`, `<p id="unreferenced" xml:id="unreferenced">Plain.</p>`, 1)
+		for _, removeFirst := range []bool{true, false} {
+			name := "remove-first"
+			if !removeFirst {
+				name = "reference-first"
+			}
+			t.Run(name, func(t *testing.T) {
+				w, _, _ := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": alias})
+				defer w.Close()
+				ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+				remove := ch1.attrRemove(ch1.locatorID(t, "unreferenced"), "id", "unreferenced")
+				insert := ch1.elemInsert(ch1.locatorID(t, "last"), "after", `<p id="unreferenced">Replacement.</p>`)
+				ref := ch1.attrSet(ch1.locatorID(t, "dir"), "aria-labelledby", nil, "unreferenced")
+				ops := []Operation{remove, insert, ref}
+				if !removeFirst {
+					ops = []Operation{ref, insert, remove}
+				}
+				planRefused(t, w, ops, "INVALID_OPERATIONS")
+			})
+		}
+	})
+	t.Run("partial-delete-positive", func(t *testing.T) {
+		w, dir, _ := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": twoIDs})
+		defer w.Close()
+		ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+		p := structurePlan(t, w, []Operation{
+			ch1.elemDelete(ch1.locatorID(t, "unreferenced")),
+			ch1.attrSet(ch1.locatorID(t, "dir"), "aria-labelledby", nil, "unreferenced"),
+		})
+		e := applyPlan(t, w, p)
+		cand := readResource(t, filepath.Join(dir, candidate, "EPUB/chapter1.xhtml"))
+		if bytes.Count(cand, []byte(`id="unreferenced"`)) != 1 || !bytes.Contains(cand, []byte(">Duplicate.</p>")) {
+			t.Fatalf("partial delete candidate: %q", cand)
+		}
+		if _, err := w.Reject(e.TaskID); err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("alias-survives-attribute-removal", func(t *testing.T) {
+		alias := strings.Replace(structureChapter1, `<p id="unreferenced">Plain.</p>`, `<p id="unreferenced" xml:id="unreferenced">Plain.</p>`, 1)
+		w, dir, _ := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": alias})
+		defer w.Close()
+		ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+		p := structurePlan(t, w, []Operation{
+			ch1.attrRemove(ch1.locatorID(t, "unreferenced"), "id", "unreferenced"),
+			ch1.attrSet(ch1.locatorID(t, "dir"), "aria-labelledby", nil, "unreferenced"),
+		})
+		e := applyPlan(t, w, p)
+		cand := readResource(t, filepath.Join(dir, candidate, "EPUB/chapter1.xhtml"))
+		if !bytes.Contains(cand, []byte(`<p xml:id="unreferenced">Plain.</p>`)) || !bytes.Contains(cand, []byte(`aria-labelledby="unreferenced"`)) {
+			t.Fatalf("retained alias candidate: %q", cand)
+		}
+		if _, err := w.Reject(e.TaskID); err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("dedup-both-removed-positive", func(t *testing.T) {
+		w, dir, _ := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": twoIDs})
+		defer w.Close()
+		ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+		p := structurePlan(t, w, []Operation{
+			ch1.elemDelete(ch1.locator(t, "p", 2)),
+			ch1.elemDelete(ch1.locator(t, "p", 3)),
+			ch1.elemInsert(ch1.locatorID(t, "last"), "after", `<p id="unreferenced">Only.</p>`),
+			ch1.attrSet(ch1.locatorID(t, "dir"), "aria-labelledby", nil, "unreferenced"),
+		})
+		e := applyPlan(t, w, p)
+		cand := readResource(t, filepath.Join(dir, candidate, "EPUB/chapter1.xhtml"))
+		if bytes.Count(cand, []byte(`id="unreferenced"`)) != 1 {
+			t.Fatalf("dedup candidate: %q", cand)
+		}
+		if _, err := w.Reject(e.TaskID); err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("fragment-alias-positive", func(t *testing.T) {
+		w, dir, _ := structureWorkspace(t, nil)
+		defer w.Close()
+		ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+		p := structurePlan(t, w, []Operation{
+			ch1.elemInsert(ch1.locatorID(t, "last"), "after", `<p id="fresh" xml:id="fresh">alias</p>`),
+			ch1.attrSet(ch1.locatorID(t, "dir"), "aria-labelledby", nil, "fresh"),
+		})
+		e := applyPlan(t, w, p)
+		cand := readResource(t, filepath.Join(dir, candidate, "EPUB/chapter1.xhtml"))
+		if !bytes.Contains(cand, []byte(`id="fresh" xml:id="fresh"`)) {
+			t.Fatalf("fragment alias candidate: %q", cand)
+		}
+		if _, err := w.Reject(e.TaskID); err != nil {
+			t.Fatal(err)
+		}
+	})
+}

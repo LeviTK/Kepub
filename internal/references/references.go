@@ -414,14 +414,20 @@ func (b *builder) walkXML(bp bookpath.BookPath, e *publication.Element, inNav, i
 			b.css(bp, e.Location+"/text()", e.Content)
 		}
 	}
+	// Identity values are counted per element through the shared unit, so an
+	// element carrying both id and xml:id with one value is a single identity
+	// for this index and for the structural dependency gate.
 	elementIDs := map[string]bool{}
+	for _, value := range publication.IdentityValues(e.Attributes) {
+		elementIDs[value] = true
+	}
 	for _, a := range e.Attributes {
 		location := e.Location + "/@" + a.Name.Local
 		if a.Name.Space == xlinkNS {
 			location = e.Location + "/@xlink:" + a.Name.Local
 		}
-		if !incomplete && (a.Name.Space == "" || a.Name.Space == "http://www.w3.org/XML/1998/namespace") && a.Name.Local == "id" && !elementIDs[a.Value] {
-			elementIDs[a.Value] = true
+		if !incomplete && elementIDs[a.Value] {
+			delete(elementIDs, a.Value)
 			b.ids[bp][a.Value]++
 			if b.ids[bp][a.Value] > 1 {
 				b.diagnostic(bp, location, "DUPLICATE_ID", a.Value)

@@ -913,16 +913,13 @@ func countBlockBytes(a *archive.Archive, cands map[string][]byte, bp bookpath.Bo
 	}
 }
 
-// structureSubtreeIDs collects unprefixed id and xml:id values in one subtree.
+// structureSubtreeIDs collects one identity value per element in a subtree,
+// matching the reference index and the dependency gate.
 func structureSubtreeIDs(e *xmltext.Element) []string {
 	out := []string{}
 	var walk func(*xmltext.Element)
 	walk = func(e *xmltext.Element) {
-		for _, a := range e.Attributes {
-			if (a.Name.Space == "" || a.Name.Space == publication.XMLNamespace) && a.Name.Local == "id" {
-				out = append(out, a.Value)
-			}
-		}
+		out = append(out, publication.ElementIdentities(e)...)
 		for _, c := range e.Children {
 			walk(c)
 		}

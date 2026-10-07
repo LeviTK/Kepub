@@ -109,7 +109,7 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 	// Phase 1 derives every resource's edits and binding checks. Dependency
 	// facts are only collected here: identity and link validation must see the
 	// whole transaction, never a partially processed group.
-	gate := &structureGate{a: a, pub: pub, baseIDs: map[bookpath.BookPath]map[string]int{}, removed: map[bookpath.BookPath]map[string]bool{}, added: map[bookpath.BookPath]map[string]bool{}}
+	gate := &structureGate{a: a, pub: pub, baseIDs: map[bookpath.BookPath]map[string]int{}, removed: map[bookpath.BookPath]map[string]int{}, added: map[bookpath.BookPath]map[string]int{}}
 	type groupEdit struct {
 		path  string
 		bp    bookpath.BookPath
@@ -223,29 +223,34 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 		for _, edit := range ge.edits {
 			for _, id := range edit.RemovedIDs {
 				if gate.removed[ge.bp] == nil {
-					gate.removed[ge.bp] = map[string]bool{}
+					gate.removed[ge.bp] = map[string]int{}
 				}
-				gate.removed[ge.bp][id] = true
+				gate.removed[ge.bp][id]++
 			}
 			for _, id := range edit.AddedIDs {
 				if gate.added[ge.bp] == nil {
-					gate.added[ge.bp] = map[string]bool{}
+					gate.added[ge.bp] = map[string]int{}
 				}
-				if gate.added[ge.bp][id] {
+				if gate.added[ge.bp][id] > 0 {
 					return derivation{}, fault.New(2, "INVALID_OPERATIONS", "duplicate new id %q in %s", id, ge.path)
 				}
-				gate.added[ge.bp][id] = true
+				gate.added[ge.bp][id]++
 			}
 		}
 	}
 	for _, ge := range derived {
 		for id := range gate.added[ge.bp] {
-			if gate.baseIDs[ge.bp][id] > 0 && !gate.removed[ge.bp][id] {
+			// A new identity may only be written when every frozen instance is
+			// removed in the same transaction; a residual instance would leave
+			// the identity duplicated and any reference ambiguous.
+			if residual := gate.baseIDs[ge.bp][id] - gate.removed[ge.bp][id]; residual > 0 {
 				return derivation{}, fault.New(2, "INVALID_OPERATIONS", "new id %q already exists in %s", id, ge.path)
 			}
 		}
 		for id := range gate.removed[ge.bp] {
-			if gate.added[ge.bp][id] {
+			// Only an identity that disappears entirely can dangle an existing
+			// reference; a remaining or re-added instance still resolves.
+			if gate.finalCount(ge.bp, id) > 0 {
 				continue
 			}
 			if err := gate.checkRemovedID(ge.bp, id); err != nil {
@@ -334,8 +339,8 @@ type structureGate struct {
 	inventory map[bookpath.BookPath]int64
 	graph     *references.Graph
 	baseIDs   map[bookpath.BookPath]map[string]int
-	removed   map[bookpath.BookPath]map[string]bool
-	added     map[bookpath.BookPath]map[string]bool
+	removed   map[bookpath.BookPath]map[string]int
+	added     map[bookpath.BookPath]map[string]int
 }
 
 func (g *structureGate) inventoryOnce() (map[bookpath.BookPath]int64, error) {
@@ -439,16 +444,30 @@ func (g *structureGate) checkIDREF(resource bookpath.BookPath, ref publication.S
 	}
 }
 
+// finalCount is the number of identities with this value in the transaction's
+// final state of one resource: frozen instances minus removed instances plus
+// added instances. Counts, not flags, so a residual duplicate stays visible and
+// an ambiguous reference cannot pass.
+func (g *structureGate) finalCount(resource bookpath.BookPath, id string) int {
+	count := g.baseIDs[resource][id] - g.removed[resource][id] + g.added[resource][id]
+	if count < 0 {
+		return 0
+	}
+	return count
+}
+
 func (g *structureGate) idsFor(path bookpath.BookPath) (map[string]int, error) {
 	if ids, ok := g.baseIDs[path]; ok {
 		out := map[string]int{}
-		for id, n := range ids {
-			if !g.removed[path][id] {
-				out[id] = n
+		for id := range ids {
+			if count := g.finalCount(path, id); count > 0 {
+				out[id] = count
 			}
 		}
 		for id := range g.added[path] {
-			out[id]++
+			if count := g.finalCount(path, id); count > 0 {
+				out[id] = count
+			}
 		}
 		return out, nil
 	}
@@ -463,15 +482,7 @@ func (g *structureGate) idsFor(path bookpath.BookPath) (map[string]int, error) {
 	if err := doc.RequireComplete(); err != nil {
 		return nil, fault.New(2, "INVALID_OPERATIONS", "reference target %s is incomplete: %v", path, err)
 	}
-	out := map[string]int{}
-	for _, e := range doc.Elements {
-		for _, a := range e.Attributes {
-			if (a.Name.Space == "" || a.Name.Space == publication.XMLNamespace) && a.Name.Local == "id" {
-				out[a.Value]++
-			}
-		}
-	}
-	return out, nil
+	return publication.CountIDs(doc), nil
 }
 
 // inventory walks a frozen revision without hashing. Unsafe entries are refused

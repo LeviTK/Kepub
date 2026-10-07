@@ -691,3 +691,83 @@ func decodeFuzzDocument(data []byte, enc string) (string, error) {
 	}
 	return string(utf16.Decode(units)), nil
 }
+
+// TestIdentityUnitIsPerElement keeps the structural identity unit equal to the
+// reference index's: one element carrying both id and xml:id with the same value
+// is one identity, while distinct elements with the same value are two.
+func TestIdentityUnitIsPerElement(t *testing.T) {
+	profile := xmltext.Profile{Version: "3.0", MediaType: "application/xhtml+xml"}
+	input := `<html xmlns="http://www.w3.org/1999/xhtml"><body><p id="x" xml:id="x">alias</p><p id="y">one</p><p xml:id="y">two</p></body></html>`
+	doc, err := ParseStructureDocument([]byte(input), "EPUB/a.xhtml", profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids := doc.IDs()
+	if ids["x"] != 1 || ids["y"] != 2 {
+		t.Fatalf("identity counts: %+v", ids)
+	}
+	alias, err := doc.Locate("/html[1]/body[1]/p[1]")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := ElementIdentities(alias); len(got) != 1 || got[0] != "x" {
+		t.Fatalf("alias element identities: %v", got)
+	}
+	// Removing one alias attribute keeps the identity; removing the remaining
+	// one loses it.
+	first, err := doc.AttributeRemoveEdit(AttributeRemove{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", Name: "id", ExpectedOldValue: "x"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(first.RemovedIDs) != 0 {
+		t.Fatalf("alias removal reported a lost identity: %v", first.RemovedIDs)
+	}
+	first.OpIndex = 0
+	after, err := ParseStructureDocument(ApplyEdits([]byte(input), []*StructureEdit{first}), "EPUB/a.xhtml", profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := after.AttributeRemoveEdit(AttributeRemove{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", Namespace: XMLNamespace, Name: "id", ExpectedOldValue: "x"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(second.RemovedIDs) != 1 || second.RemovedIDs[0] != "x" {
+		t.Fatalf("last alias removal identities: %v", second.RemovedIDs)
+	}
+	// Writing a value the element already carries adds no identity.
+	existing := "x"
+	setAlias, err := doc.AttributeSetEdit(AttributeSet{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", Namespace: XMLNamespace, Name: "id", ExpectedOldValue: &existing, Value: "x"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(setAlias.AddedIDs) != 0 || len(setAlias.RemovedIDs) != 0 {
+		t.Fatalf("alias rewrite changed identities: +%v -%v", setAlias.AddedIDs, setAlias.RemovedIDs)
+	}
+	// Writing a different value on the second alias attribute adds exactly one.
+	setNew, err := doc.AttributeSetEdit(AttributeSet{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", Namespace: XMLNamespace, Name: "id", ExpectedOldValue: &existing, Value: "z"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(setNew.AddedIDs) != 1 || setNew.AddedIDs[0] != "z" || len(setNew.RemovedIDs) != 0 {
+		t.Fatalf("alias rewrite identities: +%v -%v", setNew.AddedIDs, setNew.RemovedIDs)
+	}
+	// Deleting the alias element removes exactly one identity.
+	deleted, err := doc.ElementDeleteEdit(ElementDelete{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(deleted.RemovedIDs) != 1 || deleted.RemovedIDs[0] != "x" {
+		t.Fatalf("alias delete identities: %v", deleted.RemovedIDs)
+	}
+	// A fragment element carrying both attributes with one value adds one
+	// identity, not two.
+	scope := doc.Doc.Root.NamespaceScope()
+	fragment, err := ParseFragment(`<p id="fresh" xml:id="fresh">f</p>`, scope, doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids2, _, _ := fragmentFacts(fragment.Nodes)
+	if len(ids2) != 1 || ids2[0] != "fresh" {
+		t.Fatalf("fragment identities: %v", ids2)
+	}
+}
