@@ -1,0 +1,100 @@
+# 开发注意事项：T2–T6 的持续回归约束
+
+本文件保存**稳定规则与失效模式**；行为以 CLI_CONTRACT 为准，接受/拒绝以固定输入的独立审查和父验收为准。AGENTS.md 自动约束目录，skill 在实现/排错/复审时加载；三者都不是能强制证明正确性的工具。
+
+## 已确认的重复模式
+
+2026-10-07 核对编码线程、[T2 验证记录](verification/T2_MULTI_OPERATION.md)和第四批冻结 receipt：存在同类边界遗漏，没有证据证明已修的相同代码分支被回滚后原样复发。
+
+| 证据链 | 失效模式 | 不能再使用的简化 | 稳定规则 |
+| --- | --- | --- | --- |
+| 第二批 ff64188 → f295f3f → 6f9980e → b301fb9；79a4548 接受 | 资源局部门禁、漏新 IDREF、布尔 removed、同节点逐属性 delta | 单操作/局部计数代替最终 identity 图 | G-FINAL、G-FACTS |
+| 第三批 e8614fb → b9840cc；d747c01 接受 | token 级来源、generated 词法/decoded 混淆、空实体边界、私有长度限制 | “decode 相同即可写”或整 token 连坐 | G-PROVENANCE |
+| 第四批 9f3d1c3 被父/medium 拒绝 | cache 命中漏端点 hash、self/空 query 丢失、未改写 URL 漏 gate | “同资源已验证”“不重写就无新事实” | G-BINDING、G-URL、G-FACTS |
+| 多批非产品记录纠正 | working-tree/fixed-tree、执行者、fuzz/race/平台覆盖措辞混淆 | 命令退出成功代替批准或覆盖证明 | G-ORACLE、G-EVIDENCE |
+
+第四批证据：固定 commit `9f3d1c331b4d79c9d1be4a5fdbe5027e8336947c` / tree
+`23a73d77ec0057ba6548530607d2bb751b036444`，medium 封存包 505592 B，SHA256
+`1fd7a62854275c7dfa0028dd7964c074c0e15d7f571800589503d8c35f208dcd`；父核清单 98 项全部 OK。12 个阻塞负子例普通/race FAIL 与全仓普通/race/vet PASS 同时成立。此处引用既有封存证据，不声称重跑。后续新树修复不改写这次拒绝；此记录不扩大到完整 T2、T3–T6、Mac 或断电。
+
+## G-FINAL：最终状态的单位必须正确
+
+- 全事务统一收集后判定，不因资源分组或操作顺序而变。
+- 同节点所有冻结 `id/xml:id` edit 合并后求不同值集合；不同节点同值为不同实例。同值 alias 在同节点只计一次，不用 per-attribute sum 或 removed 布尔。
+- 冻结入站与新 URL/IDREF 使用同一最终计数；同值 re-add、合法 partial delete/swap/transfer 与重复碰撞分别测试。
+- 入口：`publication.MergedIdentityDelta`、`workspace.recomputeStructure/structureGate`；永久回归：`TestStructureJointAliasEdits`、`TestStructureJointAliasAdjacentCases`、`TestStructureIdentityMultiplicityModel`。
+
+## G-FACTS：所有进入候选的事实都要过门禁
+
+- 属性 edit、fragment 和 move 中的 identity、IDREF、href/src 都必须进入共同模型，包括值未改写、外部 URL、无 identity 的块。
+- coverage 不足拒绝危险写，不能把没提取到的引用当不存在。诊断身份/位置来自承载属性，不按任意属性的相同值定位。
+- 正反配对：https 允许、javascript/data 拒绝；内部目标存在/缺失；新旧 IDREF 目标最终唯一/缺失/重复。不靠其他 identity 分支偶然挡住遗漏。
+- 入口：共享 IDREF 词表、`references.Graph.CertainIncoming`、`publication.IsIDAttribute`；回归：`TestStructureNewIDREFGate`、`TestIdentityDiagnosticAttributeSource`。
+- 第四批固定树 5e508f3 的永久入口为 `TestStructureCrossMoveNewLinkGate`；旧 cross new-link 冻结 red 探针继续保留。medium 已有限接受产品修复，并建议永久例点名 unchanged src（https 正控、javascript/data 负控），不能只靠 href 覆盖声称 src 已有永久控制。测试存在及定向 green 不代表独立整批批准。
+
+## G-BINDING：缓存性能不改变显式输入契约
+
+- 每次使用每个显式 source/destination 都核其契约声明的冻结 revision/hash/locator/旧值，不改变旧 schema 的字段要求。缓存只保存可复用解析结果/冻结 bytes，不能记“该路径已通过，所以后续声明不查”。
+- 同一资源至少两个不重叠操作；把坏绑定分别放首次/缓存后、source/destination、正反序，核拒绝码和无产物。全部合法绑定正控必须成功 Plan+Apply。
+- 既有 `TestRequestsAndPlansRejectTampering` 是起点，不替代重复端点测试；第四批固定树 5e508f3 的永久入口为 `TestStructureCrossMoveEndpointHashBinding`。固定树 9f3 的 `reviewer_medium_cross_binding_test.go.received` 是冻结 red 证据，不能修改为弱期望。
+
+## G-PROVENANCE：来源、语义与权限分别推导
+
+- 对齐所需 decoded 语义不等于原实体词法拼写；对齐成功也不授予 generated/default/unknown 可写权限。禁止跨非 writable fragment，即使该 fragment 解码长度为零。
+- 每个字面 fragment 自有物理 byte span；合法左右邻接单独可写，不吞引用、不修改无关字节。CR/CRLF、BOM、UTF-16 代理对和 reference CR 按解析层职责处理，不二次归一/重复 decode。
+- Regex 在真实输入中发现任意零宽 match 就整体拒绝；不能仅 `MatchString("")` 或静默略过。目标合法性沿完整祖先路径到允许根，外来 namespace 重入仍拒绝。
+- 未定义的长度捷径不是预算。合法长 numeric reference 保留；不能为通过测试扩大 unknown/CDATA/生成来源权限。
+- 回归：`TestTextRunsKeepsWritableLiteralIntervals`、`TestReplaceZeroWidthAndProvenance`、`TestReplaceGeneratedDecodedNeighbors`；原 minseed `267ee5f836be007e` 与 joint `21d0b33faf043b04` 原样重放。
+
+## G-URL：重基准不是丢弃 URL 分量
+
+- local/self/other-resource/incoming 路径都核 RawQuery、ForceQuery（显式空 `?`）、fragment、转义路径；仅改契约许可的部分，不改其他属性/文本或外部 URL 拼写。
+- 区分 `#id`、`?q=1#id`、`source?q=1#id`、`other?#id`；literal/regex 不代替结构 URL 解析。
+- 真实跨资源候选比较完整 source/destination/nav/third-resource bytes；URL无需重基准仍服从 G-FACTS。
+- 第四批 `reviewer_medium_cross_query_test.go.received` 与父 query 探针冻结 red；固定树 5e508f3 的永久入口为 `TestStructureCrossMovePreservesQuery`，而不是只核新的 plan 文本。
+
+## G-ORACLE：测试必须区分正确与看起来正确
+
+改变一个风险模型前先写：**可能的错误实现 → 与正确实现不同的输入 → 独立期望 → 实际断言**。
+
+| 风险 | 最小有区分力的病例 |
+| --- | --- |
+| 局部门禁/别名计数 | 同 locator 多属性联合改、重复基线、合法 partial delete、两序、既有+新增 href/ARIA |
+| cache/绑定 | 同资源多操作、首次/缓存后坏 source/destination SHA、两序合法正控 |
+| 来源/替换 | 同值 literal+generated 的第二命中、直接/嵌套/空实体、59/60/61/80/更长 numeric、真实零宽和非空锚定 |
+| URL/gate | self query、空 query、未改写 https 与 javascript/data、无 ID 块、源外/nav/第三资源入站 |
+| 字节/位置 | UTF-8/UTF-16LE/UTF-16BE、BOM/CRLF/代理对/实体/引号、重复相同块与各插入位置 |
+| 事务/历史 | no-op 空 write set、部分资源写失败、restore leftovers、再次 Open、候选 drift 拒绝 accept |
+
+只选本次会被改动的相关维度，不机械跑所有笛卡尔积。expected output 用冻结 fixture 加独立标准库编码/显式作者期望构造，不从 planned spans/candidate/product helper 导出。最终完整 bytes 与图状态是证据；Contains、候选可读、WriteSet 相等仅是辅助。
+
+有效事务 fuzz 先重放全部 seed，再 live；输入生成保持合法，意外拒绝立即失败，不跳过；两序比较实际所有候选资源，而非只比 plan。负例不能掩盖正例误拒。
+
+- **先证明生成器和断言可达：** 有限菜单先确定性校准接纳数，其他生成器至少按输入族校准代表 seed。每个声称覆盖的合法族须实际进入 Plan+Apply 与独立 oracle；有比较代码或高 exec 数不证明比较执行。
+- **接纳与拒绝分开：** 合法单/双操作 Plan 错误不能 `if err == nil` 静默略过；负族明确核预期拒绝原因。两序均拒绝只证明拒绝对称，不证明候选顺序独立。
+- **锚点必须仍在：** 合法双移动用不重叠源和未被同事务删除的目的锚点，至少一个 seed 必须走完两序 Apply/完整资源字节比较。原 overlap 形状保留为负控，不能放宽产品门禁补生成器缺陷。
+- **观测集合不能来自实现：** 由 fixture/契约指定要核的候选资源，不只遍历产品 WriteSet；未写 nav 也在 Reject 前读实际字节，两序都与独立冻结期望比较。两序同样错误仍可能通过相等比较；负控须核预期 code 与可识别根因，不只要求两序同码。
+
+本规则补充源于 5e508f3 的永久 `FuzzCrossMovePlanApply`：第一移动固定围绕 `three` 插入，第二移动又删除 `three`，按区间门禁所有双移动都重叠。medium 独立菜单校准为单移动 16/16 接受、双移动两序 0/32 接受；父只核对源码因果，没有重复该枚举。该发现是测试/覆盖记录缺口，不是新的产品根因，也不能用历史 1,558 live execs 声称“两序候选比较已执行”。未修文案或测试时须保留此限制，固定产品树不得原地改动。
+
+维护入口：`TestCrossMoveFuzzCalibration` 校准合法单/双移动与 overlap 拒绝，并证明两序候选比较实际执行；`TestStructureCrossMoveNewLinkGate` 区分真实 img src 与 a href 的正反控制。树外首版虽校准通过，仍按 WriteSet 漏读未写 nav、只核两序同码；v2 改为三资源无条件读取和明确拒绝原因，说明接纳数通过不能代替断言完备。维护补丁须随新身份独立验证，不能承继旧产品接受或 scratch PASS。
+
+输入身份、包/日志 hash、校准耗时和执行者写入 [T2 验证记录](verification/T2_MULTI_OPERATION.md)及对应封存清单；本文件只留可复用规则、失效模式和回归入口，不累积聊天或运行日志。
+
+## G-EVIDENCE：验证身份和范围不迁移
+
+- 每组结果注明 input commit/tree 或 working-tree 身份、runner、命令/timeout/parallel、exit、skip、artifact hash；fixed fresh-fetch 不能继承作者工作树 PASS。
+- CLI 子 binary 的 build flags 单独记录；固定 checker 与依赖 checksum 实核。ZIP oracle 包含目录；缺 checker/跳过不能记正式合规 PASS。
+- full suite PASS 不抵消冻结/live FAIL；进程 exit0 不等于审查批准。修复变动后冻结新树，独立 reviewer 与父按同输入验收，不在待审树中边审边改。
+- 保留旧 FAIL、环境/复制/测试 oracle 错误和纠正记录；manifest 从清单所在目录核验，bundle snapshot 大小/hash再次核准。
+- 仅终端可见而未落盘的执行标为无原日志，不据说明文字声称已经封存，不补造或重跑冒充旧执行；首版 live 原日志不能迁为后续补丁 live。
+- 故障注入和两次 Open 不等于真实断电或未执行的恢复再次中断；交叉编译不等于 Mac 实机。本地 commit/集成不等于 push/release；计数用 Git 实测，不按文案推算。
+
+## Review 维护流程
+
+1. 发现只记候选假设；用具体 trigger、源码路径、最小 red 和合法正控证实后，才能记根因。
+2. 同类再现先核来源/事实单位/快路径等共同边界，并 scoped rg 检查同形分支；无关发现报告，不顺手修复。
+3. 作者把稳定规则写入最窄 AGENTS.md，更新本文件对应规则的永久回归入口；reviewer 在报告中核约束是否实际覆盖新路径，而不只做关键词检查。
+4. 修复树应含永久回归；旧树 red 用隔离 checkout/overlay，冻结 `.received`/seed 原样保留，不 revert/stash 共享树。green 同输入重放，必要时加有效邻接 fuzz 与真实 CLI。
+5. 指导改动与产品证据身份分别记录，已冻结树不原地改。新 fixed bundle 携带所用指导；发现新 FAIL 仍停下，不因已写 AGENTS 或 skill 就放行。
+6. 后续批次在正常复审检查点维护相关条目，不重跑已自然结束的长检查、不重写历史数字。新限制或 schema 语义须更新契约并获对应授权，不能由注意事项私自增加。

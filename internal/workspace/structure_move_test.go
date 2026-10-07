@@ -589,10 +589,10 @@ func moveOracleBlock(source string) (block, rewritten string, ok bool) {
 	return block, rewritten, true
 }
 
-// moveOracleDestination inserts the rewritten block at the position the fixture
-// anchor and position imply, by string surgery on the frozen destination bytes.
-func moveOracleDestination(position, rewritten string) (string, bool) {
-	dest := structureChapter3
+// insertMoveBlock inserts one rewritten block at the authored position relative
+// to the fixture destination anchor, by string surgery on frozen destination
+// bytes. The expected bytes are authored here, never read from product facts.
+func insertMoveBlock(dest, position, rewritten string) (string, bool) {
 	anchor := `<p id="three">Three.</p>`
 	switch position {
 	case "after":
@@ -613,9 +613,119 @@ func moveOracleDestination(position, rewritten string) (string, bool) {
 	return "", false
 }
 
-// applyMoveCandidate applies one plan and returns every candidate resource's
-// bytes before rejecting the task, so two operation orders can be compared on
-// actual output rather than on the write set.
+// moveOracleDestination inserts the rewritten block at the position the fixture
+// anchor and position imply, by string surgery on the frozen destination bytes.
+func moveOracleDestination(position, rewritten string) (string, bool) {
+	return insertMoveBlock(structureChapter3, position, rewritten)
+}
+
+// oppositeMovePosition pairs the second legal move with the opposite side of the
+// same retained anchor, so the two insertions compose into one order-free layout
+// instead of two ambiguous same-side insertions.
+func oppositeMovePosition(position string) string {
+	switch position {
+	case "after":
+		return "before"
+	case "before":
+		return "after"
+	case "first-child":
+		return "last-child"
+	case "last-child":
+		return "first-child"
+	}
+	return ""
+}
+
+// doubleInsertOffset returns the insertion offset one authored position implies
+// for an anchor at offset i in the frozen destination bytes.
+func doubleInsertOffset(i int, position string) (int, bool) {
+	anchor := `<p id="three">Three.</p>`
+	switch position {
+	case "after":
+		return i + len(anchor), true
+	case "before":
+		return i, true
+	case "first-child":
+		return i + len(`<p id="three">`), true
+	case "last-child":
+		return i + len(anchor) - len(`</p>`), true
+	}
+	return 0, false
+}
+
+// moveOracleDoubleDestination composes the two authored insertions around the
+// one anchor by offset, so inside insertions do not depend on the anchor text
+// surviving the first insertion.
+func moveOracleDoubleDestination(position1, rewritten1, position2, rewritten2 string) (string, bool) {
+	dest := structureChapter3
+	i := strings.Index(dest, `<p id="three">Three.</p>`)
+	if i < 0 {
+		return "", false
+	}
+	o1, ok := doubleInsertOffset(i, position1)
+	if !ok {
+		return "", false
+	}
+	o2, ok := doubleInsertOffset(i, position2)
+	if !ok {
+		return "", false
+	}
+	if o1 < o2 {
+		dest = dest[:o2] + rewritten2 + dest[o2:]
+		dest = dest[:o1] + rewritten1 + dest[o1:]
+	} else {
+		dest = dest[:o1] + rewritten1 + dest[o1:]
+		dest = dest[:o2] + rewritten2 + dest[o2:]
+	}
+	return dest, true
+}
+
+// moveOracleDouble authors the complete source, destination and nav bytes for
+// two disjoint legal moves: the second move takes a different, unreferenced
+// chapter1 element and the opposite side of the retained anchor, so neither
+// source overlaps and the anchor survives the transaction.
+func moveOracleDouble(sourceName, positionName string) (wantSource, wantDest, wantNav string, ok bool) {
+	block1, rewritten1, ok := moveOracleBlock(sourceName)
+	if !ok {
+		return "", "", "", false
+	}
+	secondSource := "unreferenced"
+	if sourceName == "unreferenced" {
+		secondSource = "last"
+	}
+	block2, rewritten2, ok := moveOracleBlock(secondSource)
+	if !ok {
+		return "", "", "", false
+	}
+	secondPosition := oppositeMovePosition(positionName)
+	if secondPosition == "" {
+		return "", "", "", false
+	}
+	wantDest, ok = moveOracleDoubleDestination(positionName, rewritten1, secondPosition, rewritten2)
+	if !ok {
+		return "", "", "", false
+	}
+	wantSource = strings.Replace(structureMoveChapter1, block1, "", 1)
+	wantSource = strings.Replace(wantSource, block2, "", 1)
+	if sourceName == "start" {
+		wantSource = strings.Replace(wantSource, `href="#start"`, `href="text/chapter3.xhtml#start"`, 1)
+	}
+	wantNav = moveCrossFiles()["EPUB/nav.xhtml"]
+	if sourceName == "moveblock" {
+		wantNav = strings.Replace(wantNav, "chapter1.xhtml#inner", "text/chapter3.xhtml#inner", 1)
+	}
+	return wantSource, wantDest, wantNav, true
+}
+
+// moveObservationSet is the authored resource set every move oracle compares:
+// the source, the destination and the nav. It is fixed here, so the product's
+// write set cannot decide which resources are observed.
+var moveObservationSet = []string{"EPUB/chapter1.xhtml", "EPUB/text/chapter3.xhtml", "EPUB/nav.xhtml"}
+
+// applyMoveCandidate applies one plan and reads every authored observation
+// resource from the candidate tree before rejecting the task, so two operation
+// orders are compared on actual output; the plan's write set stays a separate
+// plan fact instead of the observation set.
 func applyMoveCandidate(t *testing.T, w *Workspace, dir string, p Plan) map[string][]byte {
 	t.Helper()
 	e, err := w.Apply(editJSON(t, p))
@@ -623,7 +733,7 @@ func applyMoveCandidate(t *testing.T, w *Workspace, dir string, p Plan) map[stri
 		t.Fatal(err)
 	}
 	out := map[string][]byte{}
-	for _, path := range p.WriteSet {
+	for _, path := range moveObservationSet {
 		b, err := os.ReadFile(filepath.Join(dir, candidate, filepath.FromSlash(path)))
 		if err != nil {
 			t.Fatal(err)
@@ -639,20 +749,24 @@ func applyMoveCandidate(t *testing.T, w *Workspace, dir string, p Plan) map[stri
 // TestStructureCrossMoveNewLinkGate keeps every URL that moves with the block in
 // the shared final link gate: an unchanged blocked scheme or an unprovable
 // internal target refuses even when the block carries no identity, while legal
-// external and resolvable local URLs stay allowed.
+// external and resolvable local URLs stay allowed. An anchor href and a real
+// image src are both exercised in the same identity-less block.
 func TestStructureCrossMoveNewLinkGate(t *testing.T) {
 	for _, c := range []struct {
-		name, href, want string
-		allowed          bool
+		name, url, markup, want string
+		allowed                 bool
 	}{
-		{"https-control", "https://example.invalid/x", "https://example.invalid/x", true},
-		{"missing-control", "absent.xhtml", "", false},
-		{"javascript", "javascript:alert(1)", "", false},
-		{"data", "data:text/plain,hello", "", false},
-		{"local-fragment-control", "#start", "../chapter1.xhtml#start", true},
+		{"https-control", "https://example.invalid/x", `<a href="%s">Link</a>`, `href="https://example.invalid/x"`, true},
+		{"img-https-control", "https://example.invalid/x", `<img src="%s"/>`, `src="https://example.invalid/x"`, true},
+		{"img-javascript", "javascript:alert(1)", `<img src="%s"/>`, "", false},
+		{"img-data", "data:text/plain,hello", `<img src="%s"/>`, "", false},
+		{"missing-control", "absent.xhtml", `<a href="%s">Link</a>`, "", false},
+		{"javascript", "javascript:alert(1)", `<a href="%s">Link</a>`, "", false},
+		{"data", "data:text/plain,hello", `<a href="%s">Link</a>`, "", false},
+		{"local-fragment-control", "#start", `<a href="%s">Link</a>`, `href="../chapter1.xhtml#start"`, true},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			block := `<div><a href="` + c.href + `">Link</a></div>`
+			block := `<div>` + strings.Replace(c.markup, "%s", c.url, 1) + `</div>`
 			source := `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>One</title></head><body><h1 id="start">One</h1>` + block + `</body></html>`
 			w, dir, _ := moveCrossFixture(t, map[string]string{"EPUB/chapter1.xhtml": source})
 			defer w.Close()
@@ -666,111 +780,237 @@ func TestStructureCrossMoveNewLinkGate(t *testing.T) {
 			}
 			e := applyPlan(t, w, p)
 			actual := readResource(t, filepath.Join(dir, candidate, "EPUB/text/chapter3.xhtml"))
-			if !bytes.Contains(actual, []byte(`href="`+c.want+`"`)) {
+			if !bytes.Contains(actual, []byte(c.want)) {
 				t.Fatalf("candidate: %s", actual)
 			}
 			if _, err := w.Reject(e.TaskID); err != nil {
 				t.Fatal(err)
 			}
 			if !c.allowed {
-				t.Fatalf("moved URL %q escaped the shared link gate", c.href)
+				t.Fatalf("moved URL %q escaped the shared link gate", c.url)
 			}
 		})
 	}
 }
 
-// FuzzCrossMovePlanApply compares one accepted move against an independent
-// complete-resource byte oracle (the authored source, destination and nav bytes
-// after the known rewrite) and compares two-move plans by their actual candidate
-// bytes in both operation orders.
+// crossMoveFuzzCase runs one case from the finite fuzz menus. It returns
+// whether a two-move plan actually reached the two-order candidate comparison
+// and whether the overlap control was refused, so the deterministic calibration
+// can prove branch reach instead of trusting execution counts.
+func crossMoveFuzzCase(t *testing.T, sourceName, positionName string, mode int) (compared, refused bool) {
+	t.Helper()
+	dir := fuzzMoveDir(t)
+	w, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Close()
+	ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
+	ch3 := structureBinding(t, w, "EPUB/text/chapter3.xhtml")
+	op := ch1.elemMoveCross(ch3, ch1.locatorID(t, sourceName), ch3.locatorID(t, "three"), positionName)
+	switch mode {
+	case 0:
+		// One legal move against the independent complete-resource oracle. A
+		// refused legal move is a failure, never a silent skip.
+		plan, err := w.Plan(editJSON(t, Request{6, []Operation{op}}))
+		if err != nil {
+			t.Fatalf("legal single move refused: %v", err)
+		}
+		e, err := w.Apply(editJSON(t, plan))
+		if err != nil {
+			t.Fatal(err)
+		}
+		block, rewritten, ok := moveOracleBlock(sourceName)
+		if !ok {
+			t.Fatalf("oracle menu for %s", sourceName)
+		}
+		wantDest, ok := moveOracleDestination(positionName, rewritten)
+		if !ok {
+			t.Fatalf("oracle position %s", positionName)
+		}
+		wantSource := strings.Replace(structureMoveChapter1, block, "", 1)
+		wantNav := moveCrossFiles()["EPUB/nav.xhtml"]
+		switch sourceName {
+		case "moveblock":
+			wantNav = strings.Replace(wantNav, "chapter1.xhtml#inner", "text/chapter3.xhtml#inner", 1)
+		case "start":
+			// The block that stays in chapter1 keeps a link to the moved
+			// identity, so it is synchronized to the destination.
+			wantSource = strings.Replace(wantSource, `href="#start"`, `href="text/chapter3.xhtml#start"`, 1)
+		}
+		for path, want := range map[string]string{
+			"EPUB/chapter1.xhtml":      wantSource,
+			"EPUB/text/chapter3.xhtml": wantDest,
+			"EPUB/nav.xhtml":           wantNav,
+		} {
+			got, err := os.ReadFile(filepath.Join(dir, candidate, filepath.FromSlash(path)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(got, []byte(want)) {
+				t.Fatalf("independent oracle for %s: got %q want %q", path, got, want)
+			}
+		}
+		again, err := w.Plan(editJSON(t, Request{6, []Operation{op}}))
+		if err != nil || again.OperationSetSHA256 != plan.OperationSetSHA256 || strings.Join(again.WriteSet, ",") != strings.Join(plan.WriteSet, ",") {
+			t.Fatalf("nondeterministic plan: %v", err)
+		}
+		rev, err := w.TaskDiff(e.TaskID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if rev.Operations[0].Element == nil || rev.Operations[0].Element.Unavailable != "" {
+			t.Fatalf("move review unavailable: %+v", rev.Operations[0])
+		}
+		if _, err := w.Reject(e.TaskID); err != nil {
+			t.Fatal(err)
+		}
+	case 1:
+		// Two disjoint legal moves whose destination anchor survives both
+		// operations: both orders must apply and match the independent
+		// complete-resource bytes.
+		secondSource := "unreferenced"
+		if sourceName == "unreferenced" {
+			secondSource = "last"
+		}
+		move2 := ch1.elemMoveCross(ch3, ch1.locatorID(t, secondSource), ch3.locatorID(t, "three"), oppositeMovePosition(positionName))
+		wantSource, wantDest, wantNav, ok := moveOracleDouble(sourceName, positionName)
+		if !ok {
+			t.Fatalf("double oracle for %s/%s", sourceName, positionName)
+		}
+		ab, errAB := w.Plan(editJSON(t, Request{6, []Operation{op, move2}}))
+		if errAB != nil {
+			t.Fatalf("legal double move refused in the first order: %v", errAB)
+		}
+		ba, errBA := w.Plan(editJSON(t, Request{6, []Operation{move2, op}}))
+		if errBA != nil {
+			t.Fatalf("legal double move refused in the second order: %v", errBA)
+		}
+		bytesAB := applyMoveCandidate(t, w, dir, ab)
+		bytesBA := applyMoveCandidate(t, w, dir, ba)
+		// Every authored observation resource is compared in both orders,
+		// including a nav the product did not write; the write set is a
+		// separate plan fact and never decides the observation set.
+		for path, want := range map[string]string{
+			"EPUB/chapter1.xhtml":      wantSource,
+			"EPUB/text/chapter3.xhtml": wantDest,
+			"EPUB/nav.xhtml":           wantNav,
+		} {
+			if got := bytesAB[path]; !bytes.Equal(got, []byte(want)) {
+				t.Fatalf("first-order oracle for %s: got %q want %q", path, got, want)
+			}
+			if got := bytesBA[path]; !bytes.Equal(got, []byte(want)) {
+				t.Fatalf("second-order oracle for %s: got %q want %q", path, got, want)
+			}
+		}
+		if strings.Join(ab.WriteSet, ",") != strings.Join(ba.WriteSet, ",") {
+			t.Fatalf("order-dependent write set: %v vs %v", ab.WriteSet, ba.WriteSet)
+		}
+		if sourceName == "moveblock" {
+			derivedNav := false
+			for _, path := range ab.WriteSet {
+				if path == "EPUB/nav.xhtml" {
+					derivedNav = true
+				}
+			}
+			if !derivedNav {
+				t.Fatalf("nav synchronization missing from the write set: %v", ab.WriteSet)
+			}
+		}
+		compared = true
+	case 2:
+		// The rejected overlap shape stays an explicit symmetric refusal: the
+		// second move deletes the first move's destination anchor. Both orders
+		// must refuse with the expected code and an identifiable interval
+		// conflict; the product gate is not relaxed to make this generator
+		// legal. Operation indices in the message need not match between the
+		// two orders.
+		move2 := ch3.elemMoveCross(ch1, ch3.locatorID(t, "three"), ch1.locatorID(t, "last"), "after")
+		_, errAB := w.Plan(editJSON(t, Request{6, []Operation{op, move2}}))
+		if errAB == nil {
+			t.Fatalf("overlapping move accepted in the first order")
+		}
+		_, errBA := w.Plan(editJSON(t, Request{6, []Operation{move2, op}}))
+		if errBA == nil {
+			t.Fatalf("overlapping move accepted in the second order")
+		}
+		var fAB, fBA *fault.Error
+		if !errors.As(errAB, &fAB) || fAB.Code != "INVALID_OPERATIONS" || fAB.Exit != 2 {
+			t.Fatalf("overlap refusal must report INVALID_OPERATIONS/2: %v", errAB)
+		}
+		if !errors.As(errBA, &fBA) || fBA.Code != "INVALID_OPERATIONS" || fBA.Exit != 2 {
+			t.Fatalf("overlap refusal must report INVALID_OPERATIONS/2: %v", errBA)
+		}
+		for _, err := range []error{errAB, errBA} {
+			if msg := err.Error(); !strings.Contains(msg, "target range") {
+				t.Fatalf("overlap refusal must name the target-range conflict: %v", err)
+			}
+		}
+		refused = true
+	}
+	return compared, refused
+}
+
+// FuzzCrossMovePlanApply drives the finite menus through crossMoveFuzzCase: one
+// accepted move against the independent complete-resource oracle, two disjoint
+// legal moves compared by their actual candidate bytes in both operation orders,
+// and the rejected overlap shape as the explicit refusal control.
 func FuzzCrossMovePlanApply(f *testing.F) {
 	f.Add(uint8(0), uint8(0), uint8(0), uint8(0))
-	f.Add(uint8(1), uint8(1), uint8(1), uint8(0))
-	f.Add(uint8(2), uint8(2), uint8(2), uint8(1))
+	f.Add(uint8(1), uint8(1), uint8(1), uint8(1))
+	f.Add(uint8(2), uint8(2), uint8(2), uint8(2))
+	f.Add(uint8(3), uint8(3), uint8(3), uint8(0))
 	f.Fuzz(func(t *testing.T, source, anchor, position, second uint8) {
 		sources := []string{"moveblock", "unreferenced", "last", "start"}
 		positions := []string{"after", "before", "first-child", "last-child"}
 		sourceName := sources[int(source)%len(sources)]
 		positionName := positions[int(position)%len(positions)]
-		dir := fuzzMoveDir(t)
-		w, err := Open(dir)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer w.Close()
-		ch1 := structureBinding(t, w, "EPUB/chapter1.xhtml")
-		ch3 := structureBinding(t, w, "EPUB/text/chapter3.xhtml")
-		op := ch1.elemMoveCross(ch3, ch1.locatorID(t, sourceName), ch3.locatorID(t, "three"), positionName)
-		if plan, err := w.Plan(editJSON(t, Request{6, []Operation{op}})); err == nil {
-			e, err := w.Apply(editJSON(t, plan))
-			if err != nil {
-				t.Fatal(err)
-			}
-			block, rewritten, ok := moveOracleBlock(sourceName)
-			if !ok {
-				t.Fatalf("oracle menu for %s", sourceName)
-			}
-			wantDest, ok := moveOracleDestination(positionName, rewritten)
-			if !ok {
-				t.Fatalf("oracle position %s", positionName)
-			}
-			wantSource := strings.Replace(structureMoveChapter1, block, "", 1)
-			wantNav := moveCrossFiles()["EPUB/nav.xhtml"]
-			switch sourceName {
-			case "moveblock":
-				wantNav = strings.Replace(wantNav, "chapter1.xhtml#inner", "text/chapter3.xhtml#inner", 1)
-			case "start":
-				// The block that stays in chapter1 keeps a link to the moved
-				// identity, so it is synchronized to the destination.
-				wantSource = strings.Replace(wantSource, `href="#start"`, `href="text/chapter3.xhtml#start"`, 1)
-			}
-			for path, want := range map[string]string{
-				"EPUB/chapter1.xhtml":      wantSource,
-				"EPUB/text/chapter3.xhtml": wantDest,
-				"EPUB/nav.xhtml":           wantNav,
-			} {
-				got, err := os.ReadFile(filepath.Join(dir, candidate, filepath.FromSlash(path)))
-				if err != nil {
-					t.Fatal(err)
-				}
-				if !bytes.Equal(got, []byte(want)) {
-					t.Fatalf("independent oracle for %s: got %q want %q", path, got, want)
-				}
-			}
-			again, err := w.Plan(editJSON(t, Request{6, []Operation{op}}))
-			if err != nil || again.OperationSetSHA256 != plan.OperationSetSHA256 || strings.Join(again.WriteSet, ",") != strings.Join(plan.WriteSet, ",") {
-				t.Fatalf("nondeterministic plan: %v", err)
-			}
-			rev, err := w.TaskDiff(e.TaskID)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if rev.Operations[0].Element == nil || rev.Operations[0].Element.Unavailable != "" {
-				t.Fatalf("move review unavailable: %+v", rev.Operations[0])
-			}
-			if _, err := w.Reject(e.TaskID); err != nil {
-				t.Fatal(err)
-			}
-		}
-		if second%2 == 1 {
-			move2 := ch3.elemMoveCross(ch1, ch3.locatorID(t, "three"), ch1.locatorID(t, "last"), "after")
-			ab, errAB := w.Plan(editJSON(t, Request{6, []Operation{op, move2}}))
-			ba, errBA := w.Plan(editJSON(t, Request{6, []Operation{move2, op}}))
-			if (errAB == nil) != (errBA == nil) {
-				t.Fatalf("order-dependent move outcome: %v vs %v", errAB, errBA)
-			}
-			if errAB == nil {
-				bytesAB := applyMoveCandidate(t, w, dir, ab)
-				bytesBA := applyMoveCandidate(t, w, dir, ba)
-				if len(bytesAB) != len(bytesBA) {
-					t.Fatalf("order-dependent candidate resources: %v vs %v", bytesAB, bytesBA)
-				}
-				for path, a := range bytesAB {
-					if !bytes.Equal(a, bytesBA[path]) {
-						t.Fatalf("order-dependent candidate bytes for %s", path)
-					}
-				}
-			}
-		}
+		crossMoveFuzzCase(t, sourceName, positionName, int(second)%3)
 	})
+}
+
+// TestCrossMoveFuzzCalibration deterministically proves that the fuzz menus are
+// accepted and that the two-order comparison actually runs: every legal single
+// move is accepted, every legal double move applies in both orders and matches
+// the independent oracle, and the overlap control refuses symmetrically. Code
+// that exists is not evidence that the branch was reached.
+func TestCrossMoveFuzzCalibration(t *testing.T) {
+	sources := []string{"moveblock", "unreferenced", "last", "start"}
+	positions := []string{"after", "before", "first-child", "last-child"}
+	modes := []struct {
+		name string
+		mode int
+	}{
+		{"single", 0},
+		{"double", 1},
+		{"overlap-control", 2},
+	}
+	singles, doubles, refusals := 0, 0, 0
+	for _, sourceName := range sources {
+		for _, positionName := range positions {
+			for _, m := range modes {
+				t.Run(m.name+"/"+sourceName+"/"+positionName, func(t *testing.T) {
+					compared, refused := crossMoveFuzzCase(t, sourceName, positionName, m.mode)
+					switch m.mode {
+					case 0:
+						singles++
+					case 1:
+						if !compared {
+							t.Fatal("legal double move did not reach the two-order comparison")
+						}
+						doubles++
+					case 2:
+						if !refused {
+							t.Fatal("overlap control did not refuse")
+						}
+						refusals++
+					}
+				})
+			}
+		}
+	}
+	if want := len(sources) * len(positions); singles != want || doubles != want || refusals != want {
+		t.Fatalf("menu coverage: single %d, double %d, overlap %d, want %d each", singles, doubles, refusals, want)
+	}
+	t.Logf("calibration: %d single accepted, %d double accepted in both orders against the oracle, %d overlap refused", singles, doubles, refusals)
 }

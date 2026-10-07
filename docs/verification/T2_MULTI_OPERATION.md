@@ -853,10 +853,25 @@ was committed as the fixed commit that introduces this section.
   recovery/accept tests all passed.
 - Fuzz on this revision's working tree before the commit: the cross-move target
   compares one accepted move against an independent complete-resource oracle and
-  compares two-move plans by their actual candidate bytes in both operation
-  orders, 1,558 executions in 60.117 s with no failing input; the medium
-  effective-transaction target (36 encoding/position cases as seeds, whole-byte
-  oracle) ran 1,141 executions in 62.011 s with no failing input.
+  is intended to compare two-move plans by their actual candidate bytes in both
+  operation orders, 1,558 executions in 60.117 s with no failing input; the
+  medium effective-transaction target (36 encoding/position cases as seeds,
+  whole-byte oracle) ran 1,141 executions in 62.011 s with no failing input.
+- Coverage correction for the line above (review finding, not a product defect):
+  in this revision the two-move generator's first move inserted around the
+  `three` anchor while its second move removed `three` from the destination, so
+  the interval gate refused every two-move plan as overlapping before the
+  two-order candidate comparison could run, and the single-move branch silently
+  skipped a legal plan error instead of failing. The execution count above
+  therefore does not show that the two-order output path was reached; both-order
+  refusal proves only refusal symmetry. The medium review independently measured
+  single moves 16/16 accepted and two-move plans 0/32 accepted (overlap) on this
+  tree; the parent checked the source cause without repeating the enumeration. A
+  permanent generator and calibration fix (non-overlapping second source, a
+  destination anchor that survives the transaction, a legal-plan failure that
+  fails instead of skipping, and a deterministic branch-reach calibration) is
+  prepared outside this tree and is not part of this revision's evidence; it
+  lands with the next fixed identity.
 - Real CLI smoke on the working-tree binary built before the commit (a plain
   `go build`; the race claim covers the harness and libraries, not a
   race-instrumented binary), with the pinned checker: the schema 6 v2 move
@@ -875,3 +890,74 @@ was committed as the fixed commit that introduces this section.
   are retained; no historical result was deleted.
 - The fixed commit, tree and bundle hashes are reported to the parent thread and
   frozen in the next batch's record.
+
+### Maintenance input record (fuzz coverage and guidance)
+
+This maintenance revision is not a T2 feature batch and changes no production
+blob: it lands the reviewed fuzz-coverage test patch and the v5 guidance on top
+of the accepted 5e508f3 product. The inputs below keep their own identities;
+none is inherited or rerun here.
+
+- Medium limited acceptance (reviewer execution, cited): 5e508f3 /
+  tree d5f2342304bb7f452cff00f8b8fe5433708d95c2; sealed pack 352502 B, SHA-256
+  `8583d822d3762814644271ddf15ab4c5683d5c5033829ed910d3b309299e3fc1`, 104-item
+  manifest verified by the parent. The acceptance covers the limited batch-4
+  product fix only and is not a complete-T2 acceptance.
+- Parent v1 execution (parent execution, not inherited): tree-external candidate
+  package 40433 B, SHA-256
+  `6d13145046753bc0450feb7fccb151f97c94c6595ef763f2beaace0617039d0c`, 9-item
+  manifest OK; the parent overlaid the unmodified tests on the frozen 5e508f3
+  product and ran the calibration and seeds to exit 0 (3.152 s: 16 single,
+  16 double in both orders, 16 overlap controls). That run predates the v2
+  assertion fixes and is not this revision's execution.
+- Parent v2 execution (parent execution, not inherited): package 43106 B,
+  SHA-256
+  `d5439da91f7366ed3aeae0afb538c05de7af2158b9e0387465259f98ed360836`, 10-item
+  manifest OK; `go test [-race] -overlay=<v2> ... -run
+  '^(TestCrossMoveFuzzCalibration|TestStructureCrossMoveNewLinkGate|FuzzCrossMovePlanApply)$'`
+  on the unchanged 5e508f3 product exited 0 in ordinary 3.098 s and race
+  10.682 s: 63 PASS events, 0 FAIL/SKIP/DATA RACE, 16 single, 16 double in both
+  orders, 16 overlap controls, 8 gate subcases and 4 seeds. The parent did not
+  rerun live or the full suite. The author-side failures and corrections are
+  retained: the first calibration run (both oracle defects: anchor-text
+  composition and nav outside the observation set) is preserved as the
+  calibration oracle-error log; the 2,533-exec live run has no log artifact and
+  is marked terminal-only, and the 2,374-exec live log belongs to v1 and is not
+  claimed as v2 live.
+- Author executions on this maintenance tree: the section below records the
+  working-tree runs taken before this commit; they are author results, not a
+  reviewer or parent result.
+- Parent main remains d747c01; this maintenance commit is not integrated or
+  pushed there, and origin/main remains 18618fee.
+
+### Verification of the maintenance revision
+
+- Production identity: `git diff --name-only 5e508f3..HEAD` lists only the fuzz
+  test, the verification document and the eleven guidance files; no production
+  Go file, go.mod/go.sum, schema or permission change. The 5e508f3
+  suite/CLI/race results recorded above are not claimed as this revision's
+  execution, and no long suite was rerun because the production blobs are
+  identical.
+- Limited fuzz menu (48 shapes: 4 sources × 4 positions × 3 modes) calibrated on
+  this revision's working tree before the commit: 16 single moves accepted,
+  16 double moves accepted in both orders against the independent oracle, and
+  16 overlap controls refused with INVALID_OPERATIONS/exit 2 and a target-range
+  reason; exit 0. The affected cross-move set and the calibration passed
+  ordinary (10 top-level, 0 FAIL/SKIP) and focused race (10 top-level, 0 FAIL,
+  0 DATA RACE). Seed replay passed (0.245 s). One live fuzz round ran 60.124 s
+  and 2,622 executions with no failing input; the reached scope is the same
+  48-shape menu above, not another input family.
+- Guidance: the eleven files were installed from the v5 pack (18712 B, SHA-256
+  `7f9682198ecac7c4edea54e0edc10fb60da5c5b2f7bf2786b078feced0f2beec`, 11-item
+  manifest verified), replacing v4. Links (`../README.md`, `../LICENSE.waza`)
+  resolve, skill metadata matches the pin `6b6c736561eaf24c4d1c5360c3c90767ab470805`,
+  LICENSE.waza keeps the upstream MIT hash
+  `83ef2e3caa22ff257740df8684627ef8c4e21102986cf943e3fdd31ca7b430d5`, and no
+  script, MCP server or dependency was added. The Amp runtime discovers both
+  skills from `.agents/skills/` (`amp skill list` and `amp skill info` resolve
+  them with this metadata); this thread's session skill list was fixed before
+  installation, so loading them through the in-session skill tool is left to the
+  next session or host reload.
+- Fresh fetch of this commit from the new bundle re-verifies identity and the
+  short test set; the commit, tree and bundle hashes are reported to the parent
+  thread.
