@@ -1375,3 +1375,169 @@ func TestStructureIdentityMultiplicityModel(t *testing.T) {
 		}
 	})
 }
+
+// TestStructureJointAliasEdits keeps one frozen node's identity facts merged:
+// removing or renaming both id and xml:id in one transaction is a single
+// node-level fact, so a reference to a lost identity is refused and a legal
+// single final identity is accepted, in either operation order and for both
+// reference kinds.
+func TestStructureJointAliasEdits(t *testing.T) {
+	for _, kind := range []string{"remove-both", "rename-both-same", "rename-both-distinct", "transfer-alias"} {
+		for _, reverse := range []bool{false, true} {
+			for _, reference := range []string{"aria-labelledby", "href"} {
+				t.Run(kind+"/reverse="+map[bool]string{false: "false", true: "true"}[reverse]+"/"+reference, func(t *testing.T) {
+					alias := "unreferenced"
+					if kind == "transfer-alias" {
+						alias = "other"
+					}
+					chapter := strings.Replace(structureChapter1, `<p id="unreferenced">Plain.</p>`, `<p id="unreferenced" xml:id="`+alias+`">Plain.</p>`, 1)
+					w, dir, _ := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": chapter})
+					defer w.Close()
+					b := structureBinding(t, w, "EPUB/chapter1.xhtml")
+					loc := b.locatorID(t, "unreferenced")
+					first := b.attrRemove(loc, "id", "unreferenced")
+					second := b.attrRemove(loc, "id", alias)
+					param := second.Params.(publication.AttributeRemove)
+					param.Namespace = publication.XMLNamespace
+					second.Params = param
+					target, wantAccept := "unreferenced", false
+					switch kind {
+					case "rename-both-same":
+						first = b.attrSet(loc, "id", strPtr("unreferenced"), "fresh")
+						second = b.attrSetNS(loc, publication.XMLNamespace, "id", strPtr(alias), "fresh")
+						target, wantAccept = "fresh", true
+					case "rename-both-distinct":
+						first = b.attrSet(loc, "id", strPtr("unreferenced"), "fresh1")
+						second = b.attrSetNS(loc, publication.XMLNamespace, "id", strPtr(alias), "fresh2")
+					case "transfer-alias":
+						second = b.attrSetNS(loc, publication.XMLNamespace, "id", strPtr(alias), "unreferenced")
+						wantAccept = true
+					}
+					value := target
+					if reference == "href" {
+						value = "#" + target
+					}
+					ref := b.attrSet(b.locatorID(t, "dir"), reference, nil, value)
+					ops := []Operation{first, second, ref}
+					if reverse {
+						ops = []Operation{ref, second, first}
+					}
+					if !wantAccept {
+						planRefused(t, w, ops, "INVALID_OPERATIONS")
+						return
+					}
+					p := structurePlan(t, w, ops)
+					e := applyPlan(t, w, p)
+					actual := readResource(t, filepath.Join(dir, candidate, "EPUB/chapter1.xhtml"))
+					if !bytes.Contains(actual, []byte(reference+`="`+value+`"`)) {
+						t.Fatalf("accepted candidate missing the reference: %s", actual)
+					}
+					switch kind {
+					case "rename-both-same":
+						if !bytes.Contains(actual, []byte(`<p id="fresh" xml:id="fresh">Plain.</p>`)) {
+							t.Fatalf("joint rename candidate: %s", actual)
+						}
+					case "transfer-alias":
+						if !bytes.Contains(actual, []byte(`<p xml:id="unreferenced">Plain.</p>`)) {
+							t.Fatalf("alias transfer candidate: %s", actual)
+						}
+					}
+					if _, err := w.Reject(e.TaskID); err != nil {
+						t.Fatal(err)
+					}
+				})
+			}
+		}
+	}
+}
+
+// TestStructureJointAliasAdjacentCases keeps the merged-node rule for the
+// adjacent shapes: an existing frozen reference must not dangle after a joint
+// removal, a mixed remove-and-rename must not leave the removed value
+// resolvable, and a legal swap of two identity values keeps both with the exact
+// authored bytes.
+func TestStructureJointAliasAdjacentCases(t *testing.T) {
+	t.Run("existing-reference", func(t *testing.T) {
+		for _, reference := range []string{"aria-labelledby", "href"} {
+			for _, reverse := range []bool{false, true} {
+				t.Run(reference+map[bool]string{false: "/forward", true: "/reverse"}[reverse], func(t *testing.T) {
+					value := "unreferenced"
+					if reference == "href" {
+						value = "#" + value
+					}
+					chapter := strings.Replace(structureChapter1, `<p id="unreferenced">Plain.</p>`, `<p id="unreferenced" xml:id="unreferenced">Plain.</p>`, 1)
+					chapter = strings.Replace(chapter, `<p id="dir" dir="rtl">`, `<p id="dir" dir="rtl" `+reference+`="`+value+`">`, 1)
+					w, _, _ := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": chapter})
+					defer w.Close()
+					b := structureBinding(t, w, "EPUB/chapter1.xhtml")
+					loc := b.locatorID(t, "unreferenced")
+					plain := b.attrRemove(loc, "id", "unreferenced")
+					xmlID := b.attrRemove(loc, "id", "unreferenced")
+					param := xmlID.Params.(publication.AttributeRemove)
+					param.Namespace = publication.XMLNamespace
+					xmlID.Params = param
+					ops := []Operation{plain, xmlID}
+					if reverse {
+						ops = []Operation{xmlID, plain}
+					}
+					planRefused(t, w, ops, "REFERENCE_CONFLICT")
+				})
+			}
+		}
+	})
+	t.Run("mixed-remove-rename", func(t *testing.T) {
+		for _, reference := range []string{"aria-labelledby", "href"} {
+			for _, reverse := range []bool{false, true} {
+				t.Run(reference+map[bool]string{false: "/forward", true: "/reverse"}[reverse], func(t *testing.T) {
+					value := "unreferenced"
+					if reference == "href" {
+						value = "#" + value
+					}
+					chapter := strings.Replace(structureChapter1, `<p id="unreferenced">Plain.</p>`, `<p id="unreferenced" xml:id="unreferenced">Plain.</p>`, 1)
+					w, _, _ := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": chapter})
+					defer w.Close()
+					b := structureBinding(t, w, "EPUB/chapter1.xhtml")
+					loc := b.locatorID(t, "unreferenced")
+					remove := b.attrRemove(loc, "id", "unreferenced")
+					rename := b.attrSetNS(loc, publication.XMLNamespace, "id", strPtr("unreferenced"), "freshY")
+					ref := b.attrSet(b.locatorID(t, "dir"), reference, nil, value)
+					ops := []Operation{remove, rename, ref}
+					if reverse {
+						ops = []Operation{ref, rename, remove}
+					}
+					planRefused(t, w, ops, "INVALID_OPERATIONS")
+				})
+			}
+		}
+	})
+	t.Run("swap-positive", func(t *testing.T) {
+		for _, reverse := range []bool{false, true} {
+			t.Run(map[bool]string{false: "forward", true: "reverse"}[reverse], func(t *testing.T) {
+				chapter := strings.Replace(structureChapter1, `<p id="unreferenced">Plain.</p>`, `<p id="unreferenced" xml:id="other">Plain.</p>`, 1)
+				w, dir, _ := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": chapter})
+				defer w.Close()
+				b := structureBinding(t, w, "EPUB/chapter1.xhtml")
+				loc := b.locatorID(t, "unreferenced")
+				ops := []Operation{
+					b.attrSet(loc, "id", strPtr("unreferenced"), "other"),
+					b.attrSetNS(loc, publication.XMLNamespace, "id", strPtr("other"), "unreferenced"),
+					b.attrSet(b.locatorID(t, "dir"), "aria-controls", nil, "unreferenced other"),
+				}
+				if reverse {
+					ops = []Operation{ops[2], ops[1], ops[0]}
+				}
+				p := structurePlan(t, w, ops)
+				e := applyPlan(t, w, p)
+				want := strings.Replace(chapter, `<p id="unreferenced" xml:id="other">`, `<p id="other" xml:id="unreferenced">`, 1)
+				want = strings.Replace(want, `<p id="dir" dir="rtl">`, `<p id="dir" dir="rtl" aria-controls="unreferenced other">`, 1)
+				actual := readResource(t, filepath.Join(dir, candidate, "EPUB/chapter1.xhtml"))
+				if !bytes.Equal(actual, []byte(want)) {
+					t.Fatalf("candidate differs from the independently authored bytes: %s", actual)
+				}
+				if _, err := w.Reject(e.TaskID); err != nil {
+					t.Fatal(err)
+				}
+			})
+		}
+	})
+}

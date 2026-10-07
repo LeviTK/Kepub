@@ -426,7 +426,7 @@ func (b *builder) walkXML(bp bookpath.BookPath, e *publication.Element, inNav, i
 		if a.Name.Space == xlinkNS {
 			location = e.Location + "/@xlink:" + a.Name.Local
 		}
-		if !incomplete && elementIDs[a.Value] {
+		if !incomplete && publication.IsIDAttribute(a.Name) && elementIDs[a.Value] {
 			delete(elementIDs, a.Value)
 			b.ids[bp][a.Value]++
 			if b.ids[bp][a.Value] > 1 {

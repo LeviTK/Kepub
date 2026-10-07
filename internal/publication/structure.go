@@ -323,7 +323,7 @@ func IdentityValues(attrs []xml.Attr) []string {
 	out := []string{}
 	seen := map[string]bool{}
 	for _, a := range attrs {
-		if isIDAttribute(a.Name) && !seen[a.Value] {
+		if IsIDAttribute(a.Name) && !seen[a.Value] {
 			seen[a.Value] = true
 			out = append(out, a.Value)
 		}
@@ -352,6 +352,44 @@ func CountIDs(doc *xmltext.Document) map[string]int {
 // the reference index's identity rules.
 func (d *StructureDocument) IDs() map[string]int {
 	return CountIDs(d.Doc)
+}
+
+// MergedIdentityDelta returns the identity values one frozen element loses and
+// gains when all of its attribute changes are applied together. Identity belongs
+// to the element, so every change to one node must be merged before a delta is
+// derived: removing or renaming both id and xml:id is one node-level fact, and
+// summing per-attribute deltas cannot represent the final identity set.
+func MergedIdentityDelta(e *xmltext.Element, changes []StructureChange) (removed, added []string) {
+	attrs := append([]xml.Attr(nil), e.Attributes...)
+	for _, ch := range changes {
+		if ch.Attr == nil {
+			continue
+		}
+		index := -1
+		for i, a := range attrs {
+			if a.Name == ch.Attr.Name {
+				index = i
+				break
+			}
+		}
+		if ch.Remove {
+			if index >= 0 {
+				attrs = append(attrs[:index], attrs[index+1:]...)
+			}
+			continue
+		}
+		if index >= 0 {
+			attrs[index].Value = ch.Attr.Value
+		} else {
+			attrs = append(attrs, *ch.Attr)
+		}
+	}
+	before := elementIDSet(e)
+	after := map[string]bool{}
+	for _, value := range IdentityValues(attrs) {
+		after[value] = true
+	}
+	return identityDelta(before, after), identityDelta(after, before)
 }
 
 // Encode encodes literal markup or text for the document's original encoding.
@@ -509,7 +547,7 @@ func validateFragmentElement(e *xmltext.Element) error {
 		if err := validAttributeName(a.Name.Space, a.Name.Local); err != nil {
 			return err
 		}
-		if isIDAttribute(a.Name) && !xmltext.ValidNCName(a.Value) {
+		if IsIDAttribute(a.Name) && !xmltext.ValidNCName(a.Value) {
 			return fmt.Errorf("fragment id %q is not a legal XML name", a.Value)
 		}
 	}
@@ -671,7 +709,7 @@ func fragmentFacts(nodes []*FragmentNode) ([]string, []StructureLink, []Structur
 	walk = func(n *FragmentNode) {
 		seen := map[string]bool{}
 		for _, a := range n.Attrs {
-			if isIDAttribute(a.Name) && !seen[a.Value] {
+			if IsIDAttribute(a.Name) && !seen[a.Value] {
 				seen[a.Value] = true
 				ids = append(ids, a.Value)
 			}
@@ -725,26 +763,12 @@ func (d *StructureDocument) AttributeSetEdit(op AttributeSet) (*StructureEdit, e
 		return nil, fault.New(2, "INVALID_OPERATIONS", "attribute %s already exists", op.Name)
 	}
 	edit := &StructureEdit{Change: StructureChange{Kind: "attribute-set", Locator: op.Locator, Attr: &xml.Attr{Name: name, Value: op.Value}}}
-	if isIDAttribute(name) {
+	if IsIDAttribute(name) {
 		if op.Value == "" || !xmltext.ValidNCName(op.Value) {
 			return nil, fault.New(2, "INVALID_OPERATIONS", "new id must be a non-empty XML name")
 		}
-		// The element's identity set after the write decides which values are
-		// gained or lost: another id attribute carrying the same value keeps the
-		// identity, and writing a value the element already carries adds none.
-		before := elementIDSet(e)
-		after := map[string]bool{}
-		for _, a := range e.Attributes {
-			if a.Name == name {
-				continue
-			}
-			if isIDAttribute(a.Name) {
-				after[a.Value] = true
-			}
-		}
-		after[op.Value] = true
-		edit.RemovedIDs = append(edit.RemovedIDs, identityDelta(before, after)...)
-		edit.AddedIDs = append(edit.AddedIDs, identityDelta(after, before)...)
+		// Identity facts are derived once per frozen node from all of its
+		// attribute changes together (MergedIdentityDelta), never per attribute.
 	}
 	if e.Name.Space == XHTMLNamespace && name.Space == "" && (name.Local == "href" || name.Local == "src") {
 		edit.Links = append(edit.Links, StructureLink{Locator: op.Locator, Name: name.Local, Value: op.Value})
@@ -803,19 +827,6 @@ func (d *StructureDocument) AttributeRemoveEdit(op AttributeRemove) (*StructureE
 		return nil, fault.New(2, "INVALID_OPERATIONS", "attribute %s has no writable source interval", op.Name)
 	}
 	edit := &StructureEdit{Change: StructureChange{Kind: "attribute-remove", Locator: op.Locator, Remove: true, Attr: &xml.Attr{Name: name}}}
-	if isIDAttribute(name) {
-		before := elementIDSet(e)
-		after := map[string]bool{}
-		for _, a := range e.Attributes {
-			if a.Name == name {
-				continue
-			}
-			if isIDAttribute(a.Name) {
-				after[a.Value] = true
-			}
-		}
-		edit.RemovedIDs = append(edit.RemovedIDs, identityDelta(before, after)...)
-	}
 	edit.Spans = append(edit.Spans, EditSpan{Start: markup.Start, End: markup.End})
 	return edit, nil
 }
@@ -1027,9 +1038,9 @@ func identityDelta(want, have map[string]bool) []string {
 	return out
 }
 
-// isIDAttribute reports whether a resolved attribute name carries document
+// IsIDAttribute reports whether a resolved attribute name carries document
 // identity for the reference index: unprefixed id and xml:id.
-func isIDAttribute(name xml.Name) bool {
+func IsIDAttribute(name xml.Name) bool {
 	return (name.Space == "" || name.Space == XMLNamespace) && name.Local == "id"
 }
 

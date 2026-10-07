@@ -6,9 +6,10 @@ which was never pushed. Batch 1 started from `origin/main`
 fixed commit `23ba8f8c36b9ccf04138819acbea2af55caba832` (tree
 `545f1824eb1756a979b0a554808a2bc0c0fc5c63`). Batch 2 continues from that commit
 and stops at the fixed commit that introduces this section, awaiting independent
-medium review and parent acceptance. Batch 2's first three trees were rejected —
-`ff64188` and `f295f3f` by the high reviewer, `6f9980e` by the medium reviewer —
-and every result stays bound to the reviewer and tree that produced it. Private
+medium review and parent acceptance. Batch 2's first four trees were rejected —
+`ff64188` and `f295f3f` by the high reviewer, `6f9980e` by the medium reviewer,
+`b301fb9` by the parent's acceptance verification and the medium reviewer — and
+every result stays bound to the reviewer and tree that produced it. Private
 books, audit raw evidence and local receipts are not part of Git; every fixture
 here is synthetic.
 
@@ -241,17 +242,83 @@ committed.
    The reference index, the structural gate and the review evidence all derive
    from this unit, so `id`/`xml:id` aliasing and per-element deduplication cannot
    disagree between them.
-2. **Counts, not flags, for the final state.** Attribute set/remove and subtree
-   facts now compute their identity deltas from the element's identity set before
-   and after the write; the gate keeps integer `removed`/`added` maps and derives
-   `finalCount = base - removed + added` per resource and value. A new identity
-   is refused while any residual frozen instance remains, a removed identity is
-   only checked against frozen edges when it truly reaches zero, and a re-added
-   value keeps its count so a legal partial delete plus reference stays accepted.
+2. **Counts, not flags, for the final state.** Subtree facts and (at this tree)
+   attribute facts computed their identity deltas from the element's identity
+   set; the gate keeps integer `removed`/`added` maps and derives `finalCount =
+   base - removed + added` per resource and value. A new identity is refused
+   while any residual frozen instance remains, a removed identity is only checked
+   against frozen edges when it truly reaches zero, and a re-added value keeps
+   its count so a legal partial delete plus reference stays accepted. The
+   per-attribute part of this rule was itself rejected and is superseded below.
 3. **Redundant replacement search removed.** The `replace` placement check still
    runs the precise mapped-offset byte equality and the structural parent/order
    comparison, and no longer keeps the whole-output `bytes.Contains` fallback, so
    the contract has one verification rule rather than a weaker second one.
+
+### Fourth rejection: joint attribute identity facts on `b301fb9`
+
+The parent's acceptance verification of `b301fb9` (tree `9cb9ad3a`) reproduced a
+joint-edit blocker with a 3055-byte probe (`parent_b301_alias_probe_test.go`,
+SHA-256 `ed1e6889499565f37108ee6b2e6ae4ed7b80566cd204ed56686e8267c839520f`): 16
+subcases (four edit groups × two operation orders × `aria-labelledby`/`href`)
+failed in ordinary and focused race runs, while the older frozen sets passed. The
+medium reviewer independently confirmed the same 16 failures and did not release
+the tree. That tree's own runs, taken from its working tree before the commit, do
+not offset the blocker: the repository ordinary suite passed all packages
+(cmd/kepub 306.781 s, internal/validation 258.668 s, internal/workspace 215.969 s,
+internal/publication 4.877 s, internal/xmltext 6.402 s, internal/references
+0.127 s) and the race suite passed all packages (cmd/kepub 505.364 s,
+internal/validation 281.626 s, internal/workspace 281.831 s,
+internal/publication 92.144 s, internal/xmltext 78.036 s, internal/references
+1.791 s), with `go vet` and `gofmt` clean, the structural fuzzes passing (828,274
+and 44,193 executions in 61 s), the complete frozen probe set then passing (19
+functions, 118 assertions) and the CLI smoke covering the earlier identity cases.
+
+The blocker: `AttributeSetEdit`/`AttributeRemoveEdit` derived identity deltas
+from the frozen element one attribute at a time and the gate summed them, but two
+attribute changes on one node cannot be represented by per-attribute deltas:
+removing `id` and `xml:id` with the same value, or renaming both to distinct new
+values, still let a reference to the removed value plan and apply while the
+candidate had no such identity; renaming both to the same new value was refused
+as a duplicate although the final node carries one identity; and removing `id`
+while rewriting `xml:id` to the removed value was refused as missing although the
+final node carries exactly that identity.
+
+The medium reviewer's adjacent evidence pack (21373 B, SHA-256
+`928d2cbc02b87bf360073201a66e1fd27ee3e9ecb4c904e6730ff9485095bc09`) extended the
+same cause: an existing frozen ARIA/href reference was left dangling after a
+joint removal (four cases), a legal swap of two identity values between `id` and
+`xml:id` was refused as missing (two cases), and the effective-transaction fuzz
+target found `remove id + xml:id → freshY` still allowing `href="#oldX"`; the
+minimal seed `21d0b33faf043b04` replayed with exit 1. A non-blocking diagnostic
+regression also appeared in the shared-unit conversion: the reference index
+consumed identity values by value alone, so `title="note"` before `id="note"`
+moved the `DUPLICATE_ID` location to `/@title` while the reversed order was
+correct.
+
+### Fixes after the fourth rejection (node-level identity merge, minimal)
+
+1. **One merged identity fact per frozen node.** New
+   `publication.MergedIdentityDelta` applies all of a node's frozen attribute
+   changes together to the frozen attribute list and returns the identity values
+   that node loses and gains; attribute edits no longer report per-attribute
+   identity deltas. Old-value checks, the new-id NCName rule and byte-interval
+   restrictions are unchanged.
+2. **The gate collects attribute facts per node.** Phase 2 groups the
+   transaction's attribute edits by locator, derives one merged delta per node and
+   adds it to the resource's counts, so the final identity state does not depend
+   on how many attributes of one node were touched. Element edits keep their
+   subtree facts.
+3. **Permanent regressions.** `TestStructureJointAliasEdits` covers the four
+   groups × two orders × two reference kinds, `TestStructureJointAliasAdjacentCases`
+   covers the existing-reference, mixed remove-and-rename and legal swap shapes,
+   `TestIdentityDiagnosticAttributeSource` keeps the duplicate-ID location on the
+   identity attribute, and `TestIdentityUnitIsPerElement` now asserts the merged
+   node facts, including removal, rename, transfer and fragment aliasing.
+4. **Identity provenance for diagnostics.** The reference index consumes an
+   identity value only on an identity attribute (`publication.IsIDAttribute`), so
+   `DUPLICATE_ID` stays attributed to the `id`/`xml:id` attribute that carries it
+   and an ordinary attribute with the same value cannot move the location.
 
 ### Verification of this revision
 
@@ -260,49 +327,44 @@ was committed as the fixed commit that introduces this section.
 
 - Repository ordinary suite with the pinned EPUBCheck 5.3.0 jar, taken from this
   revision's working tree before the commit (working-tree verification, not a
-  fresh checkout of the commit): all packages passed (cmd/kepub 306.781 s,
-  internal/validation 258.668 s, internal/workspace 215.969 s,
-  internal/publication 4.877 s, internal/xmltext 6.402 s, internal/references
-  0.127 s, experiments/amp-cli 4.903 s, internal/app 0.283 s, internal/archive
-  0.094 s, internal/metadata 0.428 s, internal/bookpath 0.002 s). The race suite
-  on the same tree also passed all packages (cmd/kepub 505.364 s,
-  internal/validation 281.626 s, internal/workspace 281.831 s,
-  internal/publication 92.144 s, internal/xmltext 78.036 s, internal/references
-  1.791 s, experiments/amp-cli 7.071 s, internal/app 1.848 s, internal/archive
-  1.303 s, internal/bookpath 1.016 s, internal/metadata 4.724 s). `go vet ./...`
+  fresh checkout of the commit): all packages passed (cmd/kepub 305.943 s,
+  internal/validation 256.253 s, internal/workspace 214.528 s,
+  internal/publication 4.834 s, internal/xmltext 6.446 s, internal/references
+  0.121 s, experiments/amp-cli 4.930 s, internal/app 0.314 s, internal/archive
+  0.080 s, internal/metadata 0.455 s, internal/bookpath 0.002 s). The race suite
+  on the same tree also passed all packages (cmd/kepub 498.319 s,
+  internal/validation 277.581 s, internal/workspace 276.430 s,
+  internal/publication 85.829 s, internal/xmltext 78.873 s, internal/references
+  1.876 s, experiments/amp-cli 6.895 s, internal/app 1.899 s, internal/archive
+  1.308 s, internal/bookpath 1.015 s, internal/metadata 4.616 s). `go vet ./...`
   and `gofmt` are clean on the same tree.
-- The complete frozen probe set was rerun unchanged on this revision: the two
-  parent probes, the medium probe and its extended file, the reviewer probes for
-  the final reference gate, IDREF coverage, manifest permission, attribute
-  positives, text review shift, misplaced blocks, unsupported URL writes, move
-  review, fragment identities, the schema locator advertisement and both R2
-  probes, plus the UTF positive control — 19 top-level test functions, 118
-  assertions including subtests, no failures and no skips. The medium identity
-  probes now refuse the residual duplicate and the retained alias in both
-  operation orders and accept the partial delete with a reference to the
-  survivor; permanent regressions for the per-element identity unit were added
-  at the publication and workspace layers.
-- Fuzz runs on this revision: the structural edit round trip over UTF-8 and
-  BOM-marked UTF-16 passed 828,274 executions in 61.024 s, and plan order
-  independence over real structural operations passed 44,193 executions in
-  61.019 s, both with no failing input.
-- Real CLI smoke on the fixed binary, with the pinned checker for accept and
-  export: a baseline chapter with two `id="unreferenced"` elements, deleting the
-  first, inserting a new same-id element and adding `aria-labelledby` was refused
-  in both operation orders (exit 2, no plan file); deleting the first and
-  referencing the survivor planned, applied, reviewed (`matchesExecution` true,
-  the diff showing exactly one surviving identity and the new
-  `aria-labelledby`), was accepted by EPUBCheck 5.3.0 (`status: pass`, 6 checks)
-  and exported with `verified: true` and the expected bytes (the existing
-  single-quoted `title='old'` preserved, one `id="unreferenced"` left), with the
-  original book bytes unchanged and the export ZIP intact. The earlier refusals
-  were rechecked on this binary: a `headers` write plus same-transaction `id`
-  removal in both orders, a lone `headers`-referenced `id` removal (exit 1
-  `REFERENCE_CONFLICT`), a fragment `aria-labelledby` naming a missing identity,
-  an `iframe srcdoc` fragment, a cross-resource dangling link in both orders, an
-  unregistered `content.text.set` widened by a structural operation and a
-  multi-token IDREF list with one missing token (all exit 2), while a no-op write
-  with `expectedOldValue`, an all-present multi-token list and a fragment IDREF
-  to a present identity planned.
+- The complete frozen probe set was rerun unchanged on this revision: the parent
+  joint-alias probe, the parent cross-resource and IDREF probes, the medium
+  identity probe and its extended file, the medium joint-identity and diagnostic
+  probes, the reviewer probes for the final reference gate, IDREF coverage,
+  manifest permission, attribute positives, text review shift, misplaced blocks,
+  unsupported URL writes, move review, fragment identities, the schema locator
+  advertisement, both R2 probes and the UTF positive control — 24 top-level test
+  functions, 146 assertions including subtests, no failures and no skips, and the
+  medium fuzz minimal seed `21d0b33faf043b04` replayed in ordinary and race runs.
+  The joint and adjacent cases now refuse the dangling existing reference and the
+  removed value in both operation orders and accept the legal swap with the
+  authored bytes.
+- Fuzz runs on this revision: structural edit round trip 567,343 executions in
+  61.024 s, plan order independence 43,335 executions in 61.121 s, and the medium
+  joint-identity target 4,466 executions in 60.053 s (with the replayed minimal
+  seed), all passing with no failing input.
+- Real CLI smoke on the fixed binary with the pinned checker: joint `id`/`xml:id`
+  removal and distinct renames refused a new ARIA/href reference in both
+  operation orders (exit 2, no plan file), an existing frozen ARIA reference
+  after a joint removal was refused (exit 1 `REFERENCE_CONFLICT`), while a legal
+  joint rename and an alias transfer planned, applied and reviewed
+  (`matchesExecution` true with the expected candidate bytes). A conformant joint
+  positive (remove `xml:id`, rename `id`, update the reference) and the
+  partial-delete survivor case were accepted by EPUBCheck 5.3.0 and exported with
+  `verified: true` and the authored bytes; the two candidates that still carry
+  `xml:id` on `p` were refused by EPUBCheck as non-conformant (EPUB 3.3 does not
+  allow `xml:id` there), which is the checker gate and not a product defect. The
+  original books' bytes were unchanged and the export ZIPs intact.
 - The fixed commit, tree and bundle hashes are reported to the parent thread and
   frozen in the next batch's record.

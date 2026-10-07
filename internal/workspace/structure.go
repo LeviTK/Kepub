@@ -220,7 +220,47 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 	// dependency check, so operation order cannot change the outcome.
 	for _, ge := range derived {
 		gate.baseIDs[ge.bp] = ge.doc.IDs()
+		// Attribute changes are merged per frozen node: identity belongs to the
+		// element, so id and xml:id edits on one node form one final identity
+		// set instead of independent per-attribute deltas.
+		attributeChanges := map[string][]publication.StructureChange{}
+		attributeOrder := []string{}
 		for _, edit := range ge.edits {
+			if edit.Change.Kind != "attribute-set" && edit.Change.Kind != "attribute-remove" {
+				continue
+			}
+			locator := edit.Change.Locator
+			if _, ok := attributeChanges[locator]; !ok {
+				attributeOrder = append(attributeOrder, locator)
+			}
+			attributeChanges[locator] = append(attributeChanges[locator], edit.Change)
+		}
+		for _, locator := range attributeOrder {
+			element, err := ge.doc.Locate(locator)
+			if err != nil {
+				return derivation{}, err
+			}
+			removed, added := publication.MergedIdentityDelta(element, attributeChanges[locator])
+			for _, id := range removed {
+				if gate.removed[ge.bp] == nil {
+					gate.removed[ge.bp] = map[string]int{}
+				}
+				gate.removed[ge.bp][id]++
+			}
+			for _, id := range added {
+				if gate.added[ge.bp] == nil {
+					gate.added[ge.bp] = map[string]int{}
+				}
+				if gate.added[ge.bp][id] > 0 {
+					return derivation{}, fault.New(2, "INVALID_OPERATIONS", "duplicate new id %q in %s", id, ge.path)
+				}
+				gate.added[ge.bp][id]++
+			}
+		}
+		for _, edit := range ge.edits {
+			if edit.Change.Kind == "attribute-set" || edit.Change.Kind == "attribute-remove" {
+				continue // identity facts were merged per node above
+			}
 			for _, id := range edit.RemovedIDs {
 				if gate.removed[ge.bp] == nil {
 					gate.removed[ge.bp] = map[string]int{}

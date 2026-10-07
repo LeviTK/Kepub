@@ -694,7 +694,9 @@ func decodeFuzzDocument(data []byte, enc string) (string, error) {
 
 // TestIdentityUnitIsPerElement keeps the structural identity unit equal to the
 // reference index's: one element carrying both id and xml:id with the same value
-// is one identity, while distinct elements with the same value are two.
+// is one identity, while distinct elements with the same value are two. Identity
+// facts of one node are merged from all of its frozen attribute changes, so
+// per-attribute deltas are never summed across the same element.
 func TestIdentityUnitIsPerElement(t *testing.T) {
 	profile := xmltext.Profile{Version: "3.0", MediaType: "application/xhtml+xml"}
 	input := `<html xmlns="http://www.w3.org/1999/xhtml"><body><p id="x" xml:id="x">alias</p><p id="y">one</p><p xml:id="y">two</p></body></html>`
@@ -713,43 +715,43 @@ func TestIdentityUnitIsPerElement(t *testing.T) {
 	if got := ElementIdentities(alias); len(got) != 1 || got[0] != "x" {
 		t.Fatalf("alias element identities: %v", got)
 	}
-	// Removing one alias attribute keeps the identity; removing the remaining
-	// one loses it.
-	first, err := doc.AttributeRemoveEdit(AttributeRemove{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", Name: "id", ExpectedOldValue: "x"})
+	removeID, err := doc.AttributeRemoveEdit(AttributeRemove{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", Name: "id", ExpectedOldValue: "x"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(first.RemovedIDs) != 0 {
-		t.Fatalf("alias removal reported a lost identity: %v", first.RemovedIDs)
-	}
-	first.OpIndex = 0
-	after, err := ParseStructureDocument(ApplyEdits([]byte(input), []*StructureEdit{first}), "EPUB/a.xhtml", profile)
+	removeAlias, err := doc.AttributeRemoveEdit(AttributeRemove{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", Namespace: XMLNamespace, Name: "id", ExpectedOldValue: "x"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := after.AttributeRemoveEdit(AttributeRemove{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", Namespace: XMLNamespace, Name: "id", ExpectedOldValue: "x"})
-	if err != nil {
-		t.Fatal(err)
+	// Removing one alias attribute keeps the identity; removing both in one
+	// transaction loses exactly one identity.
+	if removed, added := MergedIdentityDelta(alias, []StructureChange{removeID.Change}); len(removed) != 0 || len(added) != 0 {
+		t.Fatalf("single alias removal changed identities: -%v +%v", removed, added)
 	}
-	if len(second.RemovedIDs) != 1 || second.RemovedIDs[0] != "x" {
-		t.Fatalf("last alias removal identities: %v", second.RemovedIDs)
+	if removed, added := MergedIdentityDelta(alias, []StructureChange{removeID.Change, removeAlias.Change}); len(removed) != 1 || removed[0] != "x" || len(added) != 0 {
+		t.Fatalf("joint alias removal identities: -%v +%v", removed, added)
 	}
-	// Writing a value the element already carries adds no identity.
+	// Renaming both alias attributes to the same new value gains exactly one
+	// identity and loses the old one.
 	existing := "x"
-	setAlias, err := doc.AttributeSetEdit(AttributeSet{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", Namespace: XMLNamespace, Name: "id", ExpectedOldValue: &existing, Value: "x"})
+	setID, err := doc.AttributeSetEdit(AttributeSet{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", Name: "id", ExpectedOldValue: &existing, Value: "fresh"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(setAlias.AddedIDs) != 0 || len(setAlias.RemovedIDs) != 0 {
-		t.Fatalf("alias rewrite changed identities: +%v -%v", setAlias.AddedIDs, setAlias.RemovedIDs)
+	setAlias, err := doc.AttributeSetEdit(AttributeSet{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", Namespace: XMLNamespace, Name: "id", ExpectedOldValue: &existing, Value: "fresh"})
+	if err != nil {
+		t.Fatal(err)
 	}
-	// Writing a different value on the second alias attribute adds exactly one.
+	if removed, added := MergedIdentityDelta(alias, []StructureChange{setID.Change, setAlias.Change}); len(added) != 1 || added[0] != "fresh" || len(removed) != 1 || removed[0] != "x" {
+		t.Fatalf("joint alias rename identities: -%v +%v", removed, added)
+	}
+	// Rewriting one alias attribute adds one identity and keeps the other.
 	setNew, err := doc.AttributeSetEdit(AttributeSet{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", Namespace: XMLNamespace, Name: "id", ExpectedOldValue: &existing, Value: "z"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(setNew.AddedIDs) != 1 || setNew.AddedIDs[0] != "z" || len(setNew.RemovedIDs) != 0 {
-		t.Fatalf("alias rewrite identities: +%v -%v", setNew.AddedIDs, setNew.RemovedIDs)
+	if removed, added := MergedIdentityDelta(alias, []StructureChange{setNew.Change}); len(added) != 1 || added[0] != "z" || len(removed) != 0 {
+		t.Fatalf("alias rewrite identities: -%v +%v", removed, added)
 	}
 	// Deleting the alias element removes exactly one identity.
 	deleted, err := doc.ElementDeleteEdit(ElementDelete{BookPath: "EPUB/a.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]"})
@@ -769,5 +771,27 @@ func TestIdentityUnitIsPerElement(t *testing.T) {
 	ids2, _, _ := fragmentFacts(fragment.Nodes)
 	if len(ids2) != 1 || ids2[0] != "fresh" {
 		t.Fatalf("fragment identities: %v", ids2)
+	}
+	// Transferring an alias: removing id and rewriting xml:id to the removed
+	// value keeps exactly one identity, so the old xml:id is the only loss.
+	transferDoc, err := ParseStructureDocument([]byte(`<html xmlns="http://www.w3.org/1999/xhtml"><body><p id="x" xml:id="y">t</p></body></html>`), "EPUB/b.xhtml", profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	transfer, err := transferDoc.Locate("/html[1]/body[1]/p[1]")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dropID, err := transferDoc.AttributeRemoveEdit(AttributeRemove{BookPath: "EPUB/b.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", Name: "id", ExpectedOldValue: "x"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldAlias := "y"
+	writeAlias, err := transferDoc.AttributeSetEdit(AttributeSet{BookPath: "EPUB/b.xhtml", RevisionID: "initial", ResourceSHA256: strings.Repeat("0", 64), LocatorVersion: 1, Locator: "/html[1]/body[1]/p[1]", Namespace: XMLNamespace, Name: "id", ExpectedOldValue: &oldAlias, Value: "x"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if removed, added := MergedIdentityDelta(transfer, []StructureChange{dropID.Change, writeAlias.Change}); len(removed) != 1 || removed[0] != "y" || len(added) != 0 {
+		t.Fatalf("alias transfer identities: -%v +%v", removed, added)
 	}
 }

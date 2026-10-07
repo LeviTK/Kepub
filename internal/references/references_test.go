@@ -385,3 +385,29 @@ func TestCertainIncomingIDREF(t *testing.T) {
 		t.Fatalf("missing label for edge: %+v", edges)
 	}
 }
+
+// TestIdentityDiagnosticAttributeSource keeps DUPLICATE_ID attributed to the
+// identity attribute that carries the value, not to any earlier attribute that
+// merely shares the value.
+func TestIdentityDiagnosticAttributeSource(t *testing.T) {
+	for _, attrs := range []string{`title="note" id="note"`, `id="note" title="note"`} {
+		t.Run(attrs, func(t *testing.T) {
+			entries := testfixture.NavigationEPUB("2.0")
+			entries[3].Data = []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><body><p id="note"/><p ` + attrs + `/></body></html>`)
+			g := graphFixture(t, entries)
+			duplicates := 0
+			for _, d := range g.Diagnostics {
+				if d.Code != "DUPLICATE_ID" {
+					continue
+				}
+				duplicates++
+				if !strings.HasSuffix(d.Location, "/@id") {
+					t.Errorf("identity diagnostic attributed to a non-identity attribute: %+v", d)
+				}
+			}
+			if duplicates != 1 {
+				t.Fatalf("duplicate count = %d, want 1", duplicates)
+			}
+		})
+	}
+}
