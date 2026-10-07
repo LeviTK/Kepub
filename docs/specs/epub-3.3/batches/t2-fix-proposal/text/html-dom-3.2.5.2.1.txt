@@ -1,0 +1,38 @@
+Extracted from the archived HTML Standard (dom.html) section 3.2.5.2.1 Metadata content.
+The raw file is preserved unmodified; this text excerpt is a derived convenience copy.
+
+Metadata content is content that sets up the presentation or behavior of the
+  rest of the content, or that sets up the relationship of the document with other documents, or
+  that conveys other "out of band" information.
+
+  
+  baselinkmetanoscriptscriptstyletemplatetitle
+
+  Elements from other namespaces whose semantics are primarily metadata-related (e.g. RDF) are
+  also metadata content.
+
+  
+
+   Thus, in the XML serialization, one can use RDF, like this:
+
+   &lt;html xmlns=&quot;http://www.w3.org/1999/xhtml&quot;
+      xmlns:r=&quot;http://www.w3.org/1999/02/22-rdf-syntax-ns#&quot; xml:lang=&quot;en&quot;&gt;
+ &lt;head&gt;
+  &lt;title&gt;Hedral&apos;s Home Page&lt;/title&gt;
+  &lt;r:RDF&gt;
+   &lt;Person xmlns=&quot;http://www.w3.org/2000/10/swap/pim/contact#&quot;
+           r:about=&quot;https://hedral.example.com/#&quot;&gt;
+    &lt;fullName&gt;Cat Hedral&lt;/fullName&gt;
+    &lt;mailbox r:resource=&quot;mailto:hedral@damowmow.com&quot;/&gt;
+    &lt;personalTitle&gt;Sir&lt;/personalTitle&gt;
+   &lt;/Person&gt;
+  &lt;/r:RDF&gt;
+ &lt;/head&gt;
+ &lt;body&gt;
+  &lt;h1&gt;My home page&lt;/h1&gt;
+  &lt;p&gt;I like playing with string, I guess. Sister says squirrels are fun
+  too so sometimes I follow her to play with them.&lt;/p&gt;
+ &lt;/body&gt;
+&lt;/html&gt;
+
+   This isn't possible in the HTML serialization, however.

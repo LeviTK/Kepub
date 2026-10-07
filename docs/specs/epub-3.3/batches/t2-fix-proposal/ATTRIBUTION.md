@@ -1,0 +1,32 @@
+# Batch asset attribution: t2-fix-proposal
+
+This directory is batch-scoped. It does not modify the S0 `docs/specs/epub-3.3/`
+`original/`, `text/`, `manifest.json`, `INDEX.md` or any of their hashes.
+
+## Assets
+
+| Asset | Source | Bytes | SHA-256 |
+| --- | --- | --- | --- |
+| `original/html-dom.html` | https://html.spec.whatwg.org/multipage/dom.html (2026-10-07) | 439903 | `c830abc1b4bf25a516a64af1bf5258b381d0a437cd5d9411501cecb4a1f90c41` |
+| `original/whatwg-ipr-policy.html` | https://whatwg.org/ipr-policy (2026-10-07) | 36038 | `7cc4d98fe3179995010bc00e64ec6b64dd782aae8c6de7dd9c7533b901107227` |
+| `original/cc-by-4.0-legalcode.txt` | https://creativecommons.org/licenses/by/4.0/legalcode.txt (2026-10-07) | 18657 | `9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411` |
+| `text/html-dom-3.2.5.2.1.txt` | derived excerpt of §3.2.5.2.1 from the archived dom.html | 1519 | `28bd3268a1132669f4dd1f1463b1ed45bb34d9526b3e57f37a9d5033639e7ce3` |
+
+## Attribution and licence
+
+- The HTML Standard is a WHATWG Living Standard. Copyright WHATWG
+  (Apple Inc., Google LLC, Microsoft Corporation, Mozilla Foundation);
+  the specification text is published under CC BY 4.0, and code incorporated
+  into the specification is published under BSD-3-Clause. The raw snapshot is
+  archived unmodified; the `text/` excerpt is a derived convenience copy that
+  removes markup only.
+- The archived `original/html-dom.html` is the exact snapshot fetched by the
+  parent thread on 2026-10-07. It must not be replaced by a later Living Standard
+  fetch: this batch's FR-1 element set is pinned to this input.
+- The IPR policy snapshot (`whatwg-ipr-policy.html`) and the CC BY 4.0 legalcode
+  are archived as licence evidence. They do not change this project's own
+  licence.
+- Execution attribution: the dom.html snapshot was fetched by the parent thread
+  `T-01a112fd-f114-746e-9257-720005c699bf`; the byte count and SHA-256 were
+  verified by the coding thread, which also read §3.2.5.2.1. The two licence
+  files and the excerpt were fetched/derived and archived by the coding thread.

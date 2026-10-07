@@ -61,7 +61,7 @@ func validateCommand(o options) (string, error) {
 			}
 		}
 		if !o.help {
-			values := map[string]string{"book": o.book, "task": o.book, "workspace": o.workspace, "operations": o.operations, "plan": o.plan, "output": o.output, "section": o.section, "resource": o.resource}
+			values := map[string]string{"book": o.book, "task": o.book, "workspace": o.workspace, "operations": o.operations, "plan": o.plan, "output": o.output, "section": o.section, "resource": o.resource, "before": o.before}
 			if o.content.Query != nil {
 				values["query"] = *o.content.Query
 			}
@@ -94,8 +94,14 @@ func validateCommand(o options) (string, error) {
 		}
 		return name, nil
 	}
+	if name == "fix delta" && !o.help && (o.afterRevision == "") == (o.afterTask == "") {
+		return bad("fix delta requires exactly one of --after-revision or --after-task")
+	}
+	if name == "fix propose" && !o.help && o.emitRequest && o.output == "" && o.book != "" {
+		return bad("unexpected positional target")
+	}
 	// Groups have overview help, but never accept arguments as a hidden command.
-	if (name == "workspace" || name == "task") && o.help && o.book == "" {
+	if (name == "workspace" || name == "task" || name == "fix") && o.help && o.book == "" {
 		for key := range o.seen {
 			if key != "--help" && key != "--json" && key != "--no-input" {
 				return bad("option requires a subcommand")

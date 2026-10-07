@@ -17,6 +17,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/LeviTK/Kepub/internal/bookpath"
+	"github.com/LeviTK/Kepub/internal/fault"
+	"github.com/LeviTK/Kepub/internal/fix"
 	"github.com/LeviTK/Kepub/internal/metadata"
 	"github.com/LeviTK/Kepub/internal/publication"
 )
@@ -115,18 +117,19 @@ type Request struct {
 	Operations    []Operation `json:"operations"`
 }
 type Plan struct {
-	SchemaVersion      int         `json:"schemaVersion"`
-	ID                 string      `json:"planId"`
-	WorkspaceID        string      `json:"workspaceId"`
-	WorkspacePath      string      `json:"workspacePath"`
-	BaseRevision       string      `json:"baseRevision"`
-	InputTreeSHA256    string      `json:"inputTreeSha256"`
-	OperationSetSHA256 string      `json:"operationSetSha256"`
-	PolicySHA256       string      `json:"policySha256"`
-	Rootfile           string      `json:"rootfile"`
-	Operations         []Operation `json:"operations"`
-	WriteSet           []string    `json:"writeSet"`
-	Applicable         bool        `json:"applicable"`
+	SchemaVersion      int           `json:"schemaVersion"`
+	ID                 string        `json:"planId"`
+	WorkspaceID        string        `json:"workspaceId"`
+	WorkspacePath      string        `json:"workspacePath"`
+	BaseRevision       string        `json:"baseRevision"`
+	InputTreeSHA256    string        `json:"inputTreeSha256"`
+	OperationSetSHA256 string        `json:"operationSetSha256"`
+	PolicySHA256       string        `json:"policySha256"`
+	Rootfile           string        `json:"rootfile"`
+	Proposal           *fix.Proposal `json:"proposal,omitempty"`
+	Operations         []Operation   `json:"operations"`
+	WriteSet           []string      `json:"writeSet"`
+	Applicable         bool          `json:"applicable"`
 }
 type Change struct {
 	Path   string `json:"path"`
@@ -490,11 +493,19 @@ func policyFor(version int) string {
 		return replacePolicy
 	case 6:
 		return movePolicy
+	case 7:
+		return fixPolicy
 	}
 	return editPolicy
 }
 
 func validPlanOperation(p Plan) bool {
+	if p.SchemaVersion == 7 {
+		return p.Proposal != nil && p.PolicySHA256 == digest(fixPolicy)
+	}
+	if p.Proposal != nil {
+		return false
+	}
 	v, err := operationSchema(p.Operations)
 	return err == nil && p.SchemaVersion == v && (p.PolicySHA256 == digest(policyFor(v)) || v == 1 && p.BaseRevision == "initial" && p.PolicySHA256 == digest(legacyEditPolicy))
 }
@@ -777,22 +788,58 @@ func (w *Workspace) Plan(requestJSON []byte) (Plan, error) {
 	if err := w.ensureIdentity(); err != nil {
 		return Plan{}, err
 	}
-	var request Request
-	if err := decodeStrict(requestJSON, &request); err != nil {
-		return Plan{}, err
+	var probe struct {
+		SchemaVersion int `json:"schemaVersion"`
 	}
-	version, err := operationSchema(request.Operations)
+	_ = json.Unmarshal(requestJSON, &probe)
+	version := 0
+	var proposal *fix.Proposal
+	var operations []Operation
+	if probe.SchemaVersion == 7 {
+		var request fixRequest
+		if err := decodeStrict(requestJSON, &request); err != nil {
+			return Plan{}, err
+		}
+		if err := w.validateFixProposal(request.Proposal); err != nil {
+			return Plan{}, err
+		}
+		if !fix.OperationMultiset(fixOperations(request.Operations), request.Proposal.Derived.Operations) {
+			return Plan{}, fault.New(2, "INVALID_OPERATIONS", "request operations do not match the proposal selection")
+		}
+		version, proposal, operations = 7, request.Proposal, request.Operations
+	} else {
+		var request Request
+		if err := decodeStrict(requestJSON, &request); err != nil {
+			return Plan{}, err
+		}
+		v, err := operationSchema(request.Operations)
+		if err != nil {
+			return Plan{}, err
+		}
+		if request.SchemaVersion != v {
+			return Plan{}, fmt.Errorf("unsupported request version")
+		}
+		version, operations = v, request.Operations
+	}
+	d, err := w.recompute(operations)
 	if err != nil {
 		return Plan{}, err
 	}
-	if request.SchemaVersion != version {
-		return Plan{}, fmt.Errorf("unsupported request version")
+	p := Plan{
+		SchemaVersion:      version,
+		ID:                 randomID(),
+		WorkspaceID:        w.id,
+		WorkspacePath:      w.dir,
+		BaseRevision:       w.current,
+		InputTreeSHA256:    w.base.SHA256,
+		OperationSetSHA256: digest(operations),
+		PolicySHA256:       digest(policyFor(version)),
+		Rootfile:           w.state.Rootfile,
+		Proposal:           proposal,
+		Operations:         operations,
+		WriteSet:           d.writes,
+		Applicable:         true,
 	}
-	d, err := w.recompute(request.Operations)
-	if err != nil {
-		return Plan{}, err
-	}
-	p := Plan{version, randomID(), w.id, w.dir, w.current, w.base.SHA256, digest(request.Operations), digest(policyFor(version)), w.state.Rootfile, request.Operations, d.writes, true}
 	if !exists(w.root, "plans") {
 		if err := w.root.Mkdir("plans", 0700); err != nil {
 			return Plan{}, err

@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "batch": "t2-fix-proposal",
+  "baseline": "EPUB3.3-REC2026-01-13",
+  "note": "Batch-scoped external definition and licence evidence for the T2 batch-5 native fix proposal. The S0 original/, text/, manifest.json, INDEX.md and their hashes are not modified.",
+  "assets": [
+    {
+      "id": "html-dom-2026-10-07",
+      "category": "external-dependency",
+      "normativeLevel": "living-standard",
+      "requestUrl": "https://html.spec.whatwg.org/multipage/dom.html",
+      "finalUrl": "https://html.spec.whatwg.org/multipage/dom.html",
+      "version": "living-standard@2026-10-07",
+      "downloadedAt": "2026-10-07",
+      "path": "batches/t2-fix-proposal/original/html-dom.html",
+      "bytes": 439903,
+      "sha256": "c830abc1b4bf25a516a64af1bf5258b381d0a437cd5d9411501cecb4a1f90c41",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": ["T2-fix-proposal FR-1"],
+      "dependencies": [],
+      "attribution": {
+        "fetchedBy": "parent thread T-01a112fd-f114-746e-9257-720005c699bf",
+        "verifiedBy": "coding thread (byte count + SHA-256 + section read)",
+        "archivedBy": "coding thread (this batch tree)"
+      }
+    },
+    {
+      "id": "whatwg-ipr-policy",
+      "category": "external-dependency",
+      "normativeLevel": "licence",
+      "requestUrl": "https://whatwg.org/ipr-policy",
+      "finalUrl": "https://whatwg.org/ipr-policy",
+      "version": "2026-10-07",
+      "downloadedAt": "2026-10-07",
+      "path": "batches/t2-fix-proposal/original/whatwg-ipr-policy.html",
+      "bytes": 36038,
+      "sha256": "7cc4d98fe3179995010bc00e64ec6b64dd782aae8c6de7dd9c7533b901107227",
+      "contentType": "text/html; charset=utf-8",
+      "requiredBy": ["T2-fix-proposal licence evidence"],
+      "dependencies": [],
+      "attribution": {"fetchedBy": "coding thread", "verifiedBy": "coding thread", "archivedBy": "coding thread"}
+    },
+    {
+      "id": "cc-by-4.0-legalcode",
+      "category": "external-dependency",
+      "normativeLevel": "licence",
+      "requestUrl": "https://creativecommons.org/licenses/by/4.0/legalcode.txt",
+      "finalUrl": "https://creativecommons.org/licenses/by/4.0/legalcode.txt",
+      "version": "4.0",
+      "downloadedAt": "2026-10-07",
+      "path": "batches/t2-fix-proposal/original/cc-by-4.0-legalcode.txt",
+      "bytes": 18657,
+      "sha256": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": ["T2-fix-proposal licence evidence"],
+      "dependencies": [],
+      "attribution": {"fetchedBy": "coding thread", "verifiedBy": "coding thread", "archivedBy": "coding thread"}
+    },
+    {
+      "id": "html-dom-metadata-content-excerpt",
+      "category": "supporting-note",
+      "normativeLevel": "derived",
+      "requestUrl": "https://html.spec.whatwg.org/multipage/dom.html",
+      "finalUrl": "https://html.spec.whatwg.org/multipage/dom.html",
+      "version": "living-standard@2026-10-07",
+      "downloadedAt": "2026-10-07",
+      "path": "batches/t2-fix-proposal/text/html-dom-3.2.5.2.1.txt",
+      "bytes": 1519,
+      "sha256": "28bd3268a1132669f4dd1f1463b1ed45bb34d9526b3e57f37a9d5033639e7ce3",
+      "contentType": "text/plain; charset=utf-8",
+      "requiredBy": ["T2-fix-proposal FR-1"],
+      "dependencies": ["html-dom-2026-10-07"],
+      "attribution": {"fetchedBy": "coding thread", "verifiedBy": "coding thread", "archivedBy": "coding thread"}
+    }
+  ]
+}

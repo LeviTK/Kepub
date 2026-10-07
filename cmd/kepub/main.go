@@ -25,8 +25,10 @@ type options struct {
 	command, book, section, output, rootfile string
 	action, workspace, operations, plan      string
 	resource, direction                      string
+	selectValue, before, afterRevision       string
+	afterTask                                string
 	json, help                               bool
-	strict, draft                            bool
+	strict, draft, emitRequest               bool
 	timeout                                  time.Duration
 	content                                  publication.ContentOptions
 	seen                                     map[string]bool
@@ -46,7 +48,7 @@ func parse(args []string) (o options, err error) {
 		if len(positional) > 0 {
 			o.command = positional[0]
 		}
-		if o.command == "workspace" || o.command == "task" {
+		if o.command == "workspace" || o.command == "task" || o.command == "fix" {
 			o.book = ""
 			if len(positional) > 1 {
 				o.action = positional[1]
@@ -84,6 +86,14 @@ func parse(args []string) (o options, err error) {
 				return o, fault.New(2, "INVALID_ARGUMENT", "duplicate option %s", s)
 			}
 			seen[s] = true
+			continue
+		}
+		if s == "--emit-request" {
+			if seen[s] {
+				return o, fault.New(2, "INVALID_ARGUMENT", "duplicate option %s", s)
+			}
+			seen[s] = true
+			o.emitRequest = true
 			continue
 		}
 		if s == "--strict" || s == "--draft" {
@@ -135,6 +145,14 @@ func parse(args []string) (o options, err error) {
 				o.operations = val
 			case "--plan":
 				o.plan = val
+			case "--select":
+				o.selectValue = val
+			case "--before":
+				o.before = val
+			case "--after-revision":
+				o.afterRevision = val
+			case "--after-task":
+				o.afterTask = val
 			case "--timeout":
 				n, e := strconv.ParseUint(val, 10, 32)
 				if e != nil || n == 0 {
@@ -207,6 +225,14 @@ func execute(ctx context.Context, o options) (any, error) {
 		}
 		return data, err
 	}
+	if o.command == "fix" {
+		switch o.action {
+		case "propose":
+			return app.FixPropose(o.workspace, o.selectValue, o.emitRequest, o.output, o.json)
+		case "delta":
+			return app.FixDelta(ctx, o.workspace, o.before, o.afterRevision, o.afterTask, o.output, validation.Options{Strict: o.strict, Timeout: o.timeout}, o.json)
+		}
+	}
 	if o.command == "capabilities" {
 		return app.Capabilities(), nil
 	}
@@ -275,7 +301,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	var data any
 	if err == nil {
 		ctx := context.Background()
-		if o.command == "doctor" || o.command == "validate" || o.command == "pack" || o.command == "workspace" && o.action == "export" || o.command == "task" && o.action == "accept" {
+		if o.command == "doctor" || o.command == "validate" || o.command == "pack" || o.command == "workspace" && o.action == "export" || o.command == "task" && o.action == "accept" || o.command == "fix" && o.action == "delta" {
 			var stop context.CancelFunc
 			ctx, stop = signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 			defer stop()
@@ -308,6 +334,11 @@ func run(args []string, stdout, stderr io.Writer) int {
 		}
 	} else if err != nil {
 		fmt.Fprintf(stderr, "%s: %s\n", fe.Code, fe.Message)
+	} else if raw, ok := data.(app.RawDocument); ok {
+		if _, e := stdout.Write(raw.Bytes); e != nil {
+			fmt.Fprintln(stderr, "output:", e)
+			return 6
+		}
 	} else {
 		b, e := humanSummary(strings.TrimSpace(o.command+" "+o.action), data)
 		if e != nil {
