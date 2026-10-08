@@ -340,7 +340,11 @@ func TestN2LegacySchemas(t *testing.T) {
 			} else {
 				fresh, err = w.Plan(editJSON(t, Request{version, ops}))
 			}
-			if err != nil || fresh.SchemaVersion != version || fresh.PolicySHA256 != digest(legacyPolicyFor(version)+";reference-parser-v2") || fresh.PolicySHA256 == p.PolicySHA256 {
+			wantPolicy := legacyPolicyFor(version) + ";reference-parser-v2"
+			if version == 7 {
+				wantPolicy += ";file-target-v2"
+			}
+			if err != nil || fresh.SchemaVersion != version || fresh.PolicySHA256 != digest(wantPolicy) || fresh.PolicySHA256 == p.PolicySHA256 {
 				t.Fatalf("new schema lost explicit parser binding: %+v %v", fresh, err)
 			}
 			assertBytes(t, original, originalBytes)

@@ -416,6 +416,17 @@ Delta 在两侧已核私有快照实际运行固定检查并绑定完整报告�
 为旧远端跟踪状态；本节及附件由父冻结后传给编码线程，随后产品 fixed 树独立复审
 与父验收已经完成。当前开发暂停，main 源码同步不授权下一批或发行。
 
+**Issue #9 的文件目标资格增量：** 完整 typed Tree、内容 hash 和空目录保留不变；新提案的 FR-2
+只把普通文件视为容器目标，目录／缺失路径保留 fact 并明确 unfixable，不生成 operation/writeSet。
+原样 URL 解析与唯一 fragment 的只读必要条件和结构门禁共用；无法索引的目标不扩大编辑范围。
+快照库存／HashTree 失败必须传播，不返回无 hash 的“完整”提案。FR-1/FR-2 的事实、rule v1、
+FixProposal v1 wire 和 hash 算法不改，只修资格；新 schema 7 policy 在既有 parser-v2 后追加
+`;file-target-v2`。schema 1–6 的 shape/policy 和操作权限不受影响。
+未消费的旧 schema 7 policy 计划须重新计划；已消费的旧记录（含 parser-v2、尚无 file-target-v2）
+按 plan 的保存 policy 重推原目标资格和整个提案／derivedFrom，允许审阅、拒绝、恢复及已接受历史
+读取／正式导出，不允许新 accept。既有持久 settlement 仍只完成原决定，不改写来源或接受证据。
+旧提案可重新提交 Plan，但必须通过当前完整提案重推；目录项或 derivedFrom 改变返回 PROPOSAL_DRIFT。
+
 ## 3. 目标选择与全局约定
 
 ### 3.1 明确目标

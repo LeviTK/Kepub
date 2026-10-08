@@ -11,6 +11,10 @@
 - FR2 的 `?x=1`／`?` 删除后为空字符串仍是适用事实与真实属性编辑；目标存在性一经确认即加入
   readSet，不以 fragment 非空或成功解析作为依赖收集的前提。不 trim 新值或放宽旧 gate。
   永久入口：`TestFixRelativeURLQueryBytes`（workspace，三编码完整七资源字节及旧 gate 正控）。
+- 完整库存保留类型；新 FR2 只认 `file`，目录／未知类型不是资源。与结构门禁共用
+  `publication.CheckReferenceTarget` 的存在性和唯一 fragment 条件，不为非 XHTML fragment 扩权。
+  `Snapshot.TargetVersion=1` 仅供已消费旧 schema 7 policy 的完整来源重推，不成为新请求入口。
+  入口：`TestN3TypedInventory`、`TestN3DirectoryTargetQualification`、`TestN3FileTargetMatrix`。
 - 相同 severity 先逐实例 persisted，再按剩余实例数配对 severity 变化；不能一次消费整组或复用已
   persisted 的实例。native 同形边界也要保留 surplus，覆盖不足仍不可宣称 resolved。
   永久入口：`TestClassifyDeltaSeverityMultiplicity`、`TestClassifyDeltaNativeMultiplicity`。

@@ -1153,6 +1153,9 @@ func (w *Workspace) Accept(ctx context.Context, id string, o validation.Options)
 	if planReferenceVersion(e.Plan) != publication.ReferenceParserVersion {
 		return d, fmt.Errorf("%w: legacy reference policy must be rejected and replanned before acceptance", ErrTaskConflict)
 	}
+	if planTargetVersion(e.Plan) != 2 {
+		return d, fmt.Errorf("%w: legacy target policy must be rejected and replanned before acceptance", ErrTaskConflict)
+	}
 	idRevision := randomID()
 	stage := "staging/accept-" + idRevision
 	if err := w.root.Mkdir(stage, 0700); err != nil {

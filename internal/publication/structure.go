@@ -1591,3 +1591,32 @@ func PlannedTarget(doc *StructureDocument, edits []*StructureEdit, locator strin
 
 // countBlockNodes counts the top-level fragment nodes emitted by one block.
 func countBlockNodes(n *simNode) int { return n.blockNodes }
+
+// CheckReferenceTarget proves the read-only necessary conditions shared by fix
+// qualification and the final structure gate. The caller resolves the exact
+// URL with bookpath.ResolveReference and supplies only regular-file existence;
+// the ID reader may use the transaction's final identity counts or a frozen
+// source's supported index. It does not authorize an edit or read external URLs.
+func CheckReferenceTarget(ref bookpath.Reference, hasFile bool, idsFor func(bookpath.BookPath) (map[string]int, error)) error {
+	if ref.External {
+		return nil
+	}
+	if !hasFile {
+		return fault.New(2, "INVALID_OPERATIONS", "reference target %q does not exist", ref.Path)
+	}
+	if ref.Fragment == "" {
+		return nil
+	}
+	ids, err := idsFor(ref.Path)
+	if err != nil {
+		return err
+	}
+	switch ids[ref.Fragment] {
+	case 1:
+		return nil
+	case 0:
+		return fault.New(2, "INVALID_OPERATIONS", "fragment %q is not present in %s", ref.Fragment, ref.Path)
+	default:
+		return fault.New(2, "INVALID_OPERATIONS", "fragment %q is ambiguous in %s", ref.Fragment, ref.Path)
+	}
+}

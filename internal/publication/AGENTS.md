@@ -1,6 +1,8 @@
 # Publication：局部编辑、身份与 URL 语义
 
 - 复用 `StructureDocument`、`StructureEdit`、`ValidateEdits`、`ApplyEdits`、`VerifyStructure`；校验目标的完整祖先链、manifest 权限和插入点 namespace 上下文，不只检查当前元素。
+- `CheckReferenceTarget` 只核已按原样解析的 URL、普通文件存在性和最终唯一 fragment；提案可用
+  冻结 XHTML 索引、执行可用全事务最终 ID 计数，二者都不从目录存在推导资源授权。
 - identity/IDREF 使用已有共享 `IdentityValues`、`ElementIdentities`、`CountIDs`、`MergedIdentityDelta` 与 IDREF 词表；不能新增一个只适用某操作的别名计数模型。
 - IDREF v2 是字面身份而非 URL：列表只拆 ASCII 空白，NBSP 保留，单 IDREF 不拆；
   output.for 按宿主列表类型处理。属性、片段和搬入块共用同一 tokenizer，旧已消费来源显式用 v1。

@@ -83,6 +83,14 @@
 
 ## G-QUALIFY：事实、来源与真实旧门禁资格分离
 
+- 全 Tree 的路径被扁平为“存在” → 目录 FR2 被声明 fixable、真实 plan 文件门禁拒绝；
+  HashTree 错误被丢弃 → 无 hash／库存的貌似完整快照 → 保留 typed 库存，仅普通文件参与
+  资格，共用只读 `CheckReferenceTarget`，错误原样传播。`TestN3DirectoryTargetQualification`、
+  `TestN3TypedInventory`、`TestN3FileTargetMatrix`、`TestN3SnapshotHashError` 覆盖三编码／两快照
+  入口／无与唯一、缺失、重复 fragment／中文和百分号。完整 Tree 与空目录不删。
+- 新资格重推旧 schema 7 的 derivedFrom → 合法旧已消费来源丢失 → 新 policy 显式 file-target-v2，
+  已消费旧 policy 只作原语义完整来源核验，不作新接受授权；`TestN3LegacyTargetSource` 和
+  `TestN3FixTargetBinaryLifecycle` 保留历史及真实 checker／空目录正式导出边界。
 - PK1 残余消费边界：仅在 accepted revision 重推 schema 7 → rejected history/settlement recovery
   接受一致重签的伪 risk → 共用 `taskDigests` 重推自身 BaseRevision；永久入口
   `TestFixRejectedSourceRevalidation`（含 accepted 推进后的合法旧历史和归档中断恢复）。

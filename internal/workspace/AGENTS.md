@@ -37,6 +37,10 @@
 - 每个快照（revision/task）绑定自己的已核 tree/inventory；历史 initial 不得继承当前 accepted 的
   `InputTreeSHA256`。native facts 与 checker 必须消费**同一份**已核私有快照（`archive.SnapshotDirectory`
   + `Unpack` 到私有目录），live 目录只是身份证据，不是检查输入；drift/I-O fault 保留。
+- 提案两快照入口保留文件／目录类型，HashTree 错误不得忽略；完整 Tree／hash／空目录不删。
+  schema 7 新 policy 追加 `;file-target-v2`；旧已消费来源显式重推旧资格及 derivedFrom，不能用
+  新资格改写旧 history/settlement。旧未消费计划和新的旧策略 accept 均要求重新计划；
+  原持久决定恢复及旧 accepted 正式导出保留。入口 `TestN3SnapshotHashError`、`TestN3LegacyTargetSource`。
 - task diff 的 schema 7 review 携带经重推的完整提案（真实旧值在 target，计划新值在 operation 参数）；
   旧 schema 输出 shape 不变。
 - 已有外部输出用 `OUTPUT_EXISTS`/2（单点分类在 `outputPath`，预检原样传播 fault，其余路径问题仍
