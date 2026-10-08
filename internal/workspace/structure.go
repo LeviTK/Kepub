@@ -27,6 +27,17 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 		return derivation{}, err
 	}
 	profile := xmltext.Profile{Version: pub.Version, MediaType: "application/xhtml+xml"}
+	var replaceBudget *publication.ReplaceBudget
+	for _, op := range ops {
+		if op.ID == "content.text.replace" {
+			replaceBudget = publication.NewReplaceBudget()
+			if w.replaceBudget != nil {
+				copy := *w.replaceBudget
+				replaceBudget = &copy
+			}
+			break
+		}
+	}
 	// Phase 0 derives every cross-resource move and its incoming reference
 	// synchronization from the frozen bytes, before any resource group is
 	// assembled: a move's edits and the references it rewrites must be visible
@@ -155,6 +166,15 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 		if err := publication.CheckXHTMLTarget(pub, bp); err != nil {
 			return derivation{}, err
 		}
+		if replaceBudget != nil {
+			info, err := a.root.Stat(path)
+			if err != nil {
+				return derivation{}, err
+			}
+			if err := replaceBudget.TakeInput(info.Size()); err != nil {
+				return derivation{}, err
+			}
+		}
 		base, err := a.Read(bp, publication.XMLLimit)
 		if err != nil {
 			return derivation{}, err
@@ -243,7 +263,7 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 				}
 				var facts publication.ReplaceFacts
 				var replaceEdits []*publication.StructureEdit
-				replaceEdits, facts, err = doc.ReplaceTextEdits(param)
+				replaceEdits, facts, err = doc.ReplaceTextEdits(param, replaceBudget)
 				if err != nil {
 					return derivation{}, err
 				}
@@ -380,6 +400,18 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 		}
 	}
 	// Phase 3 applies and independently verifies each resource's bytes.
+	if replaceBudget != nil {
+		for _, ge := range derived {
+			if err := replaceBudget.TakeOutput(ge.base, ge.edits); err != nil {
+				return derivation{}, err
+			}
+		}
+		if rootTouched {
+			if err := replaceBudget.TakeOutput(rootCurrent, nil); err != nil {
+				return derivation{}, err
+			}
+		}
+	}
 	for _, ge := range derived {
 		output := publication.ApplyEdits(ge.base, ge.edits)
 		if err := publication.VerifyStructure(ge.doc, ge.edits, output); err != nil {

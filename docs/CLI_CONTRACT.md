@@ -260,6 +260,22 @@ FixProposal／ValidationDelta 与两条原生规则以 §2.11 及其冻结附件
 - **全链：** plan／apply／checkpoint／restore／journal／diff／accept／历史来源重算都从冻结基线重算规则、命中与完整写集合；`task diff` 的 `operations` 为每个替换操作给出 `replace`（`mode`、`expectedHits`、实际 `hits`、每个受影响元素的 locator 与**实际候选直接文本**，不可观测时 `unavailable`）。accept 仍以固定 EPUBCheck 与冻结树为准。
 - **验证：** 不对称正反例（跨元素边界不命中、同元素跨内联子元素命中拒绝、空匹配拒绝、命中数不符拒绝、实体／CDATA 拒绝、UTF-16 与 CRLF 保真、regex 捕获展开）、有效事务独立字节 oracle、live fuzz 与真实 checker 闭环；不扩大 `content.text.set` v1 权限。
 
+**Issue #7 安全预算补充（不改变 schema／规范编码摘要）：** 含 `content.text.replace`
+的完整事务共用 10000 次实际命中、8 MiB 匹配元数据预算；捕获展开、转义编码、
+受影响元素结果文本、分组冻结输入、最终资源输出分别共用 32 MiB 累计预算。
+每处展开及元素结果仍不超过 1 MiB，每个最终资源仍不超过 8 MiB，不提高旧上限。
+元数据计数包括返回的索引整数、slice header 和命中记录；不冒称 Go heap／RSS 峰值。
+正则先用有界整体索引（最多剩余上限 + 1，额外一个仅用于识别超限）核命中，
+再在元数据预算内收集捕获组；临时哨兵最多一个两整数索引及 slice header。
+展开前按 Go 模板规则计量，转义前按原 UTF-8／UTF-16 编码计量，资源拼接前核完整
+最终大小；等值替换保留原物理字节，但不豁免来源与精确命中绑定。
+每次冻结来源重推重建同一默认预算，不共享跨调用的已消费计数，不添加请求字段或 CLI 开关。
+超限为 `RESOURCE_LIMIT`（exit 1），在 plan／执行意图发布前拒绝，无截断成功；
+running／无 result 的中断任务重算超预算时，先核冻结基线、保存来源、used/start/checkpoint，
+沿原事务恢复 checkpoint 并保留失败审计，再返回 RESOURCE_LIMIT；不改写已完成／未开始
+的任务，不把回滚当作效果验证成功，后续完整来源重推没有 failed 状态豁免。
+原有锁、恢复与真实 EPUBCheck 正式接受／导出规则不变。
+
 ### 2.10 T2 第四批跨资源显式子树移动与依赖同步实施契约（已独立验收并集成主线）
 
 固定产品 `5e508f3` 及测试／指导维护 `bb1b46f` 已分别通过有限独立审查与父验收。

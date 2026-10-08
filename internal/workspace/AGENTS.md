@@ -53,4 +53,18 @@
 - 永久入口：`TestR1JSONByteBudget`、`TestR1LegacyRecordByteBudget`、
   `TestR1CreateLongPathInventory`、`TestR1CreateMetadataShortWrite`。
 
+## 替换推导的累计预算
+
+- `recomputeStructure` 为含替换的全事务创建一份预算，多元素／操作／资源不能重置；
+  Plan、Apply 和后续冻结来源重推各自新建相同默认预算，不复用先前消费状态。
+- 在完整资源拼接前核全部输出大小，先计 disjoint removals 再加新字节，不按操作顺序
+  误拒合法净缩减。预算失败在 plan／执行意图发布前拒绝，原书、accepted、锁与审计保留。
+- 已登记 running／无 result 的执行重算超预算，先核 identity、冻结基线、保存来源、
+  used、start 与 checkpoint，再沿原 restore journal 回滚并保留观察到的失败 diff；仍返回
+  RESOURCE_LIMIT，不当作可容忍 drift。未开始／已完成／伪来源不改写；失败状态不能豁免
+  后续 execution、reject、settlement／history 的完整重推。
+- 小预算只通过私有逐工作区测试模板注入，不添加 CLI 开关或持久 schema 字段。
+  入口：`TestN1TransactionBudget`、`TestN1ResourceBudget`、`TestN1ApplyBudgetRevalidation`、
+  `TestN1PostStartBudgetRecovery`、`TestN1BudgetRecoveryBoundaries`。
+
 对应开发注意事项：`G-FINAL`、`G-FACTS`、`G-BINDING`、`G-ORACLE`、`G-QUALIFY`、`G-JSON`。

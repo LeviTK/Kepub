@@ -8,6 +8,11 @@
 - 跨资源移动只改契约列明的 URL 属性，保留 RawQuery、显式空 query（ForceQuery）、fragment 和未改写拼写；检查 local/self/other/incoming 四条路径，不用 `"#" + fragment` 丢掉 URL 分量。
 - 每个搬入的 href/src 都贡献链接事实，与是否重写值无关；https 正控、javascript/data 拒绝控、内部目标缺失控必须同时存在。
 - 编码变换保持源外和目的外字节、原编码/BOM/声明；转码不获得额外 XML/namespace/来源权限。
+- 替换共用逐事务 `ReplaceBudget`；索引有界、捕获元数据和模板展开先核预算再分配，不能
+  用最终 expectedHits／字符串长度检查代替。模板计数以 Go ExpandString 语义为准，
+  包括重复命名组的首个参与实例；转义编码由 xmltext 计数，等值替换仍核来源但不重写 CRLF。
+  永久入口 `TestN1ExpansionBeforeAllocation`、`TestN1TemplateGrammar`、
+  `TestN1EncodedAndResultBudgets`；计数／benchmem 不冒称 heap 峰值。
 
 优先沿用测试：`TestStructureEditsExactBytes`、`TestIdentityUnitIsPerElement`、
 `TestReplaceZeroWidthAndProvenance`、`TestReplaceGeneratedDecodedNeighbors`。

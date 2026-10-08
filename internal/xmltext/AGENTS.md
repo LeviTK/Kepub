@@ -6,6 +6,9 @@
 - 有明确来源的合法左右字面应可独立写；无法证明的 token 保守不可写，但先验证对齐是否正确，不用整 token 降级掩盖支持范围内的合法事务误拒。
 - XML newline/reference 规范化按现有解析层责任处理，不对已经构造的 generated 内容再次归一；UTF-16 代理对不能用 UTF-8 索引当物理字节索引。
 - 预算来自 CLI 契约，不引入私有 64 字节等阈值。禁止读取外部 DTD/实体；后续显式迁移 profile 的授权不能影响普通读取路径。
+- 文本替换先用 `ReplaceBytesSize` 计量再生成转义／编码输出；沿同一 `xml.EscapeText`
+  语义计数，UTF-16 按 BMP／代理对单位计字节，不能把 UTF-8 长度乘二当真实编码长度。
+  计量不授予来源权限；完整三编码正反控在 publication 的 `TestN1EncodedAndResultBudgets`。
 
 优先沿用 `TestPhysicalMarkupRangesUTF16`、`TestAttributeMarkupRejectsGeneratedValues`、
 `TestTextRunsKeepsWritableLiteralIntervals`，并配合 publication 层真实 splice 测试。

@@ -872,31 +872,40 @@ func (w *Workspace) Plan(requestJSON []byte) (Plan, error) {
 	return p, syncDir(w.root, "plans")
 }
 
-func (w *Workspace) verifyPlan(p Plan, bindPath bool) (derivation, error) {
+// verifyPlanEnvelope checks identity, frozen baseline and saved proposal source.
+// It does not prove the operation effects; those still require recomputation.
+func (w *Workspace) verifyPlanEnvelope(p Plan, bindPath bool) error {
 	if err := w.ensureIdentity(); err != nil {
-		return derivation{}, err
+		return err
 	}
 	if err := w.verifyBaseline(); err != nil {
-		return derivation{}, errors.Join(ErrStalePlan, err)
+		return errors.Join(ErrStalePlan, err)
 	}
 	if !validPlanOperation(p) || !validID(p.ID) || p.WriteSet == nil || p.WorkspaceID != w.id || bindPath && p.WorkspacePath != w.dir || p.BaseRevision != w.current || p.InputTreeSHA256 != w.base.SHA256 || p.Rootfile != w.state.Rootfile || p.OperationSetSHA256 != digest(p.Operations) {
-		return derivation{}, ErrStalePlan
+		return ErrStalePlan
 	}
 	var stored Plan
 	if err := readEditJSON(w.root, "plans/"+p.ID+".json", &stored); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return derivation{}, ErrStalePlan
+			return ErrStalePlan
 		}
-		return derivation{}, err
+		return err
 	}
 	if digest(stored) != digest(p) {
-		return derivation{}, ErrStalePlan
+		return ErrStalePlan
 	}
 	if err := w.verifyFixPlan(p); err != nil {
-		return derivation{}, err
+		return err
 	}
 	if err := w.verifyBaseline(); err != nil {
-		return derivation{}, errors.Join(ErrStalePlan, err)
+		return errors.Join(ErrStalePlan, err)
+	}
+	return nil
+}
+
+func (w *Workspace) verifyPlan(p Plan, bindPath bool) (derivation, error) {
+	if err := w.verifyPlanEnvelope(p, bindPath); err != nil {
+		return derivation{}, err
 	}
 	d, err := w.recompute(p.Operations)
 	if err != nil {
@@ -1248,9 +1257,18 @@ func (w *Workspace) execution() (Execution, error) {
 	}
 	// A registered task has consumed its plan. Its stored identity and source
 	// still bind execution after moving the workspace, not the former host path.
-	d, err := w.verifyPlan(intent, false)
-	if err != nil {
+	if err := w.verifyPlanEnvelope(intent, false); err != nil {
 		return e, err
+	}
+	d, deriveErr := w.recompute(intent.Operations)
+	if deriveErr != nil {
+		var f *fault.Error
+		if !errors.As(deriveErr, &f) || f.Code != "RESOURCE_LIMIT" {
+			return e, deriveErr
+		}
+	}
+	if !intent.Applicable || deriveErr == nil && !slices.Equal(d.writes, intent.WriteSet) {
+		return e, ErrStalePlan
 	}
 	task, err := w.taskID()
 	if err != nil {
@@ -1271,6 +1289,9 @@ func (w *Workspace) execution() (Execution, error) {
 	if unstarted {
 		if exists(w.root, "tasks/active/edit-result.json") {
 			return e, fmt.Errorf("execution result without start")
+		}
+		if deriveErr != nil {
+			return e, deriveErr
 		}
 		// No registered mutation can precede edit-start. Capture the verified
 		// baseline as provenance; preserve any outside writer's candidate drift.
@@ -1303,26 +1324,39 @@ func (w *Workspace) execution() (Execution, error) {
 	if start.Version != intent.SchemaVersion || (start.Status != "running" && start.Status != "unstarted") || start.ReviewRequired || start.Conformance != "not_run" || digest(start.Diff) != digest(compareTrees(s.Tree, s.Tree)) || s.Tree.SHA256 != w.base.SHA256 {
 		return e, fmt.Errorf("invalid execution start")
 	}
+	// Only a verified, interrupted mutation can be rolled back on a budget
+	// failure. Never rewrite a completed result or discard unstarted drift.
+	if deriveErr != nil && (start.Status != "running" || exists(w.root, "tasks/active/edit-result.json")) {
+		return e, deriveErr
+	}
 	if !exists(w.root, "tasks/active/edit-result.json") {
 		// Interrupted mutation is rolled back, not silently rerun as a new task.
 		actual, err := hashAt(w.root, candidate)
 		if err != nil {
-			return e, err
+			return e, errors.Join(deriveErr, err)
 		}
 		e = start
 		e.Diff = compareTrees(w.base, actual)
 		if start.Status == "running" {
 			if err := w.restore(start.Checkpoint); err != nil {
-				return e, err
+				return e, errors.Join(deriveErr, err)
 			}
 		}
 		e.Status = "failed"
 		e.Failure = "interrupted apply"
+		if deriveErr != nil {
+			e.Failure = deriveErr.Error()
+		}
 		if err := writeJSON(w.root, "tasks/active/edit-result.json", e); err != nil {
-			return e, err
+			return e, errors.Join(deriveErr, err)
 		}
 		if err := syncDir(w.root, "tasks/active"); err != nil {
-			return e, err
+			return e, errors.Join(deriveErr, err)
+		}
+		if deriveErr != nil {
+			// Restoration is not proof of effects. Later execution, rejection
+			// and history consumption must still perform full recomputation.
+			return e, deriveErr
 		}
 	} else if err := readEditJSON(w.root, "tasks/active/edit-result.json", &e); err != nil {
 		return e, err
