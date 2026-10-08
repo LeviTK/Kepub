@@ -2,9 +2,11 @@
 
 独立终端 EPUB 创建、修改与维护工具；后续扩展阅读／制作 UI 和 Amp 协作。
 
-**当前状态：开发方案 v0.10，S0 固定规范与差距矩阵、T1a 编码／终端基础及 T1b 内部 DTD／实体／默认属性均已通过独立审计和父验收，源码已同步到 GitHub main。T1 已完成规定的兼容与终端基础范围；T2 首批版本化多操作／多资源事务底座已通过独立 high 审查与父本地验收（固定提交 23ba8f8），第二批 XHTML 混合内容与结构编辑经四棵固定树拒绝后完成根因修复，最终固定树 79a4548 通过 medium 独立审查与父验收并由父本地集成（公开记录见 [docs/verification/T2_MULTI_OPERATION.md](docs/verification/T2_MULTI_OPERATION.md)）；T2 第三个增量（显式范围字面／正则批量文本替换）开发中，T2 尚未完成，不代表完整 EPUB3 编辑器已经完成。** 后续按 Issue #3／#4 推进独立 CLI 的 T1～T6：默认 EPUB3，补 EPUB2 → EPUB3 转换、完整 EPUB3 XHTML 编辑、样式、系统字体发现和基础图片，不新增嵌入字体；UI、外部编辑器和 Amp 集成后置。既有 M1／M2／C1～C3 已作为源码发布到 main，新增交付状态分别记录。Linux 先功能测试，再打包和实测 Apple Silicon Mac；当前没有版本化安装包或 Mac 实机验收，文档 v0.10 不是软件发行版本。
+**当前状态（2026-10-08）：S0 固定规范与差距矩阵、T1a／T1b 已通过独立审计和父验收；T2 的五个有限增量也已验收并集成主线：多操作／多资源事务、XHTML 结构编辑、显式范围字面／正则替换、跨资源子树移动，以及原生 FixProposal／ValidationDelta。第五批采用固定产品 61fddbe，公开范围与验证摘要见 [T2 验收记录](docs/verification/T2_MULTI_OPERATION.md)。本次 main 源码同步包含这五个增量，但 T2 尚未完成，不代表完整 EPUB3 制书工具已经完成。** 当前按用户要求暂停后续开发，仅同步已验收源码与进度；PK1 两个独立编码候选均通过有限门槛，记平局，采用 Medium 方案不算其 PK 胜局。
 
-S0 归档与门禁：规范原文、官方用例来源与上游研究索引已本地建立。首轮实现 Droid 审查曾发现门禁、证据关联及条款／schema 遗漏；各项修复、复审和实际放行结论以 [父验收记录](docs/verification/S0_PARENT_ACCEPTANCE.md)为准，不能用审查进程 exit 0 代替批准。当前固定资产含 118 项规范／关联文件和 169 个用例 ID／170 本必需测试书；归档验证不等于语义完整性、用例执行或 CLI 全规范兼容。S0 放行必须同时具备绑定同一输入的父验收与真实独立审计批准，离线 `gate` 核验其证据。依用户最新指令，当前审计使用 Amp 的 DeepSeek V4.1 Flash，Droid 待用量恢复后使用；两种执行证据分别核验，不改写历史审查结果，也不降低放行标准。EPUBCheck 5.3.0 对三项 2026 REC 修订的 12 个正反样本已实际核验，不能外推为全规范覆盖。范围与历史限制见 [S0 矩阵](docs/EPUB33_SUPPORT_MATRIX.md)和[检查器核验](docs/verification/S0_EPUBCHECK_2026.md)；源码与公共规范资产已同步到 main，私有原书、审计原始证据包与本地收据未提交，历史记录中的“未推送”保留为当时状态。
+后续仍按开发方案 v0.10 与 Issue #3／#4 推进独立 CLI：默认 EPUB3，补 EPUB2 → EPUB3 转换、剩余 XHTML／资源维护、样式、系统字体发现和基础图片，不新增嵌入字体；UI、外部编辑器和 Amp 集成后置。Linux 先功能测试，再打包和实测 Apple Silicon Mac；当前没有版本化安装包或 Mac 实机验收，文档 v0.10 不是软件发行版本。字体混淆资格、旧工作区显式重评及 T3～T6 等剩余范围未因本次同步放行。
+
+S0 归档与门禁：规范原文、官方用例来源与上游研究索引已本地建立。首轮实现 Droid 审查曾发现门禁、证据关联及条款／schema 遗漏；各项修复、复审和实际放行结论以 [父验收记录](docs/verification/S0_PARENT_ACCEPTANCE.md)为准，不能用审查进程 exit 0 代替批准。当前固定资产含 118 项规范／关联文件和 169 个用例 ID／170 本必需测试书；归档验证不等于语义完整性、用例执行或 CLI 全规范兼容。S0 放行必须同时具备绑定同一输入的父验收与真实独立审计批准，离线 `gate` 核验其证据。S0／T1 的历史审计依用户指令改用 Amp 的 DeepSeek V4.1 Flash；后续 T2 的 high／medium 独立审查分别记录实际执行者，不冒称 Droid 结果，也不降低放行标准。EPUBCheck 5.3.0 对三项 2026 REC 修订的 12 个正反样本已实际核验，不能外推为全规范覆盖。范围与历史限制见 [S0 矩阵](docs/EPUB33_SUPPORT_MATRIX.md)和[检查器核验](docs/verification/S0_EPUBCHECK_2026.md)；源码与公共规范资产已同步到 main，私有原书、审计原始证据包与本地收据未提交，历史记录中的“未推送”保留为当时状态。
 
 ## 已实现：M1-A / M1-B1 只读 CLI
 
@@ -99,6 +101,36 @@ query 区分大小写、按单个结果元素的文本做字面子串匹配；�
 未展开实体按需通过 `xmlCoverage` 报告原字节区间及来源，目录／引用显式 partial；未知 href/src 不生成肯定目标或“缺失”诊断，已知结构错误仍报告。`content/search` 无法给出完整文本时 exit 3。物理独立标签内的已知纯文本实体可整段替换，no-op 保留引用；生成节点、混合内容和未知内容仍不可直接写。
 
 展开后实际序列化流与中间替换工作各限 16 MiB，不放宽原始／索引预算。父侧 **507 次独立 CLI 调用**、root 普通／race／vet、Darwin 交叉构建及编码方三组 live fuzz 均通过；DeepSeek 最终复审批准固定候选。前两轮拒绝、预算／命名空间／未知导航反例及一次旧树 race 超时均保留，详见 [T1b 验收记录](docs/verification/T1B_XML_SUBSET.md)。本批不新增结构操作、CSS／字体／图片编辑或发行，不提升全规范五维能力声明。
+
+## 已验收并集成主线：T2 五个有限增量
+
+| 增量 | 已实现范围 |
+|---|---|
+| schema 3 | 2–256 个既有操作的多资源事务、完整写集合、整批回滚、恢复与历史来源重算 |
+| schema 4 | 受控属性及元素插入／替换／删除／同资源移动，全事务最终身份与引用门禁 |
+| schema 5 | 显式 locator 范围内的字面／Go RE2 替换、精确命中数和原字节来源核验 |
+| schema 6 | 显式跨资源子树移动，三编码保真及证明范围内的 URL／入站链接同步 |
+| schema 7 | 完整 FixProposal 来源绑定、两条原生修复、只读提案与 ValidationDelta |
+
+旧 schema 1～6 的参数、摘要和权限没有被 schema 7 迁移；所有写入仍走既有审核事务。
+第五批只修复禁止位置的 `epub:type` 和符合资格的相对 URL query，不猜作者语义，
+不删除合法 DOCTYPE，不提供任意 patch 或自动接受。
+
+```sh
+./kepub fix propose --workspace 'work' --json
+./kepub fix delta --workspace 'work' --before initial --after-task '实际 taskId' --json
+```
+
+这两条命令只读；执行 FR-2 须按实际 repair ID 显式选择，再经 `plan → apply → task diff → accept/reject`。
+提案可保留 unfixable 项；零操作 emit 返回 `INVALID_OPERATIONS`／2，不生成执行请求。
+Delta 不批准接受或正式导出，错误数量减少也不代表 EPUB 合规。
+接口与边界见 [CLI 契约 §2.7–§2.11](docs/CLI_CONTRACT.md)
+及 [FixProposal/Delta v1 协议](docs/contracts/T2_FIX_PROPOSAL_V1.md)。
+
+第五批父固定树普通／race／vet 实际退出 0／0／0，两测试各 1247 个 PASS 事件、1 项私有原书 SKIP。
+实际普通与 `go build -race` 子 CLI 的输出冲突、256／257 预算、三编码七资源资格控制通过。
+原强空白删除 FAIL、reviewer 首轮 checker 超时及 ZIP 目录计数 oracle 错误均保留并单列纠正，
+不将补证改写成原日志全绿。具体执行者、固定树与有限覆盖见 [T2 验收记录](docs/verification/T2_MULTI_OPERATION.md)。
 
 ## 本地已集成：M1-B2 校验与打包
 
@@ -237,13 +269,13 @@ v0.2 的 Calibre 优化继续保留：转换、整理、结构编辑和只读查
 |---|---|
 | S0．规范资产与差距矩阵 | 按 §11.8 有限清单归档固定规范，三份 REC 按来源逐条清点、映射与对账；3.3 测试报告和用例源码分别锁定，核对 checker 的 2026 增量；外部规范直接引用清单不递归归档整个 Web |
 | T1a／T1b．标准兼容与终端基础 | 两批均已本地验收：原生 DOCTYPE／UTF-16、可读输出／diff／status／search，以及 §3.4 规定的内部声明／实体／默认属性、来源与预算矩阵；保持单操作和简单文本写权限 |
-| T2．内置编辑、多文件事务与修复提案 | 先完成事务／来源重算／恢复，再增加混合内容、结构修改、批量替换及原生 FixProposal、ValidationDelta 和依赖回滚 |
+| T2．内置编辑、多文件事务与修复提案 | 上述五个有限增量已验收；剩余字体混淆资格、旧工作区重评及 OPF／spine、资源维护、NCX／SVG／CSS 引用能力仍待交付 |
 | T3．EPUB2 → EPUB3 首批 | 先冻结 EPUB 2.0.1 及受信离线 DTD／实体资产，再显式迁移 OPF、NCX／nav、封面、必要 XHTML；首批 CSS 原字节保留，需改 CSS 的迁移由 T5 扩展；正式验证且保留原书 |
 | T4．新建与维护 | T4a 默认新建 EPUB3，元数据、章节／目录／资源与历史；T4b 网络小说按标题自动拆章，预览切点并同步阅读顺序和链接 |
 | T5．样式、系统字体与基础图片 | CSS 管理、字体族发现与回退声明；不嵌入字体；基础图片与简单排列；完成 CSS 迁移及 T4b 引用扩展验收，T6 回归正式 ZIP。T4a 后可开工，通过须有 T4b 首版联调 |
 | T6．CLI 验收与发行 | 无可选第三方工具的新建／转换／修复终端流程，Linux 功能测试与构建，再做 Mac 打包及实机验收；正式检查仍需 Java／固定 EPUBCheck |
 
-以上通过后才称为普通 EPUB3 的创建、修改与维护闭环。近期不做完整 EPUB2 编辑器、新建 EPUB2 或 EPUB3 降级；高级排版／媒体、UI、外部编辑器和 Amp 集成后置。T1 新入口的语义见 [契约 §2.4](docs/CLI_CONTRACT.md#24-t1-终端增量实施契约已本地验收)；除已验收的 T1 外，其余新增命令与操作仍按批次冻结、实现和验收，不能将计划能力当可执行功能。
+以上通过后才称为普通 EPUB3 的创建、修改与维护闭环。近期不做完整 EPUB2 编辑器、新建 EPUB2 或 EPUB3 降级；高级排版／媒体、UI、外部编辑器和 Amp 集成后置。T1 新入口的语义见 [契约 §2.4](docs/CLI_CONTRACT.md#24-t1-终端增量实施契约已本地验收)，T2 已验收范围见 §2.7～§2.11；其余新增命令与操作仍须逐批冻结、实现和验收，不能将计划能力当可执行功能。
 
 当前 EPUB3 核心接受规定范围内的允许声明，但不读取任何外部 DTD 子集；未来仅显式 EPUB2 迁移使用冻结的有限离线资源。EPUB2 合法但暂不支持的声明报能力限制，不误套 EPUB3 非法规则。良构但无法展开的实体保留并明确 partial；`content/search` 不能提供完整文本时失败，不把未知内容当空串。T1 的 XML 8 MiB 按原始资源含 BOM 计量，另设每资源解码／展开预算，读取、编辑和来源重算一致；实体生成节点／默认属性不能伪造为原字节可写位置。
 
@@ -261,6 +293,6 @@ T2 另负责标准 IDPF 字体混淆书的受控编辑资格，保持字体字�
 
 参考 Obsidian CLI 的命令发现、目标选择、查询与诊断，但 Kepub 保持无 GUI 可运行，不照搬当前活动文件或任意 eval；具体见 [CLI 构建取舍](docs/DEVELOPMENT_PLAN.md#91-参考-obsidian-cli但保持真正-headless)。[Amp 接口边界](docs/DEVELOPMENT_PLAN.md#813-external-apicli-与-typescript-sdk-的适用边界)另区分 SDK／CLI 的 Agent 执行与 External API 的工作区数据管理，后者不是发送编辑 prompt 的入口。
 
-当前依赖、范围和验收见 [v0.10 开发批次](docs/DEVELOPMENT_PLAN.md#117-v010-独立-cli-批次与完成标准)、[S0 与关闭门槛](docs/DEVELOPMENT_PLAN.md#118-issue-3-阶段映射规范资产与关闭门槛)，转换边界见 [§3.7](docs/DEVELOPMENT_PLAN.md#37-epub2--epub3显式可审阅的版本转换)。原 C1～C3 交付和 C4／U／A 设想保留为历史／后续参考；既有接口约束见 [CLI 契约 §2.1／§2.2](docs/CLI_CONTRACT.md#21-c1c2-本批实施契约)。原父 Orb 统一协调，Medium 子 Orb 编码，固定新树经真实 Droid demo／审查、修复复测和父独立验收；旧基线检查不覆盖新代码。本地实现、源码推送和版本化发行分别记录，发布另获授权。
+当前依赖、范围和验收见 [v0.10 开发批次](docs/DEVELOPMENT_PLAN.md#117-v010-独立-cli-批次与完成标准)、[S0 与关闭门槛](docs/DEVELOPMENT_PLAN.md#118-issue-3-阶段映射规范资产与关闭门槛)，转换边界见 [§3.7](docs/DEVELOPMENT_PLAN.md#37-epub2--epub3显式可审阅的版本转换)。原 C1～C3 交付和 C4／U／A 设想保留为历史／后续参考；既有接口约束见 [CLI 契约 §2.1／§2.2](docs/CLI_CONTRACT.md#21-c1c2-本批实施契约)。父 Orb 统一协调；当前 DeepSeek 与 Medium 两个编码 orb 独立 PK，既有独立 medium reviewer 不参加编码 PK。审查使用各批实际指定的审计者，保留历史 Droid／DeepSeek／high／medium 结果，不将作者自审或旧树批准迁为新树独立批准。本地实现、源码推送和版本化发行分别记录，发布另获授权。
 
 除上面明确列出的命令、库与独立实验外，设计文档中的命令和接口仍待实现；不能将其他设计示例当作当前安装使用说明。

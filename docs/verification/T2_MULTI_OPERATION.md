@@ -1,4 +1,29 @@
-# T2 batches: multi-operation transaction foundation and XHTML structural editing
+# T2 batches: five accepted finite increments
+
+## Current delivery — 2026-10-08
+
+Five finite T2 increments have passed their own independent reviews and parent
+acceptance and are integrated into local `main`. This source synchronization
+includes all five increments and this progress record; it is not a versioned
+release or complete-T2 acceptance. Development is paused by the user: no PK2,
+next feature batch, T3, release, deployment or issue closure is authorized.
+
+| batch | accepted scope | accepted fixed input |
+| --- | --- | --- |
+| 1 / schema 3 | multi-operation / multi-resource transactions | [23ba8f8](https://github.com/LeviTK/Kepub/commit/23ba8f8c36b9ccf04138819acbea2af55caba832) |
+| 2 / schema 4 | XHTML mixed content and structural editing | [79a4548](https://github.com/LeviTK/Kepub/commit/79a4548f25f9e6d7c651c48bd0d404dabe1868d0) |
+| 3 / schema 5 | explicit-scope literal / Go RE2 replacement | [d747c01](https://github.com/LeviTK/Kepub/commit/d747c01ed6ec0ab8d12eb139269ceb142ade8165) |
+| 4 / schema 6 | cross-resource subtree move and proven dependency synchronization | [5e508f3](https://github.com/LeviTK/Kepub/commit/5e508f39945067df57181ba55b51a667c0d44599), then test/guidance maintenance [bb1b46f](https://github.com/LeviTK/Kepub/commit/bb1b46ff8456d141727d36820318916d9840f1f5) |
+| 5 / schema 7 | native FixProposal and ValidationDelta | [61fddbe](https://github.com/LeviTK/Kepub/commit/61fddbe0836de13655ea9e6c721ccda0875d8421) / tree `af72b99490e3fb130140c4360af3ea46ea8056aa` |
+
+Standard font-obfuscation eligibility, explicit old-workspace reassessment,
+OPF/spine and resource maintenance, and remaining NCX/SVG/CSS reference work
+are not delivered by these increments. T3–T6 and Mac execution remain pending.
+The dated synopsis supersedes the old delivery checkpoints below, not their
+execution results or input identities. Private books, received probes, raw audit
+packs and local receipts are not committed; published fixtures are synthetic.
+
+## Historical delivery checkpoints
 
 This record covers two local batches on branch `t2-multi-operation-foundation`,
 which was never pushed. Batch 1 started from `origin/main`
@@ -961,3 +986,153 @@ none is inherited or rerun here.
 - Fresh fetch of this commit from the new bundle re-verifies identity and the
   short test set; the commit, tree and bundle hashes are reported to the parent
   thread.
+
+### Acceptance of batch 4 and its maintenance input
+
+The medium reviewer accepted the limited product at
+[5e508f3](https://github.com/LeviTK/Kepub/commit/5e508f39945067df57181ba55b51a667c0d44599),
+tree `d5f2342304bb7f452cff00f8b8fe5433708d95c2`. The subsequent independent
+maintenance acceptance and parent integration bind
+[bb1b46f](https://github.com/LeviTK/Kepub/commit/bb1b46ff8456d141727d36820318916d9840f1f5),
+tree `811c1c566546191e3fa48b037876f8fcde4e54cd`; they do not re-label the
+earlier rejected product or its ineffective two-move fuzz executions.
+
+- The parent verified the 143-item medium maintenance manifest and the 207823 B
+  bundle (SHA-256
+  `2cc1cebbb4fcbe784ab0f6b6cb56d8407ed3595995adf056459e71a2de97e50e`).
+  All 67 production Go/module blobs matched the accepted product; maintenance
+  changed only tests, documentation and guidance.
+- Parent native fixed-tree execution, not the earlier overlays:
+  `go test [-race] -count=1 -timeout=5m ./internal/workspace -run
+  '^(TestCrossMoveFuzzCalibration|TestStructureCrossMoveNewLinkGate|FuzzCrossMovePlanApply)$' -v`
+  exited 0 in ordinary 3.387 s and race 10.865 s, with 63 PASS events each and
+  no FAIL/SKIP/DATA RACE. `go build ./cmd/kepub` and
+  `go vet ./internal/workspace` exited 0.
+- The parent fast-forwarded local main from d747c01 to bb1b46f. At that
+  historical checkpoint `origin/main` remained 18618fee and no push occurred.
+  The source synchronization described at the top is a later delivery action,
+  not a rerun or replacement of that acceptance.
+
+## Batch 5 — native FixProposal / ValidationDelta (finite acceptance)
+
+The frozen behavior is [CLI §2.11](../CLI_CONTRACT.md#211-t2-第五批原生修复提案与诊断差异实施契约已冻结待实现)
+and its [v1 protocol](../contracts/T2_FIX_PROPOSAL_V1.md). Delivered: read-only
+`fix propose` / `fix delta`, request/plan schema 7 with a complete embedded
+proposal source, and two native rules: prohibited-element `epub:type` removal
+and eligible relative-URL query removal. FR-2 requires explicit selection and
+review. All execution still uses the existing plan/apply/diff/accept-or-reject
+transaction; there is no automatic acceptance, arbitrary patch or new external
+repair authority. Delta does not approve acceptance or export.
+
+### Rejected input and four convergence blockers
+
+The old 3c85 and
+[9b41110](https://github.com/LeviTK/Kepub/commit/9b411102863a9aa38454b501022b573dc88dc95e)
+(tree `a860fb6a4925ee813aa43bc61c4c4b107b685017`) rejections remain in force
+for those inputs. Ordinary/race/vet success did not offset the independent
+negative probes. PK1 supplied both coders the same sealed 9b input and frozen
+evidence, not the parent's local main or an inferred remote commit.
+
+| blocker on 9b | accepted correction and permanent Medium entry |
+| --- | --- |
+| B1/F02: rejected history and rejection settlement consumed consistently re-signed false risk without re-deriving its source | Shared `taskDigests` invokes `verifyFixPlan` on the plan's own `BaseRevision`; legal old history remains readable after accepted advances, and forged history/recovery is refused. `TestFixRejectedSourceRevalidation`. |
+| B2/F09: whole-group severity/native pairing swallowed asymmetric surplus | Match persisted instances first, consume only paired remaining instances and classify every surplus instance. `TestClassifyDeltaSeverityMultiplicity`, `TestClassifyDeltaNativeMultiplicity`. |
+| B3/FR-2: pure `?x=1` / `?` lost their applicable fact because the stripped value was empty | Remove the empty-new-value shortcut; the existing schema-4 empty-href gate and schema-7 execution succeed without widening permissions. `TestFixRelativeURLQueryBytes`. |
+| B4/FR-2: no-fragment target existence was consumed but omitted from dependencies | Add the target to repair/derived read sets immediately after existence is proved. The same three-encoding permanent byte regression checks exact dependencies. |
+
+These are persistent-input/owner recovery and classifier-unit counterexamples,
+not evidence of a public concurrent CLI attack. Old schemas 1–6, permissions,
+source/namespace rules, digest meanings and the 256-operation budget remain
+unchanged. The narrow workspace/fix guidance and DEVELOPMENT_NOTES record the
+corresponding invariants and permanent entries.
+
+### Separate independent reviews and parent acceptance
+
+The existing independent medium reviewer accepted both fixed candidates within
+the same finite product scope; mode was platform-confirmed, and its unexposed
+underlying model was not guessed. Medium's
+[61fddbe](https://github.com/LeviTK/Kepub/commit/61fddbe0836de13655ea9e6c721ccda0875d8421)
+/ tree `af72b99490e3fb130140c4360af3ea46ea8056aa` was selected for integration.
+DeepSeek's separately accepted fixed input was `40fd8d204ee7a5084e7335cff0c037cd3aaabc98`
+/ tree `b32fd4dff95740133b00a6b5ed73d6780c24d697`; it is not the integrated
+tree. PK1 is a draw: each coder has 0 wins, 0 losses and 1 draw. Selection of
+Medium's shared source boundary/direct remaining-instance slices is an
+integration decision, not a PK win; neither coder is cancelled.
+
+- **Medium author execution:** fixed at 2026-10-07T23:16:45Z; ordinary/race/vet
+  ran 23:18:09–23:33:32Z and exited 0/0/0. Each test suite had 1247 PASS
+  events and 1 private-book SKIP. These are author results, not reviewer or
+  parent runs.
+- **DeepSeek independent review:** ordinary/race/vet ran
+  23:35:13–23:57:34Z and exited 0/0/0; each test suite had 1238 PASS events
+  and 1 private-book SKIP. Its source/binary and supplement corrections remain
+  separate from Medium evidence.
+- **Medium independent review:** first native ordinary/race/vet actually exited
+  **1/0/0**, from 2026-10-08T00:03:09–00:25:18Z. Ordinary had 1244 PASS
+  events, two checker-timeout leaves plus their propagated top-level FAIL
+  (3 FAIL events), and 1 private-book SKIP; race had 1247 PASS events and
+  1 SKIP, with no FAIL/DATA RACE. Warning/strict controls had no independent
+  failure. The unchanged `TestRealEPUBCheck` with its original 30 s checker
+  parameter passed in isolation (41.12 s, exit 0). One controlled full ordinary
+  `go test -p=1 -json -count=1 -timeout=30m ./...` then ran
+  00:27:22–00:37:31Z and exited 0, with 1247 PASS events and 1 SKIP.
+  Assertions/timeouts were not weakened; the earlier timeout cause was not
+  proven. The erroneous shell exit summary is retained and raw exits take
+  precedence; the first run is never restated as 0/0/0.
+- **Reviewer focused evidence, executed separately on each fixed input:** B1–B4
+  and sibling old-base/recovery/three-encoding two-order seven-resource byte
+  controls passed ordinary/race, as did 256 severity and 64 native
+  multiplicity/coverage combinations. The 44-source old frozen set produced
+  781 PASS events per ordinary/race run; both physical minseeds passed. Real
+  ordinary and `go build -race` child CLIs used fixed EPUBCheck 5.3.0 and passed
+  OUTPUT_EXISTS, 256/257 budget and complete seven-resource qualification
+  controls. Finite live executions were DeepSeek 224 / 62.054 s and Medium
+  31 / 62.149 s (only 2 after baseline); they cover the calibrated finite menu,
+  not arbitrary URL space and not a speed/coverage PK score.
+- **Parent execution on unchanged Medium fixed:** 00:54:18–01:10:17Z in the
+  parent Linux x64 orb, Go 1.27.1 and pinned EPUBCheck 5.3.0. In order,
+  `go test -json -count=1 -timeout=30m ./...`,
+  `go test -race -json -count=1 -timeout=30m ./...`, and `go vet ./...`
+  exited 0/0/0. Each test suite had 1247 PASS events, 1 private-book SKIP,
+  0 FAIL/DATA RACE, 12 passing packages and 2 no-tests packages. Actual normal
+  and `go build -race` child CLIs passed output conflicts, 256/257 budget and
+  three-encoding seven-resource qualification; these are not harness-only race
+  claims.
+- **Preserved oracle failures:** original outer-ASCII-whitespace strong-deletion
+  probes 5/11/17 and their top-level FAIL remain unchanged. Separate contract
+  qualification proves 15 executable two-order families plus 3 unfixable
+  families, not 18 successful deletion families. The latter retain precise
+  facts, null operation and empty write set; FR-2-only emit refuses with
+  INVALID_OPERATIONS/2 and leaves workspace hashes unchanged, while FR-1-only
+  and mixed selection preserve the original URL bytes. Original lifecycle CLI
+  scripts exited 1 only at their ZIP-directory oracle; the same captured ZIPs
+  independently passed the 6-file + 2-directory complete-byte audit. No original
+  FAIL or script exit is rewritten to green, including in the parent's runs.
+
+Medium independent receipt SHA-256:
+`e6996150f0cb5e3c793144b701a28093bcc0db30905f2e20b1f880f417c44256`;
+evidence pack 1737031 B, SHA-256
+`197c1dc04b38aa156f735ebb6898d31457ba89283f580f26367ae066c17c57eb`
+(1840 manifest records / exact 1841 regular files). DeepSeek independent receipt
+SHA-256: `cd51de9736d7a9bcdb437cdd6df3ac31ae356931df6144cad9204c27f511bd6e`.
+The parent checked delivered hashes, exact sets and source identities; raw packs
+remain outside Git. Author scratch/fresh-fetch, reviewer and parent results keep
+their own provenance and are not interchangeable.
+
+### Integration and source synchronization
+
+At 2026-10-08T01:13:42Z the parent fast-forwarded local main from 97e9b44 to
+the exact accepted Medium commit/tree. Readback at 01:16:16Z verified all 39
+changed paths byte-identical to approved fixed blobs, with empty tracked/staged
+diff and historical untracked evidence preserved. Canonical GitHub main and
+`origin/main` still stood at
+[18618fee](https://github.com/LeviTK/Kepub/commit/18618fee6b89c6ef59594c99f18f385015e0fc05)
+then; local integration was not a push.
+
+The user's subsequent source-sync authorization covers the already accepted
+main lineage plus progress documentation. This documentation update changes no
+product blob, frozen protocol, module, raw asset or historical receipt and does
+not re-sign earlier approvals. A normal fast-forward main push is separate from
+release/deployment; development remains paused. No Mac execution, power-loss
+durability, current private-book run, public concurrent CLI attack, complete T2
+or T3–T6 completion is claimed.

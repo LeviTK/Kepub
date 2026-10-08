@@ -188,7 +188,7 @@ XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场�
 
 规范支持与命令可用性分开。S0 固定规范原文和条款后，建立单一机读矩阵，未来向后兼容扩展 capabilities／doctor／诊断，不替换当前 envelope、退出码、operation ID 或检查状态枚举。
 
-离线资产矩阵与生成脚本已本地创建；实际修复、审查与放行结论见 [S0 独立验收](verification/S0_PARENT_ACCEPTANCE.md)。这不是新的 CLI 返回字段或可用能力，也不代表全部规范条款已经实现。首轮固定树 Droid 审查曾发现阻塞问题，其正常退出不构成批准。离线 `gate` 必须核验绑定同一输入的父验收与真实独立审计完整批准，以及资产、派生物、来源和执行证据；布尔字段或普通样本通过不能单独解锁 T1，也不提升五维能力声明。依用户最新指令，当前使用 Amp／DeepSeek V4.1 Flash，Droid 待用量恢复后使用；分别核验实际执行协议，不将 Amp 结果冒称 Droid 批准，完整范围及父验收条件不变。
+离线资产矩阵与生成脚本已本地创建；实际修复、审查与放行结论见 [S0 独立验收](verification/S0_PARENT_ACCEPTANCE.md)。这不是新的 CLI 返回字段或可用能力，也不代表全部规范条款已经实现。首轮固定树 Droid 审查曾发现阻塞问题，其正常退出不构成批准。离线 `gate` 必须核验绑定同一输入的父验收与真实独立审计完整批准，以及资产、派生物、来源和执行证据；布尔字段或普通样本通过不能单独解锁 T1，也不提升五维能力声明。S0／T1 的历史审计改用 Amp／DeepSeek V4.1 Flash；后续 T2 按各批实际 high／medium 审查记录核验，不将 Amp 结果冒称 Droid 批准，完整范围及父验收条件不变。
 
 - 逐特性记录 `featureId`、`specVersion`、`specSection`、`normativeLevel`、`applicability`、`preserve`、`parse`、`edit`、`render`、`validate`、`platform`、`testIds`、`evidence`；五维状态为 `supported | partial | unsupported | policy-disabled | not-tested`，不适用另给理由，不用 supported 代替。
 - 按开发方案 §11.8 的清点单位覆盖完整 BCP 14 关键字集（含 NOT、REQUIRED／RECOMMENDED／OPTIONAL）、定义／语法约束、deprecated 与条件要求，对账来源片段及 hash；与产品安全／预算策略区分。保留未知语法不表示可编辑；CSS 解析不表示渲染；规范允许但产品暂不支持或策略禁用，不伪称标准禁止。
@@ -197,7 +197,11 @@ XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场�
 
 字段容器、schema 和诊断 code 在对应实现批次另行冻结；上述是设计，不是当前 CLI 返回字段。规范资产、S0～S4 映射与关闭条件见开发方案 §7.4／§11.8；T1～T6 不承担后续 UI 渲染验收，也不能据此关闭 Issue #3。
 
-### 2.6 Issue #4 的修复与诊断差异设计（计划，尚不可执行）
+### 2.6 Issue #4 的修复与诊断差异设计（早期设计；已交付范围见 §2.11）
+
+本节保留早期整体设计，不单独注册能力。2026-10-08 已验收并集成的有限
+FixProposal／ValidationDelta 与两条原生规则以 §2.11 及其冻结附件为准；其余设计
+仍不可执行，不能从本节扩大第五批产品范围。
 
 原生 Go 操作优先，沿 S0 → T1～T6 实施。T2 先完成多操作／多资源事务，再增加确定性修复操作、FixProposal 与 ValidationDelta；不是新任意写入口，不默认新增 fix／repair／polish 顶层命令。现有 operation／plan／execution schema、摘要和历史来源规则不因本节文字而升级，所需新版本在实施前冻结。
 
@@ -239,7 +243,10 @@ XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场�
 
 本批不新增 CLI 命令；`plan`／`apply`／`task diff` 的输入语法不变，只有请求文件内容使用 schema 4 与新操作 ID。本批已通过独立审查与父验收并本地集成（固定提交 79a4548，公开记录见 [T2_MULTI_OPERATION.md](verification/T2_MULTI_OPERATION.md)）；剩余 T2 仍不得标记为完成。
 
-### 2.9 T2 第三批显式范围字面／正则批量文本替换实施契约（本批实现中）
+### 2.9 T2 第三批显式范围字面／正则批量文本替换实施契约（已独立验收并集成主线）
+
+固定产品 `d747c01` 已通过 medium 独立审查与父验收；两次旧拒绝保留。
+固定身份、原始执行与有限范围见 [T2 验收记录](verification/T2_MULTI_OPERATION.md)。
 
 本批在 schema 3／4 事务底座上增加 `content.text.replace` v1：在一个**显式 locator 范围**内按字面或正则把**全部**命中替换为新文本。它**不是完整 T2**：FixProposal、ValidationDelta、字体混淆资格与跨资源移动仍属剩余范围；`content.text.set` v1 与 schema 1～4 的含义不变，旧二进制遇到 schema 5 允许安全拒绝。
 
@@ -251,7 +258,11 @@ XML 1.0 §4.1／§5.1 允许的非 standalone、外部子集／参数实体场�
 - **全链：** plan／apply／checkpoint／restore／journal／diff／accept／历史来源重算都从冻结基线重算规则、命中与完整写集合；`task diff` 的 `operations` 为每个替换操作给出 `replace`（`mode`、`expectedHits`、实际 `hits`、每个受影响元素的 locator 与**实际候选直接文本**，不可观测时 `unavailable`）。accept 仍以固定 EPUBCheck 与冻结树为准。
 - **验证：** 不对称正反例（跨元素边界不命中、同元素跨内联子元素命中拒绝、空匹配拒绝、命中数不符拒绝、实体／CDATA 拒绝、UTF-16 与 CRLF 保真、regex 捕获展开）、有效事务独立字节 oracle、live fuzz 与真实 checker 闭环；不扩大 `content.text.set` v1 权限。
 
-### 2.10 T2 第四批跨资源显式子树移动与依赖同步实施契约（本批实现中）
+### 2.10 T2 第四批跨资源显式子树移动与依赖同步实施契约（已独立验收并集成主线）
+
+固定产品 `5e508f3` 及测试／指导维护 `bb1b46f` 已分别通过有限独立审查与父验收。
+旧拒绝、双移动 fuzz 可达性缺口及其维护纠正分别保留；见
+[T2 验收记录](verification/T2_MULTI_OPERATION.md)。
 
 本批在 schema 3／4／5 事务底座上增加 `xhtml.element.move` **v2**：把一个 manifest
 XHTML 资源中的显式子树移动到另一个 manifest XHTML 资源中的显式位置，并对受影
@@ -330,7 +341,14 @@ FixProposal、ValidationDelta、字体混淆资格、OPF／spine 资源关系变
 [T2_MULTI_OPERATION.md](verification/T2_MULTI_OPERATION.md)；剩余 T2 仍不得标记为
 完成。
 
-### 2.11 T2 第五批原生修复提案与诊断差异实施契约（已冻结，待实现）
+<a id="211-t2-第五批原生修复提案与诊断差异实施契约已冻结待实现"></a>
+
+### 2.11 T2 第五批原生修复提案与诊断差异实施契约（已独立验收并集成主线）
+
+2026-10-08 有限产品以 `61fddbe`／tree `af72b99490e3fb130140c4360af3ea46ea8056aa`
+通过独立 medium 复审与父同输入验收并集成；公开执行摘要、旧拒绝及纠正链见
+[T2 验收记录](verification/T2_MULTI_OPERATION.md)。本次只更新交付状态，不修改下述
+冻结行为或附件，也不将第五批接受提升为完整 T2 完成。
 
 2026-10-07 父审定编码线程 v2 草案，并修正 operationVersion、工作区与 Git 身份、
 规范 JSON、完整来源重算与选择／不可修复项歧义。完整字段、排序、hash、错误优先级、
@@ -360,8 +378,9 @@ Delta 在两侧已核私有快照实际运行固定检查并绑定完整报告�
 与三编码 native 编辑、UTF-16 XHTML 正式 HTM_058 拒绝的分层保持。
 
 标准字体混淆资格与旧工作区重评、OPF/spine、资源增删改名、NCX/SVG/CSS 重写仍属
-剩余 T2，本批不进入 T3～T6。输入基线是父本地 bb1b46f，origin/main 仍为旧远端
-跟踪状态；本节及附件由父冻结后传给现有编码线程，产品 fixed 树另行独立复审。
+剩余 T2，本批不进入 T3～T6。冻结时输入基线是父本地 bb1b46f，origin/main 当时仍
+为旧远端跟踪状态；本节及附件由父冻结后传给编码线程，随后产品 fixed 树独立复审
+与父验收已经完成。当前开发暂停，main 源码同步不授权下一批或发行。
 
 ## 3. 目标选择与全局约定
 
