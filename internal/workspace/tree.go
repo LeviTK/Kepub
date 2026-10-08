@@ -24,13 +24,16 @@ type resourceIO struct {
 	ctx           context.Context
 	limits        archive.Limits
 	originalBytes int64
+	// Private call-local observation; never a cache or a source-verification gate.
+	onRevisionRead func(string)
+	onOriginalRead func()
 }
 
 func defaultResourceIO(ctx context.Context) resourceIO {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return resourceIO{ctx, archive.DefaultLimits, archive.MaxInputBytes}
+	return resourceIO{ctx: ctx, limits: archive.DefaultLimits, originalBytes: archive.MaxInputBytes}
 }
 
 // Entry records exact, case-sensitive POSIX paths. Directory sizes are zero;

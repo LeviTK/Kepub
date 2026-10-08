@@ -122,4 +122,20 @@
   再次 diff／历史重推及全工作区不变；`TestR4InterruptedGraphBudgetRollsBack` 核部分写入
   回滚；`TestR4AcceptRequiresGraphBudgetAndRealChecker` 保留真实 checker 与 accepted／锁控制。
 
+## 查询验证只在本次持锁调用内复用
+
+- `verifiedBaseline` 返回本次原书／initial／accepted 完整历史来源校验所得 Revision；
+  AcceptedSnapshot 直接消费它，不再读一次同链。不能把结果保存成跨调用缓存、借锁假定
+  同用户外部写入不可能，或删 Open／active execution 的独立来源门禁。
+- 公共 Revision 的 Tree entries 与私有 base 不得 alias；每次查询重新核原书、历史、
+  checkpoint／execution／pointer，closed／cancelled／recovery 仍沿原生命周期拒绝。
+  `TestR6SingleCallRevisionVerification` 核真实接受后一次链遍历，
+  `TestR6VerificationIsCallLocal` 和 `TestR6Schema7SnapshotRevalidatesSource` 核同尺寸篡改、
+  下一调用、冻结 bytes、完整重签 schema7 伪来源及实际 reopen。
+- 仍以完整私有快照隔离查询输入并核最终 hash；未经等价证明不换成 live selective reader。
+  本项是 Issue15 A 的部分优化，历史共享存储 B 依赖 Issue2。`TestR6HistoryMatrix` 默认
+  有界 1／10 修订，两种小书均真实 checker 接受；100 修订性能输入显式生成。
+  R6 benchmarks／profiles 分开报告 revision visits、原书读取、实际 self I/O、私有复制和
+  临时逻辑 payload，fresh process 不称物理冷盘，benchmem 不称 RSS 或子 Java 的 I/O。
+
 对应开发注意事项：`G-FINAL`、`G-FACTS`、`G-BINDING`、`G-ORACLE`、`G-QUALIFY`、`G-JSON`、`G-IDREF`。

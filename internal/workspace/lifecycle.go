@@ -214,6 +214,9 @@ func (w *Workspace) readRevision(id string) (Revision, error) {
 		if !validID(id) || seen[id] {
 			return selected, fmt.Errorf("invalid revision chain")
 		}
+		if w.resources.onRevisionRead != nil {
+			w.resources.onRevisionRead(id)
+		}
 		seen[id] = true
 		var r Revision
 		if err := readEditJSON(w.root, "revisions/"+id+"/revision.json", &r); err != nil {
@@ -296,38 +299,38 @@ func (w *Workspace) revisionSource(r Revision) (string, error) {
 	return e.Plan.InputTreeSHA256, nil
 }
 
-func (w *Workspace) loadCurrent() error {
+func (w *Workspace) loadCurrent() (Revision, error) {
 	id := "initial"
 	if exists(w.root, "accepted.json") {
 		if err := w.ensureIdentity(); err != nil {
-			return err
+			return Revision{}, err
 		}
 		var p acceptedPointer
 		if err := readEditJSON(w.root, "accepted.json", &p); err != nil {
-			return err
+			return Revision{}, err
 		}
 		if p.Version != 1 || p.WorkspaceID != w.id || (p.RevisionID != "initial" && !validID(p.RevisionID)) {
-			return fmt.Errorf("invalid accepted pointer")
+			return Revision{}, fmt.Errorf("invalid accepted pointer")
 		}
 		id = p.RevisionID
 	} else {
 		entries, err := fs.ReadDir(w.root.FS(), "revisions")
 		if err != nil {
-			return err
+			return Revision{}, err
 		}
 		if len(entries) != 1 && !exists(w.root, settlementJournal) {
-			return fmt.Errorf("missing accepted pointer")
+			return Revision{}, fmt.Errorf("missing accepted pointer")
 		}
 	}
 	if w.current != "" && w.current != id {
-		return ErrStalePlan
+		return Revision{}, ErrStalePlan
 	}
 	r, err := w.readRevision(id)
 	if err != nil {
-		return err
+		return Revision{}, err
 	}
 	w.current, w.base = id, r.Tree
-	return nil
+	return r, nil
 }
 
 func (w *Workspace) taskID() (string, error) {
@@ -1108,13 +1111,12 @@ func (w *Workspace) AcceptedSnapshot() (*archive.Archive, archive.Tree, Revision
 	if err := w.ready(); err != nil {
 		return nil, archive.Tree{}, Revision{}, err
 	}
-	if err := w.verifyBaseline(); err != nil {
+	r, err := w.verifiedBaseline()
+	if err != nil {
 		return nil, archive.Tree{}, Revision{}, err
 	}
-	r, err := w.readRevision(w.current)
-	if err != nil {
-		return nil, archive.Tree{}, r, err
-	}
+	// The returned observation must not alias the workspace's private base.
+	r.Tree.Entries = slices.Clone(r.Tree.Entries)
 	a, t, err := archive.SnapshotDirectoryContext(w.resources.ctx, filepath.Join(w.dir, filepath.FromSlash(revisionPath(w.current))), w.resources.limits)
 	if err != nil {
 		return nil, t, r, err
