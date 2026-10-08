@@ -455,6 +455,20 @@ Archive 保留入口预算供 Unpack、Inventory、打包及最终 ZIP 重开使
 预算只作私有逐调用小值注入，不新增 CLI 开关；取消在遍历／读取边界观测，不宣称可打断任意
 阻塞系统调用、advisory lock 的恶意同用户沙箱或真实断电验收。
 
+**Issue #11 的全书引用图预算：** 每次完整构建（含未登记资源）共用 `GraphLimits`，默认累计
+扫描原始字节 64 MiB、100000 条边、100000 个 identity 实例、10000 条诊断、coverage/reason
+预留 8 MiB、索引预留 32 MiB、结果序列化预留 32 MiB。identity 同元素同值 alias 只计一次，
+重复实例仍分别计；扫描只计真正读取的 XML/CSS，不把 opaque 二进制长度当已扫描语法。
+索引每次插入／库存追加预留 64 字节及全部字符串 UTF-8 长度（重复字符串照计）；结果在追加前
+按每字符串字节最坏 6 字节转义、每 struct 128 字节＋每字段 64 字节、数字 32 字节、数组标点
+保守预留，coverage/reason/XML coverage 也同时计入结果。预留含过滤后的最长合法 BookPath
+及方向字段；这不是实际 Marshal 长度或 RSS 测量，保守上限不承诺预算内任意组合均可构建。
+读下一个资源／增长索引或结果前收费，超限返回 `REFERENCE_LIMIT`/1 和原 JSON envelope，
+不返回可用部分图；取消沿请求传递。资源／方向只在完整构建后过滤，不能绕过全局入链扫描。
+inspect、validate、正式 accept/export、结构 Plan/Apply、执行／恢复／diff／历史重推均传播失败；
+不得用空边证明无依赖，running 未完成任务仍按已核 checkpoint 完整回滚。每次重推使用一份新
+默认预算，测试小值仅逐调用注入；ParserVersion、旧 schema／policy／来源摘要／正式 checker 不变。
+
 任务读取包含实际generation/输入hash；当前候选不稳定时返回上一冻结视图的标识和stale状态，或按请求拒绝读取，不伪装最新。
 
 ### 3.2 输出和交互

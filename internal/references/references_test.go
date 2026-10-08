@@ -2,6 +2,7 @@ package references
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"path/filepath"
 	"reflect"
@@ -53,9 +54,16 @@ func graphFixture(t *testing.T, entries []testfixture.Entry) Graph {
 	if err != nil {
 		t.Fatal(err)
 	}
-	g := Build(a, p)
+	g, err := Build(context.Background(), a, p, DefaultGraphLimits)
+	if err != nil {
+		t.Fatal(err)
+	}
 	first, _ := json.Marshal(g)
-	second, _ := json.Marshal(Build(a, p))
+	g2, err := Build(context.Background(), a, p, DefaultGraphLimits)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, _ := json.Marshal(g2)
 	if !bytes.Equal(first, second) {
 		t.Fatal("nondeterministic graph")
 	}

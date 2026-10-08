@@ -90,7 +90,10 @@ func (w *Workspace) deriveCrossMoves(a publicationRoot, pub *publication.Publica
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	graph := references.BuildSourceVersion(a, inv, pub, referenceVersion)
+	graph, err := references.BuildSourceVersion(w.resources.ctx, a, inv, pub, referenceVersion, w.referenceGraphLimits())
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
 	for index, op := range ops {
 		param, ok := op.Params.(publication.ElementMoveCross)
 		if !ok {

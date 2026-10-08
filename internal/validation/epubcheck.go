@@ -20,6 +20,7 @@ import (
 
 	"github.com/LeviTK/Kepub/internal/archive"
 	"github.com/LeviTK/Kepub/internal/fault"
+	"github.com/LeviTK/Kepub/internal/references"
 	"golang.org/x/text/unicode/norm"
 )
 
@@ -34,6 +35,8 @@ type Options struct {
 	Timeout  time.Duration `json:"timeoutNanoseconds"`
 	Java     string        `json:"-"`
 	JAR      string        `json:"-"`
+	// Internal test-only override, not part of the persisted checker policy.
+	GraphLimits *references.GraphLimits `json:"-"`
 }
 
 type Diagnostic struct {

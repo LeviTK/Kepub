@@ -20,7 +20,7 @@ func (b *builder) css(bp bookpath.BookPath, location, css string) {
 	if !utf8.ValidString(css) || strings.ContainsRune(css, '\x00') {
 		status = "blocked"
 	}
-	for i := 0; i < len(css) && status != "blocked"; {
+	for i := 0; i < len(css) && status != "blocked" && b.ready(); {
 		start := i
 		if strings.HasPrefix(css[i:], "/*") {
 			end := strings.Index(css[i+2:], "*/")

@@ -1,6 +1,7 @@
 package references
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -10,8 +11,11 @@ import (
 )
 
 func cssGraph(css string) Graph {
-	b := builder{src: &archive.Archive{Files: map[bookpath.BookPath]int64{}}, files: map[bookpath.BookPath]int64{}, covered: map[string]int{}, g: Graph{ParserVersion: 2}}
+	b := builder{ctx: context.Background(), remaining: DefaultGraphLimits, src: &archive.Archive{Files: map[bookpath.BookPath]int64{}}, files: map[bookpath.BookPath]int64{}, covered: map[string]int{}, g: Graph{ParserVersion: 2}}
 	b.css("Styles/main.css", "stylesheet", css)
+	if b.err != nil {
+		panic(b.err)
+	}
 	return b.g
 }
 

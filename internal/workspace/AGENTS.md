@@ -98,4 +98,16 @@
 - task diff 的部分可审阅降级不吞掉快照取消／超时／预算失败；
   `TestR3DiffSnapshotCancellation` 核复制阶段真实取消、无私有快照残留、全 workspace bytes 不变。
 
+## 引用图失败不得降为无依赖
+
+- lazy identity gate 与 eager cross-move 共用 references 的逐构建 context/GraphLimits；
+  Plan/Apply、执行、task diff、历史／settlement 自身来源重推都传播 `REFERENCE_LIMIT`。
+  默认每次重建，小预算只通过私有工作区模板或 validation 逐调用注入，不添持久字段。
+- running／无 result 重算图超限仍先核冻结来源、used/start/checkpoint，再完整回滚，
+  保留失败 diff 且返回原限制；未开始／已完成任务不借预算错误重写。不能让 task diff
+  的 drift 可审阅分支吞掉图预算或取消，不能以空图授权删除／改名／移动。
+- `TestR4DependencyPlansRequireCompleteGraph` 核三种操作真实 Plan+Apply、七资源 bytes、
+  再次 diff／历史重推及全工作区不变；`TestR4InterruptedGraphBudgetRollsBack` 核部分写入
+  回滚；`TestR4AcceptRequiresGraphBudgetAndRealChecker` 保留真实 checker 与 accepted／锁控制。
+
 对应开发注意事项：`G-FINAL`、`G-FACTS`、`G-BINDING`、`G-ORACLE`、`G-QUALIFY`、`G-JSON`、`G-IDREF`。

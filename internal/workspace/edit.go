@@ -1299,7 +1299,7 @@ func (w *Workspace) execution() (Execution, error) {
 	d, deriveErr := w.recomputeAt(intent.Operations, revisionPath(w.current), w.current, planReferenceVersion(intent))
 	if deriveErr != nil {
 		var f *fault.Error
-		if !errors.As(deriveErr, &f) || f.Code != "RESOURCE_LIMIT" {
+		if !errors.As(deriveErr, &f) || f.Code != "RESOURCE_LIMIT" && f.Code != "REFERENCE_LIMIT" {
 			return e, deriveErr
 		}
 	}

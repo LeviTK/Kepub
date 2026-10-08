@@ -568,7 +568,12 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 		moveFacts := map[int]*publication.CrossMoveEdit{}
 		syncFacts := map[int][]moveSyncRewrite{}
 		if e.Plan.SchemaVersion >= 4 {
-			if d, derr := w.recomputeAt(e.Plan.Operations, revisionPath(w.current), w.current, planReferenceVersion(e.Plan)); derr == nil {
+			d, derr := w.recomputeAt(e.Plan.Operations, revisionPath(w.current), w.current, planReferenceVersion(e.Plan))
+			var f *fault.Error
+			if errors.Is(derr, context.Canceled) || errors.Is(derr, context.DeadlineExceeded) || errors.As(derr, &f) && f.Code == "REFERENCE_LIMIT" {
+				return r, derr
+			}
+			if derr == nil {
 				planned = d.edits
 				replaceFacts = d.replaces
 				moveFacts = d.moves

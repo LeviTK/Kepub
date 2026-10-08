@@ -228,6 +228,26 @@
   `TestN2IDREFBinaryLifecycle` 核真实查询／plan拒绝与真实 checker 接受／导出完整库存。
 - `FuzzN2IDREFTokens` 只验证合法构造 token 输入与独立 token 序列期望，不称全事务 fuzz。
 
+## G-GRAPH：单资源有界不等于全书有界
+
+- 只限每个 XML、全图累计 append/map 无预算 → 多个小资源放大边／实例／诊断／coverage →
+  所有 Build/BuildSource 入口共用逐调用 GraphLimits，读资源和增长对象前收费，原始扫描、
+  计数、索引及保守序列化预留分别限制。重复字符串／位置仍计，Filter 不减少扫描范围，
+  过滤 header 也预留；不把预留字节或 benchmem 当 RSS／OOM 实测。
+- reader 已取消仍逐资源 blocked 并继续 → 三次读取且得到可消费图 →
+  `TestR4CancelledGraphStopsReading` 冻结旧树三次／新树一次，返回错误与零图；
+  `TestR4CumulativeGraphCounts` 核两个合法小 XML 及各预算±1、重复实例／missing／外链／未知。
+- 构建失败只返回空边 → identity/cross-move 门禁误证明无入链 → 明确失败贯穿 inspect、
+  validation、结构来源重推、diff／history，零图 CertainIncoming 有 global blocker；
+  `TestR4DependencyPlansRequireCompleteGraph` 核三种操作 Plan/Apply 失败全工作区不变与
+  合法七资源完整 bytes。正常 parser v1/v2／schema shape／policy／digest 不迁移。
+- running 重算图限制未归入已登记失败 → 部分编辑留在候选 → 沿已核 checkpoint 回滚后
+  仍返回 REFERENCE_LIMIT，`TestR4InterruptedGraphBudgetRollsBack` 保留真实失败 diff。
+  正式 accept/export 失败不推进 accepted／发布输出；workspace/app/validation/CLI 的 R4
+  正反例仍用真实固定 checker，内部小预算不进入持久 checker config 或新增 CLI 开关。
+- `TestR4ReservationBoundaries`、`TestR4FilteredResultHeaderBudget`、
+  `TestR4XMLCoverageReservation` 与 `BenchmarkR4BoundedInventory` 核分配／追加前拒绝。
+
 ## G-EVIDENCE：验证身份和范围不迁移
 
 - 每组结果注明 input commit/tree 或 working-tree 身份、runner、命令/timeout/parallel、exit、skip、artifact hash；fixed fresh-fetch 不能继承作者工作树 PASS。

@@ -24,6 +24,7 @@ import (
 	"github.com/LeviTK/Kepub/internal/archive"
 	"github.com/LeviTK/Kepub/internal/fault"
 	"github.com/LeviTK/Kepub/internal/publication"
+	"github.com/LeviTK/Kepub/internal/references"
 )
 
 var (
@@ -68,6 +69,7 @@ type Workspace struct {
 	resources resourceIO
 	// Private test-only template; copied afresh for every complete derivation.
 	replaceBudget *publication.ReplaceBudget
+	graphLimits   *references.GraphLimits
 }
 
 type taskRecord struct {

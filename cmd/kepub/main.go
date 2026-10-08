@@ -18,6 +18,7 @@ import (
 	"github.com/LeviTK/Kepub/internal/app"
 	"github.com/LeviTK/Kepub/internal/fault"
 	"github.com/LeviTK/Kepub/internal/publication"
+	"github.com/LeviTK/Kepub/internal/references"
 	"github.com/LeviTK/Kepub/internal/validation"
 )
 
@@ -269,7 +270,11 @@ func execute(ctx context.Context, o options) (any, error) {
 	if o.command == "toc" {
 		o.section = "navigation"
 	}
-	return app.Inspect(a, p, o.section, o.resource, o.direction)
+	data, err := app.Inspect(ctx, a, p, o.section, o.resource, o.direction, references.DefaultGraphLimits)
+	if errors.Is(err, context.Canceled) {
+		err = fault.New(130, "CANCELLED", "request cancelled")
+	}
+	return data, err
 }
 
 func run(args []string, stdout, stderr io.Writer) int {
