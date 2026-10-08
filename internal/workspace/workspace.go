@@ -63,6 +63,8 @@ type Workspace struct {
 	id       string
 	closed   bool
 	recovery bool
+	// Private test-only template; copied afresh for every complete derivation.
+	replaceBudget *publication.ReplaceBudget
 }
 
 type taskRecord struct {

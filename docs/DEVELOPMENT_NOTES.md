@@ -150,6 +150,31 @@
   `TestR2IndependentBudgets`（四种预算分离、int64 边界）和 `TestR2ExpandedRoundTrip`
   （Open→Unpack→Snapshot→Inventory→WriteZIP，独立完整库存/hash/资源字节）。
 
+## G-REPLACE：拒绝前的分配也必须有界
+
+- 无限 FindAll＋先 ExpandString／ReplaceBytes／拼接后查长度 → 小捕获模板在最终拒绝前放大。
+  命中与元数据先限量，展开按 Go 模板规则预计量，转义由 xmltext 按原编码计量；
+  `expectedHits` 仍是精确冻结绑定，不是报错后的内存控制。
+- 每节点重置预算 → 多节点／操作／资源绕过累计限制 → `recomputeStructure` 为全事务
+  共用一份 `ReplaceBudget`；每次 Plan／Apply／后续来源重推重新初始化，不添持久字段。
+  最终资源先扣全部合法 disjoint removals 再加新字节，拼接前拒绝，原书／accepted／审计不变。
+- running／无 result 的恢复先重算即返回预算错误 → 已写第一资源留在候选 → 分离静态
+  envelope／保存来源核验与效果推导；完整核 used/start/checkpoint 后沿原事务回滚、记录
+  失败并返回 RESOURCE_LIMIT。回滚不证明效果，不豁免失败／历史重推；未开始、已完成
+  或伪造来源不改写。`TestN1PostStartBudgetRecovery` 与 `TestN1BudgetRecoveryBoundaries`
+  使用 10→9 字节 owner 窗口、全七资源／审计字节、再次调用及合法历史控制；不称公共并发攻击。
+- 估计展开不得偷改语义：`$0`、编号、最大名称、`${name}`、缺失／未参与组、`$$`、畸形 `$`、
+  前导零数字名称和重复命名组均以 Go 标准库独立 oracle 对照；加法用剩余量防溢出。
+- 等值替换不能把 CRLF 等原拼写规范化；仍核真实命中与可写区间，不把 no-op 当权限豁免。
+- 永久入口 `TestN1ExpansionBeforeAllocation`（1 KiB 预算、旧实现实际展开 4 KiB），
+  `TestN1HitAndMetadataBudgets`、`TestN1TemplateGrammar`、`TestN1CumulativeExpansion`、
+  `TestN1EncodedAndResultBudgets`、`TestN1NoopAndZeroWidth`、`TestN1TransactionBudget`、
+  `TestN1ResourceBudget`、`TestN1ApplyBudgetRevalidation`；三编码完整 bytes、七资源 oracle、
+  失败前后全 workspace hash 与实际分配入口计数。不以字符串长度／计数／benchmem 冒称峰值内存。
+- `FuzzN1BudgetTransaction` 固定 UTF-8 两资源、literal／regex × 四种替换的八病例菜单，
+  精确累计预算下每次必须实际 Plan+Apply+Reject 并核七资源独立 bytes；拒绝不 continue。
+  `FuzzN1ReplacementSize` 的模板计量 oracle 单列，不冒充全事务／全编码 live 覆盖。
+
 ## G-EVIDENCE：验证身份和范围不迁移
 
 - 每组结果注明 input commit/tree 或 working-tree 身份、runner、命令/timeout/parallel、exit、skip、artifact hash；fixed fresh-fetch 不能继承作者工作树 PASS。

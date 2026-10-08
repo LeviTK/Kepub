@@ -22,7 +22,7 @@ func replaceDoc(t *testing.T, input string) *StructureDocument {
 
 func applyReplace(t *testing.T, doc *StructureDocument, op TextReplace) ([]byte, ReplaceFacts) {
 	t.Helper()
-	edits, facts, err := doc.ReplaceTextEdits(op)
+	edits, facts, err := doc.ReplaceTextEdits(op, NewReplaceBudget())
 	if err != nil {
 		t.Fatalf("replace refused: %v", err)
 	}
@@ -35,7 +35,7 @@ func applyReplace(t *testing.T, doc *StructureDocument, op TextReplace) ([]byte,
 
 func replaceRefused(t *testing.T, doc *StructureDocument, op TextReplace) error {
 	t.Helper()
-	_, _, err := doc.ReplaceTextEdits(op)
+	_, _, err := doc.ReplaceTextEdits(op, NewReplaceBudget())
 	if err == nil {
 		t.Fatal("replace accepted")
 	}
@@ -226,7 +226,7 @@ func TestReplaceGeneratedDecodedNeighbors(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					edits, facts, err := doc.ReplaceTextEdits(literalReplace("/html[1]/body[1]/p[1]", pattern, "CHANGED", 1))
+					edits, facts, err := doc.ReplaceTextEdits(literalReplace("/html[1]/body[1]/p[1]", pattern, "CHANGED", 1), NewReplaceBudget())
 					if err != nil {
 						t.Fatalf("legal literal neighbor refused: %v", err)
 					}
@@ -298,7 +298,7 @@ func FuzzReplaceTextEdits(f *testing.F) {
 			want = re.ReplaceAllString(text, replacement)
 		}
 		op.ExpectedHits = hits
-		edits, facts, err := doc.ReplaceTextEdits(op)
+		edits, facts, err := doc.ReplaceTextEdits(op, NewReplaceBudget())
 		if err != nil {
 			return
 		}

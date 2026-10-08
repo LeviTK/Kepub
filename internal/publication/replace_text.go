@@ -4,7 +4,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/LeviTK/Kepub/internal/bookpath"
@@ -29,6 +31,71 @@ const (
 	ReplacePatternLimit = 64 << 10
 	ReplaceHitsLimit    = 10000
 )
+
+// ReplaceBudget is a per-derivation, transaction-wide remaining allocation
+// budget. It is not part of the request or plan schema. Tests can inject small
+// budgets without changing the production limits or allocating large inputs.
+type ReplaceBudget struct {
+	Hits             int
+	MatchBytes       int64
+	ReplacementBytes int64
+	EncodedBytes     int64
+	ResultBytes      int64
+	InputBytes       int64
+	ResourceBytes    int64
+	OutputBytes      int64
+
+	captures   int
+	expansions int
+	encodings  int
+	results    int
+}
+
+func NewReplaceBudget() *ReplaceBudget {
+	return &ReplaceBudget{
+		Hits: ReplaceHitsLimit, MatchBytes: 8 << 20,
+		ReplacementBytes: 32 << 20, EncodedBytes: 32 << 20,
+		ResultBytes: 32 << 20, InputBytes: 32 << 20,
+		ResourceBytes: XMLLimit, OutputBytes: 32 << 20,
+	}
+}
+
+func takeReplaceBytes(remaining *int64, n int64, kind string) error {
+	if n > *remaining {
+		return fault.New(1, "RESOURCE_LIMIT", "text replacement %s budget exceeded", kind)
+	}
+	*remaining -= n
+	return nil
+}
+
+// TakeInput bounds the frozen resource bytes retained by this derivation.
+func (b *ReplaceBudget) TakeInput(n int64) error {
+	return takeReplaceBytes(&b.InputBytes, n, "input bytes")
+}
+
+// TakeOutput runs after ValidateEdits and before ApplyEdits allocates any output.
+// Count removals first: disjoint shrinking and growing edits may offset each
+// other, regardless of operation order.
+func (b *ReplaceBudget) TakeOutput(input []byte, edits []*StructureEdit) error {
+	n := int64(len(input))
+	for _, edit := range edits {
+		for _, span := range edit.Spans {
+			n -= int64(span.End - span.Start)
+		}
+	}
+	for _, edit := range edits {
+		for _, span := range edit.Spans {
+			if int64(len(span.Bytes)) > b.ResourceBytes-n {
+				return fault.New(1, "RESOURCE_LIMIT", "text replacement resource bytes budget exceeded")
+			}
+			n += int64(len(span.Bytes))
+		}
+	}
+	if n > b.ResourceBytes {
+		return fault.New(1, "RESOURCE_LIMIT", "text replacement resource bytes budget exceeded")
+	}
+	return takeReplaceBytes(&b.OutputBytes, n, "output bytes")
+}
 
 func (r TextReplace) Validate() error {
 	if _, err := bookpath.Parse(string(r.BookPath)); err != nil {
@@ -95,7 +162,7 @@ type ReplaceFacts struct {
 // ReplaceTextEdits derives one replace operation against the frozen document. It
 // returns one text-set edit per affected element whose spans replace exactly the
 // matched literal intervals, so untouched bytes and the element tree stay.
-func (d *StructureDocument) ReplaceTextEdits(op TextReplace) ([]*StructureEdit, ReplaceFacts, error) {
+func (d *StructureDocument) ReplaceTextEdits(op TextReplace, budget *ReplaceBudget) ([]*StructureEdit, ReplaceFacts, error) {
 	if err := op.Validate(); err != nil {
 		return nil, ReplaceFacts{}, err
 	}
@@ -116,7 +183,7 @@ func (d *StructureDocument) ReplaceTextEdits(op TextReplace) ([]*StructureEdit, 
 	facts := ReplaceFacts{Mode: op.Mode, ExpectedHits: op.ExpectedHits}
 	edits := []*StructureEdit{}
 	err = walkReplaceScope(target, &facts.Skipped, func(e *xmltext.Element) error {
-		edit, node, hits, err := replaceElement(e, op, re)
+		edit, node, hits, err := replaceElement(e, op, re, budget)
 		if err != nil {
 			return err
 		}
@@ -195,8 +262,9 @@ type replaceMatch struct {
 // being silently dropped, so a context-dependent empty match can neither fake a
 // hit count nor leave a partial replacement. Regex replacement supports
 // $name/${name} expansion.
-func findReplaceMatches(text string, op TextReplace, re *regexp.Regexp) ([]replaceMatch, error) {
+func findReplaceMatches(text string, op TextReplace, re *regexp.Regexp, budget *ReplaceBudget) ([]replaceMatch, error) {
 	out := []replaceMatch{}
+	word := int64(strconv.IntSize / 8)
 	if op.Mode == "literal" {
 		for i := 0; i+len(op.Pattern) <= len(text); {
 			j := strings.Index(text[i:], op.Pattern)
@@ -204,40 +272,176 @@ func findReplaceMatches(text string, op TextReplace, re *regexp.Regexp) ([]repla
 				break
 			}
 			start := i + j
+			if budget.Hits == 0 || len(out) == ReplaceHitsLimit {
+				return nil, fault.New(1, "RESOURCE_LIMIT", "text replacement hit budget exceeded")
+			}
+			if err := takeReplaceBytes(&budget.MatchBytes, 4*word, "match metadata"); err != nil {
+				return nil, err
+			}
+			if err := takeReplaceBytes(&budget.ReplacementBytes, int64(len(op.Replacement)), "expanded bytes"); err != nil {
+				return nil, err
+			}
+			budget.Hits--
 			out = append(out, replaceMatch{start, start + len(op.Pattern), op.Replacement})
 			i = start + len(op.Pattern)
 		}
+		if len(out) > op.ExpectedHits {
+			return nil, fault.New(2, "INVALID_OPERATIONS", "expected %d hits, found %d", op.ExpectedHits, len(out))
+		}
 		return out, nil
 	}
-	for _, m := range re.FindAllStringSubmatchIndex(text, -1) {
+	// First collect only overall indices. The one extra index detects exhaustion
+	// without allocating an over-budget set of captures (or expanding anything).
+	// Its transient guard costs at most one two-int index plus slice header.
+	limit := min(int64(budget.Hits), int64(ReplaceHitsLimit), budget.MatchBytes/(5*word))
+	indices := re.FindAllStringIndex(text, int(limit)+1)
+	for _, m := range indices {
 		if m[0] == m[1] {
 			return nil, fault.New(2, "INVALID_OPERATIONS", "pattern produces a zero-width match")
 		}
-		expanded := re.ExpandString(nil, op.Replacement, text, m)
+	}
+	if len(indices) == 0 {
+		return out, nil
+	}
+	if len(indices) > budget.Hits || len(indices) > ReplaceHitsLimit {
+		return nil, fault.New(1, "RESOURCE_LIMIT", "text replacement hit budget exceeded")
+	}
+	// Overall indices, capture indices, both slice headers and replaceMatch's
+	// int/string fields are charged before the capture arrays are collected.
+	perMatch := (12 + 2*int64(re.NumSubexp()+1)) * word
+	if int64(len(indices)) > budget.MatchBytes/perMatch {
+		return nil, fault.New(1, "RESOURCE_LIMIT", "text replacement match metadata budget exceeded")
+	}
+	budget.MatchBytes -= int64(len(indices)) * perMatch
+	budget.Hits -= len(indices)
+	if len(indices) > op.ExpectedHits {
+		return nil, fault.New(2, "INVALID_OPERATIONS", "expected %d hits, found %d", op.ExpectedHits, len(indices))
+	}
+	out = make([]replaceMatch, 0, len(indices))
+	budget.captures++
+	for _, m := range re.FindAllStringSubmatchIndex(text, len(indices)) {
+		n, err := replacementSize(op.Replacement, m, re.SubexpNames(), min(budget.ReplacementBytes, int64(ContentTextLimit)))
+		if err != nil {
+			return nil, err
+		}
+		budget.ReplacementBytes -= n
+		budget.expansions++
+		expanded := re.ExpandString(make([]byte, 0, int(n)), op.Replacement, text, m)
 		out = append(out, replaceMatch{m[0], m[1], string(expanded)})
 	}
 	return out, nil
 }
 
-func replaceElement(e *xmltext.Element, op TextReplace, re *regexp.Regexp) (*StructureEdit, ReplaceNode, int, error) {
+// replacementSize mirrors regexp.ExpandString's token rules, but counts only.
+// Keep it paired with the stdlib oracle tests, including malformed tokens,
+// maximal Unicode names, leading-zero numbers and duplicate named captures.
+func replacementSize(template string, match []int, names []string, limit int64) (int64, error) {
+	var size int64
+	add := func(n int) error {
+		if int64(n) > limit-size {
+			return fault.New(1, "RESOURCE_LIMIT", "text replacement expanded bytes budget exceeded")
+		}
+		size += int64(n)
+		return nil
+	}
+	for template != "" {
+		before, after, ok := strings.Cut(template, "$")
+		if err := add(len(before)); err != nil {
+			return 0, err
+		}
+		if !ok {
+			break
+		}
+		template = after
+		if strings.HasPrefix(template, "$") {
+			if err := add(1); err != nil {
+				return 0, err
+			}
+			template = template[1:]
+			continue
+		}
+		name := template
+		brace := strings.HasPrefix(name, "{")
+		if brace {
+			name = name[1:]
+		}
+		i := 0
+		for i < len(name) {
+			r, width := utf8.DecodeRuneInString(name[i:])
+			if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_' {
+				break
+			}
+			i += width
+		}
+		if i == 0 || brace && (i == len(name) || name[i] != '}') {
+			if err := add(1); err != nil {
+				return 0, err
+			}
+			continue // malformed $ is literal; do not consume the suffix
+		}
+		name = name[:i]
+		consumed := i
+		if brace {
+			consumed += 2
+		}
+		template = template[consumed:]
+		num := 0
+		for j := 0; j < len(name); j++ {
+			if name[j] < '0' || name[j] > '9' || num >= 1e8 {
+				num = -1
+				break
+			}
+			num = num*10 + int(name[j]-'0')
+		}
+		if name[0] == '0' && len(name) > 1 {
+			num = -1
+		}
+		if num < 0 {
+			for j, candidate := range names {
+				if name == candidate && 2*j+1 < len(match) && match[2*j] >= 0 {
+					num = j
+					break
+				}
+			}
+		}
+		if num >= 0 && 2*num+1 < len(match) && match[2*num] >= 0 {
+			if err := add(match[2*num+1] - match[2*num]); err != nil {
+				return 0, err
+			}
+		}
+	}
+	return size, nil
+}
+
+func replaceElement(e *xmltext.Element, op TextReplace, re *regexp.Regexp, budget *ReplaceBudget) (*StructureEdit, ReplaceNode, int, error) {
 	runs := e.TextRuns()
 	if len(runs) == 0 {
 		return nil, ReplaceNode{}, 0, nil
 	}
-	var builder strings.Builder
-	for _, r := range runs {
-		builder.WriteString(r.Text)
-	}
-	text := builder.String()
+	// TextRuns' concatenation is already retained as DirectText by the parser.
+	text := e.DirectText
 	if text == "" {
 		return nil, ReplaceNode{}, 0, nil
 	}
-	matches, err := findReplaceMatches(text, op, re)
+	matches, err := findReplaceMatches(text, op, re, budget)
 	if err != nil {
 		return nil, ReplaceNode{}, 0, err
 	}
 	if len(matches) == 0 {
 		return nil, ReplaceNode{}, 0, nil
+	}
+	resultSize := int64(len(text))
+	for _, m := range matches {
+		resultSize -= int64(m.end - m.start)
+	}
+	for _, m := range matches {
+		if int64(len(m.replacement)) > int64(ContentTextLimit)-resultSize {
+			return nil, ReplaceNode{}, 0, fault.New(1, "RESOURCE_LIMIT", "replaced text exceeds 1 MiB in %s", e.Location)
+		}
+		resultSize += int64(len(m.replacement))
+	}
+	if err := takeReplaceBytes(&budget.ResultBytes, resultSize, "result text"); err != nil {
+		return nil, ReplaceNode{}, 0, err
 	}
 	type runSpan struct {
 		start, end int
@@ -254,6 +458,8 @@ func replaceElement(e *xmltext.Element, op TextReplace, re *regexp.Regexp) (*Str
 	}
 	edit := &StructureEdit{Change: StructureChange{Kind: "text-set", Locator: e.Location}}
 	var replaced strings.Builder
+	budget.results++
+	replaced.Grow(int(resultSize))
 	last := 0
 	for _, m := range matches {
 		index := -1
@@ -270,19 +476,26 @@ func replaceElement(e *xmltext.Element, op TextReplace, re *regexp.Regexp) (*Str
 		if !ok {
 			return nil, ReplaceNode{}, 0, fault.New(2, "INVALID_OPERATIONS", "match in %s is not in writable literal text", e.Location)
 		}
-		replacement, err := e.ReplaceBytes(m.replacement)
-		if err != nil {
-			return nil, ReplaceNode{}, 0, err
+		if m.replacement != text[m.start:m.end] {
+			n, err := e.ReplaceBytesSize(m.replacement)
+			if err != nil {
+				return nil, ReplaceNode{}, 0, err
+			}
+			if err := takeReplaceBytes(&budget.EncodedBytes, n, "encoded bytes"); err != nil {
+				return nil, ReplaceNode{}, 0, err
+			}
+			budget.encodings++
+			replacement, err := e.ReplaceBytes(m.replacement)
+			if err != nil {
+				return nil, ReplaceNode{}, 0, err
+			}
+			edit.Spans = append(edit.Spans, EditSpan{Start: start, End: end, Bytes: replacement})
 		}
-		edit.Spans = append(edit.Spans, EditSpan{Start: start, End: end, Bytes: replacement})
 		replaced.WriteString(text[last:m.start])
 		replaced.WriteString(m.replacement)
 		last = m.end
 	}
 	replaced.WriteString(text[last:])
 	edit.Change.Text = replaced.String()
-	if len(edit.Change.Text) > ContentTextLimit {
-		return nil, ReplaceNode{}, 0, fault.New(2, "INVALID_OPERATIONS", "replaced text exceeds 1 MiB in %s", e.Location)
-	}
 	return edit, ReplaceNode{Locator: e.Location, Before: text, After: edit.Change.Text}, len(matches), nil
 }
