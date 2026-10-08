@@ -16,15 +16,28 @@ import (
 )
 
 type Limits struct {
+	// Entries counts unique files and directories, including implicit parents.
 	Entries               int
 	FileBytes, TotalBytes int64
+	PathBytes             int64
 }
 
-var DefaultLimits = Limits{20000, 256 << 20, 2 << 30}
+var DefaultLimits = Limits{20000, 256 << 20, 2 << 30, 32 << 20}
+
+func (l Limits) checkEntry(count int, pathBytes int64, p bookpath.BookPath) error {
+	if count >= l.Entries {
+		return fault.New(1, "ARCHIVE_LIMIT", "too many expanded entries")
+	}
+	if int64(len(p)) > l.PathBytes-pathBytes {
+		return fault.New(1, "ARCHIVE_LIMIT", "cumulative expanded path bytes exceed limit")
+	}
+	return nil
+}
 
 type Archive struct {
-	dir   string
-	Files map[bookpath.BookPath]int64
+	dir    string
+	limits Limits
+	Files  map[bookpath.BookPath]int64
 }
 
 func (a *Archive) Close() { _ = os.RemoveAll(a.dir) }
@@ -64,6 +77,7 @@ func Open(filename string, limits Limits) (*Archive, error) {
 	seen := map[bookpath.BookPath]bool{}
 	names := map[string]bookpath.BookPath{}
 	kinds := map[bookpath.BookPath]bool{}
+	var pathBytes int64
 	for _, f := range z.File {
 		isDir := strings.HasSuffix(f.Name, "/")
 		name := strings.TrimSuffix(f.Name, "/")
@@ -85,9 +99,16 @@ func Open(filename string, limits Limits) (*Archive, error) {
 				return nil, fault.New(1, "ARCHIVE_COLLISION", "colliding paths %q and %q", old, q)
 			}
 			names[key] = q
-			if old, ok := kinds[q]; ok && old != dir {
-				return nil, fault.New(1, "ARCHIVE_COLLISION", "file/directory conflict %q", q)
+			if old, ok := kinds[q]; ok {
+				if old != dir {
+					return nil, fault.New(1, "ARCHIVE_COLLISION", "file/directory conflict %q", q)
+				}
+				continue
 			}
+			if e := limits.checkEntry(len(kinds), pathBytes, q); e != nil {
+				return nil, e
+			}
+			pathBytes += int64(len(q))
 			kinds[q] = dir
 		}
 	}
@@ -95,7 +116,7 @@ func Open(filename string, limits Limits) (*Archive, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &Archive{dir: dir, Files: map[bookpath.BookPath]int64{}}
+	a := &Archive{dir: dir, limits: limits, Files: map[bookpath.BookPath]int64{}}
 	success := false
 	defer func() {
 		if !success {
@@ -189,6 +210,9 @@ func (a *Archive) Unpack(output string) error {
 	if _, err = os.Lstat(abs); err == nil {
 		return fault.New(2, "OUTPUT_EXISTS", "output already exists")
 	} else if !os.IsNotExist(err) {
+		return err
+	}
+	if _, err = a.Inventory(); err != nil {
 		return err
 	}
 	stage, err := os.MkdirTemp(filepath.Dir(abs), ".kepub-unpack-")

@@ -254,7 +254,7 @@ func TestDirectorySafetyLimitsAndFrozenCopy(t *testing.T) {
 	if e := a.WriteZIP(io.Discard, tree); e != nil {
 		t.Fatal("frozen copy follows source edit", e)
 	}
-	for _, limits := range []Limits{{1, 100, 100}, {200, 100, 20}, {200, 19, 100}} {
+	for _, limits := range []Limits{{1, 100, 100, DefaultLimits.PathBytes}, {200, 100, 20, DefaultLimits.PathBytes}, {200, 19, 100, DefaultLimits.PathBytes}} {
 		if a, _, e := SnapshotDirectory(root, limits); e == nil {
 			a.Close()
 			t.Fatal("snapshot limit ignored", limits)

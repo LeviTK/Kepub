@@ -59,13 +59,10 @@ func scan(dir, copyTo string, limits Limits) (Tree, error) {
 	}
 	defer r.Close()
 	names := map[string]string{}
-	var total int64
+	var total, pathBytes int64
 	err = fs.WalkDir(r.FS(), ".", func(name string, d fs.DirEntry, e error) error {
 		if e != nil || name == "." {
 			return e
-		}
-		if len(t.Entries) >= limits.Entries {
-			return fault.New(1, "ARCHIVE_LIMIT", "too many directory entries")
 		}
 		bp, e := bookpath.Parse(name)
 		if e != nil {
@@ -80,6 +77,10 @@ func scan(dir, copyTo string, limits Limits) (Tree, error) {
 		if e != nil {
 			return e
 		}
+		if e := limits.checkEntry(len(t.Entries), pathBytes, bp); e != nil {
+			return e
+		}
+		pathBytes += int64(len(bp))
 		entry := Entry{Path: name}
 		if i.IsDir() {
 			entry.Type = "directory"
@@ -163,7 +164,7 @@ func SnapshotDirectory(dir string, limits Limits) (*Archive, Tree, error) {
 	if err != nil {
 		return nil, Tree{}, err
 	}
-	a := &Archive{dir: stage, Files: map[bookpath.BookPath]int64{}}
+	a := &Archive{dir: stage, limits: limits, Files: map[bookpath.BookPath]int64{}}
 	t, err := scan(dir, stage, limits)
 	if err == nil {
 		var again Tree
@@ -192,7 +193,7 @@ func SnapshotDirectory(dir string, limits Limits) (*Archive, Tree, error) {
 	return a, t, nil
 }
 
-func (a *Archive) Inventory() (Tree, error) { return scan(a.dir, "", DefaultLimits) }
+func (a *Archive) Inventory() (Tree, error) { return scan(a.dir, "", a.limits) }
 
 // WriteZIP consumes an approved, hash-bound inventory, never a workspace walk.
 // It writes an unpublished artifact; applications must check it before PublishZIP.
@@ -317,7 +318,7 @@ func (a *Archive) PublishZIP(ctx context.Context, output string, approved Tree, 
 	if err != nil {
 		return "", err
 	}
-	final, err := Open(stage, DefaultLimits)
+	final, err := Open(stage, a.limits)
 	if err != nil {
 		return "", err
 	}

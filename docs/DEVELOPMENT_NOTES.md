@@ -136,6 +136,20 @@
 - 所有 plan/execution/checkpoint/revision/journal 沿同一 writer；规范 digest 编码不带 LF 且保持不变。
   外部 edit 请求继续原有 32 MiB 与参数错误分类；正式 accept/export 仍使用真实固定 checker。
 
+## G-INVENTORY：入口与后续消费使用相同展开库存预算
+
+- ZIP 仅数显式条目 → 深路径隐式父目录不受限且后续扫描拒绝 → Open 在 privateDir 前登记全部唯一
+  文件/目录，共享和显式父目录去重，但重复显式 ZIP 条目仍拒绝；不把工作区管理目录算成出版物。
+- 文件字节不能约束路径库存 → 按唯一精确 BookPath 的 UTF-8 字节累计 `PathBytes`，加法前用剩余
+  预算比较，避免溢出；ZIP 与目录扫描复用 `Limits.checkEntry`，不截断资源或目录。
+- Inventory 重置 DefaultLimits → 注入/入口预算在后续失效 → Archive 保留自身 limits，Unpack 发布
+  staging 前验证，Inventory/WriteZIP/PublishZIP 最终重开沿用；正式 checker 不被草稿控制替代。
+- 永久入口 `TestR2ExpandedEntriesBeforeStaging`（两个文件＋隐式父目录，阻断 temp 创建的正反控）、
+  `TestR2InventoryRetainsEntryBudget`（实际 Inventory/Unpack、无产物/残留）、
+  `TestR2CumulativePathBytes`（UTF-8、显式父目录两序、路径预算±1与共享/空目录）、
+  `TestR2IndependentBudgets`（四种预算分离、int64 边界）和 `TestR2ExpandedRoundTrip`
+  （Open→Unpack→Snapshot→Inventory→WriteZIP，独立完整库存/hash/资源字节）。
+
 ## G-EVIDENCE：验证身份和范围不迁移
 
 - 每组结果注明 input commit/tree 或 working-tree 身份、runner、命令/timeout/parallel、exit、skip、artifact hash；fixed fresh-fetch 不能继承作者工作树 PASS。
