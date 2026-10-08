@@ -288,6 +288,26 @@
   原1MiB返回文本与XML预算不改，原边界测试保留。BenchmarkR7包含实际读I/O/XML解析，
   建索引有线性空间成本，B/op、allocs/op不等于RSS，不称整书搜索常数时间或内存必然降低。
 
+## G-QUERY-VERIFY：消除一次调用内重复，不缓存来源真相
+
+- AcceptedSnapshot 的 verifyBaseline→loadCurrent 已完整 readRevision，却再读同链 →
+  真实 accepted 单次 snapshot 两遍来源 → verifiedBaseline 直接返回本次已核 Revision，
+  snapshot 消费该值并 clone Tree entries，避免暴露内部 base。原 error-only 调用保留。
+  `TestR6SingleCallRevisionVerification` 在原算法实际 red（2 对 1）；不跨请求、恢复或重开缓存。
+- 省遍历不等于信任旧批准 → 同尺寸原书／initial／ancestor／current／checkpoint／execution
+  变更、accepted pointer 推进或关闭／取消后必须重新拒绝；
+  `TestR6VerificationIsCallLocal` 核冻结 snapshot 不借 live bytes／返回值不 alias，
+  `TestR6Schema7SnapshotRevalidatesSource` 核完整重签 risk 仍被自身 BaseRevision 重推拒绝。
+- 仅用 selective live reader 会失去完整私有 bytes 及未查询资源漂移边界 → 本次不替换，
+  保留 snapshot 的两次 inventory／全书复制／hash 对照、Open 及 active execution 独立门禁。
+  Issue15 只完成 A 的部分调用级优化；B 共享对象历史存储／迁移仍依赖 Issue2，完整历史
+  校验仍随版本数和资源量增长，不承诺常数时间或全部 R6 完成。
+- `TestR6HistoryMatrix`／`BenchmarkR6Queries`／`BenchmarkR6FormalExport` 用真实 checker
+  接受的 1／10（显式 100）×1KiB／64KiB CSS 合成书；content/search、diff、旧 status、
+  accepted 正式导出各核独立结果。benchmark 报 self /proc I/O，不含 Java child，rchar
+  不是物理读量；profiles 观察完整复制与临时逻辑 payload，非 RSS／磁盘块峰值。
+  `TestR6ColdProcess` 的新进程与同进程 reopen 分列；不清 OS 缓存，不伪称冷盘成绩。
+
 ## G-EVIDENCE：验证身份和范围不迁移
 
 - 每组结果注明 input commit/tree 或 working-tree 身份、runner、命令/timeout/parallel、exit、skip、artifact hash；fixed fresh-fetch 不能继承作者工作树 PASS。

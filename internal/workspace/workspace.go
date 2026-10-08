@@ -445,25 +445,36 @@ func (w *Workspace) verifyTask() error {
 }
 
 func (w *Workspace) verifyBaseline() error {
+	_, err := w.verifiedBaseline()
+	return err
+}
+
+// verifiedBaseline returns the revision established by this verification only.
+// Callers hold the owner lock (and mu after Open); no result survives a later
+// operation, recovery or outside mutation as a verification exemption.
+func (w *Workspace) verifiedBaseline() (Revision, error) {
 	f, err := openRegular(w.root, "original/book.epub")
 	if err != nil {
-		return err
+		return Revision{}, err
+	}
+	if w.resources.onOriginalRead != nil {
+		w.resources.onOriginalRead()
 	}
 	h := sha256.New()
 	_, err = archive.CopyBounded(w.resources.ctx, h, f, w.resources.originalBytes)
 	err = errors.Join(err, f.Close())
 	if err != nil {
-		return err
+		return Revision{}, err
 	}
 	if hex.EncodeToString(h.Sum(nil)) != w.state.OriginalSHA256 {
-		return fmt.Errorf("original archive hash mismatch")
+		return Revision{}, fmt.Errorf("original archive hash mismatch")
 	}
 	tree, err := w.hashAt(revision)
 	if err != nil {
-		return err
+		return Revision{}, err
 	}
 	if tree.SHA256 != w.state.Tree.SHA256 || !slices.Equal(tree.Entries, w.state.Tree.Entries) {
-		return fmt.Errorf("initial revision manifest mismatch")
+		return Revision{}, fmt.Errorf("initial revision manifest mismatch")
 	}
 	return w.loadCurrent()
 }
