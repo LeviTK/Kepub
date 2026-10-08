@@ -489,6 +489,9 @@ func policyFor(version int) string {
 	if version >= 4 && version <= 7 {
 		policy += referencePolicy
 	}
+	if version == 7 {
+		policy += fileTargetPolicy
+	}
 	return policy
 }
 
@@ -517,9 +520,16 @@ func planReferenceVersion(p Plan) int {
 	return publication.ReferenceParserVersion
 }
 
+func planTargetVersion(p Plan) int {
+	if p.SchemaVersion == 7 && p.PolicySHA256 != digest(policyFor(7)) {
+		return 1
+	}
+	return 2
+}
+
 func validPlanOperation(p Plan) bool {
 	if p.SchemaVersion == 7 {
-		return p.Proposal != nil && (p.PolicySHA256 == digest(policyFor(7)) || p.PolicySHA256 == digest(fixPolicy))
+		return p.Proposal != nil && (p.PolicySHA256 == digest(policyFor(7)) || p.PolicySHA256 == digest(fixPolicy+referencePolicy) || p.PolicySHA256 == digest(fixPolicy))
 	}
 	if p.Proposal != nil {
 		return false
@@ -923,6 +933,9 @@ func (w *Workspace) verifyPlan(p Plan, bindPath bool) (derivation, error) {
 	if planReferenceVersion(p) != publication.ReferenceParserVersion {
 		return derivation{}, fmt.Errorf("%w: legacy reference policy requires a new plan", ErrStalePlan)
 	}
+	if planTargetVersion(p) != 2 {
+		return derivation{}, fmt.Errorf("%w: legacy target policy requires a new plan", ErrStalePlan)
+	}
 	if err := w.verifyPlanEnvelope(p, bindPath); err != nil {
 		return derivation{}, err
 	}
@@ -957,6 +970,7 @@ func (w *Workspace) verifyFixPlan(p Plan) error {
 	}
 	s.Workspace.BaseRevision = p.BaseRevision
 	s.Workspace.InputTreeSHA256 = tree.SHA256
+	s.TargetVersion = planTargetVersion(p)
 	if err := fix.Validate(s, *p.Proposal); err != nil {
 		return errors.Join(ErrStalePlan, err)
 	}

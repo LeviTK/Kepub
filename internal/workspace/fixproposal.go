@@ -26,6 +26,8 @@ type fixRequest struct {
 // fixPolicy is the frozen schema 7 policy string.
 const fixPolicy = "kepub-fix-proposal-v1:accepted-baseline;multi-operation;frozen-baseline;complete-source;locator-v1;reference-gate;explicit-selection;no-timestamp;review-required;conformance-not-run"
 
+const fileTargetPolicy = ";file-target-v2"
+
 // fixSnapshot builds the frozen proposal source of the current accepted
 // revision. It never reads Git metadata and never mutates workspace state.
 func (w *Workspace) fixSnapshot() (fix.Snapshot, error) {
@@ -73,13 +75,15 @@ func (w *Workspace) fixSnapshotAt(baseDir string) (fix.Snapshot, error) {
 	sort.Slice(s.Resources, func(i, j int) bool { return s.Resources[i].Path < s.Resources[j].Path })
 	// The inventory and its hash always come from this base directory, so an
 	// historical revision never inherits the current accepted identity.
-	if t, err := HashTree(filepath.Join(w.dir, filepath.FromSlash(baseDir))); err == nil {
-		s.Workspace.InputTreeSHA256 = t.SHA256
-		for _, e := range t.Entries {
-			s.Inventory = append(s.Inventory, e.Path)
-		}
+	t, err := HashTree(filepath.Join(w.dir, filepath.FromSlash(baseDir)))
+	if err != nil {
+		return fix.Snapshot{}, err
 	}
-	sort.Strings(s.Inventory)
+	s.Workspace.InputTreeSHA256 = t.SHA256
+	s.Inventory = make(map[bookpath.BookPath]string, len(t.Entries))
+	for _, e := range t.Entries {
+		s.Inventory[bookpath.BookPath(e.Path)] = e.Type
+	}
 	return s, nil
 }
 
@@ -117,10 +121,10 @@ func (w *Workspace) fixSnapshotOfArchive(a *archive.Archive, tree archive.Tree, 
 		s.Resources = append(s.Resources, fix.Resource{Path: item.Path, Bytes: b})
 	}
 	sort.Slice(s.Resources, func(i, j int) bool { return s.Resources[i].Path < s.Resources[j].Path })
+	s.Inventory = make(map[bookpath.BookPath]string, len(tree.Entries))
 	for _, e := range tree.Entries {
-		s.Inventory = append(s.Inventory, e.Path)
+		s.Inventory[bookpath.BookPath(e.Path)] = e.Type
 	}
-	sort.Strings(s.Inventory)
 	return s, nil
 }
 

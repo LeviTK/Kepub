@@ -590,24 +590,8 @@ func (g *structureGate) checkLink(resource bookpath.BookPath, value string) erro
 	if err != nil {
 		return err
 	}
-	if _, ok := inv[ref.Path]; !ok {
-		return fault.New(2, "INVALID_OPERATIONS", "reference target %q does not exist", ref.Path)
-	}
-	if ref.Fragment == "" {
-		return nil
-	}
-	ids, err := g.idsFor(ref.Path)
-	if err != nil {
-		return err
-	}
-	switch ids[ref.Fragment] {
-	case 1:
-		return nil
-	case 0:
-		return fault.New(2, "INVALID_OPERATIONS", "fragment %q is not present in %s", ref.Fragment, ref.Path)
-	default:
-		return fault.New(2, "INVALID_OPERATIONS", "fragment %q is ambiguous in %s", ref.Fragment, ref.Path)
-	}
+	_, hasFile := inv[ref.Path]
+	return publication.CheckReferenceTarget(ref, hasFile, g.idsFor)
 }
 
 // checkIDREF validates a new same-document IDREF against the transaction's

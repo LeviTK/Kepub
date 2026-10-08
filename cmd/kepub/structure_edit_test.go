@@ -3,6 +3,7 @@ package main
 import (
 	"archive/zip"
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -363,6 +364,112 @@ func TestN2IDREFBinaryLifecycle(t *testing.T) {
 			got, err := os.ReadFile(book)
 			if err != nil || !bytes.Equal(got, original) {
 				t.Fatal("original changed", err)
+			}
+		})
+	}
+}
+
+func TestN3FixTargetBinaryLifecycle(t *testing.T) {
+	if os.Getenv("KEPUB_EPUBCHECK_JAR") == "" {
+		t.Skip("real pinned EPUBCheck required")
+	}
+	binary := workspaceBinary(t)
+	for _, target := range []string{"chapter1.xhtml?cleanup=1#second", "empty?", "full?cleanup=1", "absent.xhtml?"} {
+		t.Run(target, func(t *testing.T) {
+			book, files := structureCLI(t)
+			files["EPUB/chapter1.xhtml"] = bytes.Replace(files["EPUB/chapter1.xhtml"], []byte("</body>"), []byte(`<a href="`+target+`">目录或文件</a></body>`), 1)
+			entries := []testfixture.Entry{}
+			for _, name := range []string{"mimetype", "META-INF/container.xml", "EPUB/package.opf", "EPUB/chapter1.xhtml", "EPUB/style.css", "EPUB/nav.xhtml"} {
+				entries = append(entries, testfixture.Entry{Name: name, Data: files[name]})
+			}
+			entries = append(entries, testfixture.Entry{Name: "EPUB/empty/", Mode: os.ModeDir | 0700})
+			if strings.HasPrefix(target, "full?") {
+				entries = append(entries, testfixture.Entry{Name: "EPUB/full/child.bin", Data: []byte{0, 255, 42}})
+			}
+			testfixture.ZIP(t, book, entries)
+			original, err := os.ReadFile(book)
+			if err != nil {
+				t.Fatal(err)
+			}
+			dir := t.TempDir()
+			ws := filepath.Join(dir, "ws")
+			run := func(args []string, code int) map[string]any {
+				result := processJSON(t, binary, args, code, 60*time.Second)
+				t.Logf("N3 CLI argv=%q actual_exit=%d", args, code)
+				return result
+			}
+			run([]string{"workspace", "open", book, "--output", ws}, 0)
+			all := run([]string{"fix", "propose", "--workspace", ws}, 0)["data"].(map[string]any)
+			repairs := all["repairs"].([]any)
+			if len(repairs) != 1 {
+				t.Fatal("applicable directory/file fact lost", all)
+			}
+			r := repairs[0].(map[string]any)
+			id := r["repairId"].(string)
+			selected := run([]string{"fix", "propose", "--workspace", ws, "--select", id}, 0)["data"].(map[string]any)
+			t.Logf("N3 proposal_sha256=%s selected_sha256=%s original_sha256=%x", all["proposalSha256"], selected["proposalSha256"], sha256.Sum256(original))
+			info, err := os.Stat(filepath.Join(ws, "revisions/initial/pub/EPUB/empty"))
+			if err != nil || !info.IsDir() {
+				t.Fatal("empty directory was discarded", err)
+			}
+			request, plan := filepath.Join(dir, "request.json"), filepath.Join(dir, "plan.json")
+			if !strings.HasPrefix(target, "chapter1.xhtml") {
+				if r["status"] != "unfixable" || r["operation"] != nil || len(r["writeSet"].([]any)) != 0 || r["unfixableReason"] == "" || len(selected["derived"].(map[string]any)["operations"].([]any)) != 0 {
+					t.Fatal("non-file target was authorized", r)
+				}
+				refused := run([]string{"fix", "propose", "--workspace", ws, "--select", id, "--emit-request", "--output", request}, 2)
+				if refused["error"].(map[string]any)["code"] != "INVALID_OPERATIONS" {
+					t.Fatal("wrong zero-operation refusal", refused)
+				}
+				if _, err := os.Stat(request); !os.IsNotExist(err) {
+					t.Fatal("unfixable emit published output", err)
+				}
+				if _, err := os.Stat(filepath.Join(ws, "tasks/active")); !os.IsNotExist(err) {
+					t.Fatal("unfixable proposal created candidate", err)
+				}
+			} else {
+				run([]string{"fix", "propose", "--workspace", ws, "--select", id, "--emit-request", "--output", request}, 0)
+				requestBytes, err := os.ReadFile(request)
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Logf("N3 request_sha256=%x", sha256.Sum256(requestBytes))
+				run([]string{"plan", "--workspace", ws, "--operations", request, "--output", plan}, 0)
+				e := run([]string{"apply", "--workspace", ws, "--plan", plan}, 0)["data"].(map[string]any)
+				task := e["taskId"].(string)
+				files["EPUB/chapter1.xhtml"] = bytes.Replace(files["EPUB/chapter1.xhtml"], []byte(`href="`+target+`"`), []byte(`href="chapter1.xhtml#second"`), 1)
+				run([]string{"task", "accept", task, "--workspace", ws}, 0)
+				stale := run([]string{"plan", "--workspace", ws, "--operations", request, "--output", filepath.Join(dir, "stale.json")}, 4)
+				if stale["error"].(map[string]any)["code"] != "PROPOSAL_DRIFT" {
+					t.Fatal("stale proposal was not refused", stale)
+				}
+				out := filepath.Join(dir, "formal.epub")
+				exported := run([]string{"workspace", "export", ws, "--output", out}, 0)["data"].(map[string]any)
+				if exported["verified"] != true || exported["validation"].(map[string]any)["status"] != "pass" {
+					t.Fatal("formal export skipped checker", exported)
+				}
+				checkExport(t, out, files)
+				z, err := zip.OpenReader(out)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer z.Close()
+				seen := map[string]bool{}
+				for _, entry := range z.File {
+					_, file := files[entry.Name]
+					directory := entry.Name == "EPUB/" || entry.Name == "META-INF/" || entry.Name == "EPUB/empty/"
+					if seen[entry.Name] || !file && !directory || entry.FileInfo().IsDir() != directory || directory && entry.UncompressedSize64 != 0 {
+						t.Fatal("unexpected export inventory", entry.Name)
+					}
+					seen[entry.Name] = true
+				}
+				if len(seen) != 9 || !seen["EPUB/empty/"] {
+					t.Fatal("export lost empty directory", seen)
+				}
+			}
+			got, err := os.ReadFile(book)
+			if err != nil || !bytes.Equal(got, original) {
+				t.Fatal("original EPUB changed", err)
 			}
 		})
 	}
