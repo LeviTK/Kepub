@@ -21,8 +21,8 @@ type RawDocument struct{ Bytes []byte }
 // FixPropose derives a complete FixProposal v1 (or its schema 7 request) from
 // the frozen accepted baseline. It is read-only: it never writes a candidate,
 // accepted revision or history.
-func FixPropose(dir, selectValue string, emitRequest bool, output string, machine bool) (any, error) {
-	w, err := workspace.Open(dir)
+func FixPropose(ctx context.Context, dir, selectValue string, emitRequest bool, output string, machine bool) (any, error) {
+	w, err := workspace.OpenContext(ctx, dir)
 	if err != nil {
 		return nil, WorkspaceError(err)
 	}
@@ -95,7 +95,7 @@ func FixPropose(dir, selectValue string, emitRequest bool, output string, machin
 // classifies the diagnostic difference. A normal compliance failure still
 // produces the delta; checker or execution failures keep their fault.
 func FixDelta(ctx context.Context, dir, before, afterRevision, afterTask, output string, o validation.Options, machine bool) (any, error) {
-	w, err := workspace.Open(dir)
+	w, err := workspace.OpenContext(ctx, dir)
 	if err != nil {
 		return nil, WorkspaceError(err)
 	}

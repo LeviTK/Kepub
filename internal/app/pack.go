@@ -53,7 +53,7 @@ func Pack(ctx context.Context, dir, output string, o validation.Options) (PackRe
 	if rel == "." || rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
 		return PackResult{}, fault.New(2, "INVALID_OUTPUT", "output must be outside publication root")
 	}
-	a, t, err := archive.SnapshotDirectory(dir, archive.DefaultLimits)
+	a, t, err := archive.SnapshotDirectoryContext(ctx, dir, archive.DefaultLimits)
 	if err != nil {
 		return PackResult{}, err
 	}

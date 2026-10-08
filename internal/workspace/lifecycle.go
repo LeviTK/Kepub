@@ -222,7 +222,7 @@ func (w *Workspace) readRevision(id string) (Revision, error) {
 		if r.Version != 1 || r.ID != id || !validID(r.TaskID) || r.Rootfile != w.state.Rootfile || r.WorkspaceID != w.id || r.Validation == nil {
 			return selected, fmt.Errorf("invalid revision provenance")
 		}
-		t, err := hashAt(w.root, revisionPath(id))
+		t, err := w.hashAt(revisionPath(id))
 		if err != nil {
 			return selected, err
 		}
@@ -513,14 +513,14 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 		return Review{}, err
 	}
 	if !exists(w.root, "tasks/active/edit-intent.json") {
-		t, err := hashAt(w.root, candidate)
+		t, err := w.hashAt(candidate)
 		return Review{TaskID: id, BaseRevision: w.current, Diff: compareTrees(w.base, t), Metadata: MetadataReview{Unavailable: "manual candidate has no registered metadata execution"}}, err
 	}
 	e, err := w.execution()
 	if err != nil && !errors.Is(err, ErrCandidateDrift) {
 		return Review{}, err
 	}
-	t, err2 := hashAt(w.root, candidate)
+	t, err2 := w.hashAt(candidate)
 	if err2 != nil {
 		return Review{}, err2
 	}
@@ -536,8 +536,12 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 		param := e.Plan.Operations[0].Params.(metadata.Set)
 		r.Metadata = MetadataReview{Namespace: param.Namespace, LocalName: param.LocalName, ID: param.ID, OldValue: param.ExpectedOldValue, PlannedValue: param.NewValue}
 	}
-	a, frozen, err := archive.SnapshotDirectory(filepath.Join(w.dir, filepath.FromSlash(candidate)), archive.DefaultLimits)
+	a, frozen, err := archive.SnapshotDirectoryContext(w.resources.ctx, filepath.Join(w.dir, filepath.FromSlash(candidate)), w.resources.limits)
 	if err != nil {
+		var f *fault.Error
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) || errors.As(err, &f) && f.Code == "ARCHIVE_LIMIT" {
+			return r, err
+		}
 		unavailableReview(&r, err.Error())
 		return r, nil
 	}
@@ -1106,7 +1110,7 @@ func (w *Workspace) AcceptedSnapshot() (*archive.Archive, archive.Tree, Revision
 	if err != nil {
 		return nil, archive.Tree{}, r, err
 	}
-	a, t, err := archive.SnapshotDirectory(filepath.Join(w.dir, filepath.FromSlash(revisionPath(w.current))), archive.DefaultLimits)
+	a, t, err := archive.SnapshotDirectoryContext(w.resources.ctx, filepath.Join(w.dir, filepath.FromSlash(revisionPath(w.current))), w.resources.limits)
 	if err != nil {
 		return nil, t, r, err
 	}
@@ -1134,6 +1138,9 @@ type settlement struct {
 func (w *Workspace) Accept(ctx context.Context, id string, o validation.Options) (d Decision, err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	previous := w.resources.ctx
+	w.resources.ctx = ctx
+	defer func() { w.resources.ctx = previous }()
 	if err := w.requireTask(id); err != nil {
 		return d, err
 	}
@@ -1166,7 +1173,7 @@ func (w *Workspace) Accept(ctx context.Context, id string, o validation.Options)
 			err = errors.Join(err, w.root.RemoveAll(stage))
 		}
 	}()
-	t, err := copyTree(w.root, candidate, stage+"/pub")
+	t, err := w.copyTree(candidate, stage+"/pub")
 	if err != nil {
 		return d, err
 	}
@@ -1199,7 +1206,7 @@ func (w *Workspace) Accept(ctx context.Context, id string, o validation.Options)
 	if _, err := w.execution(); err != nil {
 		return d, err
 	}
-	again, err := hashAt(w.root, stage+"/pub")
+	again, err := w.hashAt(stage + "/pub")
 	if err != nil {
 		return d, err
 	}
@@ -1243,7 +1250,7 @@ func (w *Workspace) Reject(id string) (Decision, error) {
 	} else if _, err := w.checkpoints(); err != nil {
 		return Decision{}, err
 	}
-	t, err := hashAt(w.root, candidate)
+	t, err := w.hashAt(candidate)
 	if err != nil {
 		return Decision{}, err
 	}
@@ -1327,7 +1334,7 @@ func (w *Workspace) taskDigests(dir string, j *settlement) error {
 		if j.Decision.Status != "rejected" || exists(w.root, dir+"/edit-start.json") || exists(w.root, dir+"/edit-result.json") {
 			return fmt.Errorf("manual candidate cannot be accepted")
 		}
-		tree, err := hashAt(w.root, dir+"/work/pub")
+		tree, err := w.hashAt(dir + "/work/pub")
 		if err != nil {
 			return err
 		}
@@ -1347,7 +1354,7 @@ func (w *Workspace) taskDigests(dir string, j *settlement) error {
 			if err := readEditJSON(w.root, name+"/checkpoint.json", &snap); err != nil {
 				return err
 			}
-			actual, err := hashAt(w.root, name+"/pub")
+			actual, err := w.hashAt(name + "/pub")
 			if err != nil {
 				return err
 			}
@@ -1381,7 +1388,7 @@ func (w *Workspace) taskDigests(dir string, j *settlement) error {
 	if err := readEditJSON(w.root, dir+"/checkpoints/"+s.Checkpoint+"/checkpoint.json", &snap); err != nil {
 		return err
 	}
-	tree, err := hashAt(w.root, dir+"/checkpoints/"+s.Checkpoint+"/pub")
+	tree, err := w.hashAt(dir + "/checkpoints/" + s.Checkpoint + "/pub")
 	if err != nil {
 		return err
 	}
@@ -1410,7 +1417,7 @@ func (w *Workspace) taskDigests(dir string, j *settlement) error {
 	} else if e.Status != "failed" || e.ReviewRequired || e.Failure == "" || j.Decision.Status == "accepted" {
 		return fmt.Errorf("invalid settlement execution status")
 	}
-	actual, err := hashAt(w.root, dir+"/work/pub")
+	actual, err := w.hashAt(dir + "/work/pub")
 	if err != nil {
 		return err
 	}
@@ -1432,6 +1439,9 @@ func (w *Workspace) recoverSettlement() error {
 	if !exists(w.root, settlementJournal) {
 		return nil
 	}
+	previous := w.resources.ctx
+	w.resources.ctx = context.WithoutCancel(previous)
+	defer func() { w.resources.ctx = previous }()
 	if err := w.ensureIdentity(); err != nil {
 		return err
 	}
@@ -1480,7 +1490,7 @@ func (w *Workspace) recoverSettlement() error {
 		if err := readEditJSON(w.root, source+"/revision.json", &r); err != nil {
 			return err
 		}
-		t, err := hashAt(w.root, source+"/pub")
+		t, err := w.hashAt(source + "/pub")
 		if err != nil {
 			return err
 		}

@@ -149,7 +149,7 @@
 - ZIP 仅数显式条目 → 深路径隐式父目录不受限且后续扫描拒绝 → Open 在 privateDir 前登记全部唯一
   文件/目录，共享和显式父目录去重，但重复显式 ZIP 条目仍拒绝；不把工作区管理目录算成出版物。
 - 文件字节不能约束路径库存 → 按唯一精确 BookPath 的 UTF-8 字节累计 `PathBytes`，加法前用剩余
-  预算比较，避免溢出；ZIP 与目录扫描复用 `Limits.checkEntry`，不截断资源或目录。
+  预算比较，避免溢出；ZIP 与目录扫描复用 `Limits.CheckEntry`，不截断资源或目录。
 - Inventory 重置 DefaultLimits → 注入/入口预算在后续失效 → Archive 保留自身 limits，Unpack 发布
   staging 前验证，Inventory/WriteZIP/PublishZIP 最终重开沿用；正式 checker 不被草稿控制替代。
 - 永久入口 `TestR2ExpandedEntriesBeforeStaging`（两个文件＋隐式父目录，阻断 temp 创建的正反控）、
@@ -157,6 +157,31 @@
   `TestR2CumulativePathBytes`（UTF-8、显式父目录两序、路径预算±1与共享/空目录）、
   `TestR2IndependentBudgets`（四种预算分离、int64 边界）和 `TestR2ExpandedRoundTrip`
   （Open→Unpack→Snapshot→Inventory→WriteZIP，独立完整库存/hash/资源字节）。
+
+## G-IO：工作量有界但持久决定不能丢失
+
+- 先无界复制原书／hash 工作区再拒绝 → 临时字节和持锁工作量不受展开预算约束 → 原 ZIP
+  独立 `MaxInputBytes`，出版物复用 archive 四预算；实际读取仅余量 + 1，stat 快拒后仍核
+  增长和来源。管理目录／JSON 不算成出版物，hash wire 不变。入口 `TestR3OriginalBudget`、
+  `TestR3TreeBudgets`、`TestR3GrowthAfterStat`（13 字节增长、8/16 预算分别超限／drift）。
+- WalkDir 先整目录 ReadDir → callback 尚未核预算就分配目录列表 → 逐条遍历，在下钻、
+  库存追加和目标创建前核条目／路径；恢复 no-follow、单链接与碰撞负控，不缩减真实库存。
+- 读到探测字节就覆盖真实 read fault／cancel → 错误分类失真 → 保留 I/O／短写／取消，
+  仅无其他错误的超限判 `ARCHIVE_LIMIT`。`TestR3ActualReadBudget` 与 `TestR3BoundedCopyFaults`
+  独立核读取计数、bytes、int64 上界、读故障＋探测字节、短写和 EOF 取消。
+- accept／第二资源写入前未观测取消 → 无用 staging 或额外写入 → 沿请求 context 传递；
+  已登记写入完整 checkpoint 回滚，有效 restore／settlement journal 只忽略迟到取消，
+  不跳预算／来源／I/O 或删除决定。`TestR3CancelledAcceptDoesNotCopy`、
+  `TestR3PartialTreeFailure`、`TestR3CancelledRunningRollback`、`TestR3CommittedRecoveryRetainsBudget`
+  核第二资源、全资源 bytes、两次真实权限恢复失败后的 journal、再次 Open／锁获取；
+  app `TestR3WorkspaceRequestCancellation` 核九入口 code/130 和 source／workspace／输出不变。
+- task diff 把全部快照错误降为 unavailable → 复制中取消仍成功返回部分 review →
+  取消／超时／预算错误保留失败，普通不可解析候选仍允许安全审阅；
+  `TestR3DiffSnapshotCancellation` 核真实取消窗口／全工作区 bytes／私有 stage 清理。
+- 共用读取 helper 的通用预算文本替换归档既有 expanded-bytes 文本 → R2 单文件／累计
+  正确超限却违反旧原因契约 → Open 保留归档具体原因，`TestR2IndependentBudgets` 原断言不改。
+- 仅在系统调用间检查 context，不宣称即时打断任意阻塞 I/O；小预算／注入不等于真实耗尽、
+  公共 CLI 并发攻击或断电。正式 accept/export 仍用真实 checker，旧 schema／摘要不变。
 
 ## G-REPLACE：拒绝前的分配也必须有界
 

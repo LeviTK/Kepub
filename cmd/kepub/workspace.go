@@ -15,14 +15,14 @@ func executeWorkspace(ctx context.Context, o options) (any, error) {
 	case "workspace":
 		switch o.action {
 		case "open":
-			return app.OpenWorkspace(o.book, o.output, o.rootfile)
+			return app.OpenWorkspace(ctx, o.book, o.output, o.rootfile)
 		case "export":
 			return app.ExportWorkspace(ctx, o.book, o.output, v)
 		}
 	case "plan":
-		return app.PlanWorkspace(o.workspace, o.operations, o.output)
+		return app.PlanWorkspace(ctx, o.workspace, o.operations, o.output)
 	case "apply":
-		return app.ApplyWorkspace(o.workspace, o.plan)
+		return app.ApplyWorkspace(ctx, o.workspace, o.plan)
 	case "task":
 		return app.WorkspaceTask(ctx, o.workspace, o.book, o.action, v, !o.json)
 	}

@@ -21,8 +21,8 @@ type WorkspaceResult struct {
 	Conformance string          `json:"conformance"`
 }
 
-func OpenWorkspace(book, dir, rootfile string) (WorkspaceResult, error) {
-	w, err := workspace.Create(dir, book, workspace.Options{Rootfile: rootfile})
+func OpenWorkspace(ctx context.Context, book, dir, rootfile string) (WorkspaceResult, error) {
+	w, err := workspace.Create(dir, book, workspace.Options{Rootfile: rootfile, Context: ctx})
 	if err != nil {
 		return WorkspaceResult{}, WorkspaceError(err)
 	}
@@ -47,7 +47,7 @@ type WorkspaceContent struct {
 
 // ContentWorkspace keeps the cooperative lock until the accepted snapshot has
 // been parsed and queried. Candidate bytes and external checkers are not used.
-func ContentWorkspace(dir, resource string, o publication.ContentOptions) (WorkspaceContent, error) {
+func ContentWorkspace(ctx context.Context, dir, resource string, o publication.ContentOptions) (WorkspaceContent, error) {
 	if err := o.Validate(); err != nil {
 		return WorkspaceContent{}, err
 	}
@@ -55,7 +55,7 @@ func ContentWorkspace(dir, resource string, o publication.ContentOptions) (Works
 	if err != nil {
 		return WorkspaceContent{}, fault.New(2, "INVALID_ARGUMENT", "resource must be a canonical BookPath: %v", err)
 	}
-	w, err := workspace.Open(dir)
+	w, err := workspace.OpenContext(ctx, dir)
 	if err != nil {
 		return WorkspaceContent{}, WorkspaceError(err)
 	}
@@ -87,14 +87,14 @@ type WorkspaceSearch struct {
 	publication.Search
 }
 
-func SearchWorkspace(dir string, o publication.ContentOptions) (WorkspaceSearch, error) {
+func SearchWorkspace(ctx context.Context, dir string, o publication.ContentOptions) (WorkspaceSearch, error) {
 	if err := o.Validate(); err != nil {
 		return WorkspaceSearch{}, err
 	}
 	if o.Query == nil {
 		return WorkspaceSearch{}, fault.New(2, "INVALID_CONTENT_QUERY", "search requires query")
 	}
-	w, err := workspace.Open(dir)
+	w, err := workspace.OpenContext(ctx, dir)
 	if err != nil {
 		return WorkspaceSearch{}, WorkspaceError(err)
 	}
@@ -127,8 +127,8 @@ func readEditFile(file string) ([]byte, error) {
 	}
 	return b, err
 }
-func PlanWorkspace(dir, operations, output string) (workspace.Plan, error) {
-	w, err := workspace.Open(dir)
+func PlanWorkspace(ctx context.Context, dir, operations, output string) (workspace.Plan, error) {
+	w, err := workspace.OpenContext(ctx, dir)
 	if err != nil {
 		return workspace.Plan{}, WorkspaceError(err)
 	}
@@ -146,8 +146,8 @@ func PlanWorkspace(dir, operations, output string) (workspace.Plan, error) {
 	}
 	return p, WorkspaceError(w.WritePlanReport(p, output))
 }
-func ApplyWorkspace(dir, plan string) (workspace.Execution, error) {
-	w, err := workspace.Open(dir)
+func ApplyWorkspace(ctx context.Context, dir, plan string) (workspace.Execution, error) {
+	w, err := workspace.OpenContext(ctx, dir)
 	if err != nil {
 		return workspace.Execution{}, WorkspaceError(err)
 	}
@@ -164,7 +164,7 @@ func ApplyWorkspace(dir, plan string) (workspace.Execution, error) {
 }
 
 func WorkspaceTask(ctx context.Context, dir, id, action string, o validation.Options, human bool) (any, error) {
-	w, err := workspace.Open(dir)
+	w, err := workspace.OpenContext(ctx, dir)
 	if err != nil {
 		return nil, WorkspaceError(err)
 	}
@@ -195,7 +195,7 @@ type WorkspaceExportResult struct {
 }
 
 func ExportWorkspace(ctx context.Context, dir, output string, o validation.Options) (WorkspaceExportResult, error) {
-	w, err := workspace.Open(dir)
+	w, err := workspace.OpenContext(ctx, dir)
 	if err != nil {
 		return WorkspaceExportResult{}, WorkspaceError(err)
 	}
@@ -246,9 +246,17 @@ func WorkspaceError(err error) error {
 	if err == nil {
 		return nil
 	}
+	var resourceError *fault.Error
+	if errors.As(err, &resourceError) && resourceError.Code == "ARCHIVE_LIMIT" {
+		return err
+	}
 	switch {
 	case errors.Is(err, workspace.ErrBusy):
 		return fault.New(4, "WORKSPACE_BUSY", "%v", err)
+	case errors.Is(err, context.DeadlineExceeded):
+		return fault.New(5, "CHECKER_TIMEOUT", "request timed out before acceptance intent")
+	case errors.Is(err, context.Canceled):
+		return fault.New(130, "CANCELLED", "request cancelled before acceptance intent")
 	case errors.Is(err, workspace.ErrStalePlan), errors.Is(err, workspace.ErrCandidateDrift):
 		return fault.New(4, "INPUT_DRIFT", "%v", err)
 	case errors.Is(err, workspace.ErrTaskConflict), errors.Is(err, workspace.ErrCandidateConflict):
@@ -257,10 +265,6 @@ func WorkspaceError(err error) error {
 		return fault.New(3, "UNSUPPORTED_INPUT", "%v", err)
 	case errors.Is(err, workspace.ErrRecovery):
 		return fault.New(4, "RECOVERY_REQUIRED", "%v", err)
-	case errors.Is(err, context.DeadlineExceeded):
-		return fault.New(5, "CHECKER_TIMEOUT", "request timed out before acceptance intent")
-	case errors.Is(err, context.Canceled):
-		return fault.New(130, "CANCELLED", "request cancelled before acceptance intent")
 	default:
 		return err
 	}

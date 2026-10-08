@@ -83,4 +83,19 @@
   `TestN2LegacySchemas` 核 4–7 策略，`TestN2LegacyAcceptedJournal` 核真实 checker 后的
   durable 决定；保留旧文件字节，不重签或迁移旧来源来通过。
 
+## 工作区资源 I/O 与取消
+
+- 出版物资源树复用 `archive.Limits.CheckEntry`、`WalkDirectory`、`CopyBounded`；
+  不先收齐无界目录／读完资源才拒绝，不混计管理目录、持久 JSON 与原 ZIP 的独立预算。
+  stat 是快拒而非授权，实际余量 + 1 有界读取后仍核增长／drift；预算、I/O 与取消独立分类。
+- 请求 context 必须沿原书核对、自身 frozen revision 来源重推、candidate／checkpoint／accept
+  的每次扫描／复制传递。未提交 stage 失败清理，Close 或失败 Open 释放 owner 锁。
+- 已登记 mutation 在取消后仍完整回滚；有效 restore／settlement journal 沿原决定恢复，
+  仅临时 `WithoutCancel`，不跳预算、来源、hash 或真实 I/O，不删 durable intent 凑成功。
+  入口 `TestR3CancelledAcceptDoesNotCopy`、`TestR3TreeBudgets`、`TestR3OriginalBudget`、
+  `TestR3GrowthAfterStat`、`TestR3PartialTreeFailure`、`TestR3CancelledRunningRollback`、
+  `TestR3CommittedRecoveryRetainsBudget` 和 app 的 `TestR3WorkspaceRequestCancellation`。
+- task diff 的部分可审阅降级不吞掉快照取消／超时／预算失败；
+  `TestR3DiffSnapshotCancellation` 核复制阶段真实取消、无私有快照残留、全 workspace bytes 不变。
+
 对应开发注意事项：`G-FINAL`、`G-FACTS`、`G-BINDING`、`G-ORACLE`、`G-QUALIFY`、`G-JSON`、`G-IDREF`。

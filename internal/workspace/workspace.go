@@ -6,6 +6,7 @@
 package workspace
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
@@ -39,6 +40,7 @@ const maxJSONBytes = 32 << 20
 
 type Options struct {
 	Rootfile string
+	Context  context.Context
 }
 
 // State is import provenance, not an accepted/validated publication status.
@@ -53,16 +55,17 @@ type State struct {
 }
 
 type Workspace struct {
-	mu       sync.Mutex
-	root     *os.Root
-	owner    *os.File
-	dir      string
-	state    State
-	current  string
-	base     Tree
-	id       string
-	closed   bool
-	recovery bool
+	mu        sync.Mutex
+	root      *os.Root
+	owner     *os.File
+	dir       string
+	state     State
+	current   string
+	base      Tree
+	id        string
+	closed    bool
+	recovery  bool
+	resources resourceIO
 	// Private test-only template; copied afresh for every complete derivation.
 	replaceBudget *publication.ReplaceBudget
 }
@@ -83,6 +86,13 @@ func Create(dir, source string, opts Options) (_ *Workspace, err error) {
 
 // The private budget permits small boundary tests without changing the CLI.
 func create(dir, source string, opts Options, jsonLimit int64) (_ *Workspace, err error) {
+	return createWithIO(dir, source, opts, jsonLimit, defaultResourceIO(opts.Context))
+}
+
+func createWithIO(dir, source string, opts Options, jsonLimit int64, policy resourceIO) (_ *Workspace, err error) {
+	if err := policy.ctx.Err(); err != nil {
+		return nil, err
+	}
 	abs, err := filepath.Abs(dir)
 	if err != nil {
 		return nil, err
@@ -111,7 +121,7 @@ func create(dir, source string, opts Options, jsonLimit int64) (_ *Workspace, er
 	if err != nil {
 		return nil, err
 	}
-	w := &Workspace{root: r, dir: abs}
+	w := &Workspace{root: r, dir: abs, resources: policy}
 	defer func() {
 		if err != nil {
 			w.Close()
@@ -126,7 +136,7 @@ func create(dir, source string, opts Options, jsonLimit int64) (_ *Workspace, er
 			return nil, err
 		}
 	}
-	originalHash, err := copyOriginal(r, source)
+	originalHash, err := copyOriginal(r, source, policy)
 	if err != nil {
 		if errors.Is(err, errUnsafeRegular) {
 			return nil, fault.New(2, "INVALID_ARGUMENT", "workspace source: %v", err)
@@ -134,7 +144,7 @@ func create(dir, source string, opts Options, jsonLimit int64) (_ *Workspace, er
 		return nil, err
 	}
 	stagePath := filepath.Join(filepath.Dir(abs), stage)
-	a, err := archive.Open(filepath.Join(stagePath, "original/book.epub"), archive.DefaultLimits)
+	a, err := archive.OpenContext(policy.ctx, filepath.Join(stagePath, "original/book.epub"), policy.limits)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +156,7 @@ func create(dir, source string, opts Options, jsonLimit int64) (_ *Workspace, er
 	if err := a.Unpack(filepath.Join(stagePath, filepath.FromSlash(revision))); err != nil {
 		return nil, err
 	}
-	tree, err := hashAt(r, revision)
+	tree, err := w.hashAt(revision)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +191,10 @@ func create(dir, source string, opts Options, jsonLimit int64) (_ *Workspace, er
 	}
 	// Unpack does not promise fsync; sync the complete initial snapshot before
 	// publishing the root. This is not a claim of power-loss durability.
-	if err := syncTree(r); err != nil {
+	if err := syncTree(r, tree, policy.ctx); err != nil {
+		return nil, err
+	}
+	if err := policy.ctx.Err(); err != nil {
 		return nil, err
 	}
 	if err := publish(parent, stage, filepath.Base(abs)); err != nil {
@@ -204,6 +217,19 @@ func create(dir, source string, opts Options, jsonLimit int64) (_ *Workspace, er
 // interrupted restore and removes only the reserved internal staging contents.
 // Unrecognized user files elsewhere are left alone.
 func Open(dir string) (_ *Workspace, err error) {
+	return OpenContext(context.Background(), dir)
+}
+
+// OpenContext retains the request context for bounded pre-commit tree work.
+// Valid persisted journals retain their existing roll-forward semantics.
+func OpenContext(ctx context.Context, dir string) (*Workspace, error) {
+	return openWithIO(dir, defaultResourceIO(ctx))
+}
+
+func openWithIO(dir string, policy resourceIO) (_ *Workspace, err error) {
+	if err := policy.ctx.Err(); err != nil {
+		return nil, err
+	}
 	r, err := openDir(dir)
 	if err != nil {
 		return nil, err
@@ -213,7 +239,7 @@ func Open(dir string) (_ *Workspace, err error) {
 		r.Close()
 		return nil, err
 	}
-	w := &Workspace{root: r, dir: abs}
+	w := &Workspace{root: r, dir: abs, resources: policy}
 	defer func() {
 		if err != nil {
 			w.Close()
@@ -265,7 +291,7 @@ func Open(dir string) (_ *Workspace, err error) {
 	if exists(r, "tasks/active") {
 		// Malformed XHTML is permitted; filesystem escapes are not. No parsing
 		// success/validation label is attached to an externally edited candidate.
-		if _, err := hashAt(r, candidate); err != nil {
+		if _, err := w.hashAt(candidate); err != nil {
 			return nil, err
 		}
 		if exists(r, "tasks/active/edit-intent.json") {
@@ -309,7 +335,7 @@ func (w *Workspace) ready() error {
 	if w.recovery {
 		return ErrRecovery
 	}
-	return nil
+	return w.resources.ctx.Err()
 }
 
 // NewCandidate publishes one independent writable copy. A second candidate is
@@ -340,7 +366,7 @@ func (w *Workspace) createCandidate(plan *Plan) (_ string, err error) {
 			return "", err
 		}
 	}
-	tree, err := copyTree(w.root, revisionPath(w.current), stage+"/work/pub")
+	tree, err := w.copyTree(revisionPath(w.current), stage+"/work/pub")
 	if err != nil {
 		return "", err
 	}
@@ -360,6 +386,9 @@ func (w *Workspace) createCandidate(plan *Plan) (_ string, err error) {
 		return "", err
 	}
 	if err := syncDir(w.root, stage); err != nil {
+		return "", err
+	}
+	if err := w.resources.ctx.Err(); err != nil {
 		return "", err
 	}
 	if plan != nil {
@@ -419,7 +448,7 @@ func (w *Workspace) verifyBaseline() error {
 		return err
 	}
 	h := sha256.New()
-	_, err = io.Copy(h, f)
+	_, err = archive.CopyBounded(w.resources.ctx, h, f, w.resources.originalBytes)
 	err = errors.Join(err, f.Close())
 	if err != nil {
 		return err
@@ -427,7 +456,7 @@ func (w *Workspace) verifyBaseline() error {
 	if hex.EncodeToString(h.Sum(nil)) != w.state.OriginalSHA256 {
 		return fmt.Errorf("original archive hash mismatch")
 	}
-	tree, err := hashAt(w.root, revision)
+	tree, err := w.hashAt(revision)
 	if err != nil {
 		return err
 	}
@@ -437,7 +466,10 @@ func (w *Workspace) verifyBaseline() error {
 	return w.loadCurrent()
 }
 
-func copyOriginal(dst *os.Root, source string) (string, error) {
+func copyOriginal(dst *os.Root, source string, policy resourceIO) (hash string, err error) {
+	if err := policy.ctx.Err(); err != nil {
+		return "", err
+	}
 	abs, err := filepath.Abs(source)
 	if err != nil {
 		return "", err
@@ -452,12 +484,31 @@ func copyOriginal(dst *os.Root, source string) (string, error) {
 		return "", err
 	}
 	defer f.Close()
+	info, err := f.Stat()
+	if err != nil {
+		return "", err
+	}
+	if info.Size() > policy.originalBytes {
+		return "", fault.New(1, "ARCHIVE_LIMIT", "raw ZIP input exceeds %d bytes", policy.originalBytes)
+	}
 	out, err := dst.OpenFile("original/book.epub", os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
 		return "", err
 	}
+	defer func() {
+		if err != nil {
+			err = errors.Join(err, dst.Remove("original/book.epub"))
+		}
+	}()
 	h := sha256.New()
-	_, err = io.Copy(io.MultiWriter(out, h), f)
+	n, err := archive.CopyBounded(policy.ctx, io.MultiWriter(out, h), f, policy.originalBytes)
+	if err == nil {
+		after, statErr := f.Stat()
+		err = statErr
+		if err == nil && (n != info.Size() || after.Size() != info.Size() || !after.ModTime().Equal(info.ModTime())) {
+			err = fault.New(4, "INPUT_DRIFT", "original input changed during copy")
+		}
+	}
 	err = errors.Join(err, out.Sync(), out.Close())
 	return hex.EncodeToString(h.Sum(nil)), err
 }
@@ -563,14 +614,16 @@ func clearStaging(r *os.Root) error {
 	return syncDir(r, "staging")
 }
 
-func syncTree(r *os.Root) error {
-	tree, err := scanTree(r, nil)
-	if err != nil {
-		return err
-	}
+// Resource inventory has already been bounded and hash-verified. Management
+// files have their own raw/JSON budgets and must not be counted as publication
+// entries or rehashed as one combined original-plus-revision tree.
+func syncTree(r *os.Root, tree Tree, ctx context.Context) error {
 	for i := len(tree.Entries) - 1; i >= 0; i-- {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		e := tree.Entries[i]
-		f, err := r.Open(e.Path)
+		f, err := r.Open(revision + "/" + e.Path)
 		if err != nil {
 			return err
 		}
@@ -578,5 +631,22 @@ func syncTree(r *os.Root) error {
 			return err
 		}
 	}
-	return syncDir(r, ".")
+	for _, name := range []string{"state.json", "identity.json", "owner.lock"} {
+		f, err := openRegular(r, name)
+		if err != nil {
+			return err
+		}
+		if err := errors.Join(f.Sync(), f.Close()); err != nil {
+			return err
+		}
+	}
+	for _, name := range []string{revision, "revisions/initial", "revisions", "original", "tasks", "staging", "journal", "."} {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if err := syncDir(r, name); err != nil {
+			return err
+		}
+	}
+	return nil
 }

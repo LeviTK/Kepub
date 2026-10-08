@@ -3,7 +3,6 @@ package workspace
 import (
 	"errors"
 	"os"
-	"path/filepath"
 	"slices"
 	"sort"
 
@@ -75,7 +74,7 @@ func (w *Workspace) fixSnapshotAt(baseDir string) (fix.Snapshot, error) {
 	sort.Slice(s.Resources, func(i, j int) bool { return s.Resources[i].Path < s.Resources[j].Path })
 	// The inventory and its hash always come from this base directory, so an
 	// historical revision never inherits the current accepted identity.
-	t, err := HashTree(filepath.Join(w.dir, filepath.FromSlash(baseDir)))
+	t, err := w.hashAt(baseDir)
 	if err != nil {
 		return fix.Snapshot{}, err
 	}

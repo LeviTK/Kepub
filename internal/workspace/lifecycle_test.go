@@ -94,6 +94,50 @@ func applyPlan(t *testing.T, w *Workspace, p Plan) Execution {
 	return e
 }
 
+// Observe the first cancellation check without substituting a checker or
+// changing filesystem input. A pre-cancelled request must not copy a revision.
+type r3CancelledContext struct {
+	context.Context
+	staging string
+	copied  bool
+}
+
+func (c *r3CancelledContext) Err() error {
+	entries, _ := os.ReadDir(c.staging)
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), "accept-") {
+			c.copied = true
+		}
+	}
+	return c.Context.Err()
+}
+
+func TestR3CancelledAcceptDoesNotCopy(t *testing.T) {
+	w, dir, original := legalWorkspace(t, "3.0")
+	defer w.Close()
+	book := readResource(t, original)
+	e := applyPlan(t, w, fieldPlan(t, w, "title", "title", "Title", "New title"))
+	before := treeAt(t, filepath.Join(dir, candidate))
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	observing := &r3CancelledContext{Context: ctx, staging: filepath.Join(dir, "staging")}
+	_, err := w.Accept(observing, e.TaskID, validation.Options{})
+	if observing.copied {
+		t.Fatalf("pre-cancelled request copied an acceptance tree before observing cancellation: %v", err)
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.Fatal("cancellation was not propagated", err)
+	}
+	if after := treeAt(t, filepath.Join(dir, candidate)); after.SHA256 != before.SHA256 || w.current != "initial" {
+		t.Fatal("cancellation changed candidate or accepted")
+	}
+	entries, err := os.ReadDir(observing.staging)
+	if err != nil || len(entries) != 0 {
+		t.Fatal("cancelled staging leaked", entries, err)
+	}
+	assertBytes(t, original, book)
+}
+
 func TestAcceptedLifecycle(t *testing.T) {
 	requireChecker(t)
 	for _, version := range []string{"2.0", "3.0"} {
