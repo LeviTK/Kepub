@@ -42,4 +42,15 @@
 - 已有外部输出用 `OUTPUT_EXISTS`/2（单点分类在 `outputPath`，预检原样传播 fault，其余路径问题仍
   `INVALID_OUTPUT`）；emit-request 在发布前执行既有 256 操作预算，超限 `INVALID_OPERATIONS`/2 且无产物。
 
-对应开发注意事项：`G-FINAL`、`G-FACTS`、`G-BINDING`、`G-ORACLE`、`G-QUALIFY`。
+## 持久 JSON 的读写预算
+
+- 同类元数据共用 `maxJSONBytes` 和 `checkJSONSize`；预算按序列化后的 UTF-8 字节计量，包含
+  转义和落盘换行，不能按原始字段长度估算。`writeJSON` 在临时文件创建前拒绝超限，不提高读预算。
+- Create 在根目录发布前用正式读取入口读回 state 和 identity；失败只清理本次 staging。
+  plan/execution/checkpoint/revision/journal 都沿同一写入边界，不另造无预算持久化入口。
+- 注入预算保持私有、逐调用，不用可变全局或 CLI 扩权；短写用隔离子进程的小型文件预算，
+  不做真实磁盘／内存耗尽。原书、完整 inventory、旧 schema、摘要、锁和 journal 恢复顺序保持。
+- 永久入口：`TestR1JSONByteBudget`、`TestR1LegacyRecordByteBudget`、
+  `TestR1CreateLongPathInventory`、`TestR1CreateMetadataShortWrite`。
+
+对应开发注意事项：`G-FINAL`、`G-FACTS`、`G-BINDING`、`G-ORACLE`、`G-QUALIFY`、`G-JSON`。

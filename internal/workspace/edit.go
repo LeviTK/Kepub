@@ -159,7 +159,7 @@ type Execution struct {
 // object keys and trailing values. Typed JSON is the canonical digest encoding:
 // struct field order, no whitespace, Go JSON string escaping, optional id absent.
 func decodeStrict(b []byte, out any) error {
-	if len(b) > 32<<20 || !utf8.Valid(b) {
+	if len(b) > maxJSONBytes || !utf8.Valid(b) {
 		return fmt.Errorf("edit JSON limit")
 	}
 	d := json.NewDecoder(bytes.NewReader(b))
@@ -559,6 +559,10 @@ func (w *Workspace) ensureIdentity() error {
 }
 
 func readEditJSON(r *os.Root, name string, out any) error {
+	return readEditJSONLimit(r, name, out, maxJSONBytes)
+}
+
+func readEditJSONLimit(r *os.Root, name string, out any, limit int64) (err error) {
 	p, err := subdir(r, path.Dir(name))
 	if err != nil {
 		return err
@@ -568,9 +572,19 @@ func readEditJSON(r *os.Root, name string, out any) error {
 	if err != nil {
 		return err
 	}
-	b, err := io.ReadAll(io.LimitReader(f, (32<<20)+1))
-	err = errors.Join(err, f.Close())
+	defer func() { err = errors.Join(err, f.Close()) }()
+	info, err := f.Stat()
 	if err != nil {
+		return err
+	}
+	if err := checkJSONSize(info.Size(), limit); err != nil {
+		return err
+	}
+	b, err := io.ReadAll(io.LimitReader(f, limit+1))
+	if err != nil {
+		return err
+	}
+	if err := checkJSONSize(int64(len(b)), limit); err != nil {
 		return err
 	}
 	return decodeStrict(b, out)
@@ -593,9 +607,9 @@ func ReadEditFile(file string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	b, err := io.ReadAll(io.LimitReader(f, (32<<20)+1))
+	b, err := io.ReadAll(io.LimitReader(f, maxJSONBytes+1))
 	err = errors.Join(err, f.Close())
-	if len(b) > 32<<20 {
+	if len(b) > maxJSONBytes {
 		return nil, fmt.Errorf("edit file exceeds 32 MiB")
 	}
 	return b, err

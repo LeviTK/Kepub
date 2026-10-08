@@ -157,6 +157,7 @@ func TestEditArgumentErrorClassification(t *testing.T) {
 		{fmt.Errorf("publish: %w", syscall.EACCES), 6, "IO_ERROR"},
 		{errors.New("invalid locator"), 2, "INVALID_OPERATIONS"},
 		{fault.New(3, "UNSUPPORTED_INPUT", "unsupported"), 3, "UNSUPPORTED_INPUT"},
+		{fmt.Errorf("metadata: %w", fault.New(1, "WORKSPACE_JSON_LIMIT", "too large")), 1, "WORKSPACE_JSON_LIMIT"},
 		{errors.Join(workspace.ErrStalePlan, &os.PathError{Op: "open", Err: os.ErrNotExist}), 4, "INPUT_DRIFT"},
 		{workspace.ErrCandidateConflict, 4, "TASK_CONFLICT"},
 	} {
