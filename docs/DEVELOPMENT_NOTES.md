@@ -248,6 +248,21 @@
 - `TestR4ReservationBoundaries`、`TestR4FilteredResultHeaderBudget`、
   `TestR4XMLCoverageReservation` 与 `BenchmarkR4BoundedInventory` 核分配／追加前拒绝。
 
+## G-TERMINAL：机器原值与终端展示分开
+
+- 成功摘要转义但 run失败直接打印Message → 不存在路径经OS错误链把ESC原字节发stderr →
+  `TestR5MissingPathTerminalEscape` 旧树真实red；终端消息共用 `terminalQuote`，含完整双引号
+  和可见控制转义，不删除字节、不解释ANSI/OSC，不把展示形式写回 fault／JSON字段。
+- writer错误也含不可信后端文本 → JSON/raw-document/human三个输出失败分支同样转义。
+  `TestR5OutputWriterErrorPaths` 先核真实成功分支，再注入失败writer，独立字面完整期望。
+- 只测纯helper不能证明run边界 → `TestR5ErrorControlsAndJSONSemantics` 对12种真实路径
+  捕获human/JSON，OS独立错误期望、code/exit6、单envelope和解码原值均核；日志只用 `%q`。
+  中文／百分号／引号／长路径保留，CR/LF/TAB/C1/bidi不可伪造排版。
+- doctor readiness/help参数名来自受控静态注册表，checker诊断经摘要递归／JSON已有转义；
+  动态map键同样安全渲染。实际task diff是已转义展示，不能再转义整段：
+  `TestR5SummaryDiagnosticsAndKeys`、`TestR5TaskDiffIsNotDoubleEscaped` 保留两真实CRLF差异行。
+  不修改书籍、来源/accepted/事务、正式checker门槛或机器协议，也不称远程命令执行漏洞。
+
 ## G-EVIDENCE：验证身份和范围不迁移
 
 - 每组结果注明 input commit/tree 或 working-tree 身份、runner、命令/timeout/parallel、exit、skip、artifact hash；fixed fresh-fetch 不能继承作者工作树 PASS。
