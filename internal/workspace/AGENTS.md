@@ -98,6 +98,18 @@
 - task diff 的部分可审阅降级不吞掉快照取消／超时／预算失败；
   `TestR3DiffSnapshotCancellation` 核复制阶段真实取消、无私有快照残留、全 workspace bytes 不变。
 
+## 出版物路径与内部物理前缀
+
+- BookPath 的 4096 字节／128 组件只计出版物根内路径；宿主根、revision／candidate／
+  checkpoint／staging 前缀不得进入逻辑路径或资源库存预算。syncTree 消费已核出版物 Tree，
+  经 os.Root 同步固定内部位置；hash／copy／inventory 仍核原 BookPath，不全局加深限额。
+- `TestR8CreateAtDepthBoundary` 的原断言在 104db44 上复现126–128误拒、125正控；当前
+  #10 已修复该模型，本项只补回归。`TestR8PublicationPrefixesAndBudgets` 核独立完整 Tree、
+  精确小库存、真实读取／候选／checkpoint／restore／reopen和全部字节。
+- `TestR8PathRefusalsPreserveInputs` 保留129组件／4097字节、穿越／绝对／链接／碰撞负控；
+  `TestR8PrepublishSyncCancellation` 只称同步边界取消，非断电或真实fsync故障。
+  `TestR8HostPathFailureIsNotBookPathBudget` 区分实际宿主 ENAMETOOLONG 与逻辑 PATH_LIMIT。
+
 ## 引用图失败不得降为无依赖
 
 - lazy identity gate 与 eager cross-move 共用 references 的逐构建 context/GraphLimits；

@@ -180,6 +180,15 @@
   `TestR3DiffSnapshotCancellation` 核真实取消窗口／全工作区 bytes／私有 stage 清理。
 - 共用读取 helper 的通用预算文本替换归档既有 expanded-bytes 文本 → R2 单文件／累计
   正确超限却违反旧原因契约 → Open 保留归档具体原因，`TestR2IndependentBudgets` 原断言不改。
+- 整工作区 scanTree 把内部前缀传给 BookPath → 合法126–128组件在创建同步阶段误拒 →
+  #10 的 syncTree 消费已核出版物 Tree、只拼接固定 os.Root 物理位置。#14 不重复改产品；
+  `TestR8CreateAtDepthBoundary` 原断言在104db44有两125正控／六误拒，在当前两根长度全通过。
+  `TestR8PublicationPrefixesAndBudgets` 按 fixture 独立完整库存/hash和精确小预算核读取／
+  candidate／checkpoint／restore／reopen，全资源字节不改、管理条目不计成一本书。
+- 放大 Parse 或跳全部校验不能修层次混用：`TestR8LogicalPathLimits` 核逻辑128／4096边界，
+  `TestR8PathRefusalsPreserveInputs` 核129／4097和穿越／绝对／链接／两种碰撞拒绝。
+  `TestR8HostPathFailureIsNotBookPathBudget` 核实际 ENAMETOOLONG；同步边界取消只由
+  `TestR8PrepublishSyncCancellation` 注入，不冒称fsync硬件故障、断电或Mac实测。
 - 仅在系统调用间检查 context，不宣称即时打断任意阻塞 I/O；小预算／注入不等于真实耗尽、
   公共 CLI 并发攻击或断电。正式 accept/export 仍用真实 checker，旧 schema／摘要不变。
 

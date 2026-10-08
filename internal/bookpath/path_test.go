@@ -118,3 +118,30 @@ func TestRelativeHref(t *testing.T) {
 		}
 	}
 }
+
+func TestR8LogicalPathLimits(t *testing.T) {
+	for _, components := range []int{125, 126, 127, 128, 129} {
+		input := strings.Repeat("d/", components-1) + "file"
+		got, err := Parse(input)
+		if components <= 128 {
+			if err != nil || string(got) != input {
+				t.Fatalf("legal %d components changed: %q %v", components, got, err)
+			}
+		} else if err == nil {
+			t.Fatal("129 components accepted")
+		}
+	}
+	// This is a logical boundary, not a promise that a host filesystem supports
+	// a 4KiB relative path or a long leaf. Internal prefixes are not BookPaths.
+	for _, bytes := range []int{4095, 4096, 4097} {
+		input := strings.Repeat("x", bytes)
+		got, err := Parse(input)
+		if bytes <= 4096 {
+			if err != nil || string(got) != input {
+				t.Fatalf("logical %d-byte path changed: %v", bytes, err)
+			}
+		} else if err == nil {
+			t.Fatal("4097 bytes accepted")
+		}
+	}
+}

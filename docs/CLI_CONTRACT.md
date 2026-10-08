@@ -444,6 +444,9 @@ ZIP 重复显式条目仍拒绝；目录根与工作区内部管理目录不属�
 超限在解压 staging 前返回 `ARCHIVE_LIMIT`/1；目录快照和实际文件读取按同一预算有界执行。
 Archive 保留入口预算供 Unpack、Inventory、打包及最终 ZIP 重开使用，不重置为默认值。
 单路径 4096 字节/128 层和正式 accept/export 的真实 EPUBCheck 门槛保持不变。
+上述单路径预算只计出版物根内的 BookPath，不加入宿主绝对根或工作区
+revision／candidate／checkpoint／staging 前缀；内部同步消费已核出版物库存并保留 os.Root
+约束。宿主文件系统的路径／叶名称限制仍按实际 I/O 故障报告，不冒称逻辑 PATH_LIMIT。
 
 **Issue #10 的工作区 I/O 预算：** 原始 ZIP 使用独立的 2 GiB `MaxInputBytes`，不是展开文件
 总量；两者默认数值相同但分别检查，压缩头／目录／压缩比不计成展开文件字节。原书复制与
