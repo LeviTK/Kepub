@@ -242,10 +242,10 @@ func TestR2IndependentBudgets(t *testing.T) {
 	})
 	// The subtraction guard must reject, rather than wrap an overflowing sum.
 	limits := Limits{1, 25, 45, math.MaxInt64}
-	if err := limits.checkEntry(0, math.MaxInt64-2, "xx"); err != nil {
+	if err := limits.CheckEntry(0, math.MaxInt64-2, "xx"); err != nil {
 		t.Fatal("exact int64 boundary", err)
 	}
-	if err := limits.checkEntry(0, math.MaxInt64-1, "xx"); err == nil {
+	if err := limits.CheckEntry(0, math.MaxInt64-1, "xx"); err == nil {
 		t.Fatal("cumulative path sum overflow accepted")
 	}
 }

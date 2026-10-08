@@ -213,10 +213,10 @@ func execute(ctx context.Context, o options) (any, error) {
 		return app.Doctor(ctx)
 	}
 	if o.command == "content" {
-		return app.ContentWorkspace(o.workspace, o.resource, o.content)
+		return app.ContentWorkspace(ctx, o.workspace, o.resource, o.content)
 	}
 	if o.command == "search" {
-		return app.SearchWorkspace(o.workspace, o.content)
+		return app.SearchWorkspace(ctx, o.workspace, o.content)
 	}
 	if o.command == "workspace" || o.command == "task" || o.command == "plan" || o.command == "apply" {
 		data, err := executeWorkspace(ctx, o)
@@ -228,7 +228,7 @@ func execute(ctx context.Context, o options) (any, error) {
 	if o.command == "fix" {
 		switch o.action {
 		case "propose":
-			return app.FixPropose(o.workspace, o.selectValue, o.emitRequest, o.output, o.json)
+			return app.FixPropose(ctx, o.workspace, o.selectValue, o.emitRequest, o.output, o.json)
 		case "delta":
 			return app.FixDelta(ctx, o.workspace, o.before, o.afterRevision, o.afterTask, o.output, validation.Options{Strict: o.strict, Timeout: o.timeout}, o.json)
 		}
@@ -300,11 +300,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 	var data any
 	if err == nil {
-		ctx := context.Background()
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
 		if o.command == "doctor" || o.command == "validate" || o.command == "pack" || o.command == "workspace" && o.action == "export" || o.command == "task" && o.action == "accept" || o.command == "fix" && o.action == "delta" {
-			var stop context.CancelFunc
-			ctx, stop = signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
-			defer stop()
 			if o.timeout != 0 {
 				var cancel context.CancelFunc
 				ctx, cancel = context.WithTimeout(ctx, o.timeout)

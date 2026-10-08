@@ -442,6 +442,19 @@ ZIP 重复显式条目仍拒绝；目录根与工作区内部管理目录不属�
 Archive 保留入口预算供 Unpack、Inventory、打包及最终 ZIP 重开使用，不重置为默认值。
 单路径 4096 字节/128 层和正式 accept/export 的真实 EPUBCheck 门槛保持不变。
 
+**Issue #10 的工作区 I/O 预算：** 原始 ZIP 使用独立的 2 GiB `MaxInputBytes`，不是展开文件
+总量；两者默认数值相同但分别检查，压缩头／目录／压缩比不计成展开文件字节。原书复制与
+初始核对、revision／candidate／checkpoint 的扫描和复制复用上述出版物预算；管理目录和 JSON
+沿自身预算，不把整个工作区冒充一个出版物。stat 仅作提前拒绝，实际读取最多剩余额度 + 1
+探测字节，累计前安全比较；逐条遍历并在目标条目创建／库存追加前检查条目和路径额度。
+超限为 `ARCHIVE_LIMIT`/1，实际 I/O、`INPUT_DRIFT` 和取消独立分类，不套成不可用能力或坏 schema。
+工作区命令传递请求取消；创建／复制／接受的未提交 staging 清理、所有权句柄关闭释放锁。
+已登记编辑失败仍按完整 checkpoint 回滚，已持久 restore／settlement journal 按原决定恢复；
+这些恢复只忽略迟到取消，不豁免预算、来源、hash 或 I/O 核验，不删除 committed journal 凑成功。
+旧 schema／摘要、accepted／原书保护、no-follow／单链接／碰撞拒绝及真实正式检查门槛不变。
+预算只作私有逐调用小值注入，不新增 CLI 开关；取消在遍历／读取边界观测，不宣称可打断任意
+阻塞系统调用、advisory lock 的恶意同用户沙箱或真实断电验收。
+
 任务读取包含实际generation/输入hash；当前候选不稳定时返回上一冻结视图的标识和stale状态，或按请求拒绝读取，不伪装最新。
 
 ### 3.2 输出和交互

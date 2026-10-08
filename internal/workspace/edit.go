@@ -960,7 +960,7 @@ func (w *Workspace) verifyFixPlan(p Plan) error {
 	if p.Proposal == nil || p.Proposal.ProposalVersion != fix.ProposalVersion || p.Proposal.Workspace.BaseRevision != p.BaseRevision {
 		return ErrStalePlan
 	}
-	tree, err := HashTree(filepath.Join(w.dir, filepath.FromSlash(revisionPath(p.BaseRevision))))
+	tree, err := w.hashAt(revisionPath(p.BaseRevision))
 	if err != nil {
 		return errors.Join(ErrStalePlan, err)
 	}
@@ -1068,6 +1068,9 @@ func (w *Workspace) execute(e Execution, outputs map[string][]byte, hook func() 
 		err = fmt.Errorf("derived output set does not match plan")
 	}
 	for _, target := range e.Plan.WriteSet {
+		if err == nil {
+			err = w.resources.ctx.Err()
+		}
 		if err != nil {
 			break
 		}
@@ -1086,7 +1089,7 @@ func (w *Workspace) execute(e Execution, outputs map[string][]byte, hook func() 
 	}
 	if err == nil {
 		var actual Tree
-		actual, err = hashAt(w.root, candidate)
+		actual, err = w.hashAt(candidate)
 		if err == nil {
 			e.Diff = compareTrees(w.base, actual)
 			paths := []string{}
@@ -1124,7 +1127,7 @@ func (w *Workspace) execute(e Execution, outputs map[string][]byte, hook func() 
 		e.Status = "failed"
 		e.Failure = err.Error()
 		e.ReviewRequired = false
-		err = errors.Join(err, w.restore(e.Checkpoint))
+		err = errors.Join(err, w.rollback(e.Checkpoint))
 	} else {
 		e.Status = "review_required"
 		e.ReviewRequired = true
@@ -1143,7 +1146,7 @@ func (w *Workspace) execute(e Execution, outputs map[string][]byte, hook func() 
 	}
 	if recordErr != nil {
 		if e.Status != "failed" {
-			err = errors.Join(err, w.restore(e.Checkpoint))
+			err = errors.Join(err, w.rollback(e.Checkpoint))
 		}
 		e.Status = "failed"
 		e.ReviewRequired = false
@@ -1262,7 +1265,7 @@ func (w *Workspace) Diff() (Diff, error) {
 	if err := w.verifyTask(); err != nil {
 		return Diff{}, err
 	}
-	a, err := hashAt(w.root, candidate)
+	a, err := w.hashAt(candidate)
 	if err != nil {
 		return Diff{}, err
 	}
@@ -1364,14 +1367,14 @@ func (w *Workspace) execution() (Execution, error) {
 	}
 	if !exists(w.root, "tasks/active/edit-result.json") {
 		// Interrupted mutation is rolled back, not silently rerun as a new task.
-		actual, err := hashAt(w.root, candidate)
+		actual, err := w.hashAt(candidate)
 		if err != nil {
 			return e, errors.Join(deriveErr, err)
 		}
 		e = start
 		e.Diff = compareTrees(w.base, actual)
 		if start.Status == "running" {
-			if err := w.restore(start.Checkpoint); err != nil {
+			if err := w.rollback(start.Checkpoint); err != nil {
 				return e, errors.Join(deriveErr, err)
 			}
 		}
@@ -1400,7 +1403,7 @@ func (w *Workspace) execution() (Execution, error) {
 	if e.Version != start.Version || e.Diff.Changes == nil || digest(e.Plan) != digest(start.Plan) || e.Checkpoint != start.Checkpoint || e.Conformance != "not_run" || (start.Status == "unstarted" && e.Status != "failed") {
 		return e, fmt.Errorf("invalid execution provenance")
 	}
-	tree, err := hashAt(w.root, candidate)
+	tree, err := w.hashAt(candidate)
 	if err != nil {
 		return e, err
 	}

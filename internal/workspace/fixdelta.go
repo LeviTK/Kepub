@@ -32,7 +32,7 @@ func (ds DeltaSnapshot) Close() {
 // freezeDelta captures one verified tree into a private archive so the native
 // facts and the checker read the same bytes, never the live path.
 func (w *Workspace) freezeDelta(dir string, wantTree, base string) (DeltaSnapshot, error) {
-	a, tree, err := archive.SnapshotDirectory(dir, archive.DefaultLimits)
+	a, tree, err := archive.SnapshotDirectoryContext(w.resources.ctx, dir, w.resources.limits)
 	if err != nil {
 		return DeltaSnapshot{}, err
 	}
@@ -91,7 +91,7 @@ func (w *Workspace) FixDeltaSnapshot(revision, task string) (DeltaSnapshot, erro
 		return DeltaSnapshot{}, fmt.Errorf("task %s is not a stable applied candidate", task)
 	}
 	dir := filepath.Join(w.dir, filepath.FromSlash(candidate))
-	t, err := HashTree(dir)
+	t, err := w.hashAt(candidate)
 	if err != nil {
 		return DeltaSnapshot{}, err
 	}

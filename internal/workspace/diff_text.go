@@ -90,7 +90,7 @@ func (w *Workspace) TaskDiffText(id string) (string, error) {
 			}
 		}
 	}
-	actual, err := hashAt(w.root, candidate)
+	actual, err := w.hashAt(candidate)
 	if err != nil {
 		return "", err
 	}

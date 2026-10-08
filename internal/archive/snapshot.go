@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -35,8 +34,11 @@ type Tree struct {
 
 func digest(b []byte) string { h := sha256.Sum256(b); return hex.EncodeToString(h[:]) }
 
-func scan(dir, copyTo string, limits Limits) (Tree, error) {
+func scan(ctx context.Context, dir, copyTo string, limits Limits) (Tree, error) {
 	t := Tree{Entries: []Entry{}}
+	if err := ctx.Err(); err != nil {
+		return t, err
+	}
 	abs, err := filepath.Abs(dir)
 	if err != nil {
 		return t, err
@@ -60,12 +62,12 @@ func scan(dir, copyTo string, limits Limits) (Tree, error) {
 	defer r.Close()
 	names := map[string]string{}
 	var total, pathBytes int64
-	err = fs.WalkDir(r.FS(), ".", func(name string, d fs.DirEntry, e error) error {
-		if e != nil || name == "." {
-			return e
-		}
+	err = WalkDirectory(ctx, r, func(name string, i os.FileInfo) error {
 		bp, e := bookpath.Parse(name)
 		if e != nil {
+			return e
+		}
+		if e := limits.CheckEntry(len(t.Entries), pathBytes, bp); e != nil {
 			return e
 		}
 		key := bookpath.CollisionKey(bp)
@@ -73,13 +75,6 @@ func scan(dir, copyTo string, limits Limits) (Tree, error) {
 			return fault.New(1, "ARCHIVE_COLLISION", "colliding directory paths")
 		}
 		names[key] = name
-		i, e := r.Lstat(name)
-		if e != nil {
-			return e
-		}
-		if e := limits.checkEntry(len(t.Entries), pathBytes, bp); e != nil {
-			return e
-		}
 		pathBytes += int64(len(bp))
 		entry := Entry{Path: name}
 		if i.IsDir() {
@@ -110,6 +105,10 @@ func scan(dir, copyTo string, limits Limits) (Tree, error) {
 			if !os.SameFile(i, opened) || !opened.Mode().IsRegular() {
 				return fault.New(1, "INPUT_DRIFT", "entry changed during snapshot")
 			}
+			remaining := min(limits.FileBytes, limits.TotalBytes-total)
+			if opened.Size() > remaining {
+				return fault.New(1, "ARCHIVE_LIMIT", "directory resource exceeds remaining byte budget")
+			}
 			h := sha256.New()
 			var w io.Writer = h
 			var out *os.File
@@ -120,7 +119,7 @@ func scan(dir, copyTo string, limits Limits) (Tree, error) {
 				}
 				w = io.MultiWriter(h, out)
 			}
-			n, e := io.Copy(w, io.LimitReader(f, min(limits.FileBytes, limits.TotalBytes-total)+1))
+			n, e := CopyBounded(ctx, w, f, remaining)
 			if out != nil {
 				ce := out.Close()
 				if e == nil {
@@ -160,15 +159,22 @@ func scan(dir, copyTo string, limits Limits) (Tree, error) {
 // SnapshotDirectory copies only the explicitly supplied publication root into
 // private storage. Callers must stop writers; this is not an OS writer sandbox.
 func SnapshotDirectory(dir string, limits Limits) (*Archive, Tree, error) {
+	return SnapshotDirectoryContext(context.Background(), dir, limits)
+}
+
+func SnapshotDirectoryContext(ctx context.Context, dir string, limits Limits) (*Archive, Tree, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, Tree{}, err
+	}
 	stage, err := privateDir("kepub-snapshot-")
 	if err != nil {
 		return nil, Tree{}, err
 	}
-	a := &Archive{dir: stage, limits: limits, Files: map[bookpath.BookPath]int64{}}
-	t, err := scan(dir, stage, limits)
+	a := &Archive{dir: stage, limits: limits, ctx: ctx, Files: map[bookpath.BookPath]int64{}}
+	t, err := scan(ctx, dir, stage, limits)
 	if err == nil {
 		var again Tree
-		again, err = scan(dir, "", limits)
+		again, err = scan(ctx, dir, "", limits)
 		if err == nil && again.SHA256 != t.SHA256 {
 			err = fault.New(1, "INPUT_DRIFT", "directory changed during snapshot")
 		}
@@ -193,7 +199,7 @@ func SnapshotDirectory(dir string, limits Limits) (*Archive, Tree, error) {
 	return a, t, nil
 }
 
-func (a *Archive) Inventory() (Tree, error) { return scan(a.dir, "", a.limits) }
+func (a *Archive) Inventory() (Tree, error) { return scan(a.context(), a.dir, "", a.limits) }
 
 // WriteZIP consumes an approved, hash-bound inventory, never a workspace walk.
 // It writes an unpublished artifact; applications must check it before PublishZIP.
@@ -250,8 +256,11 @@ func (a *Archive) WriteZIP(w io.Writer, approved Tree) error {
 				return err
 			}
 			hash := sha256.New()
-			n, err := io.Copy(io.MultiWriter(out, hash), io.LimitReader(f, e.Size+1))
+			n, err := CopyBounded(a.context(), io.MultiWriter(out, hash), f, e.Size)
 			f.Close()
+			if n > e.Size {
+				return fault.New(1, "INPUT_DRIFT", "snapshot resource changed")
+			}
 			if err != nil {
 				return err
 			}
@@ -264,13 +273,17 @@ func (a *Archive) WriteZIP(w io.Writer, approved Tree) error {
 }
 
 func FileSHA256(filename string) (string, error) {
+	return FileSHA256Context(context.Background(), filename)
+}
+
+func FileSHA256Context(ctx context.Context, filename string) (string, error) {
 	f, err := os.Open(filename)
 	if err != nil {
 		return "", err
 	}
 	defer f.Close()
 	h := sha256.New()
-	_, err = io.Copy(h, f)
+	_, err = CopyBounded(ctx, h, f, MaxInputBytes)
 	return hex.EncodeToString(h.Sum(nil)), err
 }
 

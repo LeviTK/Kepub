@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/LeviTK/Kepub/internal/fault"
+	"github.com/LeviTK/Kepub/internal/publication"
 	"github.com/LeviTK/Kepub/internal/testfixture"
 	"github.com/LeviTK/Kepub/internal/validation"
 	"github.com/LeviTK/Kepub/internal/workspace"
@@ -22,14 +23,14 @@ func TestPlanAndAcceptRefusalsAreNotIOErrors(t *testing.T) {
 			dir := t.TempDir()
 			book, ws := filepath.Join(dir, "book.epub"), filepath.Join(dir, "ws")
 			testfixture.ZIP(t, book, testfixture.EPUB("3.0", false))
-			if _, err := OpenWorkspace(book, ws, ""); err != nil {
+			if _, err := OpenWorkspace(t.Context(), book, ws, ""); err != nil {
 				t.Fatal(err)
 			}
 			req, plan := filepath.Join(dir, "ops.json"), filepath.Join(dir, "plan.json")
 			if err := os.WriteFile(req, []byte(`{"schemaVersion":1,"operations":[{"operationId":"metadata.set","operationVersion":1,"params":{"namespace":"http://purl.org/dc/elements/1.1/","localName":"title","id":"t","expectedOldValue":"测试 & Space","newValue":"New"}}]}`), 0600); err != nil {
 				t.Fatal(err)
 			}
-			p, err := PlanWorkspace(ws, req, plan)
+			p, err := PlanWorkspace(t.Context(), ws, req, plan)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -56,7 +57,7 @@ func TestPlanAndAcceptRefusalsAreNotIOErrors(t *testing.T) {
 					t.Cleanup(func() { os.Chmod(stored, 0600) })
 					wantExit, wantCode = 6, "IO_ERROR"
 				}
-				_, err = ApplyWorkspace(ws, plan)
+				_, err = ApplyWorkspace(t.Context(), ws, plan)
 			} else if scenario == "legacy" {
 				w, openErr := workspace.Open(ws)
 				if openErr != nil {
@@ -73,7 +74,7 @@ func TestPlanAndAcceptRefusalsAreNotIOErrors(t *testing.T) {
 				_, err = WorkspaceTask(context.Background(), ws, "active", "accept", validation.Options{}, false)
 			} else {
 				var e workspace.Execution
-				e, err = ApplyWorkspace(ws, plan)
+				e, err = ApplyWorkspace(t.Context(), ws, plan)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -110,7 +111,7 @@ func TestPlanApplyFilesystemFailuresAreIOErrors(t *testing.T) {
 			dir := t.TempDir()
 			book, ws := filepath.Join(dir, "book.epub"), filepath.Join(dir, "workspace")
 			testfixture.ZIP(t, book, testfixture.EPUB("3.0", false))
-			if _, err := OpenWorkspace(book, ws, ""); err != nil {
+			if _, err := OpenWorkspace(t.Context(), book, ws, ""); err != nil {
 				t.Fatal(err)
 			}
 			req := filepath.Join(dir, "operations.json")
@@ -118,7 +119,7 @@ func TestPlanApplyFilesystemFailuresAreIOErrors(t *testing.T) {
 				t.Fatal(err)
 			}
 			plan := filepath.Join(dir, "plan.json")
-			if _, err := PlanWorkspace(ws, req, plan); err != nil {
+			if _, err := PlanWorkspace(t.Context(), ws, req, plan); err != nil {
 				t.Fatal(err)
 			}
 			blocked := filepath.Join(ws, "plans")
@@ -133,9 +134,9 @@ func TestPlanApplyFilesystemFailuresAreIOErrors(t *testing.T) {
 			defer os.Chmod(blocked, 0700)
 			var err error
 			if action == "plan" {
-				_, err = PlanWorkspace(ws, req, filepath.Join(dir, "other.json"))
+				_, err = PlanWorkspace(t.Context(), ws, req, filepath.Join(dir, "other.json"))
 			} else {
-				_, err = ApplyWorkspace(ws, plan)
+				_, err = ApplyWorkspace(t.Context(), ws, plan)
 			}
 			var f *fault.Error
 			if !errors.As(err, &f) || f.Exit != 6 || f.Code != "IO_ERROR" {
@@ -159,6 +160,9 @@ func TestEditArgumentErrorClassification(t *testing.T) {
 		{fault.New(3, "UNSUPPORTED_INPUT", "unsupported"), 3, "UNSUPPORTED_INPUT"},
 		{fmt.Errorf("metadata: %w", fault.New(1, "WORKSPACE_JSON_LIMIT", "too large")), 1, "WORKSPACE_JSON_LIMIT"},
 		{errors.Join(workspace.ErrStalePlan, &os.PathError{Op: "open", Err: os.ErrNotExist}), 4, "INPUT_DRIFT"},
+		{errors.Join(workspace.ErrStalePlan, fault.New(1, "ARCHIVE_LIMIT", "tree budget")), 1, "ARCHIVE_LIMIT"},
+		{errors.Join(workspace.ErrStalePlan, context.Canceled), 130, "CANCELLED"},
+		{errors.Join(workspace.ErrStalePlan, context.DeadlineExceeded), 5, "CHECKER_TIMEOUT"},
 		{workspace.ErrCandidateConflict, 4, "TASK_CONFLICT"},
 	} {
 		var f *fault.Error
@@ -166,5 +170,68 @@ func TestEditArgumentErrorClassification(t *testing.T) {
 		if !errors.As(err, &f) || f.Exit != tc.exit || f.Code != tc.code {
 			t.Fatal("wrong error classification", tc, err)
 		}
+	}
+}
+
+func TestR3WorkspaceRequestCancellation(t *testing.T) {
+	root := t.TempDir()
+	book, dir := filepath.Join(root, "book.epub"), filepath.Join(root, "workspace")
+	testfixture.ZIP(t, book, testfixture.EPUB("3.0", false))
+	if _, err := OpenWorkspace(t.Context(), book, dir, ""); err != nil {
+		t.Fatal(err)
+	}
+	before, err := workspace.HashTree(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	query := "text"
+	for _, tc := range []struct {
+		name string
+		run  func() error
+	}{
+		{"open", func() error { _, err := OpenWorkspace(ctx, book, filepath.Join(root, "new"), ""); return err }},
+		{"plan", func() error {
+			_, err := PlanWorkspace(ctx, dir, "absent-request", filepath.Join(root, "plan.json"))
+			return err
+		}},
+		{"apply", func() error { _, err := ApplyWorkspace(ctx, dir, "absent-plan"); return err }},
+		{"content", func() error {
+			_, err := ContentWorkspace(ctx, dir, "书/Text/第二 章.xhtml", publication.ContentOptions{})
+			return err
+		}},
+		{"search", func() error {
+			_, err := SearchWorkspace(ctx, dir, publication.ContentOptions{Query: &query})
+			return err
+		}},
+		{"propose", func() error { _, err := FixPropose(ctx, dir, "", false, "", true); return err }},
+		{"delta", func() error {
+			_, err := FixDelta(ctx, dir, "initial", "initial", "", "", validation.Options{}, true)
+			return err
+		}},
+		{"task", func() error {
+			_, err := WorkspaceTask(ctx, dir, "active", "status", validation.Options{}, false)
+			return err
+		}},
+		{"export", func() error {
+			_, err := ExportWorkspace(ctx, dir, filepath.Join(root, "out.epub"), validation.Options{})
+			return err
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var f *fault.Error
+			if err := tc.run(); !errors.As(err, &f) || f.Code != "CANCELLED" || f.Exit != 130 {
+				t.Fatal("workspace work ignored request cancellation", err)
+			}
+			if after, err := workspace.HashTree(root); err != nil || after.SHA256 != before.SHA256 {
+				t.Fatal("cancelled request changed source/workspace/output", err)
+			}
+			w, err := workspace.Open(dir)
+			if err != nil {
+				t.Fatal("cancellation leaked owner lock", err)
+			}
+			w.Close()
+		})
 	}
 }

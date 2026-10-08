@@ -4,6 +4,7 @@ package archive
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"os"
@@ -24,11 +25,13 @@ type Limits struct {
 
 var DefaultLimits = Limits{20000, 256 << 20, 2 << 30, 32 << 20}
 
-func (l Limits) checkEntry(count int, pathBytes int64, p bookpath.BookPath) error {
+// CheckEntry is the shared expanded-inventory budget for archive and workspace
+// trees. Call it before adding an entry or creating its destination.
+func (l Limits) CheckEntry(count int, pathBytes int64, p bookpath.BookPath) error {
 	if count >= l.Entries {
 		return fault.New(1, "ARCHIVE_LIMIT", "too many expanded entries")
 	}
-	if int64(len(p)) > l.PathBytes-pathBytes {
+	if pathBytes > l.PathBytes || int64(len(p)) > l.PathBytes-pathBytes {
 		return fault.New(1, "ARCHIVE_LIMIT", "cumulative expanded path bytes exceed limit")
 	}
 	return nil
@@ -37,10 +40,18 @@ func (l Limits) checkEntry(count int, pathBytes int64, p bookpath.BookPath) erro
 type Archive struct {
 	dir    string
 	limits Limits
+	ctx    context.Context
 	Files  map[bookpath.BookPath]int64
 }
 
 func (a *Archive) Close() { _ = os.RemoveAll(a.dir) }
+
+func (a *Archive) context() context.Context {
+	if a.ctx == nil {
+		return context.Background()
+	}
+	return a.ctx
+}
 
 // Canonicalize only our own newly created staging path. System temp roots can
 // have aliases (notably on macOS); publication input links remain forbidden.
@@ -58,6 +69,16 @@ func privateDir(prefix string) (string, error) {
 }
 
 func Open(filename string, limits Limits) (*Archive, error) {
+	return OpenContext(context.Background(), filename, limits)
+}
+
+func OpenContext(ctx context.Context, filename string, limits Limits) (*Archive, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if info, err := os.Stat(filename); err == nil && info.Size() > MaxInputBytes {
+		return nil, fault.New(1, "ARCHIVE_LIMIT", "raw ZIP input exceeds %d bytes", MaxInputBytes)
+	}
 	z, err := zip.OpenReader(filename)
 	if err != nil {
 		var pe *os.PathError
@@ -79,6 +100,9 @@ func Open(filename string, limits Limits) (*Archive, error) {
 	kinds := map[bookpath.BookPath]bool{}
 	var pathBytes int64
 	for _, f := range z.File {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		isDir := strings.HasSuffix(f.Name, "/")
 		name := strings.TrimSuffix(f.Name, "/")
 		p, e := bookpath.Parse(name)
@@ -105,7 +129,7 @@ func Open(filename string, limits Limits) (*Archive, error) {
 				}
 				continue
 			}
-			if e := limits.checkEntry(len(kinds), pathBytes, q); e != nil {
+			if e := limits.CheckEntry(len(kinds), pathBytes, q); e != nil {
 				return nil, e
 			}
 			pathBytes += int64(len(q))
@@ -116,7 +140,7 @@ func Open(filename string, limits Limits) (*Archive, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := &Archive{dir: dir, limits: limits, Files: map[bookpath.BookPath]int64{}}
+	a := &Archive{dir: dir, limits: limits, ctx: ctx, Files: map[bookpath.BookPath]int64{}}
 	success := false
 	defer func() {
 		if !success {
@@ -125,6 +149,9 @@ func Open(filename string, limits Limits) (*Archive, error) {
 	}()
 	var total int64
 	for _, f := range z.File {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		target := filepath.Join(dir, filepath.FromSlash(strings.TrimSuffix(f.Name, "/")))
 		if strings.HasSuffix(f.Name, "/") {
 			r, e := f.Open()
@@ -154,13 +181,17 @@ func Open(filename string, limits Limits) (*Archive, error) {
 			return nil, e
 		}
 		max := min(limits.FileBytes, limits.TotalBytes-total)
-		n, e := io.Copy(w, io.LimitReader(r, max+1))
+		n, e := CopyBounded(ctx, w, r, max)
 		ce := w.Close()
 		r.Close()
-		if n > max {
-			return nil, fault.New(1, "ARCHIVE_LIMIT", "actual expanded bytes exceed limit")
-		}
 		if e != nil {
+			var fe *fault.Error
+			if errors.As(e, &fe) && fe.Code == "ARCHIVE_LIMIT" {
+				return nil, fault.New(1, "ARCHIVE_LIMIT", "actual expanded bytes exceed limit")
+			}
+			if errors.As(e, &fe) || ctx.Err() != nil {
+				return nil, e
+			}
 			var pe *os.PathError
 			if errors.As(e, &pe) {
 				return nil, e
@@ -220,38 +251,11 @@ func (a *Archive) Unpack(output string) error {
 		return err
 	}
 	defer os.RemoveAll(stage)
-	err = filepath.WalkDir(a.dir, func(p string, d os.DirEntry, e error) error {
-		if e != nil {
-			return e
-		}
-		rel, e := filepath.Rel(a.dir, p)
-		if e != nil {
-			return e
-		}
-		if rel == "." {
-			return nil
-		}
-		dest := filepath.Join(stage, rel)
-		if d.IsDir() {
-			return os.MkdirAll(dest, 0700)
-		}
-		r, e := os.Open(p)
-		if e != nil {
-			return e
-		}
-		defer r.Close()
-		w, e := os.OpenFile(dest, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
-		if e != nil {
-			return e
-		}
-		_, e = io.Copy(w, r)
-		ce := w.Close()
-		if e != nil {
-			return e
-		}
-		return ce
-	})
+	_, err = scan(a.context(), a.dir, stage, a.limits)
 	if err != nil {
+		return err
+	}
+	if err := a.context().Err(); err != nil {
 		return err
 	}
 	if err = publish(stage, abs); err != nil {
