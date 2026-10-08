@@ -3,9 +3,11 @@
 package references
 
 import (
+	"context"
 	"encoding/xml"
 	"fmt"
 	"path"
+	"reflect"
 	"slices"
 	"sort"
 	"strings"
@@ -54,38 +56,49 @@ type Graph struct {
 }
 
 type builder struct {
-	src     publication.ResourceReader
-	files   map[bookpath.BookPath]int64
-	p       *publication.Publication
-	g       Graph
-	covered map[string]int
-	ids     map[bookpath.BookPath]map[string]int
-	items   map[string]publication.Item
-	media   map[bookpath.BookPath]string
+	ctx       context.Context
+	remaining GraphLimits
+	err       error
+	src       publication.ResourceReader
+	files     map[bookpath.BookPath]int64
+	p         *publication.Publication
+	g         Graph
+	covered   map[string]int
+	ids       map[bookpath.BookPath]map[string]int
+	items     map[string]publication.Item
+	media     map[bookpath.BookPath]string
 }
 
 // Build inspects the entire safe archive, including unmanifested resources.
 // No remote target is fetched and no input resource is modified.
-func Build(a *archive.Archive, p *publication.Publication) Graph {
-	return BuildSource(a, a.Files, p)
+func Build(ctx context.Context, a *archive.Archive, p *publication.Publication, limits GraphLimits) (Graph, error) {
+	return BuildSource(ctx, a, a.Files, p, limits)
 }
 
 // BuildSource builds the same index over an explicit frozen inventory, so a
 // locked workspace revision can be inspected without copying an archive.
-func BuildSource(src publication.ResourceReader, files map[bookpath.BookPath]int64, p *publication.Publication) Graph {
-	return BuildSourceVersion(src, files, p, ParserVersion)
+func BuildSource(ctx context.Context, src publication.ResourceReader, files map[bookpath.BookPath]int64, p *publication.Publication, limits GraphLimits) (Graph, error) {
+	return BuildSourceVersion(ctx, src, files, p, ParserVersion, limits)
 }
 
 // BuildSourceVersion is also used to re-prove consumed legacy plans against
 // their frozen reference policy. Inspection always uses the current version.
-func BuildSourceVersion(src publication.ResourceReader, files map[bookpath.BookPath]int64, p *publication.Publication, version int) Graph {
-	b := builder{src: src, files: files, p: p, covered: map[string]int{}, ids: map[bookpath.BookPath]map[string]int{}, items: map[string]publication.Item{}, g: Graph{
+func BuildSourceVersion(ctx context.Context, src publication.ResourceReader, files map[bookpath.BookPath]int64, p *publication.Publication, version int, limits GraphLimits) (Graph, error) {
+	b := builder{ctx: ctx, remaining: limits, src: src, files: files, p: p, covered: map[string]int{}, ids: map[bookpath.BookPath]map[string]int{}, items: map[string]publication.Item{}, g: Graph{
 		Status: "complete", Scope: "archive resources; selected rootfile only; extraction is not conformance validation",
-		Direction: "both", Edges: []Edge{}, Coverage: []Coverage{}, Diagnostics: []publication.Diagnostic{}, ParserVersion: version, XMLCoverage: p.XMLCoverage,
+		Direction: "both", Edges: []Edge{}, Coverage: []Coverage{}, Diagnostics: []publication.Diagnostic{}, ParserVersion: version,
 	}}
+	b.result(b.g)
+	// Filter may add any canonical BookPath (at most 4096 UTF-8 bytes) and
+	// change "both" to "outgoing". Reserve that header before growing the graph.
+	b.take("serialized result bytes", &b.remaining.ResultBytes, 6*(4096+4))
+	b.xmlCoverage(p.XMLCoverage)
 	media := map[bookpath.BookPath]string{}
 	b.media = media
 	for _, item := range p.Manifest {
+		if !b.index(item.ID, string(item.Path), item.MediaType, string(item.Href), item.Properties) {
+			return Graph{}, b.err
+		}
 		b.items[item.ID] = item
 		if previous, ok := media[item.Path]; ok && previous != item.MediaType {
 			b.cover(item.Path, "media-type", "blocked", "conflicting manifest media types")
@@ -98,12 +111,18 @@ func BuildSourceVersion(src publication.ResourceReader, files map[bookpath.BookP
 			b.cover(item.Path, "script", "blocked", "manifest declares scripted content; dynamic references are not analyzed")
 		}
 	}
-	paths := make([]bookpath.BookPath, 0, len(files))
+	paths := []bookpath.BookPath{}
 	for bp := range files {
+		if !b.index(string(bp), string(bp)) {
+			return Graph{}, b.err
+		}
 		paths = append(paths, bp)
 	}
 	slices.Sort(paths)
 	for _, bp := range paths {
+		if !b.ready() {
+			return Graph{}, b.err
+		}
 		if bp == "mimetype" {
 			b.cover(bp, "container.mimetype", "complete", "fixed non-reference content")
 			continue
@@ -118,6 +137,9 @@ func BuildSourceVersion(src publication.ResourceReader, files map[bookpath.BookP
 		kind := media[bp]
 		if bp == p.Rootfile {
 			kind = "application/oebps-package+xml"
+			if !b.index(string(bp), kind) {
+				return Graph{}, b.err
+			}
 			media[bp] = kind
 		}
 		if kind == "" {
@@ -141,7 +163,7 @@ func BuildSourceVersion(src publication.ResourceReader, files map[bookpath.BookP
 			}
 			b.scanXML(bp, kind)
 		case "text/css":
-			data, err := src.Read(bp, publication.XMLLimit)
+			data, err := b.Read(bp, publication.XMLLimit)
 			if err != nil {
 				b.block(bp, []string{"css.url", "css.import"}, err)
 			} else {
@@ -158,6 +180,9 @@ func BuildSourceVersion(src publication.ResourceReader, files map[bookpath.BookP
 		}
 	}
 	b.fragments()
+	if !b.ready() {
+		return Graph{}, b.err
+	}
 	sort.Slice(b.g.Coverage, func(i, j int) bool {
 		x, y := b.g.Coverage[i], b.g.Coverage[j]
 		if x.Resource != y.Resource {
@@ -170,7 +195,7 @@ func BuildSourceVersion(src publication.ResourceReader, files map[bookpath.BookP
 			b.g.Status = "partial"
 		}
 	}
-	return b.g
+	return b.g, nil
 }
 
 // CertainIncoming returns the known edges that target resource#fragment and the
@@ -185,6 +210,9 @@ func (g Graph) CertainIncoming(resource bookpath.BookPath, fragment string) ([]E
 		}
 	}
 	blockers := []Coverage{}
+	if g.Status != "complete" && g.Status != "partial" {
+		blockers = append(blockers, Coverage{Syntax: "graph", Status: "blocked", Reasons: []string{"reference graph was not completed"}, ParserVersion: g.ParserVersion})
+	}
 	for _, c := range g.Coverage {
 		if c.Status == "complete" || !referenceBlocker(c.Syntax, c.Status) {
 			continue
@@ -243,18 +271,29 @@ func (g Graph) Filter(resource, direction string) (Graph, error) {
 }
 
 func (b *builder) cover(bp bookpath.BookPath, syntax, status, reason string) {
+	if !b.ready() {
+		return
+	}
 	key := string(bp) + "\x00" + syntax
 	i, ok := b.covered[key]
 	if !ok {
+		c := Coverage{Resource: bp, Syntax: syntax, Status: status, Reasons: []string{}, ParserVersion: b.g.ParserVersion}
+		if !b.index(key) || !b.take("coverage bytes", &b.remaining.CoverageBytes, jsonReservation(reflect.ValueOf(c))) || !b.result(c) {
+			return
+		}
 		i = len(b.g.Coverage)
 		b.covered[key] = i
-		b.g.Coverage = append(b.g.Coverage, Coverage{Resource: bp, Syntax: syntax, Status: status, Reasons: []string{}, ParserVersion: b.g.ParserVersion})
+		b.g.Coverage = append(b.g.Coverage, c)
 	}
 	c := &b.g.Coverage[i]
 	if status == "blocked" || (status == "partial" && c.Status == "complete") {
 		c.Status = status
 	}
 	if reason != "" && !slices.Contains(c.Reasons, reason) {
+		n := 3 + 6*int64(len(reason)) // String quotes/escape and its array separator.
+		if !b.take("coverage bytes", &b.remaining.CoverageBytes, n) || !b.take("serialized result bytes", &b.remaining.ResultBytes, n) {
+			return
+		}
 		c.Reasons = append(c.Reasons, reason)
 	}
 }
@@ -263,14 +302,17 @@ func (b *builder) block(bp bookpath.BookPath, syntaxes []string, err error) {
 	for _, syntax := range syntaxes {
 		b.cover(bp, syntax, "blocked", err.Error())
 	}
-	b.g.Diagnostics = append(b.g.Diagnostics, publication.DiagnosticFor(err, bp, ""))
+	b.report(publication.DiagnosticFor(err, bp, ""))
 }
 
 func (b *builder) diagnostic(bp bookpath.BookPath, location, code, message string) {
-	b.g.Diagnostics = append(b.g.Diagnostics, publication.Diagnostic{Source: "kepub", Code: code, Severity: "error", BookPath: bp, Location: location, Message: message})
+	b.report(publication.Diagnostic{Source: "kepub", Code: code, Severity: "error", BookPath: bp, Location: location, Message: message})
 }
 
 func (b *builder) add(bp bookpath.BookPath, location, syntax, href string) {
+	if !b.ready() {
+		return
+	}
 	resolvedHref := href
 	if syntax == "xhtml.href" || syntax == "xhtml.src" || syntax == "nav.href" {
 		// HTML URLs permit peripheral ASCII whitespace; retain the original
@@ -282,7 +324,7 @@ func (b *builder) add(bp bookpath.BookPath, location, syntax, href string) {
 	}
 	r, err := bookpath.ResolveReference(bp, bookpath.Href(resolvedHref))
 	if err != nil {
-		b.g.Edges = append(b.g.Edges, Edge{Source: bp, Location: location, Syntax: syntax, Href: bookpath.Href(href), Status: "invalid", FragmentStatus: "blocked", ParserVersion: b.g.ParserVersion})
+		b.edge(Edge{Source: bp, Location: location, Syntax: syntax, Href: bookpath.Href(href), Status: "invalid", FragmentStatus: "blocked", ParserVersion: b.g.ParserVersion})
 		b.diagnostic(bp, location, "INVALID_REFERENCE", err.Error())
 		return
 	}
@@ -301,11 +343,14 @@ func (b *builder) addTarget(bp bookpath.BookPath, location, syntax string, href 
 	} else if r.Fragment != "" {
 		e.FragmentStatus = "not_checked"
 	}
-	b.g.Edges = append(b.g.Edges, e)
+	b.edge(e)
 }
 
 func (b *builder) fragments() {
 	for i := range b.g.Edges {
+		if !b.ready() {
+			return
+		}
 		e := &b.g.Edges[i]
 		if e.Status != "resolved" || e.Target.Fragment == "" {
 			continue
@@ -348,12 +393,15 @@ func (b *builder) scanXML(bp bookpath.BookPath, kind string) {
 	case "application/mathml+xml", "application/mathml-presentation+xml", "application/mathml-content+xml":
 		expected = xml.Name{Space: "http://www.w3.org/1998/Math/MathML", Local: "math"}
 	}
-	root, err := publication.ReadXML(b.src, bp, xmltext.Profile{Version: b.p.Version, MediaType: b.media[bp]})
+	root, err := publication.ReadXML(b, bp, xmltext.Profile{Version: b.p.Version, MediaType: b.media[bp]})
 	if err != nil {
 		b.block(bp, syntaxes, err)
 		return
 	}
-	b.g.XMLCoverage = b.g.XMLCoverage.Merge(root.XMLCoverage)
+	b.xmlCoverage(root.XMLCoverage)
+	if !b.ready() {
+		return
+	}
 	if root.Name != expected {
 		b.block(bp, syntaxes, fault.New(1, "REFERENCE_XML_ROOT", "root/namespace does not match declared media type"))
 		return
@@ -363,11 +411,14 @@ func (b *builder) scanXML(bp bookpath.BookPath, kind string) {
 		for _, syntax := range syntaxes {
 			b.cover(bp, syntax, "partial", "XML entities/default declarations are unresolved")
 		}
-		b.g.Diagnostics = append(b.g.Diagnostics, publication.DiagnosticFor(incomplete, bp, ""))
+		b.report(publication.DiagnosticFor(incomplete, bp, ""))
 	}
 	// HTML base changes all relative URLs, including URLs occurring before it.
 	var hasBase func(*publication.Element) bool
 	hasBase = func(e *publication.Element) bool {
+		if !b.ready() {
+			return false
+		}
 		if e.Name == (xml.Name{Space: publication.XHTMLNamespace, Local: "base"}) {
 			return true
 		}
@@ -389,12 +440,18 @@ func (b *builder) scanXML(bp bookpath.BookPath, kind string) {
 		b.cover(bp, s, "complete", "")
 	}
 	if incomplete == nil {
+		if !b.index(string(bp)) {
+			return
+		}
 		b.ids[bp] = map[string]int{}
 	}
 	b.walkXML(bp, root, false, incomplete != nil)
 }
 
 func (b *builder) walkXML(bp bookpath.BookPath, e *publication.Element, inNav, incomplete bool) {
+	if !b.ready() {
+		return
+	}
 	ns, name := e.Name.Space, e.Name.Local
 	if ns == publication.XHTMLNamespace && name == "nav" {
 		inNav = true
@@ -428,11 +485,17 @@ func (b *builder) walkXML(bp bookpath.BookPath, e *publication.Element, inNav, i
 		elementIDs[value] = true
 	}
 	for _, a := range e.Attributes {
+		if !b.ready() {
+			return
+		}
 		location := e.Location + "/@" + a.Name.Local
 		if a.Name.Space == xlinkNS {
 			location = e.Location + "/@xlink:" + a.Name.Local
 		}
 		if !incomplete && publication.IsIDAttribute(a.Name) && elementIDs[a.Value] {
+			if !b.take("ID instances", &b.remaining.IDs, 1) || !b.index(a.Value, location) {
+				return
+			}
 			delete(elementIDs, a.Value)
 			b.ids[bp][a.Value]++
 			if b.ids[bp][a.Value] > 1 {
@@ -500,7 +563,7 @@ func (b *builder) walkXML(bp bookpath.BookPath, e *publication.Element, inNav, i
 				r, _ := bookpath.ResolveReference(b.p.Rootfile, item.Href)
 				b.addTarget(bp, location, syntax, bookpath.Href(a.Value), r)
 			} else {
-				b.g.Edges = append(b.g.Edges, Edge{Source: bp, Location: location, Syntax: syntax, Href: bookpath.Href(a.Value), Status: "invalid", FragmentStatus: "blocked", ParserVersion: b.g.ParserVersion})
+				b.edge(Edge{Source: bp, Location: location, Syntax: syntax, Href: bookpath.Href(a.Value), Status: "invalid", FragmentStatus: "blocked", ParserVersion: b.g.ParserVersion})
 				b.diagnostic(bp, location, "UNKNOWN_MANIFEST_ID", a.Value)
 			}
 			continue

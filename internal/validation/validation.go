@@ -112,8 +112,20 @@ func CheckZIP(ctx context.Context, filename, expectedSHA256 string, o Options) (
 		r.Checks[1].Status = "passed"
 		r.Limitations = p.Limitations
 		start = time.Now()
-		g := references.Build(a, p)
+		limits := references.DefaultGraphLimits
+		if o.GraphLimits != nil {
+			limits = *o.GraphLimits
+		}
+		g, graphErr := references.Build(ctx, a, p, limits)
 		r.Checks[2].ElapsedMilliseconds = time.Since(start).Milliseconds()
+		if graphErr != nil {
+			r.Checks[2].Status = "blocked"
+			r.Checks[2].Reason = graphErr.Error()
+			r.Checks[3].Status = "blocked"
+			r.Checks[3].BlockedBy = []string{"references"}
+			appendDiagnostic(&r, publication.DiagnosticFor(graphErr, "", ""))
+			return r, graphErr
+		}
 		r.Checks[2].Coverage = g.Coverage
 		r.Checks[2].Status = "passed"
 		if g.Status != "complete" {

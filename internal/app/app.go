@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"os"
 
 	"github.com/LeviTK/Kepub/internal/archive"
@@ -242,7 +243,7 @@ func Read(book, rootfile string) (*archive.Archive, *publication.Publication, er
 
 // Inspect is shared by section queries and the toc convenience command. Missing
 // content/unsupported syntax is returned as data; this is not validate.
-func Inspect(a *archive.Archive, p *publication.Publication, section, resource, direction string) (any, error) {
+func Inspect(ctx context.Context, a *archive.Archive, p *publication.Publication, section, resource, direction string, limits references.GraphLimits) (any, error) {
 	if err := ValidateInspect(section, resource, direction); err != nil {
 		return nil, err
 	}
@@ -259,7 +260,10 @@ func Inspect(a *archive.Archive, p *publication.Publication, section, resource, 
 		navigation := publication.LoadNavigation(a, p)
 		value, coverage = navigation, navigation.XMLCoverage
 	case "references":
-		graph := references.Build(a, p)
+		graph, err := references.Build(ctx, a, p, limits)
+		if err != nil {
+			return nil, err
+		}
 		value, _ = graph.Filter(resource, direction)
 		coverage = graph.XMLCoverage
 	case "capabilities":

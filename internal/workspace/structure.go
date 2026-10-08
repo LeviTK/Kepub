@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -150,7 +151,7 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 	// Phase 1 derives every resource's edits and binding checks. Dependency
 	// facts are only collected here: identity and link validation must see the
 	// whole transaction, never a partially processed group.
-	gate := &structureGate{a: a, pub: pub, version: referenceVersion, inventory: moveInventory, graph: moveGraph, baseIDs: map[bookpath.BookPath]map[string]int{}, removed: map[bookpath.BookPath]map[string]int{}, added: map[bookpath.BookPath]map[string]int{}, synchronized: map[bookpath.BookPath]map[string]map[string]bool{}}
+	gate := &structureGate{ctx: w.resources.ctx, limits: w.referenceGraphLimits(), a: a, pub: pub, version: referenceVersion, inventory: moveInventory, graph: moveGraph, baseIDs: map[bookpath.BookPath]map[string]int{}, removed: map[bookpath.BookPath]map[string]int{}, added: map[bookpath.BookPath]map[string]int{}, synchronized: map[bookpath.BookPath]map[string]map[string]bool{}}
 	type groupEdit struct {
 		path     string
 		bp       bookpath.BookPath
@@ -492,6 +493,8 @@ func structureTargetKey(op Operation) (string, string) {
 // structureGate refuses dependency-removing writes that cannot be proven safe
 // against the frozen publication.
 type structureGate struct {
+	ctx       context.Context
+	limits    references.GraphLimits
 	a         publicationRoot
 	pub       *publication.Publication
 	version   int
@@ -504,6 +507,13 @@ type structureGate struct {
 	// edge locations a cross-resource move accounted for, so the gate can
 	// re-prove that the move did not leave a dangling reference behind.
 	synchronized map[bookpath.BookPath]map[string]map[string]bool
+}
+
+func (w *Workspace) referenceGraphLimits() references.GraphLimits {
+	if w.graphLimits != nil {
+		return *w.graphLimits
+	}
+	return references.DefaultGraphLimits
 }
 
 func (g *structureGate) inventoryOnce() (map[bookpath.BookPath]int64, error) {
@@ -526,7 +536,10 @@ func (g *structureGate) graphOnce() (*references.Graph, error) {
 	if err != nil {
 		return nil, err
 	}
-	graph := references.BuildSourceVersion(g.a, inv, g.pub, g.version)
+	graph, err := references.BuildSourceVersion(g.ctx, g.a, inv, g.pub, g.version, g.limits)
+	if err != nil {
+		return nil, err
+	}
 	g.graph = &graph
 	return g.graph, nil
 }
