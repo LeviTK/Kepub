@@ -20,6 +20,11 @@ const ContentTextLimit = 1 << 20
 type ContentOptions struct {
 	Query *string
 	Limit *int
+
+	// Per-call test observation; no global counter or persistent cache.
+	onManifestLookup func()
+	// Tests may lower the existing raw scan budget without changing the wire.
+	scanLimit int64
 }
 
 // Validate can be called before opening a workspace or acquiring its lock.
@@ -63,22 +68,38 @@ func ReadContent(a *archive.Archive, p *Publication, resource bookpath.BookPath,
 	if o.Limit != nil {
 		limit = *o.Limit
 	}
-	return readContent(a, p, resource, o.Query, limit)
+	return readContent(a, p, resource, o, limit, nil)
 }
 
 // A zero return limit still parses and counts the entire resource for search.
-func readContent(a *archive.Archive, p *Publication, resource bookpath.BookPath, query *string, limit int) (Content, error) {
+// A search supplies its call-local manifest index; a single read keeps the
+// original exact membership check, including conflicting duplicate declarations.
+func readContent(a *archive.Archive, p *Publication, resource bookpath.BookPath, o ContentOptions, limit int, targets map[bookpath.BookPath]bool) (Content, error) {
 	if _, err := bookpath.Parse(string(resource)); err != nil {
 		return Content{}, err
 	}
-	found := false
-	for _, item := range p.Manifest {
-		if item.Path == resource {
-			found = true
-			if item.MediaType != "application/xhtml+xml" {
-				return Content{}, fault.New(3, "UNSUPPORTED_CONTENT_TYPE", "content requires manifest application/xhtml+xml")
+	found, xhtml := false, true
+	if targets != nil {
+		if o.onManifestLookup != nil {
+			o.onManifestLookup()
+		}
+		xhtml, found = targets[resource]
+	} else {
+		for _, item := range p.Manifest {
+			if o.onManifestLookup != nil {
+				o.onManifestLookup()
+			}
+			if item.Path == resource {
+				found = true
+				if item.MediaType != "application/xhtml+xml" {
+					xhtml = false
+					break
+				}
 			}
 		}
+	}
+	if found && !xhtml {
+		return Content{}, fault.New(3, "UNSUPPORTED_CONTENT_TYPE", "content requires manifest application/xhtml+xml")
 	}
 	if !found {
 		return Content{}, fault.New(2, "CONTENT_RESOURCE_NOT_DECLARED", "exact resource path is not in the selected manifest")
@@ -140,7 +161,7 @@ func readContent(a *archive.Archive, p *Publication, resource bookpath.BookPath,
 		if e.Name.Space != XHTMLNamespace || e.Name.Local == "script" || e.Name.Local == "style" || e.Name.Local == "head" {
 			return nil
 		}
-		if e.Name.Local != "body" && !blocked[e] && (len(e.Children) == 0 || strings.TrimSpace(e.Text) != "") && (query == nil || strings.Contains(e.Content, *query)) {
+		if e.Name.Local != "body" && !blocked[e] && (len(e.Children) == 0 || strings.TrimSpace(e.Text) != "") && (o.Query == nil || strings.Contains(e.Content, *o.Query)) {
 			result.MatchedCount++
 			if len(result.Nodes) < limit {
 				textBytes += len(e.Content)
@@ -198,6 +219,21 @@ func SearchContent(a *archive.Archive, p *Publication, o ContentOptions) (Search
 	if o.Limit != nil {
 		limit = *o.Limit
 	}
+	// Aggregate all declarations, never last-wins: any non-XHTML declaration
+	// keeps that exact path unsupported. Still iterate the original manifest
+	// below so duplicates retain their original read/count/order semantics.
+	targets := make(map[bookpath.BookPath]bool, len(p.Manifest))
+	for _, item := range p.Manifest {
+		if o.onManifestLookup != nil {
+			o.onManifestLookup()
+		}
+		previous, exists := targets[item.Path]
+		targets[item.Path] = item.MediaType == "application/xhtml+xml" && (!exists || previous)
+	}
+	scanLimit := int64(SearchScanLimit)
+	if o.scanLimit > 0 {
+		scanLimit = min(scanLimit, o.scanLimit)
+	}
 	out := Search{Results: []SearchResult{}}
 	var scanned int64
 	returnedBytes := 0
@@ -206,10 +242,10 @@ func SearchContent(a *archive.Archive, p *Publication, o ContentOptions) (Search
 			continue
 		}
 		scanned += a.Files[item.Path]
-		if scanned > SearchScanLimit {
+		if scanned > scanLimit {
 			return Search{}, fault.New(1, "CONTENT_LIMIT", "XHTML raw scan exceeds 128 MiB")
 		}
-		c, err := readContent(a, p, item.Path, o.Query, limit-len(out.Results))
+		c, err := readContent(a, p, item.Path, o, limit-len(out.Results), targets)
 		if err != nil {
 			return Search{}, err
 		}

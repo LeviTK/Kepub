@@ -132,6 +132,9 @@ Apply、Open 恢复和 Accept 都须重新推导相同的单资源写集合及�
 
 - `kepub search --workspace DIR --query TEXT [--limit N] --json`：持锁读取所选 rootfile 的 accepted revision，按 manifest 顺序检索其中所有 XHTML，不读取活动候选、不选另一个 rootfile。沿用 `content` 的区分大小写字面子串及节点／排除规则；命中数是匹配结果元素数，不是短语出现次数，不跨资源拼接匹配，也不是浏览器可见文本。
 - query 必填，范围为 1～4096 UTF-8 字节；limit 默认 50、范围 1～200。返回工作区／revision／rootfile 身份、完整匹配数、返回数和 truncated；每个结果包含精确 bookPath、原资源 SHA-256、locatorVersion、locator 和解码文本。达到返回数限制仍须扫描剩余资源才能声称完整匹配数。不同资源出现同一 locator 不合并。
+- 搜索的精确BookPath成员／媒体类型索引只构建于本次调用；同路径声明任一非XHTML仍
+  拒绝，不以最后覆盖掩盖冲突。遍历保持原manifest顺序与重复声明的计数／扫描预算，
+  不新增持久缓存、排序／去重或改变单资源ReadContent的精确声明门禁。
 - 每资源 XML 8 MiB 统一按**原始资源字节、含 BOM**计量，读入和修改后的序列化结果均适用；每资源解码后的 UTF-8 流及实体展开后的 UTF-8 流分别最多 16 MiB，包括标记／属性／文本／保留声明，两份表示不相加、不按祖先重复计文本，也不跨资源累计。另将每次实体替换产生的字节累计到每资源 16 MiB 展开工作预算，限制中间开销；不把转码结果重新按 raw 8 MiB 截断。沿用元素深度 128／200,000 tokens／32 MiB 索引限制，展开生成内容也计数；T1b 的 DTD 声明最多 4096、实体嵌套最多 16、替换次数最多 100,000。全书 XHTML 原始扫描字节累计上限 128 MiB，返回文本累计上限 1 MiB UTF-8 字节。超限或任一应扫描资源不可读取／解析时明确失败，不把未扫描部分当零匹配，不静默跳过坏资源；truncated 仅表示返回条数限制。
 - 32 MiB 索引独立保留既有计量：字符数据 UTF-8 字节先计两次，每向上一层祖先汇入子树文本再计一次，另加各元素 location 的 UTF-8 字节。单段 `html > body > p` 文本约计四倍，有效文本上限略低于 8 MiB，深层嵌套更早触限。原始／解码／展开流、索引等限额须同时满足；16 MiB 流上限不是正文可索引容量承诺，也不是实际驻留内存上限。
 - `kepub task status TASK --workspace DIR --json`：查询精确任务的执行与结算状态，返回身份、基线及当前审核／接受／拒绝信息；未知任务明确失败（exit 4／`TASK_CONFLICT`），不以 latest 或其他任务替代。只读持锁，沿用 Open 的来源、恢复与安全树核验，不为状态查询绕过损坏记录。`matchesExecution` 只比较活动候选；历史任务当前返回 false 表示不适用，不能解释为历史损坏，历史仍验证决定／revision／计划消费。`checks` 列举检查尝试，随机文件名不构成时间排序或 latest。status 不产生批准或导出；`task diff` 仍只针对精确活动任务，已结算任务返回 exit 4／`TASK_CONFLICT`。
