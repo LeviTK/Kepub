@@ -14,6 +14,32 @@ import (
 	"github.com/LeviTK/Kepub/internal/testfixture"
 )
 
+func TestN2LiteralIDREF(t *testing.T) {
+	entries := testfixture.NavigationEPUB("3.0")
+	for i := range entries {
+		if entries[i].Name == "书/Text/-first.xhtml" {
+			entries[i].Data = []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><body><p id="p%41"/><p id="pA"/><p id="x%20y"/><p id="percent%"/><p id="中文"/><p id="a&#160;b"/><p id="a"/><p id="b"/><div aria-labelledby="p%41 x%20y percent% 中文 a&#160;b"/><a href="#p%41"/></body></html>`)
+		}
+	}
+	g := graphFixture(t, entries)
+	for _, token := range []string{"p%41", "x%20y", "percent%", "中文", "a\u00a0b"} {
+		edges, _ := g.CertainIncoming("书/Text/-first.xhtml", token)
+		if len(edges) != 1 || edges[0].Syntax != "xhtml.idref" || edges[0].FragmentStatus != "resolved" {
+			t.Errorf("literal token %q lost or reinterpreted: %+v", token, edges)
+		}
+	}
+	edges, _ := g.CertainIncoming("书/Text/-first.xhtml", "pA")
+	if len(edges) != 1 || edges[0].Syntax != "xhtml.href" || edges[0].Href != "#p%41" {
+		t.Errorf("ordinary URL must still decode once, without an IDREF alias: %+v", edges)
+	}
+	for _, token := range []string{"a", "b"} {
+		edges, _ := g.CertainIncoming("书/Text/-first.xhtml", token)
+		if len(edges) != 0 {
+			t.Errorf("NBSP must not create an incoming edge for %q: %+v", token, edges)
+		}
+	}
+}
+
 func graphFixture(t *testing.T, entries []testfixture.Entry) Graph {
 	t.Helper()
 	file := filepath.Join(t.TempDir(), "references.epub")
@@ -80,7 +106,7 @@ func TestReferenceSyntaxAndTargets(t *testing.T) {
 		for _, e := range g.Edges {
 			if string(e.Source) == tc.source && e.Syntax == tc.syntax && string(e.Href) == tc.href {
 				found = true
-				if e.Target == nil || string(e.Target.Path) != tc.target || e.Target.Fragment != tc.fragment || e.Target.Query != tc.query || e.Status != tc.status || e.FragmentStatus != tc.fragmentStatus || e.Location == "" || e.ParserVersion != 1 {
+				if e.Target == nil || string(e.Target.Path) != tc.target || e.Target.Fragment != tc.fragment || e.Target.Query != tc.query || e.Status != tc.status || e.FragmentStatus != tc.fragmentStatus || e.Location == "" || e.ParserVersion != 2 {
 					t.Fatalf("wrong edge for %+v: %+v", tc, e)
 				}
 			}
@@ -374,11 +400,13 @@ func TestCertainIncomingIDREF(t *testing.T) {
 	}
 	found := false
 	for _, e := range edges {
-		if e.Href != "#aria" {
-			t.Fatalf("IDREF href must keep the authored identity: %+v", e)
-		}
 		if strings.Contains(e.Location, "/label[1]/@for") {
 			found = true
+			if e.Href != "aria" {
+				t.Fatalf("single IDREF lost its authored value: %+v", e)
+			}
+		} else if e.Href != "col aria" || !strings.HasSuffix(e.Location, "/@aria-labelledby") {
+			t.Fatalf("list token lost its full authored attribute relation: %+v", e)
 		}
 	}
 	if !found {
@@ -409,5 +437,60 @@ func TestIdentityDiagnosticAttributeSource(t *testing.T) {
 				t.Fatalf("duplicate count = %d, want 1", duplicates)
 			}
 		})
+	}
+}
+
+func TestN2IDREFValueTypesAndIdentity(t *testing.T) {
+	entries := testfixture.NavigationEPUB("3.0")
+	for i := range entries {
+		if entries[i].Name == "书/Text/-first.xhtml" {
+			entries[i].Data = []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><body><p id="a" xml:id="a"/><p id="b"/><p id="dup"/><p id="dup"/><p id="literal()"/><div aria-labelledby="&#9;a&#10;b&#13;a&#32;dup literal()"/><label for="a b"/><output for="a b"/><div aria-activedescendant="a b"/><div aria-controls=""/></body></html>`)
+		}
+	}
+	g := graphFixture(t, entries)
+	if g.ParserVersion != 2 {
+		t.Fatalf("unversioned changed parser: %d", g.ParserVersion)
+	}
+	for _, tc := range []struct{ token, suffix, value, status string }{
+		{"a", "/div[1]/@aria-labelledby", "\ta\nb\ra dup literal()", "resolved"},
+		{"a b", "/label[1]/@for", "a b", "missing"},
+		{"a", "/output[1]/@for", "a b", "resolved"},
+		{"a b", "/div[2]/@aria-activedescendant", "a b", "missing"},
+		{"dup", "/div[1]/@aria-labelledby", "\ta\nb\ra dup literal()", "ambiguous"},
+		{"literal()", "/div[1]/@aria-labelledby", "\ta\nb\ra dup literal()", "resolved"},
+	} {
+		found := 0
+		for _, e := range g.Edges {
+			if strings.HasSuffix(e.Location, tc.suffix) && e.Target.Fragment == tc.token {
+				found++
+				if string(e.Href) != tc.value || e.FragmentStatus != tc.status || e.ParserVersion != 2 {
+					t.Errorf("value type/identity: %+v", e)
+				}
+			}
+		}
+		want := 1
+		if tc.token == "a" && strings.Contains(tc.suffix, "aria-labelledby") {
+			want = 2 // repeated authored tokens remain separate edges.
+		}
+		if found != want {
+			t.Errorf("%+v: got %d edges, want %d", tc, found, want)
+		}
+	}
+	for _, e := range g.Edges {
+		if strings.HasSuffix(e.Location, "/@aria-controls") {
+			t.Error("empty attribute became an IDREF edge")
+		}
+	}
+	missing, ambiguous := 0, 0
+	for _, d := range g.Diagnostics {
+		if d.Code == "MISSING_FRAGMENT" && (strings.HasSuffix(d.Location, "/@for") || strings.HasSuffix(d.Location, "/@aria-activedescendant")) {
+			missing++
+		}
+		if d.Code == "AMBIGUOUS_FRAGMENT" && strings.HasSuffix(d.Location, "/@aria-labelledby") {
+			ambiguous++
+		}
+	}
+	if missing != 2 || ambiguous != 1 {
+		t.Fatalf("missing precise diagnostics: missing=%d ambiguous=%d", missing, ambiguous)
 	}
 }

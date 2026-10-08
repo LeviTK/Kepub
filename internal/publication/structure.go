@@ -44,23 +44,40 @@ var structureAttributeDenied = []string{
 // nested browsing contexts, plugin content and head-only elements.
 var fragmentElementDenied = []string{"script", "style", "base", "iframe", "frame", "frameset", "object", "embed", "applet", "portal", "link", "meta", "title"}
 
-// idrefAttributes are XHTML/SVG attributes whose value is one IDREF or a
-// whitespace-separated IDREF list resolved inside the same document. The
+// ReferenceParserVersion binds literal IDREF semantics in current plans.
+const ReferenceParserVersion = 2
+
+// idrefAttributes maps the shared XHTML/SVG vocabulary to list (true) or
+// single (false) IDREF values resolved inside the same document. The
 // reference index and the structural edit facts share this one set, so a new
 // write and an existing document cannot disagree about what is a reference.
 var idrefAttributes = map[string]bool{
-	"headers": true, "for": true, "list": true, "form": true, "itemref": true,
-	"aria-activedescendant": true, "aria-controls": true, "aria-describedby": true,
-	"aria-details": true, "aria-errormessage": true, "aria-flowto": true,
+	"headers": true, "for": false, "list": false, "form": false, "itemref": true,
+	"aria-activedescendant": false, "aria-controls": true, "aria-describedby": true,
+	"aria-details": false, "aria-errormessage": false, "aria-flowto": true,
 	"aria-labelledby": true, "aria-owns": true,
 }
 
 // IsIDREFAttribute reports whether an unprefixed attribute name carries one
 // IDREF or an IDREF list in the same document.
-func IsIDREFAttribute(name string) bool { return idrefAttributes[name] }
+func IsIDREFAttribute(name string) bool { _, ok := idrefAttributes[name]; return ok }
 
-// IDREFs splits one IDREF attribute value into its tokens.
-func IDREFs(value string) []string { return strings.Fields(value) }
+// IDREFs preserves literal tokens. Version 1 is only for frozen legacy source
+// re-derivation; new plans and inspection use the attribute's actual value type.
+func IDREFs(version int, element, name, value string) []string {
+	if version == 1 {
+		return strings.Fields(value)
+	}
+	if value == "" {
+		return nil
+	}
+	if !idrefAttributes[name] && !(element == "output" && name == "for") {
+		return []string{value}
+	}
+	return strings.FieldsFunc(value, func(r rune) bool {
+		return r == ' ' || r == '\t' || r == '\n' || r == '\r' || r == '\f'
+	})
+}
 
 func validateBinding(bp bookpath.BookPath, revision, sha string, locatorVersion int, locator string) error {
 	if _, err := bookpath.Parse(string(bp)); err != nil {
@@ -260,11 +277,12 @@ func (s ElementMove) Validate() error {
 
 // StructureDocument is a frozen XHTML resource prepared for structural edits.
 type StructureDocument struct {
-	Path    bookpath.BookPath
-	Input   []byte
-	Doc     *xmltext.Document
-	profile xmltext.Profile
-	byLoc   map[string]*xmltext.Element
+	Path             bookpath.BookPath
+	Input            []byte
+	Doc              *xmltext.Document
+	ReferenceVersion int
+	profile          xmltext.Profile
+	byLoc            map[string]*xmltext.Element
 }
 
 // ParseStructureDocument requires a complete, profile-clean XHTML document with
@@ -300,7 +318,7 @@ func ParseStructureDocument(input []byte, path bookpath.BookPath, profile xmltex
 	if bodies != 1 || nested != 0 {
 		return nil, fmt.Errorf("expected one direct XHTML body and no nested body")
 	}
-	d := &StructureDocument{Path: path, Input: input, Doc: doc, profile: profile, byLoc: map[string]*xmltext.Element{}}
+	d := &StructureDocument{Path: path, Input: input, Doc: doc, ReferenceVersion: ReferenceParserVersion, profile: profile, byLoc: map[string]*xmltext.Element{}}
 	for _, e := range doc.Elements {
 		d.byLoc[e.Location] = e
 	}
@@ -715,7 +733,7 @@ func (d *StructureDocument) elementLinkFacts(e *xmltext.Element) []StructureLink
 	return out
 }
 
-func fragmentFacts(nodes []*FragmentNode) ([]string, []StructureLink, []StructureIDREF) {
+func fragmentFacts(nodes []*FragmentNode, version int) ([]string, []StructureLink, []StructureIDREF) {
 	ids := []string{}
 	links := []StructureLink{}
 	refs := []StructureIDREF{}
@@ -731,7 +749,7 @@ func fragmentFacts(nodes []*FragmentNode) ([]string, []StructureLink, []Structur
 				links = append(links, StructureLink{Name: a.Name.Local, Value: a.Value})
 			}
 			if n.Name.Space == XHTMLNamespace && a.Name.Space == "" && IsIDREFAttribute(a.Name.Local) {
-				for _, token := range IDREFs(a.Value) {
+				for _, token := range IDREFs(version, n.Name.Local, a.Name.Local, a.Value) {
 					refs = append(refs, StructureIDREF{Name: a.Name.Local, Value: token})
 				}
 			}
@@ -788,7 +806,7 @@ func (d *StructureDocument) AttributeSetEdit(op AttributeSet) (*StructureEdit, e
 		edit.Links = append(edit.Links, StructureLink{Locator: op.Locator, Name: name.Local, Value: op.Value})
 	}
 	if e.Name.Space == XHTMLNamespace && name.Space == "" && IsIDREFAttribute(name.Local) {
-		for _, token := range IDREFs(op.Value) {
+		for _, token := range IDREFs(d.ReferenceVersion, e.Name.Local, name.Local, op.Value) {
 			edit.IDREFs = append(edit.IDREFs, StructureIDREF{Locator: op.Locator, Name: name.Local, Value: token})
 		}
 	}
@@ -950,7 +968,7 @@ func (d *StructureDocument) ElementInsertEdit(op ElementInsert) (*StructureEdit,
 	if err != nil {
 		return nil, err
 	}
-	ids, links, refs := fragmentFacts(fragment.Nodes)
+	ids, links, refs := fragmentFacts(fragment.Nodes, d.ReferenceVersion)
 	edit := &StructureEdit{AddedIDs: ids, Links: links, IDREFs: refs, Change: StructureChange{Kind: "element-insert", Locator: op.Locator, Position: op.Position, Fragment: fragment, Block: fragment.Bytes, At: at}}
 	edit.Points = append(edit.Points, EditPoint{At: at, Bytes: fragment.Bytes})
 	return edit, nil
@@ -975,7 +993,7 @@ func (d *StructureDocument) ElementReplaceEdit(op ElementReplace) (*StructureEdi
 	if err != nil {
 		return nil, err
 	}
-	ids, links, refs := fragmentFacts(fragment.Nodes)
+	ids, links, refs := fragmentFacts(fragment.Nodes, d.ReferenceVersion)
 	edit := &StructureEdit{RemovedIDs: subtreeIDs(target), AddedIDs: ids, Links: links, IDREFs: refs, Change: StructureChange{Kind: "element-replace", Locator: op.Locator, Fragment: fragment, Block: fragment.Bytes, At: start}}
 	edit.Spans = append(edit.Spans, EditSpan{Start: start, End: end, Bytes: fragment.Bytes})
 	return edit, nil

@@ -67,4 +67,16 @@
   入口：`TestN1TransactionBudget`、`TestN1ResourceBudget`、`TestN1ApplyBudgetRevalidation`、
   `TestN1PostStartBudgetRecovery`、`TestN1BudgetRecoveryBoundaries`。
 
-对应开发注意事项：`G-FINAL`、`G-FACTS`、`G-BINDING`、`G-ORACLE`、`G-QUALIFY`、`G-JSON`。
+## IDREF 策略版本与已消费旧来源
+
+- 新 schema 4–7 的策略追加 `;reference-parser-v2`，旧 wire shape 和 schema 1–3 摘要不变。
+  未消费旧策略在 Apply／WritePlanReport 前返回 INPUT_DRIFT，不用新图静默重新批准。
+- 已消费旧策略仅按保存 policy 显式 v1 重推：execution、task diff、taskDigests／历史与
+  settlement 共用该选择，不能只为某一恢复分支绕过门禁。旧 active 可以安全 diff／reject
+  或中断回滚，但不能新 accept；已持久的旧 settlement 决定仍恢复完成，旧 accepted
+  历史和正式导出保留。完整来源 hash、checkpoint、锁、journal 与真实 checker 均不豁免。
+- 永久入口 `TestN2LegacyReferenceLifecycle` 的输入必须区分 v1／v2（p%41 与 pA），
+  `TestN2LegacySchemas` 核 4–7 策略，`TestN2LegacyAcceptedJournal` 核真实 checker 后的
+  durable 决定；保留旧文件字节，不重签或迁移旧来源来通过。
+
+对应开发注意事项：`G-FINAL`、`G-FACTS`、`G-BINDING`、`G-ORACLE`、`G-QUALIFY`、`G-JSON`、`G-IDREF`。

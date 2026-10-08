@@ -240,6 +240,7 @@ const multiEditPolicy = "kepub-multi-v1:accepted-baseline;multi-operation;multi-
 const structurePolicy = "kepub-xhtml-structure-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;reference-gate;no-timestamp;review-required;conformance-not-run"
 const replacePolicy = "kepub-content-text-replace-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;explicit-hits;no-timestamp;review-required;conformance-not-run"
 const movePolicy = "kepub-xhtml-move-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;cross-resource;reference-sync;no-timestamp;review-required;conformance-not-run"
+const referencePolicy = ";reference-parser-v2"
 
 // MaxPlanOperations bounds one version 3 or version 4 transaction. Each
 // operation may parse its target resource, so the request file size alone is
@@ -484,6 +485,14 @@ func operationSchema(ops []Operation) (int, error) {
 }
 
 func policyFor(version int) string {
+	policy := legacyPolicyFor(version)
+	if version >= 4 && version <= 7 {
+		policy += referencePolicy
+	}
+	return policy
+}
+
+func legacyPolicyFor(version int) string {
 	switch version {
 	case 2:
 		return contentEditPolicy
@@ -501,15 +510,22 @@ func policyFor(version int) string {
 	return editPolicy
 }
 
+func planReferenceVersion(p Plan) int {
+	if p.SchemaVersion >= 4 && p.SchemaVersion <= 7 && p.PolicySHA256 == digest(legacyPolicyFor(p.SchemaVersion)) {
+		return 1
+	}
+	return publication.ReferenceParserVersion
+}
+
 func validPlanOperation(p Plan) bool {
 	if p.SchemaVersion == 7 {
-		return p.Proposal != nil && p.PolicySHA256 == digest(fixPolicy)
+		return p.Proposal != nil && (p.PolicySHA256 == digest(policyFor(7)) || p.PolicySHA256 == digest(fixPolicy))
 	}
 	if p.Proposal != nil {
 		return false
 	}
 	v, err := operationSchema(p.Operations)
-	return err == nil && p.SchemaVersion == v && (p.PolicySHA256 == digest(policyFor(v)) || v == 1 && p.BaseRevision == "initial" && p.PolicySHA256 == digest(legacyEditPolicy))
+	return err == nil && p.SchemaVersion == v && (p.PolicySHA256 == digest(policyFor(v)) || p.PolicySHA256 == digest(legacyPolicyFor(v)) || v == 1 && p.BaseRevision == "initial" && p.PolicySHA256 == digest(legacyEditPolicy))
 }
 
 type identity struct {
@@ -616,12 +632,12 @@ func ReadEditFile(file string) ([]byte, error) {
 }
 
 func (w *Workspace) recompute(ops []Operation) (derivation, error) {
-	return w.recomputeAt(ops, revisionPath(w.current), w.current)
+	return w.recomputeAt(ops, revisionPath(w.current), w.current, publication.ReferenceParserVersion)
 }
 
 // The same derivation is used for current plans and historical checkpoint
 // provenance during acceptance/recovery. Neither trusts a persisted write set.
-func (w *Workspace) recomputeAt(ops []Operation, baseDir, revision string) (derivation, error) {
+func (w *Workspace) recomputeAt(ops []Operation, baseDir, revision string, referenceVersion int) (derivation, error) {
 	version, err := operationSchema(ops)
 	if err != nil {
 		return derivation{}, err
@@ -633,7 +649,7 @@ func (w *Workspace) recomputeAt(ops []Operation, baseDir, revision string) (deri
 	defer r.Close()
 	a := publicationRoot{r}
 	if version == 4 || version == 5 || version == 6 {
-		return w.recomputeStructure(a, ops, revision)
+		return w.recomputeStructure(a, ops, revision, referenceVersion)
 	}
 	if version == 3 {
 		return w.recomputeMulti(a, ops, revision)
@@ -904,6 +920,9 @@ func (w *Workspace) verifyPlanEnvelope(p Plan, bindPath bool) error {
 }
 
 func (w *Workspace) verifyPlan(p Plan, bindPath bool) (derivation, error) {
+	if planReferenceVersion(p) != publication.ReferenceParserVersion {
+		return derivation{}, fmt.Errorf("%w: legacy reference policy requires a new plan", ErrStalePlan)
+	}
 	if err := w.verifyPlanEnvelope(p, bindPath); err != nil {
 		return derivation{}, err
 	}
@@ -1260,7 +1279,7 @@ func (w *Workspace) execution() (Execution, error) {
 	if err := w.verifyPlanEnvelope(intent, false); err != nil {
 		return e, err
 	}
-	d, deriveErr := w.recompute(intent.Operations)
+	d, deriveErr := w.recomputeAt(intent.Operations, revisionPath(w.current), w.current, planReferenceVersion(intent))
 	if deriveErr != nil {
 		var f *fault.Error
 		if !errors.As(deriveErr, &f) || f.Code != "RESOURCE_LIMIT" {

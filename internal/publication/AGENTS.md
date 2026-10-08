@@ -2,6 +2,9 @@
 
 - 复用 `StructureDocument`、`StructureEdit`、`ValidateEdits`、`ApplyEdits`、`VerifyStructure`；校验目标的完整祖先链、manifest 权限和插入点 namespace 上下文，不只检查当前元素。
 - identity/IDREF 使用已有共享 `IdentityValues`、`ElementIdentities`、`CountIDs`、`MergedIdentityDelta` 与 IDREF 词表；不能新增一个只适用某操作的别名计数模型。
+- IDREF v2 是字面身份而非 URL：列表只拆 ASCII 空白，NBSP 保留，单 IDREF 不拆；
+  output.for 按宿主列表类型处理。属性、片段和搬入块共用同一 tokenizer，旧已消费来源显式用 v1。
+  入口 `TestN2IDREFTokens`、`FuzzN2IDREFTokens`；解析既有身份不放宽新建 ID 的 NCName 权限。
 - edit 只使用冻结来源的可写物理区间。精确验证预计位置及目标外字节；相同字节在别处出现不能使错位写入通过，不用全输出 Contains 兜底。
 - 字面替换按每元素直接字符数据和匹配局部 fragment 求区间；实际 regex 任一零宽命中整体拒绝，不静默 continue；非空锚定和合法零命中保留。
 - generated/serialized fragment 以正确 decoded 语义参与对齐，但仍不可写；只 decode 所需层次。保留实体两侧字面、零长 generated 分隔边界、CRLF 和 UTF-16 映射；不添加未定义的引用长度限制。
