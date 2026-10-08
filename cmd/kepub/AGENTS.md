@@ -10,4 +10,12 @@
 - 已存在外部输出保留冻结 `OUTPUT_EXISTS`/2；emit-request 在写文件前执行 256 操作预算
   （256 成功、257 `INVALID_OPERATIONS`/2 且无产物）；错误码断言按契约精确匹配，不接受两种 code 的宽松断言。
 
+- 所有不可信终端错误／writer失败、摘要字符串与动态键共用 `terminalQuote`；控制字节、
+  CR/LF/TAB、C1、双向格式字符与非法 UTF-8 字节可见转义，中文／正常文字保留。
+  程序排版换行与消息内容分开；JSON 的原 message 只由 JSON 编码器处理，实际 task diff
+  已有安全输出原样保留，不二次转义。doctor/help 的静态注册表与安全 readiness 原因不伪称用户输入。
+- `TestR5MissingPathTerminalEscape` 必须经过真实 run/OS错误链；
+  `TestR5ErrorControlsAndJSONSemantics`、`TestR5OutputWriterErrorPaths` 核 code/exit/envelope
+  与三个实际 writer分支；测试先捕获到 Buffer，日志用 `%q`，不能直接向测试终端发控制序列。
+
 对应开发注意事项：`G-ORACLE`、`G-EVIDENCE`、`G-QUALIFY`。

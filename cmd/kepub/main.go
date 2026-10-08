@@ -332,14 +332,14 @@ func run(args []string, stdout, stderr io.Writer) int {
 		}
 		e := envelope{1, err == nil, o.command, hex.EncodeToString(id), data, fe}
 		if e := json.NewEncoder(stdout).Encode(e); e != nil {
-			fmt.Fprintln(stderr, "output:", e)
+			fmt.Fprintln(stderr, "output:", terminalQuote(e.Error()))
 			return 6
 		}
 	} else if err != nil {
-		fmt.Fprintf(stderr, "%s: %s\n", fe.Code, fe.Message)
+		fmt.Fprintf(stderr, "%s: %s\n", fe.Code, terminalQuote(fe.Message))
 	} else if raw, ok := data.(app.RawDocument); ok {
 		if _, e := stdout.Write(raw.Bytes); e != nil {
-			fmt.Fprintln(stderr, "output:", e)
+			fmt.Fprintln(stderr, "output:", terminalQuote(e.Error()))
 			return 6
 		}
 	} else {
@@ -348,7 +348,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 			return 6
 		}
 		if _, e := io.WriteString(stdout, b); e != nil {
-			fmt.Fprintln(stderr, "output:", e)
+			fmt.Fprintln(stderr, "output:", terminalQuote(e.Error()))
 			return 6
 		}
 	}

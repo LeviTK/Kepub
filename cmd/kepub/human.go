@@ -12,6 +12,11 @@ import (
 	"github.com/LeviTK/Kepub/internal/app"
 )
 
+// terminalQuote renders one untrusted text field, not program layout. Visible
+// escapes preserve controls, invalid bytes and bidi formatting without executing
+// them; JSON messages and already escaped task diffs must not pass through it.
+func terminalQuote(text string) string { return strconv.QuoteToGraphic(text) }
+
 // Terminal summaries intentionally abbreviate long lists/text; JSON remains the
 // complete machine contract. Untrusted text cannot emit terminal control codes.
 func humanSummary(command string, data any) (string, error) {
@@ -22,7 +27,7 @@ func humanSummary(command string, data any) (string, error) {
 	fmt.Fprintf(&out, "Kepub · %s\n", command)
 	if cs, ok := data.([]app.Capability); ok {
 		for _, c := range cs {
-			fmt.Fprintf(&out, "%s v%d · %s · %s\n", c.ID, c.Version, c.Status, strconv.QuoteToGraphic(c.Reason))
+			fmt.Fprintf(&out, "%s v%d · %s · %s\n", c.ID, c.Version, c.Status, terminalQuote(c.Reason))
 		}
 		return out.String(), nil
 	}
@@ -69,7 +74,8 @@ func humanSummary(command string, data any) (string, error) {
 			}
 			sort.Strings(keys)
 			for _, k := range keys {
-				fmt.Fprintf(&out, "%s%s: ", pad, k)
+				q := terminalQuote(k)
+				fmt.Fprintf(&out, "%s%s: ", pad, q[1:len(q)-1])
 				render(v[k], depth+1)
 			}
 		case []any:
@@ -89,7 +95,7 @@ func humanSummary(command string, data any) (string, error) {
 				}
 				v = v[:end] + "… (text omitted; use --json)"
 			}
-			fmt.Fprintln(&out, strconv.QuoteToGraphic(v))
+			fmt.Fprintln(&out, terminalQuote(v))
 		case nil:
 			out.WriteString("none\n")
 		default:
