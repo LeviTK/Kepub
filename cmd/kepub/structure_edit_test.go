@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"bytes"
 	"encoding/json"
 	"os"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/LeviTK/Kepub/internal/archive"
 	"github.com/LeviTK/Kepub/internal/bookpath"
+	"github.com/LeviTK/Kepub/internal/testfixture"
 )
 
 // structureCLI is a conformance-positive EPUB3 whose first chapter carries an id
@@ -244,5 +246,124 @@ func TestStructureBinaryLifecycle(t *testing.T) {
 	defer a.Close()
 	if b, err := a.Read(bookpath.BookPath("EPUB/style.css"), 1<<20); err != nil || !bytes.Equal(b, files["EPUB/style.css"]) {
 		t.Fatalf("untouched stylesheet changed: %v", err)
+	}
+}
+
+func TestN2IDREFBinaryLifecycle(t *testing.T) {
+	if os.Getenv("KEPUB_EPUBCHECK_JAR") == "" {
+		t.Skip("real pinned EPUBCheck required")
+	}
+	binary := workspaceBinary(t)
+	for _, literal := range []bool{true, false} {
+		t.Run(map[bool]string{true: "literal-conflict", false: "formal-positive"}[literal], func(t *testing.T) {
+			book, files := structureCLI(t)
+			id := "normal"
+			if literal {
+				id = "p%41"
+			}
+			files["EPUB/chapter1.xhtml"] = bytes.Replace(files["EPUB/chapter1.xhtml"], []byte(`<p id="second">Second node.</p>`), []byte(`<p id="`+id+`">Target.</p><p id="pA">Other.</p><div role="group" aria-labelledby="`+id+`">Reference.</div>`), 1)
+			entries := []testfixture.Entry{}
+			for _, name := range []string{"mimetype", "META-INF/container.xml", "EPUB/package.opf", "EPUB/chapter1.xhtml", "EPUB/style.css", "EPUB/nav.xhtml"} {
+				entries = append(entries, testfixture.Entry{Name: name, Data: files[name]})
+			}
+			testfixture.ZIP(t, book, entries)
+			original, err := os.ReadFile(book)
+			if err != nil {
+				t.Fatal(err)
+			}
+			dir := t.TempDir()
+			ws := filepath.Join(dir, "ws")
+			run := func(args []string, want int) map[string]any {
+				return processJSON(t, binary, args, want, 60*time.Second)
+			}
+			run([]string{"workspace", "open", book, "--output", ws}, 0)
+			graph := run([]string{"inspect", "--section=references", "--resource=EPUB/chapter1.xhtml", "--direction=incoming", book}, 0)["data"].(map[string]any)["value"].(map[string]any)
+			if graph["parserVersion"] != float64(2) {
+				t.Fatal("unversioned reference graph", graph)
+			}
+			found := 0
+			for _, raw := range graph["edges"].([]any) {
+				e := raw.(map[string]any)
+				if e["syntax"] != "xhtml.idref" {
+					continue
+				}
+				if e["href"] != id || e["target"].(map[string]any)["fragment"] != id || e["fragmentStatus"] != "resolved" || !strings.HasSuffix(e["location"].(string), "/@aria-labelledby") {
+					t.Fatal("literal source/target relationship lost", e)
+				}
+				found++
+			}
+			if found != 1 {
+				t.Fatalf("incoming literal IDREF count %d", found)
+			}
+			content := run([]string{"content", "--workspace", ws, "--resource", "EPUB/chapter1.xhtml"}, 0)["data"].(map[string]any)
+			locator := ""
+			for _, raw := range content["nodes"].([]any) {
+				n := raw.(map[string]any)
+				if n["id"] == id {
+					locator = n["locator"].(string)
+				}
+			}
+			if locator == "" {
+				t.Fatal("missing frozen target locator")
+			}
+			params := map[string]any{"bookPath": content["bookPath"], "revisionId": content["revisionId"], "resourceSha256": content["resourceSha256"], "locatorVersion": content["locatorVersion"], "locator": locator}
+			opsPath, planPath := filepath.Join(dir, "ops.json"), filepath.Join(dir, "plan.json")
+			writeRequest := func(operation string, params map[string]any) {
+				b, err := json.Marshal(map[string]any{"schemaVersion": 4, "operations": []any{map[string]any{"operationId": operation, "operationVersion": 1, "params": params}}})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(opsPath, b, 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			writeRequest("xhtml.element.delete", params)
+			refused := run([]string{"plan", "--workspace", ws, "--operations", opsPath, "--output", planPath}, 1)
+			if refused["error"].(map[string]any)["code"] != "REFERENCE_CONFLICT" {
+				t.Fatal(refused)
+			}
+			if _, err := os.Stat(planPath); !os.IsNotExist(err) {
+				t.Fatal("refused request published plan", err)
+			}
+			if _, err := os.Stat(filepath.Join(ws, "tasks/active")); !os.IsNotExist(err) {
+				t.Fatal("refused request created task", err)
+			}
+			if !literal {
+				params["name"], params["value"] = "class", "n2"
+				writeRequest("xhtml.attribute.set", params)
+				run([]string{"plan", "--workspace", ws, "--operations", opsPath, "--output", planPath}, 0)
+				e := run([]string{"apply", "--workspace", ws, "--plan", planPath}, 0)["data"].(map[string]any)
+				task := e["taskId"].(string)
+				run([]string{"task", "accept", task, "--workspace", ws}, 0)
+				files["EPUB/chapter1.xhtml"] = bytes.Replace(files["EPUB/chapter1.xhtml"], []byte(`id="normal"`), []byte(`id="normal" class="n2"`), 1)
+				out := filepath.Join(dir, "formal.epub")
+				exported := run([]string{"workspace", "export", ws, "--output", out}, 0)["data"].(map[string]any)
+				if exported["verified"] != true || exported["validation"].(map[string]any)["status"] != "pass" {
+					t.Fatal("formal export skipped checker", exported)
+				}
+				checkExport(t, out, files)
+				z, err := zip.OpenReader(out)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer z.Close()
+				seen := map[string]bool{}
+				for _, entry := range z.File {
+					_, file := files[entry.Name]
+					directory := entry.Name == "EPUB/" || entry.Name == "META-INF/"
+					if seen[entry.Name] || !file && !directory || entry.FileInfo().IsDir() != directory || directory && entry.UncompressedSize64 != 0 {
+						t.Fatal("unexpected ZIP inventory", entry.Name)
+					}
+					seen[entry.Name] = true
+				}
+				if len(seen) != 8 {
+					t.Fatalf("ZIP inventory got %d, want 6 files + 2 directories", len(seen))
+				}
+			}
+			got, err := os.ReadFile(book)
+			if err != nil || !bytes.Equal(got, original) {
+				t.Fatal("original changed", err)
+			}
+		})
 	}
 }

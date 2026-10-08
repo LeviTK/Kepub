@@ -3,6 +3,7 @@ package publication
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/xml"
 	"fmt"
 	"strings"
@@ -768,7 +769,7 @@ func TestIdentityUnitIsPerElement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ids2, _, _ := fragmentFacts(fragment.Nodes)
+	ids2, _, _ := fragmentFacts(fragment.Nodes, ReferenceParserVersion)
 	if len(ids2) != 1 || ids2[0] != "fresh" {
 		t.Fatalf("fragment identities: %v", ids2)
 	}
@@ -794,4 +795,56 @@ func TestIdentityUnitIsPerElement(t *testing.T) {
 	if removed, added := MergedIdentityDelta(transfer, []StructureChange{dropID.Change, writeAlias.Change}); len(removed) != 1 || removed[0] != "y" || len(added) != 0 {
 		t.Fatalf("alias transfer identities: -%v +%v", removed, added)
 	}
+}
+
+func TestN2IDREFTokens(t *testing.T) {
+	for _, tc := range []struct {
+		element, name, value string
+		want                 []string
+	}{
+		{"p", "aria-labelledby", "\ta\nb\ra\fb c\u00a0d percent%", []string{"a", "b", "a", "b", "c\u00a0d", "percent%"}},
+		{"label", "for", "a b", []string{"a b"}},
+		{"output", "for", "a\tb", []string{"a", "b"}},
+		{"input", "list", "a b", []string{"a b"}},
+		{"p", "aria-details", "a\u00a0b", []string{"a\u00a0b"}},
+		{"p", "aria-labelledby", "", nil},
+		{"p", "aria-activedescendant", "", nil},
+	} {
+		got := IDREFs(2, tc.element, tc.name, tc.value)
+		if len(got) != len(tc.want) {
+			t.Errorf("%+v: got %q", tc, got)
+			continue
+		}
+		for i := range got {
+			if got[i] != tc.want[i] {
+				t.Errorf("%+v: got %q", tc, got)
+			}
+		}
+	}
+	// Frozen v1 did Unicode Fields even for single-valued attributes.
+	if got := IDREFs(1, "label", "for", "a\u00a0b"); len(got) != 2 || got[0] != "a" || got[1] != "b" {
+		t.Fatalf("legacy semantics changed: %q", got)
+	}
+}
+
+func FuzzN2IDREFTokens(f *testing.F) {
+	f.Add([]byte{0x41}, uint8(0))
+	f.Add([]byte{0x20, 0x25}, uint8(1))
+	f.Fuzz(func(t *testing.T, data []byte, variant uint8) {
+		if len(data) > 128 {
+			data = data[:128]
+		}
+		a := "p%" + hex.EncodeToString(data) + "中\u00a0文"
+		b := "other%"
+		separator := []string{" ", "\t", "\n", "\r", "\f"}[int(variant)%5]
+		value := separator + a + separator + b + separator + a + separator
+		got := IDREFs(2, "p", "aria-labelledby", value)
+		if len(got) != 3 || got[0] != a || got[1] != b || got[2] != a {
+			t.Fatalf("literal list split/decoded: %q", got)
+		}
+		got = IDREFs(2, "p", "aria-activedescendant", a+separator+b)
+		if len(got) != 1 || got[0] != a+separator+b {
+			t.Fatalf("single-valued reference split/decoded: %q", got)
+		}
+	})
 }

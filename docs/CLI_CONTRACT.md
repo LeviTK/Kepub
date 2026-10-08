@@ -235,6 +235,22 @@ FixProposal／ValidationDelta 与两条原生规则以 §2.11 及其冻结附件
 本批在 schema 3 事务底座上增加**版本化 XHTML 结构编辑**：混合内容与属性写入、元素插入／替换／删除／同资源移动，以及 ID／链接／资源依赖门禁。它**不是完整 T2**：FixProposal、ValidationDelta、批量替换、字体混淆资格与跨资源移动仍属剩余范围，`content.text.set` v1 的含义与 schema 1／2／3 编码不变。旧二进制遇到 schema 4 请求允许安全拒绝，不丢记录、不改已发布摘要含义。
 
 - **请求 schema 4：** `schemaVersion:4` 携带 1–256 个 v1 操作，可为 `metadata.set`、`content.text.set` 与六个新操作 `xhtml.attribute.set`／`xhtml.attribute.remove`／`xhtml.element.insert`／`xhtml.element.replace`／`xhtml.element.delete`／`xhtml.element.move`；至少一个 `xhtml.*` 操作才使用 schema 4，单操作旧请求继续使用 schema 1／2／3，不静默升级。策略摘要为 `kepub-xhtml-structure-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;reference-gate;no-timestamp;review-required;conformance-not-run`。
+  Issue #8 的兼容方案先于实现冻结：引用解析 v2 将 IDREF 作为字面同文档身份，不做 URL 解码；
+  属性原值保存在 edge.href，单 token 在 target.fragment，属性名保存在来源 locator 的 `/@name`。
+  列表只按 ASCII 空白分词（XML 可解析值中为 TAB/LF/CR/SPACE），NBSP 保留；
+  `for`（除 output）、`list`、`form`、`aria-activedescendant`、`aria-details`、
+  `aria-errormessage` 为单 IDREF，其余冻结词表及 output.for 为列表。单值不拆成多个目标；
+  ARIA 类型按 [WAI-ARIA 1.2 REC 2023-06-06](https://www.w3.org/TR/2023/REC-wai-aria-1.2-20230606/)
+  的 Value 类型（ID reference／ID reference list）冻结，不跟随移动中的草案改变旧摘要。
+  空值不产生边，非法多值作为完整字面查找并明确 missing，不以两个合法 ID 掩盖错误。
+  不改变普通 href/src 的 URL 语义、未知词汇 coverage 或 XML 身份计数。
+  新 schema 4/5/6/7 计划保留原 wire shape，但策略字符串使用对应 v1 字符串末尾追加
+  `;reference-parser-v2` 的新摘要，inspect 的 parserVersion=2；schema 1–3 摘要不变。
+  旧摘要只用于已消费任务、历史和持久 journal 的 v1 来源重推，完整保留旧分词／解码，
+  不静默用 v2 解释旧批准。未消费旧计划在 Apply/WritePlanReport 前明确 INPUT_DRIFT；
+  已消费旧任务仍可 diff/reject、恢复回滚，不能再次 accept，须 reject 后重提案。
+  已发布 settlement journal 仍按冻结旧来源完成原决定，既有 accepted 历史可读取／正式导出，
+  不重写记录、源 hash 或摘要。新 accept/export 继续要求真实 EPUBCheck。
 - **冻结绑定：** 每个结构操作绑定 `bookPath`、`revisionId`、`resourceSha256` 与 `locatorVersion:1` 的精确结构 locator；全部字节编辑都对照**冻结基线**计算，前一个操作的输出不放松后一个操作的旧值期望或目标位置。错误码对应固定：`resourceSha256` 与冻结资源不符（漂移）拒绝为 `INPUT_DRIFT`（exit 4），`expectedOldValue` 不匹配拒绝为 `INVALID_OPERATIONS`（exit 2），`revisionId` 不匹配拒绝为陈旧计划（`INPUT_DRIFT`）。
 - **编辑模型：** 每个操作对冻结字节产生「区间替换」或「插入点」；同一资源的区间必须两两不相交，插入点不得落在任何替换区间内或与其边界重合，插入点之间不得重合（同锚点同位置只允许一次插入）。目标元素的物理标签／内容区间缺失（实体生成或合成默认属性）时拒绝，不伪造 byte offset。`content.text.set` 在同一模型下作为元素内容区间替换，语义不变。
 - **目标与片段规则：** 结构编辑目标必须是选定 manifest 中 `application/xhtml+xml` 的条目，沿用单操作 v1／v2／v3 的权限边界，未登记资源不被 schema 4 放宽。属性写入限定 XHTML 元素，拒绝 `style`、`on*`、`srcset`／`imagesrcset`、`http-equiv`、`srcdoc`、`data`、`action`／`formaction`、`poster`／`background`／`cite`／`usemap` 等本批无法维护的 URL 属性、命名空间声明与 `xml:base`；元素删除／替换／移动拒绝 `html`／`head`／`body` 与文档根，子插入拒绝 `html`／`head`。片段只接受 XHTML 命名空间元素，在**插入点的命名空间上下文**中解析校验后按作者原始字节插入（按目标资源编码），拒绝 `script`／`style`／`base` 及 `iframe`／`frame`／`frameset`／`object`／`embed`／`applet`／`portal`／`link`／`meta` 等嵌套浏览上下文、插件与仅限 head 的元素、事件属性、注释／CDATA／声明与处理指令；片段内的 id／`xml:id` 必须是合法 XML 名称。外来语法与 ruby／表格／脚注／方向／混合内容只在未被目标区间覆盖时原字节保留。

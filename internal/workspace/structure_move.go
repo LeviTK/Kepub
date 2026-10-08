@@ -38,7 +38,7 @@ type movePlan struct {
 // moved block moves with it; an XHTML href from any other location is rewritten
 // to the destination; anything else is refused with its syntax and location, so
 // the move can never leave an unsynchronized dangling reference behind.
-func (w *Workspace) deriveCrossMoves(a publicationRoot, pub *publication.Publication, profile xmltext.Profile, ops []Operation, revision string) (map[string][]*publication.StructureEdit, []*movePlan, *references.Graph, map[bookpath.BookPath]int64, error) {
+func (w *Workspace) deriveCrossMoves(a publicationRoot, pub *publication.Publication, profile xmltext.Profile, ops []Operation, revision string, referenceVersion int) (map[string][]*publication.StructureEdit, []*movePlan, *references.Graph, map[bookpath.BookPath]int64, error) {
 	contrib := map[string][]*publication.StructureEdit{}
 	moves := []*movePlan{}
 	any := false
@@ -82,6 +82,7 @@ func (w *Workspace) deriveCrossMoves(a publicationRoot, pub *publication.Publica
 		if err != nil {
 			return nil, err
 		}
+		doc.ReferenceVersion = referenceVersion
 		docs[path] = doc
 		return doc, nil
 	}
@@ -89,7 +90,7 @@ func (w *Workspace) deriveCrossMoves(a publicationRoot, pub *publication.Publica
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	graph := references.BuildSource(a, inv, pub)
+	graph := references.BuildSourceVersion(a, inv, pub, referenceVersion)
 	for index, op := range ops {
 		param, ok := op.Params.(publication.ElementMoveCross)
 		if !ok {

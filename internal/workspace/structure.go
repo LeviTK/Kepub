@@ -21,7 +21,7 @@ import (
 // recomputeStructure derives a schema 4 plan. metadata.set operations keep
 // their frozen semantics on the package document; content.text.set and xhtml.*
 // operations are resolved against the frozen XHTML bytes as disjoint edits.
-func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revision string) (derivation, error) {
+func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revision string, referenceVersion int) (derivation, error) {
 	pub, err := publication.Load(a, w.state.Rootfile)
 	if err != nil {
 		return derivation{}, err
@@ -42,7 +42,7 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 	// synchronization from the frozen bytes, before any resource group is
 	// assembled: a move's edits and the references it rewrites must be visible
 	// to the whole transaction's overlap and dependency checks.
-	moveContrib, moves, moveGraph, moveInventory, err := w.deriveCrossMoves(a, pub, profile, ops, revision)
+	moveContrib, moves, moveGraph, moveInventory, err := w.deriveCrossMoves(a, pub, profile, ops, revision, referenceVersion)
 	if err != nil {
 		return derivation{}, err
 	}
@@ -150,7 +150,7 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 	// Phase 1 derives every resource's edits and binding checks. Dependency
 	// facts are only collected here: identity and link validation must see the
 	// whole transaction, never a partially processed group.
-	gate := &structureGate{a: a, pub: pub, inventory: moveInventory, graph: moveGraph, baseIDs: map[bookpath.BookPath]map[string]int{}, removed: map[bookpath.BookPath]map[string]int{}, added: map[bookpath.BookPath]map[string]int{}, synchronized: map[bookpath.BookPath]map[string]map[string]bool{}}
+	gate := &structureGate{a: a, pub: pub, version: referenceVersion, inventory: moveInventory, graph: moveGraph, baseIDs: map[bookpath.BookPath]map[string]int{}, removed: map[bookpath.BookPath]map[string]int{}, added: map[bookpath.BookPath]map[string]int{}, synchronized: map[bookpath.BookPath]map[string]map[string]bool{}}
 	type groupEdit struct {
 		path     string
 		bp       bookpath.BookPath
@@ -183,6 +183,7 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 		if err != nil {
 			return derivation{}, err
 		}
+		doc.ReferenceVersion = referenceVersion
 		edits := make([]*publication.StructureEdit, 0, len(g.ops))
 		replaceFacts := map[int]publication.ReplaceFacts{}
 		targets := map[string]string{}
@@ -493,6 +494,7 @@ func structureTargetKey(op Operation) (string, string) {
 type structureGate struct {
 	a         publicationRoot
 	pub       *publication.Publication
+	version   int
 	inventory map[bookpath.BookPath]int64
 	graph     *references.Graph
 	baseIDs   map[bookpath.BookPath]map[string]int
@@ -524,7 +526,7 @@ func (g *structureGate) graphOnce() (*references.Graph, error) {
 	if err != nil {
 		return nil, err
 	}
-	graph := references.BuildSource(g.a, inv, g.pub)
+	graph := references.BuildSourceVersion(g.a, inv, g.pub, g.version)
 	g.graph = &graph
 	return g.graph, nil
 }

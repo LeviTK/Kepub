@@ -17,7 +17,7 @@ import (
 	"github.com/LeviTK/Kepub/internal/xmltext"
 )
 
-const ParserVersion = 1
+const ParserVersion = publication.ReferenceParserVersion
 const opfNS = "http://www.idpf.org/2007/opf"
 const svgNS = "http://www.w3.org/2000/svg"
 const xlinkNS = "http://www.w3.org/1999/xlink"
@@ -73,9 +73,15 @@ func Build(a *archive.Archive, p *publication.Publication) Graph {
 // BuildSource builds the same index over an explicit frozen inventory, so a
 // locked workspace revision can be inspected without copying an archive.
 func BuildSource(src publication.ResourceReader, files map[bookpath.BookPath]int64, p *publication.Publication) Graph {
+	return BuildSourceVersion(src, files, p, ParserVersion)
+}
+
+// BuildSourceVersion is also used to re-prove consumed legacy plans against
+// their frozen reference policy. Inspection always uses the current version.
+func BuildSourceVersion(src publication.ResourceReader, files map[bookpath.BookPath]int64, p *publication.Publication, version int) Graph {
 	b := builder{src: src, files: files, p: p, covered: map[string]int{}, ids: map[bookpath.BookPath]map[string]int{}, items: map[string]publication.Item{}, g: Graph{
 		Status: "complete", Scope: "archive resources; selected rootfile only; extraction is not conformance validation",
-		Direction: "both", Edges: []Edge{}, Coverage: []Coverage{}, Diagnostics: []publication.Diagnostic{}, ParserVersion: ParserVersion, XMLCoverage: p.XMLCoverage,
+		Direction: "both", Edges: []Edge{}, Coverage: []Coverage{}, Diagnostics: []publication.Diagnostic{}, ParserVersion: version, XMLCoverage: p.XMLCoverage,
 	}}
 	media := map[bookpath.BookPath]string{}
 	b.media = media
@@ -242,7 +248,7 @@ func (b *builder) cover(bp bookpath.BookPath, syntax, status, reason string) {
 	if !ok {
 		i = len(b.g.Coverage)
 		b.covered[key] = i
-		b.g.Coverage = append(b.g.Coverage, Coverage{Resource: bp, Syntax: syntax, Status: status, Reasons: []string{}, ParserVersion: ParserVersion})
+		b.g.Coverage = append(b.g.Coverage, Coverage{Resource: bp, Syntax: syntax, Status: status, Reasons: []string{}, ParserVersion: b.g.ParserVersion})
 	}
 	c := &b.g.Coverage[i]
 	if status == "blocked" || (status == "partial" && c.Status == "complete") {
@@ -276,7 +282,7 @@ func (b *builder) add(bp bookpath.BookPath, location, syntax, href string) {
 	}
 	r, err := bookpath.ResolveReference(bp, bookpath.Href(resolvedHref))
 	if err != nil {
-		b.g.Edges = append(b.g.Edges, Edge{Source: bp, Location: location, Syntax: syntax, Href: bookpath.Href(href), Status: "invalid", FragmentStatus: "blocked", ParserVersion: ParserVersion})
+		b.g.Edges = append(b.g.Edges, Edge{Source: bp, Location: location, Syntax: syntax, Href: bookpath.Href(href), Status: "invalid", FragmentStatus: "blocked", ParserVersion: b.g.ParserVersion})
 		b.diagnostic(bp, location, "INVALID_REFERENCE", err.Error())
 		return
 	}
@@ -284,7 +290,7 @@ func (b *builder) add(bp bookpath.BookPath, location, syntax, href string) {
 }
 
 func (b *builder) addTarget(bp bookpath.BookPath, location, syntax string, href bookpath.Href, r bookpath.Reference) {
-	e := Edge{Source: bp, Location: location, Syntax: syntax, Href: href, Target: &r, Status: "resolved", FragmentStatus: "not_applicable", ParserVersion: ParserVersion}
+	e := Edge{Source: bp, Location: location, Syntax: syntax, Href: href, Target: &r, Status: "resolved", FragmentStatus: "not_applicable", ParserVersion: b.g.ParserVersion}
 	if r.External {
 		e.Status = "external"
 		e.FragmentStatus = "not_checked"
@@ -305,7 +311,7 @@ func (b *builder) fragments() {
 			continue
 		}
 		ids, parsed := b.ids[e.Target.Path]
-		if !parsed || strings.ContainsAny(e.Target.Fragment, "()") {
+		if !parsed || (e.Syntax != "xhtml.idref" || e.ParserVersion == 1) && strings.ContainsAny(e.Target.Fragment, "()") {
 			b.cover(e.Source, "fragment", "partial", "target ID index unavailable or non-ID fragment syntax unsupported")
 			continue
 		}
@@ -454,8 +460,12 @@ func (b *builder) walkXML(bp bookpath.BookPath, e *publication.Element, inNav, i
 		// URL: a removed target would leave them dangling.
 		if a.Name.Space == "" && publication.IsIDREFAttribute(a.Name.Local) && (ns == publication.XHTMLNamespace || ns == svgNS) {
 			if !incomplete {
-				for _, token := range publication.IDREFs(a.Value) {
-					b.add(bp, location, "xhtml.idref", "#"+token)
+				for _, token := range publication.IDREFs(b.g.ParserVersion, e.Name.Local, a.Name.Local, a.Value) {
+					if b.g.ParserVersion == 1 {
+						b.add(bp, location, "xhtml.idref", "#"+token)
+					} else {
+						b.addTarget(bp, location, "xhtml.idref", bookpath.Href(a.Value), bookpath.Reference{Path: bp, Fragment: token})
+					}
 				}
 			}
 			continue
@@ -490,7 +500,7 @@ func (b *builder) walkXML(bp bookpath.BookPath, e *publication.Element, inNav, i
 				r, _ := bookpath.ResolveReference(b.p.Rootfile, item.Href)
 				b.addTarget(bp, location, syntax, bookpath.Href(a.Value), r)
 			} else {
-				b.g.Edges = append(b.g.Edges, Edge{Source: bp, Location: location, Syntax: syntax, Href: bookpath.Href(a.Value), Status: "invalid", FragmentStatus: "blocked", ParserVersion: ParserVersion})
+				b.g.Edges = append(b.g.Edges, Edge{Source: bp, Location: location, Syntax: syntax, Href: bookpath.Href(a.Value), Status: "invalid", FragmentStatus: "blocked", ParserVersion: b.g.ParserVersion})
 				b.diagnostic(bp, location, "UNKNOWN_MANIFEST_ID", a.Value)
 			}
 			continue

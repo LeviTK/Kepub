@@ -272,3 +272,134 @@ func TestFixRejectedSourceRevalidation(t *testing.T) {
 		}
 	}
 }
+
+func TestN2LegacySchemas(t *testing.T) {
+	for _, version := range []int{4, 5, 6, 7} {
+		t.Run(map[int]string{4: "structure", 5: "replace", 6: "move", 7: "proposal"}[version], func(t *testing.T) {
+			files := map[string]string{}
+			if version == 6 {
+				files = moveCrossFiles()
+			} else if version == 7 {
+				files["EPUB/chapter1.xhtml"] = fixSourceSVG()
+			}
+			w, dir, original := structureWorkspace(t, files)
+			defer func() { w.Close() }()
+			b := structureBinding(t, w, "EPUB/chapter1.xhtml")
+			var ops []Operation
+			var proposal *fix.Proposal
+			switch version {
+			case 4:
+				ops = []Operation{b.attrSet(b.locatorID(t, "dir"), "class", nil, "n2")}
+			case 5:
+				ops = []Operation{b.replace(b.locatorID(t, "dir"), "literal", "RTL", "LTR", 1)}
+			case 6:
+				dst := structureBinding(t, w, "EPUB/text/chapter3.xhtml")
+				ops = []Operation{b.elemMoveCross(dst, b.locatorID(t, "moveblock"), dst.locatorID(t, "three"), "after")}
+			case 7:
+				p := fixSourceProposal(t, w)
+				fresh, err := w.Plan(fixSchema7JSON(t, p))
+				if err != nil {
+					t.Fatal(err)
+				}
+				ops, proposal = fresh.Operations, fresh.Proposal
+			}
+			p, derived := n2LegacyPlan(t, w, ops)
+			p.SchemaVersion, p.Proposal = version, proposal
+			p.PolicySHA256 = digest(legacyPolicyFor(version))
+			put(t, filepath.Join(dir, "plans", p.ID+".json"), editJSON(t, p))
+			originalBytes := readResource(t, original)
+			if _, err := w.Apply(editJSON(t, p)); !errors.Is(err, ErrStalePlan) {
+				t.Fatalf("legacy schema authorized new Apply: %v", err)
+			}
+			if _, err := w.createCandidate(&p); err != nil {
+				t.Fatal(err)
+			}
+			e, err := w.startExecution(p)
+			if err != nil {
+				t.Fatal(err)
+			}
+			e, err = w.execute(e, derived.outputs, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := w.Reject(e.TaskID); err != nil {
+				t.Fatal(err)
+			}
+			w.Close()
+			w, err = Open(dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			status, err := w.TaskStatus(e.TaskID)
+			if err != nil || status.Status != "rejected" {
+				t.Fatalf("legacy schema history: %+v %v", status, err)
+			}
+			var fresh Plan
+			if version == 7 {
+				fresh, err = w.Plan(fixSchema7JSON(t, *proposal))
+			} else {
+				fresh, err = w.Plan(editJSON(t, Request{version, ops}))
+			}
+			if err != nil || fresh.SchemaVersion != version || fresh.PolicySHA256 != digest(legacyPolicyFor(version)+";reference-parser-v2") || fresh.PolicySHA256 == p.PolicySHA256 {
+				t.Fatalf("new schema lost explicit parser binding: %+v %v", fresh, err)
+			}
+			assertBytes(t, original, originalBytes)
+		})
+	}
+}
+
+func TestN2LegacyAcceptedJournal(t *testing.T) {
+	requireChecker(t)
+	w, dir, original := structureWorkspace(t, nil)
+	defer func() { w.Close() }()
+	b := structureBinding(t, w, "EPUB/chapter1.xhtml")
+	p, derived := n2LegacyPlan(t, w, []Operation{b.attrSet(b.locatorID(t, "dir"), "class", nil, "legacy")})
+	if _, err := w.createCandidate(&p); err != nil {
+		t.Fatal(err)
+	}
+	e, err := w.startExecution(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, err = w.execute(e, derived.outputs, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rp, err := validation.Validate(context.Background(), filepath.Join(dir, candidate), validation.Options{})
+	if err != nil || rp.Status != "pass" || len(rp.Checks) < 4 || rp.Checks[3].ID != "epubcheck" || !rp.Checks[3].Required || rp.Checks[3].Status != "passed" || rp.Checks[3].Version != "5.3.0" {
+		t.Fatalf("legacy journal requires real formal checks: %+v %v", rp, err)
+	}
+	id := randomID()
+	stage := "staging/accept-" + id
+	if err := w.root.Mkdir(stage, 0700); err != nil {
+		t.Fatal(err)
+	}
+	tree, err := copyTree(w.root, candidate, stage+"/pub")
+	if err != nil || tree.SHA256 != rp.InputTreeSHA256 {
+		t.Fatalf("validation source: %v", err)
+	}
+	r := Revision{Version: 1, ID: id, WorkspaceID: w.id, Parent: "initial", TaskID: e.TaskID, ExecutionSHA256: digest(e), Rootfile: w.state.Rootfile, Tree: tree, Validation: &rp}
+	if err := writeJSON(w.root, stage+"/revision.json", r); err != nil {
+		t.Fatal(err)
+	}
+	j := settlement{Version: 1, WorkspaceID: w.id, Decision: Decision{Version: 1, TaskID: e.TaskID, Status: "accepted", BaseRevision: "initial", RevisionID: id, TreeSHA256: tree.SHA256, Validation: &rp}}
+	if err := w.taskDigests("tasks/active", &j); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeJSON(w.root, settlementJournal, j); err != nil {
+		t.Fatal(err)
+	}
+	frozen := readResource(t, filepath.Join(dir, "plans", p.ID+".json"))
+	originalBytes := readResource(t, original)
+	w.Close()
+	w, err = Open(dir)
+	if err != nil || w.current != id {
+		t.Fatalf("durable old decision did not roll forward: %v", err)
+	}
+	status, err := w.TaskStatus(e.TaskID)
+	if err != nil || status.Status != "accepted" || status.Decision.Validation.Status != "pass" {
+		t.Fatalf("old accepted history: %+v %v", status, err)
+	}
+	assertBytes(t, filepath.Join(dir, "plans", p.ID+".json"), frozen)
+	assertBytes(t, original, originalBytes)
+}

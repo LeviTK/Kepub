@@ -175,6 +175,26 @@
   精确累计预算下每次必须实际 Plan+Apply+Reject 并核七资源独立 bytes；拒绝不 continue。
   `FuzzN1ReplacementSize` 的模板计量 oracle 单列，不冒充全事务／全编码 live 覆盖。
 
+## G-IDREF：字面身份与 URL 是不同语法
+
+- `"#"+token` 经 URL 解码 → p%41 误指 pA、字面百分号被拒绝 → IDREF 直接构造同文档
+  Reference，再进入共用存在性／歧义处理；普通 href/src 继续 URL 解码。edge.href 留完整原值，
+  target.fragment 留单 token，来源 locator 留属性名。括号 IDREF 不是 XPointer。
+- Unicode Fields → NBSP 身份被拆；全部属性按列表 → 单 IDREF 的非法多值被两个合法 ID
+  掩盖 → publication 共享 tokenizer 按宿主／冻结属性类型仅拆 ASCII 列表，单值原样保留，
+  output.for 是列表。既有身份读取不放宽新建 NCName、namespace 或来源权限。
+- 只改 inspect → 属性／片段／搬入门禁与既有入链不同 → 三入口和图共用版本，完整事务
+  最终状态门禁不变。永久入口 `TestN2LiteralIDREF`、`TestN2IDREFValueTypesAndIdentity`、
+  `TestN2ExistingIDREFProtection`、`TestN2NewIDREFValueTypes`、`TestN2CrossMoveIDREFTypes`。
+  三编码独立七／九资源 bytes 与百分号/NBSP/中文、URL正控、alias/重复身份均分别核验。
+- 静默用新 parser 重推旧 policy → 旧批准含义改变或合法历史无法恢复 → parserVersion=2，
+  新 schema4–7 策略追加 reference-parser-v2；旧未消费计划拒绝，新 accept 不沿用旧审核。
+  已消费旧 task/history/journal 显式 v1 重推完整来源，旧 durable 决定恢复完成、既有 accepted
+  正式导出保留，不重写摘要。`TestN2LegacyReferenceLifecycle`、`TestN2LegacySchemas`、
+  `TestN2LegacyAcceptedJournal` 保留语义不对称控制和原记录 bytes；CLI 的
+  `TestN2IDREFBinaryLifecycle` 核真实查询／plan拒绝与真实 checker 接受／导出完整库存。
+- `FuzzN2IDREFTokens` 只验证合法构造 token 输入与独立 token 序列期望，不称全事务 fuzz。
+
 ## G-EVIDENCE：验证身份和范围不迁移
 
 - 每组结果注明 input commit/tree 或 working-tree 身份、runner、命令/timeout/parallel、exit、skip、artifact hash；fixed fresh-fetch 不能继承作者工作树 PASS。

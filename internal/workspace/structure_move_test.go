@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -1013,4 +1014,51 @@ func TestCrossMoveFuzzCalibration(t *testing.T) {
 		t.Fatalf("menu coverage: single %d, double %d, overlap %d, want %d each", singles, doubles, refusals, want)
 	}
 	t.Logf("calibration: %d single accepted, %d double accepted in both orders against the oracle, %d overlap refused", singles, doubles, refusals)
+}
+
+func TestN2CrossMoveIDREFTypes(t *testing.T) {
+	for _, enc := range []string{"utf8", "utf16le", "utf16be"} {
+		for _, tc := range []struct{ name, value string }{{"aria-labelledby", "inner\u00a0moveblock"}, {"aria-activedescendant", "inner moveblock"}, {"aria-labelledby", "inner inner moveblock"}} {
+			t.Run(enc+"/"+tc.name+"/"+tc.value, func(t *testing.T) {
+				block := `<div id="moveblock"><p id="inner">Inner.</p><label ` + tc.name + `="` + tc.value + `">Ref.</label></div>`
+				chapter := strings.Replace(structureChapter2, `<h1 id="start2">Two</h1>`, `<h1 id="start">One</h1>`+block, 1)
+				w, dir, original := moveCrossFixture(t, map[string]string{"EPUB/chapter1.xhtml": encodeChapter(chapter, enc), "EPUB/text/chapter3.xhtml": encodeChapter(structureChapter3, enc)})
+				defer w.Close()
+				a := structureBinding(t, w, "EPUB/chapter1.xhtml")
+				b := structureBinding(t, w, "EPUB/text/chapter3.xhtml")
+				op := a.elemMoveCross(b, a.locatorID(t, "moveblock"), b.locatorID(t, "three"), "after")
+				originalBytes := readResource(t, original)
+				baseline := n1Tree(t, filepath.Join(dir, revision))
+				if tc.value != "inner inner moveblock" {
+					_, err := w.Plan(editJSON(t, Request{6, []Operation{op}}))
+					var f *fault.Error
+					if !errors.As(err, &f) || f.Code != "INVALID_OPERATIONS" || !strings.Contains(f.Error(), "IDREF") || exists(w.root, candidate) {
+						t.Fatalf("move silently split a literal/single IDREF: %v", err)
+					}
+				} else {
+					p := moveCrossPlan(t, w, []Operation{op})
+					e := applyPlan(t, w, p)
+					for _, path := range []string{"mimetype", "META-INF/container.xml", "EPUB/package.opf", "EPUB/chapter1.xhtml", "EPUB/chapter2.xhtml", "EPUB/text/chapter3.xhtml", "EPUB/nav.xhtml", "EPUB/style.css", "EPUB/images/pic.png"} {
+						want := readResource(t, filepath.Join(dir, revision, path))
+						switch path {
+						case "EPUB/chapter1.xhtml":
+							want = []byte(encodeChapter(strings.Replace(chapter, block, "", 1), enc))
+						case "EPUB/text/chapter3.xhtml":
+							want = []byte(encodeChapter(strings.Replace(structureChapter3, `<p id="three">Three.</p>`, `<p id="three">Three.</p>`+block, 1), enc))
+						case "EPUB/nav.xhtml":
+							want = bytes.Replace(want, []byte("chapter1.xhtml#inner"), []byte("text/chapter3.xhtml#inner"), 1)
+						}
+						assertBytes(t, filepath.Join(dir, candidate, path), want)
+					}
+					if _, err := w.Reject(e.TaskID); err != nil {
+						t.Fatal(err)
+					}
+				}
+				assertBytes(t, original, originalBytes)
+				if !reflect.DeepEqual(n1Tree(t, filepath.Join(dir, revision)), baseline) {
+					t.Fatal("IDREF move changed accepted")
+				}
+			})
+		}
+	}
 }

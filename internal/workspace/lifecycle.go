@@ -564,7 +564,7 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 		moveFacts := map[int]*publication.CrossMoveEdit{}
 		syncFacts := map[int][]moveSyncRewrite{}
 		if e.Plan.SchemaVersion >= 4 {
-			if d, derr := w.recomputeAt(e.Plan.Operations, revisionPath(w.current), w.current); derr == nil {
+			if d, derr := w.recomputeAt(e.Plan.Operations, revisionPath(w.current), w.current, planReferenceVersion(e.Plan)); derr == nil {
 				planned = d.edits
 				replaceFacts = d.replaces
 				moveFacts = d.moves
@@ -1150,6 +1150,9 @@ func (w *Workspace) Accept(ctx context.Context, id string, o validation.Options)
 	if e.Status != "review_required" {
 		return d, fmt.Errorf("%w: only a completed review task can be accepted", ErrTaskConflict)
 	}
+	if planReferenceVersion(e.Plan) != publication.ReferenceParserVersion {
+		return d, fmt.Errorf("%w: legacy reference policy must be rejected and replanned before acceptance", ErrTaskConflict)
+	}
 	idRevision := randomID()
 	stage := "staging/accept-" + idRevision
 	if err := w.root.Mkdir(stage, 0700); err != nil {
@@ -1390,7 +1393,7 @@ func (w *Workspace) taskDigests(dir string, j *settlement) error {
 	if err := w.verifyFixPlan(p); err != nil {
 		return err
 	}
-	d, err := w.recomputeAt(p.Operations, dir+"/checkpoints/"+s.Checkpoint+"/pub", p.BaseRevision)
+	d, err := w.recomputeAt(p.Operations, dir+"/checkpoints/"+s.Checkpoint+"/pub", p.BaseRevision, planReferenceVersion(p))
 	if err != nil {
 		return err
 	}

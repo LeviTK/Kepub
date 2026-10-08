@@ -10,7 +10,7 @@ import (
 )
 
 func cssGraph(css string) Graph {
-	b := builder{src: &archive.Archive{Files: map[bookpath.BookPath]int64{}}, files: map[bookpath.BookPath]int64{}, covered: map[string]int{}}
+	b := builder{src: &archive.Archive{Files: map[bookpath.BookPath]int64{}}, files: map[bookpath.BookPath]int64{}, covered: map[string]int{}, g: Graph{ParserVersion: 2}}
 	b.css("Styles/main.css", "stylesheet", css)
 	return b.g
 }
