@@ -119,6 +119,23 @@
   重生成后校验 manifest/ATTRIBUTION 全部行，不一致 exit 非 0。只修派生元数据/生成流程，不改 raw 原文、
   S0 身份或历史 manifest。
 
+## G-JSON：持久化成功必须可在同一预算内读回
+
+- 无预算 writer＋32 MiB reader → 合法多资源长路径的 state 可以创建成功却不能重开 →
+  同类持久记录共用 `maxJSONBytes`／`checkJSONSize`，按实际 UTF-8 JSON（转义、结构、末尾 LF）计量，
+  超限在临时文件创建前返回 `WORKSPACE_JSON_LIMIT`/1；不截断库存、不提升 reader 上限。
+- Create 只返回内存状态 → 发布前未证明落盘元数据可解析 → state 经 Open 同一读取入口读回，
+  identity 沿 ensureIdentity 读回；失败只清理本次 staging，不覆盖原书、已有目标或其他工作区。
+- 原始字符串长度不能替代序列化长度；小预算逐调用注入而非修改全局。永久入口
+  `TestR1JSONByteBudget`（独立字面期望、UTF-8／转义／LF、预算±1）、
+  `TestR1LegacyRecordByteBudget`（旧字段顺序／optional shape）、
+  `TestR1CreateLongPathInventory`（合法完整库存、预算边界、实际 Create→Close→Open 与资源字节）。
+- 真实短写使用隔离子进程的几 KiB 文件预算，不耗尽磁盘／内存；永久入口
+  `TestR1CreateMetadataShortWrite` 核只有 state 超过文件预算、无目标／staging 残留、原书与旧工作区不变。
+  `TestCrossProcessCreateRace` 核唯一完整可重开的获胜目录、所有文件字节和原书；不将注入当断电。
+- 所有 plan/execution/checkpoint/revision/journal 沿同一 writer；规范 digest 编码不带 LF 且保持不变。
+  外部 edit 请求继续原有 32 MiB 与参数错误分类；正式 accept/export 仍使用真实固定 checker。
+
 ## G-EVIDENCE：验证身份和范围不迁移
 
 - 每组结果注明 input commit/tree 或 working-tree 身份、runner、命令/timeout/parallel、exit、skip、artifact hash；fixed fresh-fetch 不能继承作者工作树 PASS。

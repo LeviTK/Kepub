@@ -35,6 +35,7 @@ var (
 
 const revision = "revisions/initial/pub"
 const candidate = "tasks/active/work/pub"
+const maxJSONBytes = 32 << 20
 
 type Options struct {
 	Rootfile string
@@ -75,6 +76,11 @@ type taskRecord struct {
 // then publishes the entire workspace with an atomic, no-replace rename. Existing
 // files (including empty directories and symlinks) are never replaced.
 func Create(dir, source string, opts Options) (_ *Workspace, err error) {
+	return create(dir, source, opts, maxJSONBytes)
+}
+
+// The private budget permits small boundary tests without changing the CLI.
+func create(dir, source string, opts Options, jsonLimit int64) (_ *Workspace, err error) {
 	abs, err := filepath.Abs(dir)
 	if err != nil {
 		return nil, err
@@ -160,10 +166,15 @@ func Create(dir, source string, opts Options) (_ *Workspace, err error) {
 	}
 	slices.Sort(reasons)
 	w.state = State{1, "initial", originalHash, string(p.Rootfile), tree, slices.Compact(reasons)}
-	if err := writeJSON(r, "state.json", w.state); err != nil {
+	if err := writeJSONLimit(r, "state.json", w.state, jsonLimit); err != nil {
 		return nil, err
 	}
 	if err := w.ensureIdentity(); err != nil {
+		return nil, err
+	}
+	// Identity is read back by ensureIdentity; state must also pass the same
+	// reader used by Open before the containing directory can be published.
+	if err := readJSONLimit(r, "state.json", &w.state, jsonLimit); err != nil {
 		return nil, err
 	}
 	// Unpack does not promise fsync; sync the complete initial snapshot before
@@ -455,9 +466,25 @@ func randomID() string {
 	return hex.EncodeToString(b[:])
 }
 
+func checkJSONSize(size, limit int64) error {
+	if size > limit {
+		return fault.New(1, "WORKSPACE_JSON_LIMIT", "workspace JSON exceeds %d bytes", limit)
+	}
+	return nil
+}
+
 func writeJSON(r *os.Root, name string, value any) (err error) {
+	return writeJSONLimit(r, name, value, maxJSONBytes)
+}
+
+func writeJSONLimit(r *os.Root, name string, value any, limit int64) (err error) {
 	b, err := json.Marshal(value)
 	if err != nil {
+		return err
+	}
+	// Count the encoded UTF-8 bytes, including JSON escaping and the LF.
+	// Reject before opening a temporary file, not after final publication.
+	if err := checkJSONSize(int64(len(b))+1, limit); err != nil {
 		return err
 	}
 	// A recovery record must be absent or complete after a short write or
@@ -477,6 +504,10 @@ func writeJSON(r *os.Root, name string, value any) (err error) {
 }
 
 func readJSON(r *os.Root, name string, value any) error {
+	return readJSONLimit(r, name, value, maxJSONBytes)
+}
+
+func readJSONLimit(r *os.Root, name string, value any, limit int64) error {
 	p, err := subdir(r, path.Dir(name))
 	if err != nil {
 		return err
@@ -491,10 +522,10 @@ func readJSON(r *os.Root, name string, value any) error {
 	if err != nil {
 		return err
 	}
-	if info.Size() > 32<<20 {
-		return fmt.Errorf("workspace JSON exceeds 32 MiB")
+	if err := checkJSONSize(info.Size(), limit); err != nil {
+		return err
 	}
-	d := json.NewDecoder(io.LimitReader(f, 32<<20))
+	d := json.NewDecoder(io.LimitReader(f, limit))
 	d.DisallowUnknownFields()
 	if err := d.Decode(value); err != nil {
 		return err

@@ -69,6 +69,8 @@ XHTML 的 href／src（含 EPUB3 nav）在解析目标前，仅去掉属性值�
 
 持久 JSON 记录先在同目录临时文件中完整写入并同步，再原子、不覆盖地发布。写入失败不会把半截 JSON 发布到正式记录名；故障解除后可重试恢复。Open 必须先校验并完成已发布的 settlement／restore journal，再清理保留的内部 staging，最后恢复中断执行；回滚复制在 journal 发布前再次中断，不应阻断下次重试。损坏 journal 保留证据并拒绝打开，不以清理绕过校验。这些边界已有短写和中断反例验证，不表示断电、任意磁盘故障或非协作外部写者均已覆盖。
 
+工作区同类 JSON（state、identity、plan、execution、checkpoint、revision、检查与 journal）读写共用 **32 MiB（33,554,432 字节）**预算，按实际 UTF-8 JSON 字节计量，包含转义、嵌套结构及落盘末尾换行；恰等于上限允许，超限返回 exit 1／`WORKSPACE_JSON_LIMIT`。写入须在创建临时文件前拒绝，不截断 inventory、不提高读取上限。Create 在原子发布根目录前，通过 Open 使用的读取入口核验 state，identity 也须完整读回；失败只清理本次 staging，不修改原书或已有目标。既有 schema、字段顺序、无换行的规范摘要和历史来源规则不变；外部请求文件仍沿用既有 32 MiB 及参数错误语义。小预算和短写注入仅用于内部回归，不提供 CLI 调大预算入口。
+
 已发布且通过自身来源与哈希检查的 restore journal 仍先恢复指定 checkpoint，即使后续 execution 校验因损坏的 used／start 记录而拒绝打开；这也覆盖 pub 暂缺的已提交中断状态。它只完成原持久决定，不生成新的执行结果、不重放操作，也不更改原书或 accepted。此规则不允许损坏 journal 自身或检查点时继续恢复。
 
 如果 `apply` 已发布本次候选，随后启动失败且仍能核对任务、intent 与已消费计划，JSON 错误回复保留 `data.taskId`，供排除 I/O 故障后显式 diff／reject。回复仍为 `ok:false`，不是成功执行或接受授权；未发布候选时不生成虚假 taskId。此行为不提供其他计划的任务发现、latest 选择或丢失回复后的发现协议，也不会重放操作。
