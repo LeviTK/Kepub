@@ -18,6 +18,13 @@
   包括重复命名组的首个参与实例；转义编码由 xmltext 计数，等值替换仍核来源但不重写 CRLF。
   永久入口 `TestN1ExpansionBeforeAllocation`、`TestN1TemplateGrammar`、
   `TestN1EncodedAndResultBudgets`；计数／benchmem 不冒称 heap 峰值。
+- SearchContent 的成员索引只在本次调用构建一次；任何同路径非XHTML声明都保留拒绝，
+  不以最后覆盖或去重改变原manifest遍历、重复匹配／扫描计数与顺序。ReadContent的
+  精确路径／声明／媒体类型校验仍独立成立，limit满后仍完整解析后续资源。
+- `TestR7ManifestLookupScaling` 实测100／1000／10000资源的 M+X 成员工作，
+  `TestR7ManifestDeclarationSemantics`、`TestR7SearchLateFailureAfterLimit` 与
+  `TestR7SmallScanBudget` 核完整结果、冲突两序／无持久缓存及晚失败；私有逐调用计数／
+  更小扫描预算不进入JSON/CLI。BenchmarkR7计量包含XML/读I/O，不称全搜索常数时间。
 
 优先沿用测试：`TestStructureEditsExactBytes`、`TestIdentityUnitIsPerElement`、
 `TestReplaceZeroWidthAndProvenance`、`TestReplaceGeneratedDecodedNeighbors`。

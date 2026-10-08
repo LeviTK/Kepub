@@ -263,6 +263,22 @@
   `TestR5SummaryDiagnosticsAndKeys`、`TestR5TaskDiffIsNotDoubleEscaped` 保留两真实CRLF差异行。
   不修改书籍、来源/accepted/事务、正式checker门槛或机器协议，也不称远程命令执行漏洞。
 
+## G-CONTENT-LOOKUP：索引不改变成员授权或全量计数
+
+- Search外层逐XHTML、readContent内层每次扫整个manifest → M×X成员工作 →
+  本次Search构建一次路径索引，调用内部读取时仍核精确路径与声明；单资源ReadContent
+  原线性门禁保留，不新增持久缓存或改变历史核验。`TestR7ManifestLookupScaling`
+  观察100／1000／10000实际资源，M=X时原10000／1000000／100000000，新200／2000／20000。
+  私有逐调用观察seam及原lookup算法的red源码保留，计数不是推导的运行耗时。
+- map最后覆盖会藏冲突、去重会改计数 → 聚合同路径全部媒体声明的AND资格，仍遍历原manifest。
+  `TestR7ManifestDeclarationSemantics` 核完整结果/hash/locator/非字典序、重复匹配、冲突两序、
+  下一调用观察已改声明、未声明/大小写/转义路径拒绝。qualified内部路径不能扩大读权限。
+- limit达到就早返会漏晚错误 → 仍解析/计数全部XHTML、不构造超limit节点；
+  `TestR7SearchLateFailureAfterLimit` 核最后坏XML/实体/缺文件，零部分结果；
+  `TestR7SmallScanBudget` 私有降低既有128MiB扫描上限，核精确±1、重复资源仍收费。
+  原1MiB返回文本与XML预算不改，原边界测试保留。BenchmarkR7包含实际读I/O/XML解析，
+  建索引有线性空间成本，B/op、allocs/op不等于RSS，不称整书搜索常数时间或内存必然降低。
+
 ## G-EVIDENCE：验证身份和范围不迁移
 
 - 每组结果注明 input commit/tree 或 working-tree 身份、runner、命令/timeout/parallel、exit、skip、artifact hash；fixed fresh-fetch 不能继承作者工作树 PASS。
