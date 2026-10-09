@@ -217,6 +217,12 @@
 - 每节点重置预算 → 多节点／操作／资源绕过累计限制 → `recomputeStructure` 为全事务
   共用一份 `ReplaceBudget`；每次 Plan／Apply／后续来源重推重新初始化，不添持久字段。
   最终资源先扣全部合法 disjoint removals 再加新字节，拼接前拒绝，原书／accepted／审计不变。
+- 只计 Span 新字节而遗漏 Point → replace 混合插入／新增属性／搬移越过资源及事务输出
+  预算；`TakeOutput` 必须计完整物理编码输出，与 `ApplyEdits` 的两类输入一致。
+  `TestN1MixedPointOutputBudget` 在基线 1b29c65 的隔离树冻结 red：28 个 exact 正控通过，
+  56 个 Plan/Apply 减1断言失败；手写 XML 加独立 UTF-16 编码核全候选资源及目录集合，
+  两序、跨编码目的资源、净缩减、失败无产物、同计划重试和 rejected 历史重开。
+  旧 PR18 的239/238字节日志只作实测越界证据，不称其候选派生期望为独立 oracle。
 - running／无 result 的恢复先重算即返回预算错误 → 已写第一资源留在候选 → 分离静态
   envelope／保存来源核验与效果推导；完整核 used/start/checkpoint 后沿原事务回滚、记录
   失败并返回 RESOURCE_LIMIT。回滚不证明效果，不豁免失败／历史重推；未开始、已完成

@@ -117,6 +117,147 @@ func TestN1ResourceBudget(t *testing.T) {
 	}
 }
 
+// All changed bytes below come from authored XML and encodeChapter, never from
+// ApplyEdits, the candidate, or the plan's WriteSet.
+func TestN1MixedPointOutputBudget(t *testing.T) {
+	const prefix = `<?xml version="1.0" encoding="utf-8"?>` + "\n" + `<html xmlns="http://www.w3.org/1999/xhtml"><head><title>One</title></head><body>`
+	const suffix = "</body></html>\r\n"
+	const moved = `<p id="move">移😀</p>`
+	const anchor = `<p id="last">Z</p>`
+	const inserted = `<p id="ins">新😀</p>`
+	source := prefix + `<h1 id="start">One</h1><p id="text">Alpha</p>` + moved + anchor + suffix
+	destination := prefix + `<h1 id="start2">Two</h1><p id="dest">` + strings.Repeat("padding ", 80) + `</p>` + suffix
+	for _, tc := range []struct{ kind, encoding, destinationEncoding string }{
+		{"insert", "utf8", "utf8"}, {"insert", "utf16le", "utf16le"}, {"insert", "utf16be", "utf16be"},
+		{"attribute", "utf16be", "utf16be"}, {"move", "utf8", "utf8"},
+		{"cross", "utf16le", "utf16be"}, {"cross", "utf16be", "utf8"},
+	} {
+		for _, order := range []string{"replace-first", "point-first"} {
+			for _, kind := range []string{"resource", "output"} {
+				for _, phase := range []string{"exact", "plan-limit", "apply-limit"} {
+					t.Run(strings.Join([]string{tc.kind, tc.encoding, order, kind, phase}, "/"), func(t *testing.T) {
+						x := encodeChapter(source, tc.encoding)
+						y := encodeChapter(destination, tc.destinationEncoding)
+						w, dir, original := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": x, "EPUB/chapter2.xhtml": y})
+						defer func() { w.Close() }()
+						originalBytes := readResource(t, original)
+						frozen := n1Tree(t, filepath.Join(dir, revision))
+						a := structureBinding(t, w, "EPUB/chapter1.xhtml")
+						b := structureBinding(t, w, "EPUB/chapter2.xhtml")
+						wantX := prefix + `<h1 id="start">One</h1><p id="text">A</p>` + moved + anchor + suffix
+						wantY := destination
+						point := a.elemInsert(a.locatorID(t, "last"), "after", inserted)
+						switch tc.kind {
+						case "insert":
+							wantX = prefix + `<h1 id="start">One</h1><p id="text">A</p>` + moved + anchor + inserted + suffix
+						case "attribute":
+							point = a.attrSet(a.locatorID(t, "last"), "title", nil, "新😀&")
+							wantX = prefix + `<h1 id="start">One</h1><p id="text">A</p>` + moved + `<p id="last" title="新😀&amp;">Z</p>` + suffix
+						case "move":
+							point = a.elemMove(a.locatorID(t, "move"), a.locatorID(t, "last"), "after")
+							wantX = prefix + `<h1 id="start">One</h1><p id="text">A</p>` + anchor + moved + suffix
+						case "cross":
+							point = a.elemMoveCross(b, a.locatorID(t, "move"), b.locatorID(t, "dest"), "after")
+							wantX = prefix + `<h1 id="start">One</h1><p id="text">A</p>` + anchor + suffix
+							wantY = strings.TrimSuffix(destination, suffix) + moved + suffix
+						}
+						wantX, wantY = encodeChapter(wantX, tc.encoding), encodeChapter(wantY, tc.destinationEncoding)
+						ops := []Operation{a.replace(a.locatorID(t, "text"), "literal", "Alpha", "A", 1), point}
+						if order == "point-first" {
+							ops[0], ops[1] = ops[1], ops[0]
+						}
+						schema := 5
+						if tc.kind == "cross" {
+							schema = 6
+						}
+						budget := publication.NewReplaceBudget()
+						limit, exact := &budget.ResourceBytes, int64(len(wantX))
+						if kind == "output" {
+							limit = &budget.OutputBytes
+						}
+						if tc.kind == "cross" {
+							if kind == "output" {
+								exact += int64(len(wantY))
+							} else {
+								exact = int64(max(len(wantX), len(wantY)))
+							}
+						}
+						*limit = exact
+						w.replaceBudget = budget
+						refused := func(err error, before Tree) {
+							t.Helper()
+							var f *fault.Error
+							if !errors.As(err, &f) || f.Code != "RESOURCE_LIMIT" || f.Exit != 1 {
+								t.Fatalf("expected RESOURCE_LIMIT/1, got %v", err)
+							}
+							if !reflect.DeepEqual(n1Tree(t, dir), before) {
+								t.Fatal("refusal changed workspace files or directories")
+							}
+							assertBytes(t, original, originalBytes)
+						}
+						request := editJSON(t, Request{schema, ops})
+						if phase == "plan-limit" {
+							*limit = exact - 1
+							before := n1Tree(t, dir)
+							_, err := w.Plan(request)
+							refused(err, before)
+							*limit = exact
+						}
+						p, err := w.Plan(request)
+						if err != nil {
+							t.Fatal(err)
+						}
+						if phase == "apply-limit" {
+							*limit = exact - 1
+							before := n1Tree(t, dir)
+							_, err := w.Apply(editJSON(t, p))
+							refused(err, before)
+							*limit = exact
+						}
+						e := applyPlan(t, w, p)
+						got := n1Tree(t, filepath.Join(dir, candidate))
+						if len(got.Entries) != len(frozen.Entries) {
+							t.Fatal("candidate inventory changed")
+						}
+						for i, entry := range frozen.Entries {
+							if got.Entries[i].Path != entry.Path || got.Entries[i].Type != entry.Type {
+								t.Fatal("candidate file/directory set changed")
+							}
+							if entry.Type != "file" {
+								continue
+							}
+							want := readResource(t, filepath.Join(dir, revision, entry.Path))
+							if entry.Path == "EPUB/chapter1.xhtml" {
+								want = []byte(wantX)
+							} else if entry.Path == "EPUB/chapter2.xhtml" {
+								want = []byte(wantY)
+							}
+							assertBytes(t, filepath.Join(dir, candidate, entry.Path), want)
+						}
+						if !reflect.DeepEqual(n1Tree(t, filepath.Join(dir, revision)), frozen) {
+							t.Fatal("accepted changed")
+						}
+						if _, err := w.Reject(e.TaskID); err != nil {
+							t.Fatal(err)
+						}
+						if err := w.Close(); err != nil {
+							t.Fatal(err)
+						}
+						w, err = Open(dir)
+						if err != nil {
+							t.Fatal(err)
+						}
+						if _, err := w.TaskStatus(e.TaskID); err != nil {
+							t.Fatal(err)
+						}
+						assertBytes(t, original, originalBytes)
+					})
+				}
+			}
+		}
+	}
+}
+
 func TestN1ApplyBudgetRevalidation(t *testing.T) {
 	w, dir, original := structureWorkspace(t, nil)
 	defer w.Close()
@@ -319,7 +460,7 @@ func TestN1BudgetRecoveryBoundaries(t *testing.T) {
 }
 
 func FuzzN1BudgetTransaction(f *testing.F) {
-	for mode := uint8(0); mode < 2; mode++ {
+	for mode := uint8(0); mode < 4; mode++ {
 		for replacement := uint8(0); replacement < 4; replacement++ {
 			f.Add(mode, replacement)
 		}
@@ -337,7 +478,13 @@ func FuzzN1BudgetTransaction(f *testing.F) {
 		w.replaceBudget = publication.NewReplaceBudget()
 		w.replaceBudget.Hits = 2
 		w.replaceBudget.ReplacementBytes = int64(2 * len(value.decoded))
-		p := replacePlan(t, w, []Operation{a.replace(a.locatorID(t, "dir"), matchMode, "RTL", value.decoded, 1), b.replace(b.locatorID(t, "start2"), matchMode, "Two", value.decoded, 1)})
+		fragment := `<p id="generated">` + value.escaped + `</p>`
+		w.replaceBudget.OutputBytes = int64(len(structureChapter1) + len(structureChapter2) + 2*(len(value.escaped)-3) + len(fragment))
+		ops := []Operation{a.replace(a.locatorID(t, "dir"), matchMode, "RTL", value.decoded, 1), b.replace(b.locatorID(t, "start2"), matchMode, "Two", value.decoded, 1), a.elemInsert(a.locatorID(t, "last"), "after", fragment)}
+		if mode&2 != 0 {
+			ops[0], ops[2] = ops[2], ops[0]
+		}
+		p := replacePlan(t, w, ops)
 		originalBytes := readResource(t, original)
 		e := applyPlan(t, w, p) // Every generated transaction is legal; rejection is FAIL.
 		for _, path := range []string{"mimetype", "META-INF/container.xml", "EPUB/package.opf", "EPUB/chapter1.xhtml", "EPUB/chapter2.xhtml", "EPUB/nav.xhtml", "EPUB/style.css"} {
@@ -345,6 +492,7 @@ func FuzzN1BudgetTransaction(f *testing.F) {
 			want := bytes.Clone(frozen)
 			if path == "EPUB/chapter1.xhtml" {
 				want = bytes.Replace(want, []byte(">RTL text<"), []byte(">"+value.escaped+" text<"), 1)
+				want = bytes.Replace(want, []byte(`<p id="last">Last.</p>`), []byte(`<p id="last">Last.</p>`+fragment), 1)
 			} else if path == "EPUB/chapter2.xhtml" {
 				want = bytes.Replace(want, []byte(`id="start2">Two</h1>`), []byte(`id="start2">`+value.escaped+`</h1>`), 1)
 			}

@@ -18,6 +18,9 @@
   包括重复命名组的首个参与实例；转义编码由 xmltext 计数，等值替换仍核来源但不重写 CRLF。
   永久入口 `TestN1ExpansionBeforeAllocation`、`TestN1TemplateGrammar`、
   `TestN1EncodedAndResultBudgets`；计数／benchmem 不冒称 heap 峰值。
+- 最终输出预算与 `ApplyEdits` 消费同一完整编辑集合：先扣所有 Span 删除，再加 Span
+  与 Point 的物理编码字节；新增属性、插入、同／跨资源搬移的 Point 不能漏计。
+  `TestN1MixedPointOutputBudget` 在公开 Plan/Apply 核两序、精确／减1边界及净缩减正控。
 - SearchContent 的成员索引只在本次调用构建一次；任何同路径非XHTML声明都保留拒绝，
   不以最后覆盖或去重改变原manifest遍历、重复匹配／扫描计数与顺序。ReadContent的
   精确路径／声明／媒体类型校验仍独立成立，limit满后仍完整解析后续资源。

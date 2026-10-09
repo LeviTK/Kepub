@@ -90,6 +90,12 @@ func (b *ReplaceBudget) TakeOutput(input []byte, edits []*StructureEdit) error {
 			}
 			n += int64(len(span.Bytes))
 		}
+		for _, point := range edit.Points {
+			if int64(len(point.Bytes)) > b.ResourceBytes-n {
+				return fault.New(1, "RESOURCE_LIMIT", "text replacement resource bytes budget exceeded")
+			}
+			n += int64(len(point.Bytes))
+		}
 	}
 	if n > b.ResourceBytes {
 		return fault.New(1, "RESOURCE_LIMIT", "text replacement resource bytes budget exceeded")
