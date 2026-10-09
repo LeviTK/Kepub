@@ -153,10 +153,17 @@
 
 - ZIP 仅数显式条目 → 深路径隐式父目录不受限且后续扫描拒绝 → Open 在 privateDir 前登记全部唯一
   文件/目录，共享和显式父目录去重，但重复显式 ZIP 条目仍拒绝；不把工作区管理目录算成出版物。
-- zip.OpenReader 先分配全中央目录、raw-count 快拒覆盖碰撞 → 按单条物理记录读取并在留存前执行
+- zip.OpenReader 先分配全中央目录、旧 `len(z.File)` raw-count 快拒覆盖碰撞（不是 EOCD 声明数）
+  → 按单条物理记录读取并在留存前执行
   库存门禁；EOCD/ZIP64 声明数不用于预分配或库存快拒。复用标准库单条解析与原数据 CRC，保留
   ZIP64、正负基址与目录间隙兼容。入口 `TestR2ZIPCollisionAtEntryBoundary`、
   `TestR2ZIPSmallBudgetAllocation`（累计分配不是 RSS）、`TestR2ZIPFramingCompatibility`。
+- 只测短 EOCD 与合法 count → 禁用 count 取模比较／删除 65 KiB 搜索窗口的 mutant 仍绿 →
+  framing 测试保留 count+65536 正控，增加 count 不符、声明记录截断、2 KiB comment 接纳及长度
+  越界拒绝；同时核原书未变、完整资源字节及无残留 staging，不新增大条目数落盘 fixture。
+- 逐条门禁先于后续结构 INVALID_ZIP，移除旧 raw-count 快拒也改变非碰撞错误优先级 → 分类表
+  冻结默认 ZIP 路径策略下 unsafe 首记录＋错误 count、mimetype 后 unsafe 且 Entries=1 均返回
+  UNSAFE_PATH/1；旧树分别为 INVALID_ZIP/1、ARCHIVE_LIMIT/1。均拒绝，不是新增接受权限。
 - 文件字节不能约束路径库存 → 按唯一精确 BookPath 的 UTF-8 字节累计 `PathBytes`，加法前用剩余
   预算比较，避免溢出；ZIP 与目录扫描复用 `Limits.CheckEntry`，不截断资源或目录。
 - Inventory 重置 DefaultLimits → 注入/入口预算在后续失效 → Archive 保留自身 limits，Unpack 发布

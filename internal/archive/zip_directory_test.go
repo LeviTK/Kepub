@@ -19,16 +19,21 @@ import (
 )
 
 func TestR2ZIPCollisionAtEntryBoundary(t *testing.T) {
+	// Exercise the archive gate, not the standard library's opt-in path refusal.
+	t.Setenv("GODEBUG", "zipinsecurepath=1")
 	for _, tc := range []struct {
-		name  string
-		names []string
-		limit int
-		code  string
+		name     string
+		names    []string
+		limit    int
+		code     string
+		badCount bool
 	}{
-		{"single", []string{"mimetype"}, 1, ""},
-		{"duplicate-with-room", []string{"mimetype", "mimetype"}, 2, "ARCHIVE_COLLISION"},
-		{"duplicate-at-limit", []string{"mimetype", "mimetype"}, 1, "ARCHIVE_COLLISION"},
-		{"unique-over-limit", []string{"mimetype", "other"}, 1, "ARCHIVE_LIMIT"},
+		{"single", []string{"mimetype"}, 1, "", false},
+		{"duplicate-with-room", []string{"mimetype", "mimetype"}, 2, "ARCHIVE_COLLISION", false},
+		{"duplicate-at-limit", []string{"mimetype", "mimetype"}, 1, "ARCHIVE_COLLISION", false},
+		{"unique-over-limit", []string{"mimetype", "other"}, 1, "ARCHIVE_LIMIT", false},
+		{"unsafe-before-count-mismatch", []string{"../x"}, 2, "UNSAFE_PATH", true},
+		{"unsafe-at-limit", []string{"mimetype", "../x"}, 1, "UNSAFE_PATH", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			filename := filepath.Join(t.TempDir(), "book.epub")
@@ -40,6 +45,14 @@ func TestR2ZIPCollisionAtEntryBoundary(t *testing.T) {
 			before, err := os.ReadFile(filename)
 			if err != nil {
 				t.Fatal(err)
+			}
+			if tc.badCount {
+				// testfixture.ZIP emits a final 22-byte EOCD without a comment.
+				end := before[len(before)-22:]
+				binary.LittleEndian.PutUint16(end[10:], uint16(len(tc.names)+1))
+				if err := os.WriteFile(filename, before, 0600); err != nil {
+					t.Fatal(err)
+				}
 			}
 			limits := DefaultLimits
 			limits.Entries = tc.limit
@@ -198,10 +211,13 @@ func TestR2ZIPFramingCompatibility(t *testing.T) {
 	// Hand-written little-endian records keep expected payload and offsets
 	// independent of the production directory parser and zip.Writer.
 	for _, tc := range []struct {
-		name                string
-		base                int64
-		zip64, gap, corrupt bool
-		count               uint64
+		name                        string
+		base                        int64
+		zip64, gap, corrupt         bool
+		count                       uint64
+		comment                     int
+		badComment, truncatedRecord bool
+		code                        string
 	}{
 		{name: "ordinary", count: 1},
 		{name: "prefix", base: 100, count: 1},
@@ -210,7 +226,11 @@ func TestR2ZIPFramingCompatibility(t *testing.T) {
 		{name: "zip64-negative-base", base: -(1 << 32), zip64: true, count: 1},
 		{name: "zip64-modulo-count", zip64: true, count: 65537},
 		{name: "directory-gap-fallback", gap: true, count: 1},
-		{name: "crc-failure", corrupt: true, count: 1},
+		{name: "crc-failure", corrupt: true, count: 1, code: "INVALID_ZIP"},
+		{name: "count-mismatch", count: 2, code: "INVALID_ZIP"},
+		{name: "declared-record-truncated", count: 2, truncatedRecord: true, code: "INVALID_ZIP"},
+		{name: "long-eocd-comment", count: 1, comment: 2048},
+		{name: "eocd-comment-length-overrun", count: 1, comment: 2048, badComment: true, code: "INVALID_ZIP"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			p16, p32, p64 := binary.LittleEndian.PutUint16, binary.LittleEndian.PutUint32, binary.LittleEndian.PutUint64
@@ -250,6 +270,13 @@ func TestR2ZIPFramingCompatibility(t *testing.T) {
 			buf := append(prefix, body...)
 			offset := uint64(int64(len(buf)) - tc.base)
 			buf = append(buf, central...)
+			centralSize := len(central)
+			if tc.truncatedRecord {
+				// The declared second record has only 20 header bytes. Even with
+				// the following EOCD, fewer than the required 46 bytes remain.
+				buf = append(buf, central[:20]...)
+				centralSize += 20
+			}
 			if tc.gap {
 				buf = append(buf, make([]byte, 100)...)
 			}
@@ -257,8 +284,12 @@ func TestR2ZIPFramingCompatibility(t *testing.T) {
 			p32(end, 0x06054b50)
 			p16(end[8:], uint16(tc.count))
 			p16(end[10:], uint16(tc.count))
-			p32(end[12:], uint32(len(central)))
+			p32(end[12:], uint32(centralSize))
 			p32(end[16:], uint32(offset))
+			p16(end[20:], uint16(tc.comment))
+			if tc.badComment {
+				p16(end[20:], uint16(tc.comment+1))
+			}
 			if tc.zip64 {
 				z := make([]byte, 76)
 				p32(z, 0x06064b50)
@@ -275,6 +306,7 @@ func TestR2ZIPFramingCompatibility(t *testing.T) {
 				p32(end[16:], 0xffffffff)
 			}
 			buf = append(buf, end...)
+			buf = append(buf, bytes.Repeat([]byte("c"), tc.comment)...)
 			if tc.corrupt {
 				buf[len(prefix)+30+len(name)] ^= 1
 			}
@@ -285,25 +317,36 @@ func TestR2ZIPFramingCompatibility(t *testing.T) {
 			limits := DefaultLimits
 			limits.Entries = 1
 			limits.PathBytes = 8
+			tmp := t.TempDir()
+			t.Setenv("TMPDIR", tmp)
 			a, err := Open(filename, limits)
-			if tc.corrupt {
+			if tc.code != "" {
 				if a != nil {
 					a.Close()
-					t.Fatal("corrupt payload accepted")
+					t.Fatal("invalid archive accepted")
 				}
 				var f *fault.Error
-				if !errors.As(err, &f) || f.Code != "INVALID_ZIP" {
+				if !errors.As(err, &f) || f.Code != tc.code || f.Exit != 1 {
+					t.Fatalf("want %s/1, got %v", tc.code, err)
+				}
+			} else {
+				if err != nil {
 					t.Fatal(err)
 				}
-				return
+				defer a.Close()
+				actual, err := a.Read("mimetype", 20)
+				if err != nil || !bytes.Equal(actual, data) || len(a.Files) != 1 {
+					t.Fatalf("payload/inventory mismatch: %q %v", actual, err)
+				}
+				a.Close()
 			}
-			if err != nil {
-				t.Fatal(err)
+			after, err := os.ReadFile(filename)
+			if err != nil || !bytes.Equal(after, buf) {
+				t.Fatal("source changed", err)
 			}
-			defer a.Close()
-			actual, err := a.Read("mimetype", 20)
-			if err != nil || !bytes.Equal(actual, data) || len(a.Files) != 1 {
-				t.Fatalf("payload/inventory mismatch: %q %v", actual, err)
+			left, err := os.ReadDir(tmp)
+			if err != nil || len(left) != 0 {
+				t.Fatal("staging leaked", left, err)
 			}
 		})
 	}
