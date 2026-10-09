@@ -143,6 +143,11 @@
   `TestCrossProcessCreateRace` 核唯一完整可重开的获胜目录、所有文件字节和原书；不将注入当断电。
 - 所有 plan/execution/checkpoint/revision/journal 沿同一 writer；规范 digest 编码不带 LF 且保持不变。
   外部 edit 请求继续原有 32 MiB 与参数错误分类；正式 accept/export 仍使用真实固定 checker。
+- 限内 plan 在发布 active 后才嵌入 execution → start 超限且 Open 反复创建 checkpoint 仍失败 →
+  Apply 在消费 plan／发布候选前预检完整 checkpoint、running／unstarted、已推导成功与标准中断结果。
+  `TestR1ApplyRecordPreflight` 用独立完整输出和序列化 envelope 核小预算各阶段及 LF ±1，
+  拒绝后全工作区文件不变、同计划可重试；`TestR1ApplyProductionRecordLimit` 核真实 32 MiB
+  plan 边界和重复 Open。未知外部漂移／任意错误文本仍属既有恢复路径，不猜测额外私有限额。
 
 ## G-INVENTORY：入口与后续消费使用相同展开库存预算
 

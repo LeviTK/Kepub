@@ -52,10 +52,14 @@
   转义和落盘换行，不能按原始字段长度估算。`writeJSON` 在临时文件创建前拒绝超限，不提高读预算。
 - Create 在根目录发布前用正式读取入口读回 state 和 identity；失败只清理本次 staging。
   plan/execution/checkpoint/revision/journal 都沿同一写入边界，不另造无预算持久化入口。
+- Apply 在消费 plan／发布 active 前，按完整冻结基线和已推导输出预检 checkpoint、running／
+  unstarted start、成功结果及标准 interrupted 结果；plan 单独限内不代表嵌入 execution 后限内。
+  不为未知外部 drift／任意 I/O 错误预留私有长度上限；保留原恢复门禁。
 - 注入预算保持私有、逐调用，不用可变全局或 CLI 扩权；短写用隔离子进程的小型文件预算，
   不做真实磁盘／内存耗尽。原书、完整 inventory、旧 schema、摘要、锁和 journal 恢复顺序保持。
 - 永久入口：`TestR1JSONByteBudget`、`TestR1LegacyRecordByteBudget`、
-  `TestR1CreateLongPathInventory`、`TestR1CreateMetadataShortWrite`。
+  `TestR1CreateLongPathInventory`、`TestR1CreateMetadataShortWrite`、
+  `TestR1ApplyRecordPreflight`、`TestR1ApplyProductionRecordLimit`。
 
 ## 替换推导的累计预算
 

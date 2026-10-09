@@ -986,6 +986,12 @@ func (w *Workspace) verifyFixPlan(p Plan) error {
 // Apply strictly reads a plan, re-derives its effects, then creates the sole
 // independent candidate. Repeated application is a conflict, never a new task.
 func (w *Workspace) Apply(planJSON []byte) (e Execution, err error) {
+	return w.apply(planJSON, maxJSONBytes)
+}
+
+// The private limit permits small boundary fixtures without changing the
+// production budget or any persisted schema.
+func (w *Workspace) apply(planJSON []byte, recordLimit int64) (e Execution, err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	if err := w.ready(); err != nil {
@@ -1004,6 +1010,9 @@ func (w *Workspace) Apply(planJSON []byte) (e Execution, err error) {
 	}
 	if exists(w.root, "plans/"+p.ID+".used.json") {
 		return Execution{}, ErrTaskConflict
+	}
+	if err := w.preflightExecution(p, d.outputs, recordLimit); err != nil {
+		return Execution{}, err
 	}
 	defer func() {
 		if err == nil {
@@ -1031,6 +1040,43 @@ func (w *Workspace) Apply(planJSON []byte) (e Execution, err error) {
 		return e, err
 	}
 	return w.execute(e, d.outputs, nil)
+}
+
+// A plan that fits alone may not fit inside its execution envelope. Check the
+// required checkpoint, both start forms, and the derived result/recovery forms
+// before consuming the plan or publishing a task. IDs are fixed-width hex;
+// their actual values do not affect JSON size. External drift and arbitrary I/O
+// error text are not predictable here and retain the existing recovery path.
+func (w *Workspace) preflightExecution(p Plan, outputs map[string][]byte, limit int64) error {
+	check := func(value any) error {
+		b, err := json.Marshal(value)
+		if err != nil {
+			return err
+		}
+		return checkJSONSize(int64(len(b))+1, limit)
+	}
+	id := randomID()
+	if err := check(Snapshot{1, id, w.current, w.base}); err != nil {
+		return err
+	}
+	e := Execution{Version: p.SchemaVersion, TaskID: id, Plan: p, Checkpoint: id, Status: "running", Conformance: "not_run", Diff: compareTrees(w.base, w.base)}
+	if err := check(e); err != nil {
+		return err
+	}
+	e.Status = "unstarted"
+	if err := check(e); err != nil {
+		return err
+	}
+	e.Status, e.Failure = "failed", "interrupted apply"
+	if err := check(e); err != nil {
+		return err
+	}
+	e.Diff = expectedDiff(w.base, outputs)
+	if err := check(e); err != nil {
+		return err
+	}
+	e.Status, e.Failure, e.ReviewRequired = "review_required", "", true
+	return check(e)
 }
 
 // startExecution records the pre-mutation checkpoint and durable start. Even
