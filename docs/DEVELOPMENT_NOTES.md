@@ -153,10 +153,15 @@
 
 - ZIP 仅数显式条目 → 深路径隐式父目录不受限且后续扫描拒绝 → Open 在 privateDir 前登记全部唯一
   文件/目录，共享和显式父目录去重，但重复显式 ZIP 条目仍拒绝；不把工作区管理目录算成出版物。
+- zip.OpenReader 先分配全中央目录、raw-count 快拒覆盖碰撞 → 按单条物理记录读取并在留存前执行
+  库存门禁；EOCD/ZIP64 声明数不用于预分配或库存快拒。复用标准库单条解析与原数据 CRC，保留
+  ZIP64、正负基址与目录间隙兼容。入口 `TestR2ZIPCollisionAtEntryBoundary`、
+  `TestR2ZIPSmallBudgetAllocation`（累计分配不是 RSS）、`TestR2ZIPFramingCompatibility`。
 - 文件字节不能约束路径库存 → 按唯一精确 BookPath 的 UTF-8 字节累计 `PathBytes`，加法前用剩余
   预算比较，避免溢出；ZIP 与目录扫描复用 `Limits.CheckEntry`，不截断资源或目录。
 - Inventory 重置 DefaultLimits → 注入/入口预算在后续失效 → Archive 保留自身 limits，Unpack 发布
   staging 前验证，Inventory/WriteZIP/PublishZIP 最终重开沿用；正式 checker 不被草稿控制替代。
+  `TestR2PublishZIPRetainsEntryLimit` 使用高于默认条目数的合法库存，捕获仅最终重开重置预算。
 - 永久入口 `TestR2ExpandedEntriesBeforeStaging`（两个文件＋隐式父目录，阻断 temp 创建的正反控）、
   `TestR2InventoryRetainsEntryBudget`（实际 Inventory/Unpack、无产物/残留）、
   `TestR2CumulativePathBytes`（UTF-8、显式父目录两序、路径预算±1与共享/空目录）、

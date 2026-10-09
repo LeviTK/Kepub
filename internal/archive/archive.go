@@ -79,62 +79,71 @@ func OpenContext(ctx context.Context, filename string, limits Limits) (*Archive,
 	if info, err := os.Stat(filename); err == nil && info.Size() > MaxInputBytes {
 		return nil, fault.New(1, "ARCHIVE_LIMIT", "raw ZIP input exceeds %d bytes", MaxInputBytes)
 	}
-	z, err := zip.OpenReader(filename)
+	z, err := os.Open(filename)
 	if err != nil {
-		var pe *os.PathError
-		if errors.As(err, &pe) {
-			return nil, fault.New(6, "IO_ERROR", "open input: %v", err)
-		}
-		if _, e := os.Stat(filename); e != nil {
-			return nil, fault.New(6, "IO_ERROR", "open input: %v", e)
-		}
-		return nil, fault.New(1, "INVALID_ZIP", "read ZIP: %v", err)
+		return nil, fault.New(6, "IO_ERROR", "open input: %v", err)
 	}
 	defer z.Close()
-	if len(z.File) > limits.Entries {
-		return nil, fault.New(1, "ARCHIVE_LIMIT", "too many ZIP entries")
+	info, err := z.Stat()
+	if err != nil {
+		return nil, fault.New(6, "IO_ERROR", "stat input: %v", err)
+	}
+	if info.Size() > MaxInputBytes {
+		return nil, fault.New(1, "ARCHIVE_LIMIT", "raw ZIP input exceeds %d bytes", MaxInputBytes)
 	}
 	// Check explicit entries AND every implicit parent, including directory case aliases.
 	seen := map[bookpath.BookPath]bool{}
 	names := map[string]bookpath.BookPath{}
 	kinds := map[bookpath.BookPath]bool{}
 	var pathBytes int64
-	for _, f := range z.File {
+	files, err := readZIPDirectory(ctx, z, info.Size(), func(f *zip.File) error {
 		if err := ctx.Err(); err != nil {
-			return nil, err
+			return err
 		}
 		isDir := strings.HasSuffix(f.Name, "/")
 		name := strings.TrimSuffix(f.Name, "/")
 		p, e := bookpath.Parse(name)
 		if e != nil {
-			return nil, e
+			return e
 		}
 		if seen[p] {
-			return nil, fault.New(1, "ARCHIVE_COLLISION", "duplicate entry %q", p)
+			return fault.New(1, "ARCHIVE_COLLISION", "duplicate entry %q", p)
 		}
 		seen[p] = true
 		mode := f.Mode()
 		if (!mode.IsRegular() && !mode.IsDir()) || mode.IsDir() != isDir || f.Flags&1 != 0 {
-			return nil, fault.New(1, "UNSAFE_ENTRY", "special or encrypted ZIP entry %q", p)
+			return fault.New(1, "UNSAFE_ENTRY", "special or encrypted ZIP entry %q", p)
 		}
 		for q, dir := p, isDir; q != "."; q, dir = bookpath.BookPath(path.Dir(string(q))), true {
 			key := bookpath.CollisionKey(q)
 			if old, ok := names[key]; ok && old != q {
-				return nil, fault.New(1, "ARCHIVE_COLLISION", "colliding paths %q and %q", old, q)
+				return fault.New(1, "ARCHIVE_COLLISION", "colliding paths %q and %q", old, q)
 			}
 			names[key] = q
 			if old, ok := kinds[q]; ok {
 				if old != dir {
-					return nil, fault.New(1, "ARCHIVE_COLLISION", "file/directory conflict %q", q)
+					return fault.New(1, "ARCHIVE_COLLISION", "file/directory conflict %q", q)
 				}
 				continue
 			}
 			if e := limits.CheckEntry(len(kinds), pathBytes, q); e != nil {
-				return nil, e
+				return e
 			}
 			pathBytes += int64(len(q))
 			kinds[q] = dir
 		}
+		return nil
+	})
+	if err != nil {
+		var fe *fault.Error
+		if errors.As(err, &fe) || ctx.Err() != nil {
+			return nil, err
+		}
+		var pe *os.PathError
+		if errors.As(err, &pe) {
+			return nil, fault.New(6, "IO_ERROR", "read input: %v", err)
+		}
+		return nil, fault.New(1, "INVALID_ZIP", "read ZIP: %v", err)
 	}
 	dir, err := privateDir("kepub-read-")
 	if err != nil {
@@ -148,7 +157,7 @@ func OpenContext(ctx context.Context, filename string, limits Limits) (*Archive,
 		}
 	}()
 	var total int64
-	for _, f := range z.File {
+	for _, f := range files {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
