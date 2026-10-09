@@ -8,7 +8,9 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -142,6 +144,96 @@ func TestPackHeadersBytesAndNoClobber(t *testing.T) {
 		if len(matches) != 0 {
 			t.Fatal("leaked private staging", matches)
 		}
+	}
+}
+
+type r3PublicationContext struct {
+	context.Context
+	cancel   context.CancelFunc
+	dir      string
+	complete bool
+	observed bool
+}
+
+func (c *r3PublicationContext) Err() error {
+	stages, _ := filepath.Glob(filepath.Join(c.dir, ".kepub-pack-*.epub"))
+	for _, stage := range stages {
+		ready := false
+		if c.complete {
+			if z, err := zip.OpenReader(stage); err == nil {
+				z.Close()
+				ready = true
+			}
+		} else if st, err := os.Stat(stage); err == nil {
+			ready = st.Size() == 0
+		}
+		if ready {
+			c.observed = true
+			c.cancel()
+		}
+	}
+	return c.Context.Err()
+}
+
+func TestR3PublishRequestContext(t *testing.T) {
+	for _, complete := range []bool{false, true} {
+		t.Run(map[bool]string{false: "before-write", true: "completed-zip"}[complete], func(t *testing.T) {
+			a, tree, _ := fixtureSnapshot(t) // Archive creation has a separate, live context.
+			dir := t.TempDir()
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			request := &r3PublicationContext{Context: ctx, cancel: cancel, dir: dir, complete: complete}
+			checked := false
+			hash, err := a.PublishZIP(request, filepath.Join(dir, "output.epub"), tree, func(string, string) error {
+				checked = true
+				return nil
+			})
+			var f *fault.Error
+			if !request.observed || checked || hash != "" || !errors.As(err, &f) || f.Code != "PUBLICATION_CANCELLED" {
+				t.Fatalf("request context lost before validation: observed=%v checked=%v hash=%s err=%v", request.observed, checked, hash, err)
+			}
+			entries, err := os.ReadDir(dir)
+			if err != nil || len(entries) != 0 {
+				t.Fatal("cancelled publication left output/staging", entries, err)
+			}
+			if actual, err := a.Inventory(); err != nil || actual.SHA256 != tree.SHA256 {
+				t.Fatal("publication changed its source archive", err)
+			}
+			if _, err := a.PublishZIP(t.Context(), filepath.Join(dir, "output.epub"), tree, func(string, string) error { return nil }); err != nil {
+				t.Fatal("legal retry with live request failed", err)
+			}
+			want := map[string][]byte{}
+			for _, entry := range testfixture.EPUB("3.0", false) {
+				want[entry.Name] = entry.Data
+				for parent := path.Dir(strings.TrimSuffix(entry.Name, "/")); parent != "."; parent = path.Dir(parent) {
+					want[parent+"/"] = nil
+				}
+			}
+			z, err := zip.OpenReader(filepath.Join(dir, "output.epub"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer z.Close()
+			for _, entry := range z.File {
+				data, ok := want[entry.Name]
+				if !ok || entry.FileInfo().IsDir() != strings.HasSuffix(entry.Name, "/") {
+					t.Fatal("unexpected ZIP resource/type", entry.Name)
+				}
+				r, err := entry.Open()
+				if err != nil {
+					t.Fatal(err)
+				}
+				got, err := io.ReadAll(r)
+				r.Close()
+				if err != nil || !bytes.Equal(got, data) {
+					t.Fatal("ZIP resource differs", entry.Name, err)
+				}
+				delete(want, entry.Name)
+			}
+			if len(want) != 0 {
+				t.Fatal("missing ZIP resources/directories", want)
+			}
+		})
 	}
 }
 

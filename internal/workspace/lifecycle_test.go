@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -543,6 +544,43 @@ func (c *cancelBeforeIntent) Err() error {
 	}
 	return c.Context.Err()
 }
+func TestR3RejectCancellationAtIntentBoundary(t *testing.T) {
+	w, dir, original := legalWorkspace(t, "3.0")
+	e := applyPlan(t, w, fieldPlan(t, w, "title", "title", "Title", "Reviewed"))
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	ctx := &cancelBeforeIntent{Context: context.Background(), prepared: filepath.Join(dir, "staging/settlement.json")}
+	w, err := OpenContext(ctx, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Close()
+	before := n1Tree(t, dir)
+	originalBytes := readResource(t, original)
+	_, err = w.Reject(e.TaskID)
+	if !errors.Is(err, context.Canceled) || !ctx.observed.Load() {
+		t.Fatalf("Reject ignored pre-journal cancellation: %v observed=%v", err, ctx.observed.Load())
+	}
+	if after := n1Tree(t, dir); !reflect.DeepEqual(after, before) {
+		t.Fatal("pre-journal cancellation changed workspace files/directories")
+	}
+	assertBytes(t, original, originalBytes)
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	w, err = Open(dir)
+	if err != nil {
+		t.Fatal("cancellation leaked lock or damaged history", err)
+	}
+	defer w.Close()
+	d, err := w.Reject(e.TaskID)
+	if err != nil || d.Status != "rejected" {
+		t.Fatalf("retry: %+v %v", d, err)
+	}
+	assertBytes(t, original, originalBytes)
+}
+
 func TestAcceptCancellationAtIntentBoundary(t *testing.T) {
 	requireChecker(t)
 	w, dir, _ := legalWorkspace(t, "3.0")

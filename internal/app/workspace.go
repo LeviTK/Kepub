@@ -134,7 +134,7 @@ func PlanWorkspace(ctx context.Context, dir, operations, output string) (workspa
 	}
 	defer w.Close()
 	if _, err := w.OutputPath(output); err != nil {
-		return workspace.Plan{}, fault.New(2, "INVALID_OUTPUT", "%v", err)
+		return workspace.Plan{}, outputPathError(err)
 	}
 	b, err := readEditFile(operations)
 	if err != nil {
@@ -202,7 +202,7 @@ func ExportWorkspace(ctx context.Context, dir, output string, o validation.Optio
 	defer w.Close()
 	out, err := w.OutputPath(output)
 	if err != nil {
-		return WorkspaceExportResult{}, fault.New(2, "INVALID_OUTPUT", "%v", err)
+		return WorkspaceExportResult{}, outputPathError(err)
 	}
 	a, t, r, err := w.AcceptedSnapshot()
 	if err != nil {
@@ -220,6 +220,7 @@ func ExportWorkspace(ctx context.Context, dir, output string, o validation.Optio
 // outputPathError keeps an already classified output fault and reports the
 // remaining output path problems as argument errors.
 func outputPathError(err error) error {
+	err = WorkspaceError(err)
 	var fe *fault.Error
 	if errors.As(err, &fe) {
 		return err

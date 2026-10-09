@@ -14,6 +14,8 @@
   路径/条目预算与实际单文件/总文件字节预算分开，不截断清单或丢未声明资源/空目录。
 - Archive 保留入口 limits；Unpack、Inventory、WriteZIP 与 PublishZIP 最终重开沿用同一预算。
   工作区内部管理目录不是出版物；正式导出仍要真实 checker，不用草稿或单元 callback 代替。
+- PublishZIP 的写入、最终重开／inventory／两次 hash 都消费本次发布 context，不继承可能
+  不同的 Archive 创建 context；不修改共享 Archive，也不把已成功发布的迟到取消改成失败。
 - 回归使用逐调用的小 Limits，不修改全局、不耗尽真实资源；核落盘前拒绝、本次 staging 清理、
   原书/已有目标不变与完整展开库存/资源字节。永久入口为 `TestR2*`；规则见 G-INVENTORY。
 

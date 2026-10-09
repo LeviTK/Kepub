@@ -177,6 +177,16 @@
 
 ## G-IO：工作量有界但持久决定不能丢失
 
+- 安装信号 context 却在 Read／发布核验／Reject 改回 Background → 信号被消费但请求继续
+  成功，或跨过未提交意图边界 → context 沿真实所有者传递，提交后的既有恢复不变。
+  `TestR3ReadCommandSignals` 用运行阶段、已确认子 PID 和 pending/caught 信号核 info、
+  unpack 的读取／复制及 workspace 正控；`TestR3InspectRequestCancellation` 核六个 section。
+  `TestR3PublishRequestContext` 核独立发布 context 与清理／重试；最终 ZIP 及 checker 前后
+  的出版物 hash 同样消费请求 context。`TestR3RejectCancellationAtIntentBoundary` 是受控
+  context 注入，不等于真实 CLI 的最后提交窗口竞态。
+- 输出路径核验把取消／超时一律包装成 INVALID_OUTPUT → 退出码失真 → 复用 WorkspaceError，
+  已分类输出／I/O 错误保留；`TestR3OutputPathCancellationClassification` 在 OutputPath
+  阶段注入 Canceled／Deadline，区分 plan／export／propose，不以 Open 预取消替代该分支。
 - 先无界复制原书／hash 工作区再拒绝 → 临时字节和持锁工作量不受展开预算约束 → 原 ZIP
   独立 `MaxInputBytes`，出版物复用 archive 四预算；实际读取仅余量 + 1，stat 快拒后仍核
   增长和来源。管理目录／JSON 不算成出版物，hash wire 不变。入口 `TestR3OriginalBudget`、

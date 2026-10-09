@@ -219,6 +219,10 @@ func Capabilities() []Capability {
 
 // Read is the single use case used by info and inspect; ownership remains here.
 func Read(book, rootfile string) (*archive.Archive, *publication.Publication, error) {
+	return ReadContext(context.Background(), book, rootfile)
+}
+
+func ReadContext(ctx context.Context, book, rootfile string) (*archive.Archive, *publication.Publication, error) {
 	st, err := os.Stat(book)
 	if err != nil {
 		return nil, nil, fault.New(6, "IO_ERROR", "input: %v", err)
@@ -229,11 +233,14 @@ func Read(book, rootfile string) (*archive.Archive, *publication.Publication, er
 	if !st.Mode().IsRegular() {
 		return nil, nil, fault.New(3, "UNSUPPORTED_INPUT", "input must be a regular EPUB ZIP file")
 	}
-	a, err := archive.Open(book, archive.DefaultLimits)
+	a, err := archive.OpenContext(ctx, book, archive.DefaultLimits)
 	if err != nil {
 		return nil, nil, err
 	}
 	p, err := publication.Load(a, rootfile)
+	if err == nil {
+		err = ctx.Err()
+	}
 	if err != nil {
 		a.Close()
 		return nil, nil, err
@@ -270,6 +277,9 @@ func Inspect(ctx context.Context, a *archive.Archive, p *publication.Publication
 		value = Capabilities()
 	default:
 		return nil, fault.New(2, "INVALID_ARGUMENT", "supported --section is required")
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 	out := map[string]any{"rootfile": p.Rootfile, "section": section, "value": value, "limitations": p.Limitations}
 	if coverage != nil {

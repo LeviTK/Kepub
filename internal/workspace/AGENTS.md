@@ -94,6 +94,9 @@
   stat 是快拒而非授权，实际余量 + 1 有界读取后仍核增长／drift；预算、I/O 与取消独立分类。
 - 请求 context 必须沿原书核对、自身 frozen revision 来源重推、candidate／checkpoint／accept
   的每次扫描／复制传递。未提交 stage 失败清理，Close 或失败 Open 释放 owner 锁。
+- Reject 与 Accept 一样，在 settlement journal 发布前仍消费真实请求取消；只有有效
+  durable journal 之后才沿既有 WithoutCancel 恢复。`TestR3RejectCancellationAtIntentBoundary`
+  核未提交 workspace 全树不变、重新开锁及合法重试，不宣称真实 CLI 窗口竞态。
 - 已登记 mutation 在取消后仍完整回滚；有效 restore／settlement journal 沿原决定恢复，
   仅临时 `WithoutCancel`，不跳预算、来源、hash 或真实 I/O，不删 durable intent 凑成功。
   入口 `TestR3CancelledAcceptDoesNotCopy`、`TestR3TreeBudgets`、`TestR3OriginalBudget`、

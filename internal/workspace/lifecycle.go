@@ -1261,7 +1261,7 @@ func (w *Workspace) Reject(id string) (Decision, error) {
 	if err != nil {
 		return Decision{}, err
 	}
-	return w.settle(context.Background(), Decision{Version: 1, TaskID: id, Status: "rejected", BaseRevision: w.current, TreeSHA256: t.SHA256})
+	return w.settle(w.resources.ctx, Decision{Version: 1, TaskID: id, Status: "rejected", BaseRevision: w.current, TreeSHA256: t.SHA256})
 }
 
 func (w *Workspace) settle(ctx context.Context, d Decision) (decision Decision, err error) {

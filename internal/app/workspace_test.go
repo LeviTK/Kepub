@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
+	"runtime"
+	"strings"
 	"syscall"
 	"testing"
 
@@ -169,6 +172,73 @@ func TestEditArgumentErrorClassification(t *testing.T) {
 		err := editArgumentError("INVALID_OPERATIONS", tc.err)
 		if !errors.As(err, &f) || f.Exit != tc.exit || f.Code != tc.code {
 			t.Fatal("wrong error classification", tc, err)
+		}
+	}
+}
+
+// Inject only at the public OutputPath boundary, after Open's independent
+// verification. This is a controlled context fault, not a real CLI signal race.
+type r3OutputPathContext struct {
+	context.Context
+	failure  error
+	observed bool
+}
+
+func (c *r3OutputPathContext) Err() error {
+	pcs := make([]uintptr, 16)
+	frames := runtime.CallersFrames(pcs[:runtime.Callers(2, pcs)])
+	for {
+		frame, more := frames.Next()
+		if strings.HasSuffix(frame.Function, ".(*Workspace).OutputPath") {
+			c.observed = true
+			return c.failure
+		}
+		if !more {
+			return c.Context.Err()
+		}
+	}
+}
+
+func TestR3OutputPathCancellationClassification(t *testing.T) {
+	for _, action := range []string{"plan", "export", "propose"} {
+		for _, failure := range []error{context.Canceled, context.DeadlineExceeded} {
+			t.Run(action+"/"+failure.Error(), func(t *testing.T) {
+				w, dir := fixDeltaFixture(t)
+				if err := w.Close(); err != nil {
+					t.Fatal(err)
+				}
+				root := filepath.Dir(dir)
+				before, err := workspace.HashTree(root)
+				if err != nil {
+					t.Fatal(err)
+				}
+				ctx := &r3OutputPathContext{Context: t.Context(), failure: failure}
+				out := filepath.Join(root, "output")
+				switch action {
+				case "plan":
+					_, err = PlanWorkspace(ctx, dir, "absent-operations", out)
+				case "export":
+					_, err = ExportWorkspace(ctx, dir, out, validation.Options{Draft: true})
+				case "propose":
+					_, err = FixPropose(ctx, dir, "", false, out, true)
+				}
+				code, exit := "CANCELLED", 130
+				if failure == context.DeadlineExceeded {
+					code, exit = "CHECKER_TIMEOUT", 5
+				}
+				var f *fault.Error
+				if !ctx.observed || !errors.As(err, &f) || f.Code != code || f.Exit != exit {
+					t.Fatalf("post-Open OutputPath: observed=%v got=%v want=%s/%d", ctx.observed, err, code, exit)
+				}
+				if after, err := workspace.HashTree(root); err != nil || !reflect.DeepEqual(after, before) {
+					t.Fatal("refusal changed original/workspace/output files or directories", err)
+				}
+				w, err = workspace.Open(dir)
+				if err != nil {
+					t.Fatal("cancellation leaked owner lock", err)
+				}
+				w.Close()
+			})
 		}
 	}
 }

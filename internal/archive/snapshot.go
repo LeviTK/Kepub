@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"hash/crc32"
 	"io"
@@ -292,7 +293,12 @@ func FileSHA256Context(ctx context.Context, filename string) (string, error) {
 // A failed check never publishes. check must not modify the artifact. The last
 // ctx check is immediately before atomic publication, which is the commit point.
 // Cancellation after that observation cannot turn a committed output into error.
-func (a *Archive) PublishZIP(ctx context.Context, output string, approved Tree, check func(string, string) error) (string, error) {
+func (a *Archive) PublishZIP(ctx context.Context, output string, approved Tree, check func(string, string) error) (hash string, err error) {
+	defer func() {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			err = fault.New(5, "PUBLICATION_CANCELLED", "publication cancelled before commit: %v", err)
+		}
+	}()
 	abs, err := filepath.Abs(output)
 	if err != nil {
 		return "", err
@@ -320,7 +326,9 @@ func (a *Archive) PublishZIP(ctx context.Context, output string, approved Tree, 
 	}
 	stage := f.Name()
 	defer os.Remove(stage)
-	err = a.WriteZIP(f, approved)
+	request := *a
+	request.ctx = ctx
+	err = request.WriteZIP(f, approved)
 	if err == nil {
 		err = f.Sync()
 	}
@@ -331,7 +339,7 @@ func (a *Archive) PublishZIP(ctx context.Context, output string, approved Tree, 
 	if err != nil {
 		return "", err
 	}
-	final, err := Open(stage, a.limits)
+	final, err := OpenContext(ctx, stage, a.limits)
 	if err != nil {
 		return "", err
 	}
@@ -343,7 +351,7 @@ func (a *Archive) PublishZIP(ctx context.Context, output string, approved Tree, 
 	if t.SHA256 != approved.SHA256 {
 		return "", fault.New(1, "INPUT_DRIFT", "final archive differs from approved tree")
 	}
-	hash, err := FileSHA256(stage)
+	hash, err = FileSHA256Context(ctx, stage)
 	if err != nil {
 		return "", err
 	}
@@ -353,7 +361,7 @@ func (a *Archive) PublishZIP(ctx context.Context, output string, approved Tree, 
 	if err = check(stage, hash); err != nil {
 		return "", err
 	}
-	again, err := FileSHA256(stage)
+	again, err := FileSHA256Context(ctx, stage)
 	if err != nil {
 		return "", err
 	}

@@ -6,6 +6,9 @@
 - 独立 ZIP oracle 包含文件、保留的目录条目、资源字节与原 EPUB hash；不要只数文件、只 Contains 或从实际输出反推期望。
 - `go test -race` 中 helper 的普通 `go build` 子 binary 不带 race instrumentation；报告 harness/library race，不称 race CLI，除非确实另行 `go build -race`。
 - 新鲜进程重开、历史状态与 accepted revision 绑定按实际执行记录；原书只读，失败无部分正式导出。
+- NotifyContext 必须传到 info／toc／inspect 初始 Read 和 unpack 的读取／复制；输出路径核验
+  的取消／超时复用既有分类，不能改为 INVALID_OUTPUT。信号回归须核真实子 PID、运行阶段、
+  CANCELLED/130 和未发布 staging 清理；成功发布后不因迟到取消改报失败。
 
 - 已存在外部输出保留冻结 `OUTPUT_EXISTS`/2；emit-request 在写文件前执行 256 操作预算
   （256 成功、257 `INVALID_OPERATIONS`/2 且无产物）；错误码断言按契约精确匹配，不接受两种 code 的宽松断言。

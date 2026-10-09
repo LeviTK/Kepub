@@ -253,14 +253,14 @@ func execute(ctx context.Context, o options) (any, error) {
 		}
 		return data, err
 	}
-	a, p, err := app.Read(o.book, o.rootfile)
+	a, p, err := app.ReadContext(ctx, o.book, o.rootfile)
 	if err != nil {
-		return nil, err
+		return nil, app.WorkspaceError(err)
 	}
 	defer a.Close()
 	if o.command == "unpack" {
 		if err = a.Unpack(o.output); err != nil {
-			return nil, err
+			return nil, app.WorkspaceError(err)
 		}
 		return map[string]any{"output": o.output, "rootfile": p.Rootfile, "files": len(a.Files), "limitations": p.Limitations}, nil
 	}
