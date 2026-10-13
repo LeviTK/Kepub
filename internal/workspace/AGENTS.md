@@ -163,4 +163,16 @@
 - 新增真实 checker 测试在顶层复用 `requireChecker`；未配置时显式 SKIP，不能把环境缺失
   当产品 FAIL 或符合性 PASS。配置后仍实际接受并核成功，不把 checker 错误降为 SKIP。
 
+## 原生新建来源与外部定义
+
+- state v2 从完整 definition/template 重推 initial 库存与 bytes，绑定实际正式验证报告，
+  不把生成 ZIP 冒充 original；旧 state v1/schema 1–7 来源与预算不变。初始化原子不覆盖，
+  发布前错误/取消只清理自身 staging，后续 candidate/accept/export 仍消费既有来源门禁。
+- 外部 definition 的预算错误在 `ReadNewBook` 按新建契约映射 `INVALID_ARGUMENT`/2；
+  复用内部 bounded reader 不意味着继承持久工作区 `WORKSPACE_JSON_LIMIT`/1 的错误语义。
+  永久入口 `TestNativeDefinitionByteBoundary` 核真实 CLI 的 1 MiB 正控、超 1 字节拒绝且无产物。
+- state v1 禁止 source 字段本身，包括显式 null 和 JSON decoder 接纳的大小写别名；
+  不能只用解码后指针非 nil 判定字段存在。`TestNativeSourceForbiddenInImportedState`
+  核 source null/对象/别名拒绝与原始 v1 正控重开，保留旧 schema 的未知字段拒绝。
+
 对应开发注意事项：`G-FINAL`、`G-FACTS`、`G-BINDING`、`G-ORACLE`、`G-QUALIFY`、`G-JSON`、`G-IDREF`。

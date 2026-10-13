@@ -80,6 +80,31 @@ func TestNativeInitializationRefusals(t *testing.T) {
 	}
 }
 
+func TestNativeSourceForbiddenInImportedState(t *testing.T) {
+	w, dir := makeWorkspace(t)
+	w.Close()
+	file := filepath.Join(dir, "state.json")
+	raw, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, field := range []string{`"source":null`, `"Source":null`, `"source":{}`} {
+		bad := append([]byte("{"+field+","), raw[1:]...)
+		put(t, file, bad)
+		opened, err := Open(dir)
+		if err == nil {
+			opened.Close()
+			t.Fatalf("imported state accepted %s", field)
+		}
+	}
+	put(t, file, raw)
+	opened, err := Open(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	opened.Close()
+}
+
 func TestNativeSourceAndReopen(t *testing.T) {
 	requireChecker(t)
 	dir := filepath.Join(t.TempDir(), "native")

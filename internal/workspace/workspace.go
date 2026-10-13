@@ -6,6 +6,7 @@
 package workspace
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -274,8 +275,25 @@ func openWithIO(dir string, policy resourceIO) (_ *Workspace, err error) {
 		}
 	}()
 	// Check provenance exists before creating a lock in an unrelated directory.
-	if err := readJSON(r, "state.json", &w.state); err != nil {
+	var stateJSON json.RawMessage
+	if err := readJSON(r, "state.json", &stateJSON); err != nil {
 		return nil, err
+	}
+	d := json.NewDecoder(bytes.NewReader(stateJSON))
+	d.DisallowUnknownFields()
+	if err := d.Decode(&w.state); err != nil {
+		return nil, err
+	}
+	if w.state.Version == 1 {
+		var fields map[string]json.RawMessage
+		if err := json.Unmarshal(stateJSON, &fields); err != nil {
+			return nil, err
+		}
+		for name := range fields {
+			if strings.EqualFold(name, "source") {
+				return nil, fmt.Errorf("source is forbidden in workspace state v1")
+			}
+		}
 	}
 	w.owner, err = lock(r)
 	if err != nil {

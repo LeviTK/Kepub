@@ -59,6 +59,10 @@ func ReadNewBook(file string) (NewBook, error) {
 	defer r.Close()
 	var b json.RawMessage
 	if err := readEditJSONLimit(r, filepath.Base(abs), &b, definitionLimit); err != nil {
+		var f *fault.Error
+		if errors.As(err, &f) && f.Code == "WORKSPACE_JSON_LIMIT" {
+			return NewBook{}, fault.New(2, "INVALID_ARGUMENT", "definition exceeds %d bytes", definitionLimit)
+		}
 		return NewBook{}, err
 	}
 	if err := validDefinitionUnicode(b); err != nil {

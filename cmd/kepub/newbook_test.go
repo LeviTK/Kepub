@@ -197,3 +197,42 @@ func TestNativeBookBinaryLifecycle(t *testing.T) {
 		t.Fatal("definition changed", err)
 	}
 }
+
+func TestNativeDefinitionByteBoundary(t *testing.T) {
+	if os.Getenv("KEPUB_EPUBCHECK_JAR") == "" {
+		t.Skip("real pinned EPUBCheck required")
+	}
+	bin := workspaceBinary(t)
+	input, err := os.ReadFile("../../docs/examples/newbook-v1.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	definition, ws := filepath.Join(dir, "definition.json"), filepath.Join(dir, "ws")
+	for _, tc := range []struct{ size, exit int }{{1 << 20, 0}, {(1 << 20) + 1, 2}} {
+		padded := append(bytes.Clone(input), bytes.Repeat([]byte(" "), tc.size-len(input))...)
+		if err := os.WriteFile(definition, padded, 0600); err != nil {
+			t.Fatal(err)
+		}
+		result := processJSON(t, bin, []string{"workspace", "create", "--definition", definition, "--output", ws}, tc.exit, 60*time.Second)
+		if tc.exit == 0 {
+			if result["data"].(map[string]any)["conformance"] != "pass" {
+				t.Fatal(result)
+			}
+			if err := os.Rename(ws, filepath.Join(dir, "completed")); err != nil {
+				t.Fatal(err)
+			}
+		} else {
+			if result["error"].(map[string]any)["code"] != "INVALID_ARGUMENT" {
+				t.Fatal(result)
+			}
+			if _, err := os.Lstat(ws); !os.IsNotExist(err) {
+				t.Fatal("oversized input published workspace", err)
+			}
+			stages, err := filepath.Glob(filepath.Join(dir, ".kepub-create-*"))
+			if err != nil || len(stages) != 0 {
+				t.Fatal("oversized input staged workspace", stages, err)
+			}
+		}
+	}
+}
