@@ -469,11 +469,15 @@ FixProposal v1 wire 和 hash 算法不改，只修资格；新 schema 7 policy �
 读取／正式导出，不允许新 accept。既有持久 settlement 仍只完成原决定，不改写来源或接受证据。
 旧提案可重新提交 Plan，但必须通过当前完整提案重推；目录项或 derivedFrom 改变返回 PROPOSAL_DRIFT。
 
-### 2.12 B3 核心元数据 v2 契约草案（待独立审定，尚未实现）
+<a id="212-b3-核心元数据-v2-契约草案待独立审定尚未实现"></a>
+
+### 2.12 B3 核心元数据 v2 实施契约（已冻结，尚未实现）
 
 2026-10-13 下一批对应 [B3 #46](https://github.com/LeviTK/Kepub/issues/46)，基线为
 [PR #75 的合并提交](https://github.com/LeviTK/Kepub/commit/3a7d1b414c5d23a1fbff42890e1c226f097e1a93)。
-本节先规定拟实现边界；独立审定前不冻结为编码依据，不在 capabilities 注册 available。
+本节行为规则在固定输入 `b3f717b904698ec18d6d7061256139026642d30a` / tree
+`f07760e5b1c1611ed13aa8ed98be2d9b4eff6150` 获独立契约准入，作为 B3 编码依据；
+此处仅更新冻结状态，未作产品验收，不在 capabilities 注册 available。
 当前二进制仍只支持既有 schema 1–7，`metadata.set` v1 仍只写现有 dc:title/dc:creator。
 
 **只读绑定入口：** 本批新增 `workspace metadata --workspace DIR --json`，
@@ -540,6 +544,8 @@ refines 均为 INVALID_OPERATIONS/2。这里的 publication metadata 是 package
 也不受本项 property/refines/层级资格检查，必须保留原字节。
 每次修改 publication modified 时，property 解析检查覆盖该 publication metadata 子树内
 所有 OPF meta（含直接 refinement 和后代），不扫描其他 subject 的 metadata。
+没有 property 属性的旧式 `<meta name="cover" content="…"/>` 不做 property 解析，
+不是 modified 候选，也不属于无法解析的 property；保留其原字节，不因缺 property 拒绝。
 本子树内无关 meta 的未声明前缀等无法解析的 property 也在 Plan 阶段以
 INVALID_OPERATIONS/2 拒绝；其他 subject 的符合性仍由正式 checker 判定。
 上述结构/词表检查用于每个修改 publication modified 的 v2 操作；真正非空 refines 的
@@ -606,6 +612,7 @@ revision/hash 漂移用 INPUT_DRIFT/4；只读沿 UNSUPPORTED_INPUT/3，
 合法非空 refines modified/重复 publication modified/仅别名/带空白 property/重声明/坏 prefix/
 publication metadata 内后代 modified 拒绝/空 refines；collection metadata 有自己的 modified
 时 publication modified 仍可编辑且 collection 全字节不变，配同值/异值正控；本子树内
+旧式无 property 的 cover meta 与 publication modified 共存仍可编辑且 cover meta 字节不变；
 无关 meta 的未声明前缀拒绝、无 NCX 时主引用缺失/歧义仍拒绝、
 DTD 默认选择属性与字面属性正控、两操作顺序、缓存后的坏 revision/hash、
 no-op、ABNF 未注册/祖父语言正控与非法语法反例、有效闰日及 02-30/:60/0000 反例、
