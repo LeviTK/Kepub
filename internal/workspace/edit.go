@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -1345,9 +1346,17 @@ func (w *Workspace) execution() (Execution, error) {
 	d, deriveErr := w.recomputeAt(intent.Operations, revisionPath(w.current), w.current, planReferenceVersion(intent))
 	if deriveErr != nil {
 		var f *fault.Error
-		if !errors.As(deriveErr, &f) || f.Code != "RESOURCE_LIMIT" && f.Code != "REFERENCE_LIMIT" {
+		canceled := errors.Is(deriveErr, context.Canceled) || errors.Is(deriveErr, context.DeadlineExceeded)
+		if !canceled && (!errors.As(deriveErr, &f) || f.Code != "RESOURCE_LIMIT" && f.Code != "REFERENCE_LIMIT") {
 			return e, deriveErr
 		}
+		// A failed derivation is not authority to restore. Finish the existing
+		// used/start/checkpoint checks without late cancellation, then roll back
+		// only a verified running task with no result. Keep every resource limit
+		// and return the original failure after persisting the failed execution.
+		previous := w.resources.ctx
+		w.resources.ctx = context.WithoutCancel(previous)
+		defer func() { w.resources.ctx = previous }()
 	}
 	if !intent.Applicable || deriveErr == nil && !slices.Equal(d.writes, intent.WriteSet) {
 		return e, ErrStalePlan
@@ -1406,7 +1415,7 @@ func (w *Workspace) execution() (Execution, error) {
 	if start.Version != intent.SchemaVersion || (start.Status != "running" && start.Status != "unstarted") || start.ReviewRequired || start.Conformance != "not_run" || digest(start.Diff) != digest(compareTrees(s.Tree, s.Tree)) || s.Tree.SHA256 != w.base.SHA256 {
 		return e, fmt.Errorf("invalid execution start")
 	}
-	// Only a verified, interrupted mutation can be rolled back on a budget
+	// Only a verified, interrupted mutation can be rolled back on a derivation
 	// failure. Never rewrite a completed result or discard unstarted drift.
 	if deriveErr != nil && (start.Status != "running" || exists(w.root, "tasks/active/edit-result.json")) {
 		return e, deriveErr

@@ -287,6 +287,28 @@
   仍返回 REFERENCE_LIMIT，`TestR4InterruptedGraphBudgetRollsBack` 保留真实失败 diff。
   正式 accept/export 失败不推进 accepted／发布输出；workspace/app/validation/CLI 的 R4
   正反例仍用真实固定 checker，内部小预算不进入持久 checker config 或新增 CLI 开关。
+- 图内取消／超时直接返回，或仅扩错误分类但 checkpoint 扫描仍被取消 → 当次 Open 留下
+  部分修改且无 failed result → 将失败后的来源核验／恢复置于临时 WithoutCancel，保留预算、
+  used/start/checkpoint 完整校验与原错误。`TestR4RunningGraphCancellationRecovery` 用真实
+  cancel／deadline 的 builder 观察点、七资源 bytes、未开始／已完成／坏来源控制和再次 Open；
+  不是公共 CLI 竞态或更早扫描取消窗口的验收，诊断“观察到缺陷”的 PASS 不算修复 green。
+- workspace reader 将 cap 溢出报 plain error → 图构建降为 partial／IO_ERROR／nil error →
+  reader 返回 typed RESOURCE_LIMIT，图层沿既有扫描预算分类为 REFERENCE_LIMIT／零图。
+  `TestR4WorkspaceGraphReadGrowth` 用真实 inventory／os.Root／增长文件，区分有界读溢出、
+  读入后额外收费与精确预算控制；不将此分类缺口夸大为成功的危险 Plan/Apply。
+- 仅给 reader 加 typed error、builder 仍只判断 `left < max` → 等值 cap 溢出仍返回
+  partial／nil，包括默认 64 MiB 的末资源增长 → 全局余量 `left <= max` 时升级该限额，
+  `left > max` 保留原单资源 partial／RESOURCE_LIMIT；真实 I/O 不被重新分类。
+  永久 `TestR4WorkspaceGraphEqualCaps` 核 CSS 8 MiB−1→8 MiB+1、全局 cap 的±1/等值、
+  合法读取与缺文件 IO_ERROR。独立 equalcap/defaultcap 原探针与被拒树证据原样保留；
+  全仓 PASS 不能抵消等值反例，默认预算探针不冒称公共 CLI 并发攻击。
+- typed 溢出仍丢弃实际 bytes → 多个资源库存后增长时仅收旧 size，累计超过扫描预算仍
+  partial／nil（F1）→ workspace reader 随 RESOURCE_LIMIT 返回已读 cap+1 bytes，复用
+  builder 的实际长度差额计费，不重复收库存、不从 Archive 的读前拒绝推断已读取。
+  真实 I/O 分支仍优先返回原错误，解析调用方仍先检查 error；非 nil bytes 不是解析授权。
+  `TestR4WorkspaceGraphCumulativeOverflow` 核两真实 XHTML 的 16 MiB+1 拒绝、16 MiB+2
+  精确合法 partial 与 +1 控制、正常／单增长／缺文件／取消。两个独立 F1 原探针原样
+  old red/new green；equalcap/defaultcap 不弱化。更早 Open／验证／候选扫描取消窗口未覆盖。
 - `TestR4ReservationBoundaries`、`TestR4FilteredResultHeaderBudget`、
   `TestR4XMLCoverageReservation` 与 `BenchmarkR4BoundedInventory` 核分配／追加前拒绝。
 
