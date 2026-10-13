@@ -1,165 +1,92 @@
 # Kepub
 
-独立终端 EPUB 创建、修改与维护工具；后续扩展阅读／制作 UI 和 Amp 协作。
+**独立运行的 EPUB CLI：查询、受控编辑、审核与导出。**
 
-**当前状态（2026-10-08）：S0 固定规范与差距矩阵、T1a／T1b 已通过独立审计和父验收；T2 的五个有限增量也已验收并集成主线：多操作／多资源事务、XHTML 结构编辑、显式范围字面／正则替换、跨资源子树移动，以及原生 FixProposal／ValidationDelta。第五批采用固定产品 61fddbe，公开范围与验证摘要见 [T2 验收记录](docs/verification/T2_MULTI_OPERATION.md)。本次 main 源码同步包含这五个增量，但 T2 尚未完成，不代表完整 EPUB3 制书工具已经完成。** 当前按用户要求暂停后续开发，仅同步已验收源码与进度；PK1 两个独立编码候选均通过有限门槛，记平局，采用 Medium 方案不算其 PK 胜局。
+以 Go 实现，不依赖桌面端或模型服务。原书、已接受版本与待审候选分离；修改经过计划、执行、差异审阅和正式校验。项目名不表示默认输出 Kobo KEPUB，默认仍是普通 EPUB。
 
-后续仍按开发方案 v0.10 与 Issue #3／#4 推进独立 CLI：默认 EPUB3，补 EPUB2 → EPUB3 转换、剩余 XHTML／资源维护、样式、系统字体发现和基础图片，不新增嵌入字体；UI、外部编辑器和 Amp 集成后置。Linux 先功能测试，再打包和实测 Apple Silicon Mac；当前没有版本化安装包或 Mac 实机验收，文档 v0.10 不是软件发行版本。字体混淆资格、旧工作区显式重评及 T3～T6 等剩余范围未因本次同步放行。
+[快速开始](#快速开始) · [编辑流程](#编辑流程) · [能力与边界](#能力与边界) · [开发与验证](#开发与验证) · [路线与待办](#路线与待办) · [文档索引](#文档索引)
 
-S0 归档与门禁：规范原文、官方用例来源与上游研究索引已本地建立。首轮实现 Droid 审查曾发现门禁、证据关联及条款／schema 遗漏；各项修复、复审和实际放行结论以 [父验收记录](docs/verification/S0_PARENT_ACCEPTANCE.md)为准，不能用审查进程 exit 0 代替批准。当前固定资产含 118 项规范／关联文件和 169 个用例 ID／170 本必需测试书；归档验证不等于语义完整性、用例执行或 CLI 全规范兼容。S0 放行必须同时具备绑定同一输入的父验收与真实独立审计批准，离线 `gate` 核验其证据。S0／T1 的历史审计依用户指令改用 Amp 的 DeepSeek V4.1 Flash；后续 T2 的 high／medium 独立审查分别记录实际执行者，不冒称 Droid 结果，也不降低放行标准。EPUBCheck 5.3.0 对三项 2026 REC 修订的 12 个正反样本已实际核验，不能外推为全规范覆盖。范围与历史限制见 [S0 矩阵](docs/EPUB33_SUPPORT_MATRIX.md)和[检查器核验](docs/verification/S0_EPUBCHECK_2026.md)；源码与公共规范资产已同步到 main，私有原书、审计原始证据包与本地收据未提交，历史记录中的“未推送”保留为当时状态。
+## 当前状态
 
-## 已实现：M1-A / M1-B1 只读 CLI
+截至 **2026-10-13**，S0、T1a／T1b 与 T2 的五个有限增量已验收并集成主线；已有修复栈及后续审查修复通过 [PR #27](https://github.com/LeviTK/Kepub/pull/27) 合并到 `main`。
 
-需要 Go **1.27.1**。纯核心只依赖标准库、`golang.org/x/text v0.29.0`（Unicode 碰撞检查）和 `golang.org/x/sys v0.36.0`（原子不覆盖发布），不依赖 MyGo、Amp、Calibre、Java 或前端工具链。
+- **可用：** EPUB2/3 查询、安全解包、工作区、受控元数据／XHTML 编辑、多资源事务、搜索替换、修复提案、正式校验与导出。
+- **尚未完成：** 完整 T2、EPUB2 → EPUB3 转换、新建制书、完整 CSS／资源维护、桌面预览及生产 Agent 集成。
+- **交付形态：** 源码构建，暂无版本化安装包；Linux 已验证，Apple Silicon Mac 实机验收仍待完成。
+- **本轮范围：** 维护已有能力和项目记录，不恢复新功能开发。文档 v0.10 是方案版本，不是软件发行版本。
+
+[合并提交 e102b21](https://github.com/LeviTK/Kepub/commit/e102b2198ffd10df1cb05da3d70f68c47dc694ce) 的 [Linux CI](https://github.com/LeviTK/Kepub/actions/runs/38364503620) 已通过：普通／race 各 1858 个测试及子测试 PASS、1 项私有原书 SKIP、0 FAIL，另通过 vet 和普通／race CLI 构建。该结果不代表 Mac、断电、真实渲染或完整 EPUB 3.3 支持；历史失败与有限批准保持原范围。
+
+## 快速开始
+
+### 从源码构建
+
+需要 **Go 1.27.1**。已构建的核心 CLI 不要求 Go、Node、MyGo、Amp 或 Calibre 运行环境。
 
 ```sh
+git clone https://github.com/LeviTK/Kepub.git
+cd Kepub
 go build -o kepub ./cmd/kepub
-./kepub capabilities --json
-./kepub info 'book.epub' --json
-./kepub inspect 'book.epub' --section manifest --json
-./kepub toc 'book.epub' --json
-./kepub inspect 'book.epub' --section references --resource 'EPUB/chapter.xhtml' --direction incoming --json
-./kepub unpack 'book.epub' --output 'new directory' --json
-./kepub info --json -- '-book.epub'
-```
-
-- `inspect` 支持 `metadata`、`manifest`、`spine`、`navigation`、`references`、`capabilities`。`toc` 与 navigation 共用读取用例，按声明选择 EPUB3 nav / EPUB2 NCX，不从 spine 合成目录。多 rootfile 必须传 `--rootfile '书/Deep/package.opf'`，值是精确 BookPath，不是 URL。
-- 引用边保留源位置、原 href、精确目标路径、query/fragment 和解析器版本；`--resource` / `--direction incoming|outgoing` 只过滤边，保留全局 coverage 与诊断。CSS 仅提取 literal url/import 子集，完整 CSS grammar 为 partial；脚本、SMIL、srcset 等明确不完整。**complete 只表示相应语法的提取覆盖，不是 EPUB 合规或编辑授权。**
-- XHTML href/src（含 nav）解析目标时去掉两端 ASCII 空白，报告仍保留 XML 解析后的原属性值；不会删除 NBSP 或百分号编码的文件名空格，也不会把这条规则全局用于 OPF、NCX、SVG、CSS 或磁盘路径。
-- 支持 EPUB2/3 ZIP 与严格 UTF-8／UTF-16 LE／BE XML（含 BOM），接纳原生 `<!DOCTYPE html>` 及有界内部子集、内部通用／参数实体、默认属性和 NOTATION。EPUB3 按版本及 manifest 媒体类型检查允许的 DOCTYPE 标识符，外部子集零读取；EPUB2 合法但未支持的外部声明仍明确 exit 3。目录输入的只读查询、`xml:base`、远程 manifest href 仍不支持，不容错改写。
-- 拒绝穿越、绝对路径、特殊/符号链接/加密 ZIP 条目、重复和大小写/Unicode 碰撞（包括隐式父目录）。解包、目录快照、Inventory 与导出统一限制为 20,000 个唯一展开文件/目录（含全部隐式父目录，共享或显式父目录只计一次）、全部展开 BookPath 累计 32MiB UTF-8 字节、256MiB/文件、2GiB 实际文件总量；ZIP 展开条目/路径超限在解压 staging 前拒绝。单路径 4096 字节/128 层；解析 XML 8MiB/128 层/200,000 tokens、累计文本/位置索引 32MiB。这些是初始产品策略，不是 EPUB 标准。
-- 原书只读，所有资源（含非 manifest 文件与空目录）保留；unpack 完整 staging 后原子发布，不覆盖已有路径。输出父目录必须已存在。Linux 和 macOS 支持原子不覆盖发布；macOS **只做交叉编译，尚未实机验证**。突然终止可能留下私有临时 staging，但不会发布半成品目录；不宣称断电耐久性。
-- `--json` 成功/失败 stdout 都是一个统一 envelope；失败用稳定 code，退出码 1 内容/安全问题、2 参数、3 未实现能力、6 I/O。`--output/-o`、`--rootfile`、`--section` 可置于 BOOK 前后，`--` 结束选项，JSON 和 `--no-input` 不问答。其他契约中的选项尚未实现，会拒绝，不忽略。
-- 固定版式、脚本标记、SMIL/音视频、签名、加密/字体混淆声明会记录限制；不执行、不解密、不验证签名、不删除内容。缺失 manifest 资源显式报告。成功只表示只读请求完成，**不是 EPUB 合规验证**。
-
-workspace list/注册表、资源改名、GUI、预览、生产 Agent、Mac 发布仍未实现。capabilities 中这些项为 `planned`，不能据此执行。当前 schema 描述已实现命令的参数和结果基本形状，不代表所有操作的细粒度结果 schema 均已完成。
-
-验证：`go test -count=1 ./...`、`go test -race -count=1 ./...`、`go vet ./...`；真实 CLI smoke 含 EPUB2/3、双向引用与错误 envelope。小型 EPUB 与恶意输入由测试生成，无第三方书籍。证据见 [M1-A](docs/verification/M1_A.md) 和 [M1-B1](docs/verification/M1_B1.md)。
-
-## 本地已集成：C1 命令发现与诊断
-
-```sh
-go install ./cmd/kepub  # 安装到 GOBIN，未设置时为 $(go env GOPATH)/bin
 ./kepub --help
-./kepub inspect --help --json
 ./kepub version --json
+./kepub capabilities --json
 ./kepub doctor --json
 ```
 
-上面的 `./kepub` 使用前文构建的本地二进制；`go install` 后也可将安装目录加入 PATH，以 `kepub` 调用。构建需要 Go，已构建的 CLI 不要求用户安装 Go、Node、MyGo 或 Amp。正式 EPUB 校验另需 Java 17+ 与固定版 EPUBCheck。
+也可执行 `go install ./cmd/kepub`，将 `GOBIN`（默认 `$(go env GOPATH)/bin`）加入 PATH 后以 `kepub` 调用。可执行能力以 `--help` 与 `capabilities` 为准；`planned` 不代表已经实现。
 
-- 命令帮助、capabilities 的增量 `commandSchemas`、必填及允许参数使用同一描述来源；保留原 capabilities 数组和 operation ID。未知选项、重复参数或非法值不会因加 `--help` 被忽略。
-- `version` 返回实际 Go 构建／VCS 信息；没有发行标签的构建明确为 development，不联网推测版本。
-- `doctor` 区分核心可运行与正式检查器可用。缺依赖仍可成功收集诊断，但 `formalValidationAvailable:false`；外部探测故障明确失败。探测有时间和输出上限，只发现 Amp 路径，不启动 Amp、不验证登录、不安装依赖。
+### 查询与解包
 
-证据见 [C1 CLI 验证](docs/verification/C1_CLI.md)。此批为本地源码交付，不是已发布的安装包或 Mac 实机验收。
-
-## 本地已集成：C2 已接受版本的正文查询
+以下书名和资源路径均为示例，须替换为实际输入。
 
 ```sh
-./kepub workspace open 'book.epub' --output 'work' --json
-./kepub content --workspace 'work' --resource 'EPUB/Text/chapter.xhtml' --json
-./kepub content --workspace 'work' --resource 'EPUB/Text/chapter.xhtml' --query '目标短语' --limit 20 --json
+./kepub info 'book.epub' --json
+./kepub toc 'book.epub' --json
+./kepub inspect 'book.epub' --section manifest --json
+./kepub inspect 'book.epub' --section references \
+  --resource 'EPUB/chapter.xhtml' --direction incoming --json
+./kepub unpack 'book.epub' --output 'new directory' --json
 ```
 
-`--resource` 必须是所选 manifest 中 XHTML 的精确 BookPath，不能传 href、fragment 或本机路径。返回 `workspaceId`、`revisionId`、`rootfile`、原资源 SHA-256、结构 locator 和解码文本；始终查询 accepted，即使存在被修改的活动候选。持锁查询，并发占用返回 `WORKSPACE_BUSY`（exit 4）。不需要 Java、Amp、Node 或 GUI。
+`inspect` 支持 metadata、manifest、spine、navigation、references、capabilities。多 rootfile 输入必须显式传 `--rootfile`，值为精确书内路径；以 `-` 开头的书名使用 `--` 分隔，例如 `./kepub info --json -- '-book.epub'`。输出父目录须已存在，目标不能已存在。
 
-query 区分大小写、按单个结果元素的文本做字面子串匹配；省略表示全部，显式值须为 1～4096 UTF-8 字节。limit 默认为 50，范围 1～200，另返回完整匹配数和 `truncated`，不会默选第一个匹配。XML 输入上限 8 MiB、返回文本累计上限 1 MiB；超限明确失败，不截断节点文本。
+### 配置正式检查器
 
-结果排除 script/style/head、外来命名空间子树及含这些内容的祖先。混合内容可读，但不代表允许修改；这不是浏览器可见文本、全书搜索或 EPUB 合规检查，locator 也不是可写偏移。证据见 [C2 内容查询验证](docs/verification/C2_CONTENT.md)。C3 在此基础上增加受限正文操作；这些 CLI 能力本身不等于真实 Amp 联调已通过。
-
-## 本地已集成：C3 受限正文修改
-
-正文请求使用 `schemaVersion:2`，恰好一个 `content.text.set` v1 操作。先运行 `content`，从同一次结果复制 `bookPath`、`revisionId`、`resourceSha256`、`locatorVersion` 和所选节点的 `locator`、`text`；将 `text` 作为 `expectedOldValue`，另填 `newValue`。不能只凭相似文本选择首个匹配。字段与兼容规则见 [CLI 契约 §2.2](docs/CLI_CONTRACT.md#22-c3-受限正文修改实施契约)。
-
-请求仍经下文的 `plan → apply → task diff → task accept/reject → workspace export`，没有直接正文写入命令。只修改 manifest XHTML 的单个 body 后代简单文本元素，支持显式空元素，不支持混合内容、子元素、注释、CDATA、处理指令、自闭合或脚本／样式目标。新值按 XML 文本转义，不解释成标签；目标外字节和 OPF 时间戳保持，no-op 不改字节。读取绑定过期明确拒绝，不自动重新找相似目标。
-
-正文 plan 和 execution 为 v2，已有 `metadata.set` 请求、计划、执行记录与摘要仍保持 v1。diff 的 `content.newValue` 是实际候选文本，不是计划新值；安全普通文件树的候选字节漂移可审阅／拒绝，不能接受。`content` 仍只读 accepted，accept 与正式 export 仍须真实 EPUBCheck。正文之外的结构、CSS、批量修改和真实 Amp 联调不在 C3 范围。
-
-父 orb 独立执行 67 次真实 CLI 调用：旧二进制生成的 v1 计划／待审任务兼容、v2 操作／策略摘要、同文第二节点的精确修改、正文接受／正式导出／拒绝、空值／no-op、陈旧读取绑定和候选漂移均通过。导出仅替换预期节点文本，其他字节与原书 SHA-256 保持。证据见 [C3 正文修改验证](docs/verification/C3_CONTENT_EDIT.md)。C2／C3 当时保留的编码 href 报告兼容问题已在后续独立审查中修复；历史报告保留当时的失败结论，当前绑定规则见下节。
-
-## 本地已验收：T1a 编码与终端基础
+正式 `validate`、`pack`、`task accept` 和非草稿 export 需要 **Java 17+ 与 EPUBCheck 5.3.0**。下载并解压 [官方完整发行包](https://github.com/w3c/epubcheck/releases/tag/v5.3.0)，保留主 JAR 与 `lib/`，不要只复制主 JAR。
 
 ```sh
-./kepub search --workspace 'work' --query '目标短语' --limit 20 --json
-./kepub task status '实际 taskId' --workspace 'work' --json
-./kepub task diff '实际活动 taskId' --workspace 'work'
-```
-
-`search` 按所选 manifest 顺序扫描 accepted 的全部 XHTML，达到返回条数后仍完成扫描和计数；不读取候选、不跳过坏资源。`task status` 区分指定活动任务与已结算历史，不用 latest 替代。历史任务的 `matchesExecution:false` 表示该活动候选字段不适用，不表示历史损坏；历史 `task diff` 仍拒绝（exit 4）。非 JSON 输出为可读摘要，diff 展示实际候选的分文件差异；二进制／超预算内容明确省略并保留大小与哈希，显示文本不是可应用 patch。
-
-原生 HTML DOCTYPE 与 UTF-16 的读取、定位、简单文本局部替换、来源重算和重开保持原编码及目标外字节。原始 XML 8 MiB、解码 UTF-8 16 MiB、索引 32 MiB 分别限额；全书搜索扫描 128 MiB、返回文本 1 MiB，不因编码扩展放宽预算或 v1 写权限。内部声明／实体／默认属性由下述 T1b 独立验收。
-
-**解析成功不等于正式校验通过：** 固定 EPUBCheck 5.3.0 拒绝 UTF-16 XHTML（`HTM_058`），正式 accept/export 保留失败；UTF-16 OPF／container 搭配 UTF-8 XHTML 可在非 strict 下通过，strict 仍拒绝 `RSC-027` warning。`workspace export --draft` 只导出 accepted，绝不夹带待审候选。
-
-父侧 208 次独立 CLI 调用、未经预处理的授权原书（53 个 ZIP 条目逐字节对照）、旧二进制 v1／v2 兼容、root 普通／race／vet及 Darwin 交叉构建均通过；DeepSeek V4.1 Flash 批准本 T1a code/demo 范围，无阻塞问题。具体范围、失败记录与未测项见 [T1a 验证及父验收](docs/verification/T1A_ENCODING_TERMINAL.md)。这不是全产品复审、T1b 完成、Mac 实机测试或发行。
-
-## 本地已验收：T1b 有界 XML 内部子集与来源
-
-内部 ELEMENT／ATTLIST／通用及参数实体／NOTATION 按非验证 XML 规则处理，支持默认值、属性规范化与含标记实体；不读取外部 DTD，不把 DTD 有效性约束误报为 XML 非良构。允许的 PUBLIC 标识符只在匹配时折叠规范允许的空白，SYSTEM、声明和资源原字节不改。
-
-未展开实体按需通过 `xmlCoverage` 报告原字节区间及来源，目录／引用显式 partial；未知 href/src 不生成肯定目标或“缺失”诊断，已知结构错误仍报告。`content/search` 无法给出完整文本时 exit 3。物理独立标签内的已知纯文本实体可整段替换，no-op 保留引用；生成节点、混合内容和未知内容仍不可直接写。
-
-展开后实际序列化流与中间替换工作各限 16 MiB，不放宽原始／索引预算。父侧 **507 次独立 CLI 调用**、root 普通／race／vet、Darwin 交叉构建及编码方三组 live fuzz 均通过；DeepSeek 最终复审批准固定候选。前两轮拒绝、预算／命名空间／未知导航反例及一次旧树 race 超时均保留，详见 [T1b 验收记录](docs/verification/T1B_XML_SUBSET.md)。本批不新增结构操作、CSS／字体／图片编辑或发行，不提升全规范五维能力声明。
-
-## 已验收并集成主线：T2 五个有限增量
-
-| 增量 | 已实现范围 |
-|---|---|
-| schema 3 | 2–256 个既有操作的多资源事务、完整写集合、整批回滚、恢复与历史来源重算 |
-| schema 4 | 受控属性及元素插入／替换／删除／同资源移动，全事务最终身份与引用门禁 |
-| schema 5 | 显式 locator 范围内的字面／Go RE2 替换、精确命中数和原字节来源核验 |
-| schema 6 | 显式跨资源子树移动，三编码保真及证明范围内的 URL／入站链接同步 |
-| schema 7 | 完整 FixProposal 来源绑定、两条原生修复、只读提案与 ValidationDelta |
-
-旧 schema 1～6 的参数、摘要和权限没有被 schema 7 迁移；所有写入仍走既有审核事务。
-第五批只修复禁止位置的 `epub:type` 和符合资格的相对 URL query，不猜作者语义，
-不删除合法 DOCTYPE，不提供任意 patch 或自动接受。
-
-```sh
-./kepub fix propose --workspace 'work' --json
-./kepub fix delta --workspace 'work' --before initial --after-task '实际 taskId' --json
-```
-
-这两条命令只读；执行 FR-2 须按实际 repair ID 显式选择，再经 `plan → apply → task diff → accept/reject`。
-提案可保留 unfixable 项；零操作 emit 返回 `INVALID_OPERATIONS`／2，不生成执行请求。
-Delta 不批准接受或正式导出，错误数量减少也不代表 EPUB 合规。
-接口与边界见 [CLI 契约 §2.7–§2.11](docs/CLI_CONTRACT.md)
-及 [FixProposal/Delta v1 协议](docs/contracts/T2_FIX_PROPOSAL_V1.md)。
-
-第五批父固定树普通／race／vet 实际退出 0／0／0，两测试各 1247 个 PASS 事件、1 项私有原书 SKIP。
-实际普通与 `go build -race` 子 CLI 的输出冲突、256／257 预算、三编码七资源资格控制通过。
-原强空白删除 FAIL、reviewer 首轮 checker 超时及 ZIP 目录计数 oracle 错误均保留并单列纠正，
-不将补证改写成原日志全绿。具体执行者、固定树与有限覆盖见 [T2 验收记录](docs/verification/T2_MULTI_OPERATION.md)。
-
-## 本地已集成：M1-B2 校验与打包
-
-```sh
+export KEPUB_EPUBCHECK_JAR='/absolute/path/epubcheck-5.3.0/epubcheck.jar'
+./kepub doctor --json
 ./kepub validate 'book.epub' --json
 ./kepub validate 'publication directory' --strict --timeout 30 --json
 ./kepub pack 'publication directory' --output 'new-book.epub' --json
-./kepub pack 'publication directory' --output 'draft.epub' --draft --json
 ```
 
-正式检查需要 Java 17+ 和官方 EPUBCheck **5.3.0**，通过 `KEPUB_EPUBCHECK_JAR` 指定主 JAR；orb setup 已准备这些依赖。命令不会自动下载，也不会在缺依赖时降级成草稿。`--strict` 使 warning 也阻止通过；显式 `--draft` 产物始终 `verified:false`。
+`doctor` 成功收集诊断不等于检查器可用，须检查 `formalValidationAvailable`。命令不自动安装依赖，缺检查器不会隐式降级；`--strict` 使 warning 也阻止通过。显式 `pack --draft` 或 `workspace export --draft` 允许草稿，产物标记 `verified:false`；**没有草稿接受**。
 
-pack 从明确的出版根冻结完整资源清单，不递归归档工作区；正式产物经过最终 ZIP 校验及前后哈希核对，再原子发布，不覆盖已有输出。输出须位于出版根之外。发布前观察到取消不会生成文件；发布成功后到达的取消不撤销或误报已完成的产物。
+## 编辑流程
 
-报告分别保留必需检查和引用提取 coverage；CSS partial 不自行阻止无结构修改的打包，实际 error/fatal 仍阻止。工具缺失、超时、残留受管进程或不完整报告不能记为 pass。进程组回收不是同用户 OS 沙箱，不覆盖脱组进程；合规通过也不代表阅读器渲染或人工可访问性审核。接口、真实 EPUB2/3 fixtures 和边界验证见 [M1-B2](docs/verification/M1_B2.md)。
+**`apply` 只生成待审候选；`accept` 才推进已接受版本；export 只导出已接受版本。**
 
-EPUBCheck 报告的完整 ZIP 库存仍按原始文件名、显式大小和校验和逐项精确绑定。报告还可能包含 NFC 明文／URL 编码的附属元数据行；仅在字段明确为零大小和 null 校验信息、且名称能由冻结库存唯一派生时识别，不能用它们补齐缺失库存或修正错误哈希。不会全局解码文件名，也不会把字面 `%20` 文件与空格文件合并。父 orb 另用 EPUB2／3 完成 72 次真实 CLI 验收，覆盖中文、字面百分号、NFD 和原始 1539 字节／编码后 4545 字节长路径的八次接受／正式导出，所有非目标资源、目录和原书字节保持；真正不合规的文件名仍由正式检查拒绝。
+```text
+原书 → 工作区 accepted → plan → apply → 候选 diff
+                                         ├─ accept → 新 accepted → export
+                                         └─ reject → 保留记录，随后重新计划
+```
 
-父 orb 在干净非交互 login shell 中配置真实 EPUBCheck 5.3.0，最终闭环合并后 `go test -count=1 ./...`、`go test -race -count=1 ./...`、`go vet ./...` 全通过；普通／race 的 CLI 为 87.583s / 81.906s，workspace 为 108.225s / 108.602s，validation 为 151.116s / 142.217s。Darwin arm64 全仓交叉编译通过，没有执行。普通未配置 checker 的测试会跳过外部检查用例，不能代替上述验证。独立 SDK 模块另跑 `npm run check` 与 `npm test`：31/31 Node 场景及 Go race 通过，既有 SDK 失败门槛结论不变。
+### 1. 建立工作区并查询
 
-## 本地已集成：M2-B 确定性编辑与审核导出
+```sh
+./kepub workspace open 'book.epub' --output 'work' --json
+./kepub content --workspace 'work' --resource 'EPUB/chapter.xhtml' --json
+./kepub search --workspace 'work' --query '目标短语' --limit 20 --json
+```
 
-`internal/workspace` 提供 Create/Open/Close、唯一独立候选、Checkpoint/Checkpoints/Restore 和精确内容树 SHA-256。原书、初始版本、候选与检查点均为独立副本；flock 保证协作进程单写者，恢复 journal 处理已记录的中断边界。候选普通写入不会污染基线；已知不支持内容和书内 Agent 配置保留但限制候选创建。
+`content` 与 `search` 只读 accepted，不读取活动候选。`--resource` 使用 manifest 中 XHTML 的精确 BookPath，不是 href、fragment 或本机路径。查询结果提供 revision、资源哈希与 locator；可读不等于可写，不能凭相似文本选择第一个匹配。
 
-元数据 v1 计划仅修改一个唯一选中的现有 `dc:title` 或 `dc:creator` 简单文本，匹配预期旧值；C3 正文 v2 计划见上节，两类均每计划一个操作。目标外 OPF 与资源字节不变，no-op 不重排 XML 或更新时间。计划绑定工作区身份、绝对路径、当前 accepted revision、完整树和策略；apply 重新计算，失败回滚，成功仍是 `review_required` / `conformance:not_run`，不是自动接受。
+### 2. 生成计划并执行
 
-工作区整体搬迁后，未执行的旧计划失效；已开始任务和已接受历史仍按身份、记录和精确内容来源核验。活动任务可审阅／拒绝，已接受历史可继续读取，原有持久决定可恢复。已登记执行的中断写入回滚；仅建候选、尚未登记执行时保留外部漂移供审阅并记录 failed，不将其晋升为基线。失败任务不能接受，也不会自动重跑；正常待审任务的显式接受仍需真实 EPUBCheck。完整边界见 [CLI 契约 §2](docs/CLI_CONTRACT.md#2-命令分组与实施次序)。
-
-将下面请求保存为工作区外的 `operations.json`，并把旧值替换为书内的实际标题。若有多个标题，须提供明确的可选 `id`，不能自动选择第一个。
+将以下请求保存为工作区外的 `operations.json`，把旧值替换为书内实际标题。多个标题时须提供明确的可选 `id`。
 
 ```json
 {
@@ -178,121 +105,116 @@ EPUBCheck 报告的完整 ZIP 库存仍按原始文件名、显式大小和校�
 ```
 
 ```sh
-./kepub workspace open 'book.epub' --output 'work' --json
 ./kepub plan --workspace 'work' --operations 'operations.json' --output 'plan.json' --json
 ./kepub apply --workspace 'work' --plan 'plan.json' --json
-# 将 TASK_ID 替换为 apply 返回的 data.taskId，先审阅再接受
-./kepub task diff TASK_ID --workspace 'work' --json
+```
+
+计划绑定工作区、accepted revision、完整树、策略与预期旧值；输入过期明确拒绝。正文和结构操作使用各自版本化请求，字段见 [CLI 契约](docs/CLI_CONTRACT.md)，不能把元数据示例改成任意 HTML／patch 写入。
+
+### 3. 审阅、接受或拒绝
+
+用 apply 返回的 `data.taskId` 替换 `TASK_ID`：
+
+```sh
+./kepub task status TASK_ID --workspace 'work' --json
+./kepub task diff TASK_ID --workspace 'work'
 ./kepub task accept TASK_ID --workspace 'work' --json
 ./kepub workspace export 'work' --output 'edited.epub' --json
 ```
 
-- 不接受修改时，在 accept 前执行 `task reject TASK_ID --workspace work`；记录与检查点保留，随后可生成新计划。已消费计划不能重跑，旧 task ID 不能操作新的候选。
-- accept 对独立冻结树运行正式检查，通过后生成独立 revision；下一次编辑使用新基线。检查尝试与接受决策分开记录；最终取消检查位于持久 journal 发布之前，意图提交后重开只向前完成。没有草稿接受或既有错误豁免。
-- export 只读取当前 accepted，而不是 active 候选；初始导入不带合规通过状态。正式导出重新检查最终 ZIP，显式 `--draft` 才允许未正式验证的草稿。候选被外部改动后，只要仍是安全、可完整散列的普通文件与真实目录树，就可以重开 diff/reject，但不能沿用旧执行状态接受。
-- 链接、特殊文件、路径碰撞或损坏来源仍拒绝打开；accepted 的 content/export 也不绕过工作区核验。外部写者引入这些条目时，须停止写者并保留现场，只修复已确认由自己引入的候选条目，再以原 taskId 审阅／拒绝；不能通过删除任务、used 记录、检查点或 journal 绕过检查。详见 [CLI 安全树边界](docs/CLI_CONTRACT.md#2-命令分组与实施次序)。
-- 工作区用明确目录定位，不使用全局注册表或 latest。open 只新建，不覆盖；plan 报告和 export 输出必须在整个工作区根之外、父目录已存在且输出不存在。操作／计划文件拒绝链接和特殊文件，FIFO 无 writer 不阻塞。
+如不接受，在 accept 前改为执行 `./kepub task reject TASK_ID --workspace 'work' --json`。已消费计划不能重跑，旧 task ID 不能操作新候选。plan 报告和 export 输出须在整个工作区之外，父目录存在且输出不存在。pack 的输入是出版根目录，**不是工作区根目录**。
 
-父 orb 另用含 BOM/CRLF/注释、特殊字符及空目录的自制 EPUB3 执行 27 次真实 CLI 调用：两次接受推进基线、旧计划拒绝、未接受内容隔离、缺 checker 拒绝、候选新增文件的 diff/reject、no-op、FIFO 与输出保护均通过。导出仅含预期两处 OPF 文本替换，其他文件字节完全一致；原书 SHA-256 未变。外部写者必须先停止；flock 与 cwd 不是同用户 OS 沙箱，断电和 ENOSPC 未证明。接口、恢复边界与 EPUB2/3 验证见 [M2-A](docs/verification/M2_A.md) 和 [M2-B](docs/verification/M2_B.md)。
+## 能力与边界
 
-来源复验会遍历 accepted 历史及完整内容树，历史增长会增加读取成本；大型书籍与长历史的目标平台性能尚未验收，当前不缓存跳过这些校验。
+| 已交付能力 | 范围与限制 |
+| --- | --- |
+| 查询与安全解包 | EPUB2/3 ZIP、metadata／manifest／spine／nav／NCX、引用 coverage；不以 spine 合成目录 |
+| XML 与来源 | UTF-8、UTF-16 LE/BE、允许的 DOCTYPE 和有界内部子集；不读取外部 DTD，不把生成节点或默认属性当可写原字节 |
+| 单操作编辑 | schema 1 元数据；schema 2 简单正文。保留各自旧参数、摘要和权限 |
+| 多资源事务 | schema 3，2–256 个既有操作，完整写集合、回滚与来源重算 |
+| XHTML 结构 | schema 4，受控属性及插入／替换／删除／同资源移动；统一最终身份与引用门禁 |
+| 字面／正则替换 | schema 5，显式 locator 范围、Go RE2、精确命中数和输出预算 |
+| 跨资源移动 | schema 6，显式子树移动，三编码保真及证明范围内的链接同步 |
+| 修复提案与差异 | schema 7，FixProposal／ValidationDelta；仅两条获准原生修复，不提供任意自动修书 |
+| 校验与导出 | 固定 EPUBCheck、冻结输入与最终 ZIP 核验、原子不覆盖发布；草稿与正式产物分开 |
 
-本批代码在源码发布前经真实 Factory Droid CLI 0.233.0／Claude Opus 5.5／medium 的 12 轮审查与修复；最后一轮独立重读全部生产 Go 和当前契约，正常 completion／exit 0，未发现剩余可复现实质缺陷。稳定产品的全仓普通／race／vet、真实 EPUB2/3 接受／导出及 Darwin 交叉构建通过。各轮失败、修复反例、准确覆盖范围和未验证限制保留在 [完整审查记录](docs/verification/DROID_REVIEW.md)；这不是绝对无 bug 或 Mac 实机、断电耐久性保证。代码已推送到 main；审查记录保留当时尚未推送的交付状态，不改写历史验证结论。
+修复提案与诊断差异查询：
 
-## Orb 启动
-
-`.agents/setup` 仅支持 Linux amd64，固定 Go 1.27.1，从根及 SDK 实验的锁文件副本预热/验证 Go 缓存。存在 SDK 实验 npm 锁时，复用精确 Node 26.10.0 / npm 10.9.9，否则校验官方归档后局部安装；`npm ci` 从固定锁和完整性校验缓存准备实验依赖。没有 SDK 锁时不安装 Node/npm。所有工具链通过非交互 login shell 可用，不改系统 Node 或仓库锁文件。
-
-第二轮 setup 另准备 Java 17+ 与官方 EPUBCheck 5.3.0：验证完整下载包，保留全部依赖 JAR，暖运行核对精确文件集合和内容，并持久提供 `KEPUB_EPUBCHECK_JAR`。这只是开发/正式检查依赖，不使只读 CLI 依赖 Java。缺失时才安装 Debian JRE；其安全更新版本不伪称为固定 patch。
-
-`.agents/resume` 只修复 Go 链接与快速检查工具/依赖，不安装、不认证、不启动服务。已有 Go/SDK 的父 orb 补装 Java/checker 为 10.92s；最新暖 setup 3.14s、resume 0.44s，锁文件未变。额外 JAR 被 resume 拒绝，setup 重装修复 4.73s，干净 login shell 验证通过。证据见 [EPUBCheck 环境验证](docs/verification/ORB_EPUBCHECK.md)，此前 Go/SDK 的空 HOME 测试见 [原 setup 验证](docs/verification/M2_A.md#独立后续sdk-实验的-orb-setup-验证)。不预装 Calibre/GUI，不是 Mac 安装器；第二轮 setup 已随源码推送默认分支，但新服务端快照尚未单独验收。
-
-## 文档
-
-- [开发方案 v0.10](docs/DEVELOPMENT_PLAN.md)：Issue #3 的规范／阶段映射，以及 Issue #4 的安全修复、分层诊断、上游采用边界与验收；保留既有交付记录。
-- [CLI 与操作契约](docs/CLI_CONTRACT.md)：拟定命令、OperationRegistry、plan/apply、机器输出、退出码与验收要求。
-- [Calibre CLI 与编辑内核研究](docs/research/CALIBRE_CLI_REVIEW.md)：官方命令全景、关键源码调用链、证据及采用/不采用的设计。
-- [开发方案 v0.2 历史原文](docs/history/DEVELOPMENT_PLAN_V0_2.md)：Calibre 研究后形成的上一版设计。
-- [开发方案 v0.1 历史原文](docs/history/DEVELOPMENT_PLAN_V0_1.md)：最初的完整方案。
-
-## 产品方向
-
-先完成普通可重排 EPUB3 的终端制书闭环；EPUB2 保留既有读取和受限操作，新增完整编辑能力前显式转换到 EPUB3。新建默认 EPUB3，不在打开或导出旧书时静默升级。T1 已补齐规定的 DOCTYPE／UTF-16／内部子集兼容，单操作与简单文本写权限仍保留；这不是宣称所有合法 EPUB 已可直接编辑。
-
-CLI 先验证 Linux，再打包并实测 Apple Silicon Mac。后续桌面首发仍面向 Apple Silicon，**已确认采用 MyGo 与系统 WebView**，当前接口基线为 MyGo 0.2.0，macOS 使用 WKWebView，不捆绑 Chromium。主编辑窗口计划使用 Go + TypeScript，MyGo 网页控制通过 `Window.Page()` API；React + Vite 仍是前端计划，尚未实现。MyGo 纯 Go 原生 UI 只作为独立设置、诊断、检查器等辅助窗口的候选。独立 `kepub` CLI 与 GUI 共用 Go EPUB 核心。
-
-Bridge 是系统 WebView 的脚本通信适配，与系统 WebView 本身不冲突；框架选型确认不代表预览安全已经通过。MyGo 0.2.0 公共网页窗口的顶层页面会注入 bridge，另开窗口不等于无桥或独立存储；导航拦截也不等于禁止所有网络请求。[边界实验](experiments/mygo-boundary/README.md)已在真实 Linux WebKitGTK 发布模式复现同源 iframe 经 `parent.mygo` 调用 Go，并验证受限 sandbox 对照；这不是 Mac 或完整 EPUB 预览验收。出版物隔离仍须在 MyGo／WKWebView 适配内解决并完成 Apple Silicon release 实测，详见 [预览安全边界](docs/DEVELOPMENT_PLAN.md#62-可信壳与不可信出版内容)。
-
-当前只建设不依赖模型的确定性 EPUB 操作和工作区、差异、检查、审核、导出；预览与 Amp 内容协作后置。Calibre 是参考和可选适配，不是运行核心功能的必需依赖。以下为后续桌面流程，不是当前 CLI 已实现的界面：
-
-```text
-打开 EPUB → 阅读并定位
-                ↓
-     确定性操作 或 Amp 编辑
-                ↓
-       候选结果 ↔ 实时预览
-                ↓
- 差异 + 检查覆盖 → 审核接受 → 导出
+```sh
+./kepub fix propose --workspace 'work' --json
+./kepub fix delta --workspace 'work' --before initial --after-task TASK_ID --json
 ```
 
-## 历史：v0.4 Amp 接入对照实验
+二者只读。执行修复须显式选择实际 repair ID，再走审核事务。提案可包含 unfixable 项，诊断数量减少不代表 EPUB 合规；接口见 [FixProposal/Delta v1](docs/contracts/T2_FIX_PROPOSAL_V1.md)。
 
-Go 仍负责出版物、工作区、写租约、候选冻结、审核和导出。此前已并行比较 **A：Go 直接管理 CLI/JSONL** 与 **B：Go 监督 Node/TypeScript SDK 辅助进程，再调用 CLI**，采用相同输入/事件约定和取消、异常退出等故障场景，后续择一进入生产适配。SDK 不放入 WebView，也不成为只读 CLI 的依赖。
+### 使用前需要知道
 
-第一轮四条 Ultra 工作线已经完成：M1-B1 目录/引用/覆盖、M2-A 工作区快照与单写者、M0-A CLI 原型、M0-B SDK 原型。实现目录与依赖边界见 [第一轮分工](docs/DEVELOPMENT_PLAN.md#111-第一轮并行工作与文件所有权)。第二轮改用 Medium，M1-B2 校验/打包和 M2-B 元数据计划/候选/diff、审核与导出也已本地集成；范围见 [第二轮记录](docs/DEVELOPMENT_PLAN.md#112-第二轮medium-并行实现随后集成编辑闭环)。原型成功不等于生产 Agent 已接入；真实 Amp 与 Mac 实机验证单独列为门槛。
+- **原书保护：** 原书、revision、候选及检查点是独立副本。目标外字节与非 manifest 文件／空目录按受支持契约保留；无操作不重排 XML。当前不是内容寻址去重存储。
+- **覆盖不等于合规：** 引用 `complete` 只表示对应语法提取完整，不是编辑授权。CSS 仅支持 literal url/import 子集；脚本、SMIL、srcset 等覆盖不完整。校验通过不等于渲染或人工无障碍通过。
+- **解析不等于检查器接受：** EPUBCheck 5.3.0 拒绝 UTF-16 XHTML（`HTM_058`）；UTF-16 OPF/container 与 UTF-8 XHTML 的非 strict 正例另有验收。不会为通过检查而隐式转码。
+- **预算是产品策略：** 书内路径上限 4096 字节／128 层；展开库存 20,000 个唯一文件／目录（含隐式父目录）、累计路径 32 MiB、256 MiB/文件、2 GiB 实际总量；原始 XML 8 MiB。解析、解码、引用图、输出另有独立预算，详见契约，不因过滤查询或缓存命中豁免。
+- **工作区不是 OS 沙箱：** 协作进程锁不防御任意同用户写者。安全候选漂移可审阅／拒绝，来源损坏、链接及特殊文件仍拒绝；不能删 journal、任务或检查点强行恢复。已证明的恢复边界不等于断电耐久性。
+- **限制保持显式：** 不解密、不执行书内脚本、不联网读取外部 DTD；未知加密／签名书及字体混淆的编辑资格受限。资源改名、全局工作区注册表、GUI、预览和生产 Agent 尚未实现。
 
-实验结论为 **A 优先进入后续受管 Agent 验证，B 暂不晋级**。固定 SDK 实包复现 stderr 排空、退出早于 EOF、原始未结束消息无大小上限的缺口；其测试通过代表成功复现并收敛失败，不是协议门槛通过。A 无需新增运行时，已通过 Linux 受控协议与进程测试，但两者都未验证真实 Amp、配置/权限发现、任意脱组写者或 Mac 回收。证据与离线命令见 [CLI 原型](docs/verification/AMP_CLI_SPIKE.md) / [SDK 原型](docs/verification/AMP_SDK_SPIKE.md)；后者为独立模块，根目录 `go test ./...` 不运行其 Node/Go 测试，须在 `experiments/amp-sdk` 执行 `npm test` 和 `npm run check`。
+JSON 成功／失败均输出统一 envelope。脚本应核对退出码与稳定错误 code，不解析终端摘要；命令发现、预算、取消和恢复细节以 [CLI 契约](docs/CLI_CONTRACT.md)为准。
 
-编辑器集成只借鉴文档/选区/诊断与 Agent 分离的职责，不复刻已停用 VS Code 侧栏或其私有协议。后续如需实时工具交接，再在 OperationRegistry 稳定后评估公开 MCP/插件 API。
+## 开发与验证
 
-## 历史：v0.3 的关键变化
+核心依赖为 Go 标准库、`golang.org/x/text` 和 `golang.org/x/sys`，版本见 [go.mod](go.mod)。先配置真实 EPUBCheck，再运行：
 
-MyGo 0.2.0 已正式发布。Kepub 因此固定新的桌面接口假设：网页能力从 `Window` 迁移到 `Page`；Preview 的加载、刷新、导航和崩溃恢复统一使用 `Window.Page()`。页面就绪不能只检查 `document.readyState`，而要绑定 workspace/task/generation/bookPath 并完成目标视图握手。
+```sh
+go test -count=1 -timeout=30m ./...
+go test -race -count=1 -timeout=30m ./...
+go vet ./...
+```
 
-MyGo 新增的纯 Go native UI 在 macOS 使用 Metal/Core Text，但它不是 EPUB 阅读引擎，也不能从“同一应用可混用两种窗口”推导出“同一窗口可任意混排 native UI 与 WKWebView”。首发主窗口继续使用 Web UI + WKWebView；native UI 只作为独立辅助窗口候选。
+[GitHub Actions](.github/workflows/ci.yml) 在 PR 和 main push 上验证精确提交，依序执行普通／race／vet及普通／race CLI 构建，保存 14 天日志。**没有 checks、SKIP 或工具错误均不算通过。** Linux CI 不执行私有原书；缺 checker 的结果不能替代正式验证。现有 Actions 的 Node／setup-java 弃用警告仍待维护，不影响上述固定运行的成功结论。
 
-CEF 没有随 MyGo 0.2.0 正式发布；公开 CEF PR 当前面向 Linux 且仍未合并，因此不进入 Apple Silicon 首发基线。
+Orb 的 [.agents/setup](.agents/setup) 准备 Linux amd64 Go、Java 和固定 EPUBCheck；[.agents/resume](.agents/resume) 只做快速恢复检查。SDK 实验有独立锁文件／运行时，根目录 Go 套件不覆盖它；须在 `experiments/amp-sdk` 单独执行 `npm run check` 和 `npm test`。
 
-v0.2 的 Calibre 优化继续保留：转换、整理、结构编辑和只读查询分开；GUI、CLI 与 Agent 共用 OperationRegistry；原始 EPUB、accepted revision 与候选任务分离；`apply`、`accept`、`export` 保持不同语义。
+贡献前阅读 [开发约束](AGENTS.md)和[开发注意事项](docs/DEVELOPMENT_NOTES.md)。回归需保留旧树反例、合法正控和新树证据；源码交付、独立批准、平台验收与发行分别记录。不要提交私有书籍、凭据或原始敏感日志。
 
-## 基本约束
+## 路线与待办
 
-- 原书默认不覆盖；未修改资源尽量保持原字节，结构修改必须维护引用。
-- 书籍页面不可信，不能拥有应用的文件或进程权限。
-- 配置、聊天记录、检查点和工具文件不进入 EPUB。
-- 正式导出以冻结归档及明确版本的 EPUBCheck 报告为依据。
-- 项目名 Kepub 不表示默认输出 Kobo KEPUB，默认仍是普通 EPUB。
+| 阶段 | 当前状态 |
+| --- | --- |
+| S0：规范资产与差距矩阵 | 有限门槛已验收；归档不等于全规范实现 |
+| T1a／T1b：编码、终端与 XML 来源 | 已验收并集成 |
+| T2：事务、编辑与修复 | 五个有限增量已集成；字体混淆资格、旧工作区重评、OPF/spine、资源维护及 NCX/SVG/CSS 等仍待完成 |
+| T3：EPUB2 → EPUB3 | 待实现；显式转换，不静默升级原书 |
+| T4：新建与维护 | 待实现；含章节／目录／资源及按标题拆章 |
+| T5：样式、系统字体与基础图片 | 待实现；不新增嵌入字体，系统字体不保证跨设备外观一致 |
+| T6：CLI 验收与发行 | 待实现；Linux 与 Apple Silicon Mac 分别验收 |
+| S2–S4：预览、交互与完整符合性 | 后置；MyGo／WKWebView 选型及边界实验不等于产品已交付 |
 
-## 开发路线：先完成独立 EPUB3 CLI
+完整依赖与关闭门槛见 [开发方案 §11.7–§11.9](docs/DEVELOPMENT_PLAN.md)。T6 完成也不自动满足全规范／渲染／无障碍总目标。
 
-| 阶段 | 开发批次与终点 |
-|---|---|
-| S0．规范资产与差距矩阵 | 按 §11.8 有限清单归档固定规范，三份 REC 按来源逐条清点、映射与对账；3.3 测试报告和用例源码分别锁定，核对 checker 的 2026 增量；外部规范直接引用清单不递归归档整个 Web |
-| T1a／T1b．标准兼容与终端基础 | 两批均已本地验收：原生 DOCTYPE／UTF-16、可读输出／diff／status／search，以及 §3.4 规定的内部声明／实体／默认属性、来源与预算矩阵；保持单操作和简单文本写权限 |
-| T2．内置编辑、多文件事务与修复提案 | 上述五个有限增量已验收；剩余字体混淆资格、旧工作区重评及 OPF／spine、资源维护、NCX／SVG／CSS 引用能力仍待交付 |
-| T3．EPUB2 → EPUB3 首批 | 先冻结 EPUB 2.0.1 及受信离线 DTD／实体资产，再显式迁移 OPF、NCX／nav、封面、必要 XHTML；首批 CSS 原字节保留，需改 CSS 的迁移由 T5 扩展；正式验证且保留原书 |
-| T4．新建与维护 | T4a 默认新建 EPUB3，元数据、章节／目录／资源与历史；T4b 网络小说按标题自动拆章，预览切点并同步阅读顺序和链接 |
-| T5．样式、系统字体与基础图片 | CSS 管理、字体族发现与回退声明；不嵌入字体；基础图片与简单排列；完成 CSS 迁移及 T4b 引用扩展验收，T6 回归正式 ZIP。T4a 后可开工，通过须有 T4b 首版联调 |
-| T6．CLI 验收与发行 | 无可选第三方工具的新建／转换／修复终端流程，Linux 功能测试与构建，再做 Mac 打包及实机验收；正式检查仍需 Java／固定 EPUBCheck |
+### 现有 Issue 的归属
 
-以上通过后才称为普通 EPUB3 的创建、修改与维护闭环。近期不做完整 EPUB2 编辑器、新建 EPUB2 或 EPUB3 降级；高级排版／媒体、UI、外部编辑器和 Amp 集成后置。T1 新入口的语义见 [契约 §2.4](docs/CLI_CONTRACT.md#24-t1-终端增量实施契约已本地验收)，T2 已验收范围见 §2.7～§2.11；其余新增命令与操作仍须逐批冻结、实现和验收，不能将计划能力当可执行功能。
+| 跟踪项 | 剩余范围 |
+| --- | --- |
+| [#1 Diff UI](https://github.com/LeviTK/Kepub/issues/1) | Pierre 差异展示与审核 UI；现有终端 diff 不是该 UI |
+| [#2 内容寻址版本库](https://github.com/LeviTK/Kepub/issues/2) | 不可变 Blob/Tree/Revision、去重与迁移；现有哈希核验不等于实现 |
+| [#3 EPUB 3.3 总目标](https://github.com/LeviTK/Kepub/issues/3) | 规范、编辑、真实渲染与无障碍分维度验收 |
+| [#4 生态借鉴](https://github.com/LeviTK/Kepub/issues/4) | 来源、许可、对照测试和可选适配边界，不要求集成所有上游 |
+| [#14 路径预算](https://github.com/LeviTK/Kepub/issues/14) → [#28 Mac 验收](https://github.com/LeviTK/Kepub/issues/28) | 产品修复与 Linux 回归已集成；保留 Mac 实机门槛 |
+| [#15 查询成本](https://github.com/LeviTK/Kepub/issues/15) → [#29 剩余 A](https://github.com/LeviTK/Kepub/issues/29) | 部分调用级复用已交付；整书快照与安全等价验证仍在，B 依赖 #2 |
 
-当前 EPUB3 核心接受规定范围内的允许声明，但不读取任何外部 DTD 子集；未来仅显式 EPUB2 迁移使用冻结的有限离线资源。EPUB2 合法但暂不支持的声明报能力限制，不误套 EPUB3 非法规则。良构但无法展开的实体保留并明确 partial；`content/search` 不能提供完整文本时失败，不把未知内容当空串。T1 的 XML 8 MiB 按原始资源含 BOM 计量，另设每资源解码／展开预算，读取、编辑和来源重算一致；实体生成节点／默认属性不能伪造为原字节可写位置。
+2026-10-13 整理结果：#5–#13 已按原范围关闭；#16、#27 已合并；#17–#26 由 #27 集成后关闭，原审查和失败记录保留。关闭修复项不表示整个产品完成。
 
-按标题自动拆章已加入计划：识别 XHTML 标题或明确规则匹配的独立章名（如“第一章”“第001章”），先列出边界供审阅，再拆为独立 XHTML，保留前言、正文、CSS／图片关联，并维护目录、阅读顺序与跨章链接。首版不在任意嵌套位置强切，不自动合章，不承诺拆前拆后的分页／样式完全相同；超过现有解析预算仍明确拒绝。可行性、依赖与反例见 [§3.9](docs/DEVELOPMENT_PLAN.md#39-网络小说按标题自动拆章t4b待实现)，当前尚未实现。
+Issue／PR 使用类型标签（如 `bug`、`enhancement`、`type:performance`）、`area:*` 模块标签及必要的 `status:*` 标签；优先级仅沿用已确认的 P1/P2，不替未来工作猜排期。新标题建议 `类型(模块): 具体目标`，原 R/N 审查编号保留供追溯。新 Issue 写明当前行为、目标／非目标、验收与依赖；PR 写明关联 Issue、精确输入、验证结果和未测项。标签不代替 GitHub 的 open／closed／merged 状态，也不代表开发授权。
 
-[Issue #4](https://github.com/LeviTK/Kepub/issues/4) 的生态借鉴不是“全部集成”：Readium／Go EPUB 库优先作解析对照，修复器借鉴可解释提案与反例，epubveri／Ace／Calibre 保持可选；Readium CSS 留给后续阅读层，不替代 T5 的 CSS 解析器。T2 提案绑定输入、精确操作和风险，ValidationDelta 区分已解决、持续、新增／升级、新近可检查和不可比较的问题，**错误数量改善不能代替正式检查**。外部修复工件不得直接覆盖活动候选；许可、版本和供应链须先核验。详见 [§8.3](docs/DEVELOPMENT_PLAN.md#83-issue-4-的生态取舍与外部工件边界) 与 [§11.9](docs/DEVELOPMENT_PLAN.md#119-issue-4-的阶段落点与落实条件)。本次依据 issue 的静态研究调整计划，没有运行或重新审计这些上游工具。
+## 文档索引
 
-[Issue #3](https://github.com/LeviTK/Kepub/issues/3) 的总目标继续保留：S1 内容模型与无损编辑由 CLI 批次落实；S2 作者原样预览、S3 完整排版／媒体交互、S4 官方测试／Mac／人工无障碍随后单独验收。**T6 通过不等于关闭 Issue #3。** 保留、解析、编辑、渲染、验证分别记录状态，EPUBCheck pass、引用 complete 或采用 WKWebView 均不能证明全部支持；固定 3.3 用例，不混用默认指向 3.4 的测试入口。
+| 阅读目的 | 入口 |
+| --- | --- |
+| 参数、schema、预算与错误语义 | [CLI 与操作契约](docs/CLI_CONTRACT.md) |
+| 路线、架构、阶段和关闭条件 | [开发方案 v0.10](docs/DEVELOPMENT_PLAN.md) |
+| 规范覆盖与 S0 证据 | [EPUB 3.3 支持矩阵](docs/EPUB33_SUPPORT_MATRIX.md) · [S0 父验收](docs/verification/S0_PARENT_ACCEPTANCE.md) · [2026 checker 核验](docs/verification/S0_EPUBCHECK_2026.md) |
+| 查询、诊断与正文编辑 | [M1-A](docs/verification/M1_A.md) · [M1-B1](docs/verification/M1_B1.md) · [C1](docs/verification/C1_CLI.md) · [C2](docs/verification/C2_CONTENT.md) · [C3](docs/verification/C3_CONTENT_EDIT.md) |
+| 工作区、审核、校验与导出 | [M2-A](docs/verification/M2_A.md) · [M2-B](docs/verification/M2_B.md) · [M1-B2](docs/verification/M1_B2.md) |
+| 编码、来源与事务增量 | [T1a](docs/verification/T1A_ENCODING_TERMINAL.md) · [T1b](docs/verification/T1B_XML_SUBSET.md) · [T2 五批验收](docs/verification/T2_MULTI_OPERATION.md) |
+| 历史审查与开发环境 | [Droid 审查记录](docs/verification/DROID_REVIEW.md) · [Orb EPUBCheck](docs/verification/ORB_EPUBCHECK.md) |
+| 后置方案与实验 | [Calibre 研究](docs/research/CALIBRE_CLI_REVIEW.md) · [MyGo 边界](experiments/mygo-boundary/README.md) · [Amp CLI 原型](docs/verification/AMP_CLI_SPIKE.md) · [SDK 原型](docs/verification/AMP_SDK_SPIKE.md) |
 
-系统字体只属于运行 CLI 的机器；书中只写字体族和回退，不复制字体本体，也不删原书已有字体。另一台阅读设备未安装或不采用所选字体时会替代，不能保证跨设备外观一致。EPUBCheck 合规不等于视觉排版验收。
-
-T2 另负责标准 IDPF 字体混淆书的受控编辑资格，保持字体字节与密钥标识符，旧工作区须显式版本化重评，不删除只读原因或历史证据。T4a 改名须同步 encryption.xml 的 CipherReference，否则拒绝；本阶段不删除被混淆字体。未知／非标准／混合加密及签名书在 T1～T6 仍只读；不是解密或重签功能。T3～T5 覆盖标准混淆字体保留，实际呈现由 S2 验收。
-
-当前 `task accept` 不能鉴别人类和 Agent，“先询问用户”是合作约定，不是权限隔离。GUI 不通过拼接命令或解析终端文本复用业务逻辑，而与 CLI 共用 Go 用例。
-
-参考 Obsidian CLI 的命令发现、目标选择、查询与诊断，但 Kepub 保持无 GUI 可运行，不照搬当前活动文件或任意 eval；具体见 [CLI 构建取舍](docs/DEVELOPMENT_PLAN.md#91-参考-obsidian-cli但保持真正-headless)。[Amp 接口边界](docs/DEVELOPMENT_PLAN.md#813-external-apicli-与-typescript-sdk-的适用边界)另区分 SDK／CLI 的 Agent 执行与 External API 的工作区数据管理，后者不是发送编辑 prompt 的入口。
-
-当前依赖、范围和验收见 [v0.10 开发批次](docs/DEVELOPMENT_PLAN.md#117-v010-独立-cli-批次与完成标准)、[S0 与关闭门槛](docs/DEVELOPMENT_PLAN.md#118-issue-3-阶段映射规范资产与关闭门槛)，转换边界见 [§3.7](docs/DEVELOPMENT_PLAN.md#37-epub2--epub3显式可审阅的版本转换)。原 C1～C3 交付和 C4／U／A 设想保留为历史／后续参考；既有接口约束见 [CLI 契约 §2.1／§2.2](docs/CLI_CONTRACT.md#21-c1c2-本批实施契约)。父 Orb 统一协调；当前 DeepSeek 与 Medium 两个编码 orb 独立 PK，既有独立 medium reviewer 不参加编码 PK。审查使用各批实际指定的审计者，保留历史 Droid／DeepSeek／high／medium 结果，不将作者自审或旧树批准迁为新树独立批准。本地实现、源码推送和版本化发行分别记录，发布另获授权。
-
-除上面明确列出的命令、库与独立实验外，设计文档中的命令和接口仍待实现；不能将其他设计示例当作当前安装使用说明。
+历史文档保留当时的未推送、拒绝和未测结论；不能把旧树批准迁移到新树，也不能将设计示例当成当前可执行命令。
