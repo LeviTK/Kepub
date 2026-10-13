@@ -154,6 +154,7 @@ func r6History(t testing.TB, parent string, depth, cssBytes int) r6Fixture {
 // Default CI remains bounded at 1/10; the explicitly requested performance
 // corpus adds 100, still at most 64KiB per CSS file. Nothing is a mock accept.
 func TestR6HistoryMatrix(t *testing.T) {
+	requireChecker(t)
 	root := os.Getenv("KEPUB_R6_PREPARE")
 	depths := []int{1, 10}
 	if root == "" {

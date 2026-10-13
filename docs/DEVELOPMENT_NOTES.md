@@ -311,6 +311,9 @@
   accepted 正式导出各核独立结果。benchmark 报 self /proc I/O，不含 Java child，rchar
   不是物理读量；profiles 观察完整复制与临时逻辑 payload，非 RSS／磁盘块峰值。
   `TestR6ColdProcess` 的新进程与同进程 reopen 分列；不清 OS 缓存，不伪称冷盘成绩。
+- R6 六个顶层测试遗漏 `requireChecker` → 无配置时真实 Accept 报依赖错误、旧生命周期
+  SKIP 而新测试 FAIL → 同样在顶层检查配置；有固定 JAR 时六测试仍须真实执行成功，
+  无配置的 SKIP 单列，不充作接受／导出或性能验收，错误 JAR 仍 FAIL。
 
 ## G-EVIDENCE：验证身份和范围不迁移
 

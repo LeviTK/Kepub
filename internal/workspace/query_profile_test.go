@@ -82,6 +82,7 @@ func r6Profile(t *testing.T, f r6Fixture, operation, mode string) {
 }
 
 func TestR6QueryProfiles(t *testing.T) {
+	requireChecker(t)
 	fixtures := map[string]r6Fixture{}
 	if root := os.Getenv("KEPUB_R6_FIXTURES"); root != "" {
 		data, err := os.ReadFile(filepath.Join(root, "fixtures.json"))
@@ -109,6 +110,7 @@ func TestR6QueryProfiles(t *testing.T) {
 
 // This is a fresh process, not a cold-disk claim: OS page caches are not flushed.
 func TestR6ColdProcess(t *testing.T) {
+	requireChecker(t)
 	if input := os.Getenv("KEPUB_R6_CHILD_INPUT"); input != "" {
 		data, err := os.ReadFile(input)
 		var f r6Fixture

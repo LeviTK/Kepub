@@ -15,6 +15,7 @@ import (
 // The fixture becomes a revision only through real formal acceptance. The
 // observation seam does not bypass any read, hash, provenance or checker gate.
 func TestR6SingleCallRevisionVerification(t *testing.T) {
+	requireChecker(t)
 	w, _, _ := legalWorkspace(t, "3.0")
 	defer w.Close()
 	e := applyPlan(t, w, fieldPlan(t, w, "title", "title", "Title", "Reviewed"))
@@ -43,6 +44,7 @@ func TestR6SingleCallRevisionVerification(t *testing.T) {
 }
 
 func TestR6VerificationIsCallLocal(t *testing.T) {
+	requireChecker(t)
 	f := r6History(t, t.TempDir(), 2, 1024)
 	for _, boundary := range []string{"legal", "original", "initial", "ancestor", "current", "checkpoint", "execution", "pointer", "closed", "cancelled"} {
 		t.Run(boundary, func(t *testing.T) {
@@ -124,6 +126,7 @@ func TestR6VerificationIsCallLocal(t *testing.T) {
 }
 
 func TestR6Schema7SnapshotRevalidatesSource(t *testing.T) {
+	requireChecker(t)
 	w, dir, source := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": fixSourceSVG()})
 	defer w.Close()
 	original := readResource(t, source)
