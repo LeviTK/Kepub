@@ -304,6 +304,10 @@
   动态map键同样安全渲染。实际task diff是已转义展示，不能再转义整段：
   `TestR5SummaryDiagnosticsAndKeys`、`TestR5TaskDiffIsNotDoubleEscaped` 保留两真实CRLF差异行。
   不修改书籍、来源/accepted/事务、正式checker门槛或机器协议，也不称远程命令执行漏洞。
+- JSON 往返先把非法 UTF-8 换成 U+FFFD → 摘要失去值／路径身份且不同动态键合并 →
+  形状归一化后从原 Go 字符串恢复字节，动态键逐条保留，机器编码器不改。
+  `TestR5SummaryInvalidBytes` 核 FF／FE／合法替代符／字面反斜杠、嵌套值与截断边界；
+  `TestR5SummaryInvalidPathBinary` 核真实 unpack 路径和 JSON 原替代语义，诊断沿原测试扩展。
 
 ## G-CONTENT-LOOKUP：索引不改变成员授权或全量计数
 
@@ -340,6 +344,9 @@
   accepted 正式导出各核独立结果。benchmark 报 self /proc I/O，不含 Java child，rchar
   不是物理读量；profiles 观察完整复制与临时逻辑 payload，非 RSS／磁盘块峰值。
   `TestR6ColdProcess` 的新进程与同进程 reopen 分列；不清 OS 缓存，不伪称冷盘成绩。
+- R6 六个顶层测试遗漏 `requireChecker` → 无配置时真实 Accept 报依赖错误、旧生命周期
+  SKIP 而新测试 FAIL → 同样在顶层检查配置；有固定 JAR 时六测试仍须真实执行成功，
+  无配置的 SKIP 单列，不充作接受／导出或性能验收，错误 JAR 仍 FAIL。
 
 ## G-EVIDENCE：验证身份和范围不迁移
 

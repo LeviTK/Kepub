@@ -6,10 +6,12 @@ import (
 	"errors"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/LeviTK/Kepub/internal/app"
 	"github.com/LeviTK/Kepub/internal/validation"
@@ -107,15 +109,86 @@ func TestR5OutputWriterErrorPaths(t *testing.T) {
 }
 
 func TestR5SummaryDiagnosticsAndKeys(t *testing.T) {
-	message := "诊断 中文%\r\n\t\x1b[2J\u0085\u202e"
+	message := "诊断 中文%\r\n\t\x1b[2J\u0085\u202e\xff"
 	for _, data := range []any{
 		validation.Report{Diagnostics: []validation.Diagnostic{{Source: "epubcheck", Message: message}}},
 		[]app.Capability{{ID: "example", Reason: message}},
 		map[string]any{"key\x1b[2J\u202e": message},
 	} {
 		out, err := humanSummary("validate", data)
-		if err != nil || !strings.Contains(out, `诊断 中文%\r\n\t\x1b[2J\u0085\u202e`) || strings.ContainsAny(out, "\r\t\x1b\u0085\u202e") {
+		if err != nil || !strings.Contains(out, `诊断 中文%\r\n\t\x1b[2J\u0085\u202e\xff`) || strings.ContainsAny(out, "\r\t\x1b\u0085\u202e") {
 			t.Fatalf("unsafe summary: %q %v", out, err)
+		}
+	}
+}
+
+func TestR5SummaryInvalidBytes(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		data any
+		want string
+	}{
+		{"keys-and-values", map[string]any{"k\xffz": "v\xfez", "k\xfez": "v\xffz", "k�z": "literal �", `k\xffz`: `literal \xff`}, "Kepub · test\n\nk\\\\xffz: \"literal \\\\xff\"\nk�z: \"literal �\"\nk\\xfez: \"v\\xffz\"\nk\\xffz: \"v\\xfez\"\n"},
+		{"diagnostic", struct {
+			Message string `json:"message"`
+			Empty   string `json:"empty,omitempty"`
+		}{Message: "诊断\xff\x1b\u202e"}, "Kepub · test\n\nmessage: \"诊断\\xff\\x1b\\u202e\"\n"},
+		{"nested", map[string]any{"items": []any{map[string]string{"message": "m\xffz"}, "中文�"}}, "Kepub · test\n\nitems: 2 item(s)\n  - \n    message: \"m\\xffz\"\n  - \"中文�\"\n"},
+		{"invalid-boundary", map[string]string{"text": strings.Repeat("\x80", 1025)}, "Kepub · test\n\ntext: \"" + strings.Repeat(`\x80`, 1024) + "… (text omitted; use --json)\"\n"},
+		{"valid-boundary", map[string]string{"text": strings.Repeat("a", 1023) + "中文"}, "Kepub · test\n\ntext: \"" + strings.Repeat("a", 1023) + "… (text omitted; use --json)\"\n"},
+		{"json-shape", struct {
+			Bytes  []byte          `json:"bytes"`
+			Number uint64          `json:"number"`
+			Quoted string          `json:"quoted,string"`
+			Hidden string          `json:"-"`
+			Raw    json.RawMessage `json:"raw"`
+		}{[]byte{255}, 9007199254740993, "中文", "not shown", json.RawMessage(`{"ok":true}`)}, "Kepub · test\n\nbytes: \"/w==\"\nnumber: 9007199254740993\nquoted: \"\\\"中文\\\"\"\nraw: \n  ok: true\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			before, err := json.Marshal(tc.data)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := humanSummary("test", tc.data)
+			if err != nil || got != tc.want {
+				t.Fatalf("summary=%q want=%q err=%v", got, tc.want, err)
+			}
+			after, err := json.Marshal(tc.data)
+			if err != nil || !bytes.Equal(before, after) {
+				t.Fatalf("machine data mutated: %q -> %q (%v)", before, after, err)
+			}
+		})
+	}
+}
+
+func TestR5SummaryInvalidPathBinary(t *testing.T) {
+	binary := workspaceBinary(t)
+	_, book, _, _ := cliContentWorkspace(t, `<html xmlns="http://www.w3.org/1999/xhtml"><body><p>Unchanged.</p></body></html>`)
+	for _, tc := range []struct{ raw, visible, machine string }{
+		{"out-\xff", `out-\xff`, "out-�"},
+		{"out-\xfe", `out-\xfe`, "out-�"},
+		{"out-中文", "out-中文", "out-中文"},
+		{"out-\x1b\a", `out-\x1b\a`, "out-\x1b\a"},
+	} {
+		root := t.TempDir()
+		path := filepath.Join(root, tc.raw)
+		cmd := exec.Command(binary, "unpack", book, "--output", path)
+		var out, errs bytes.Buffer
+		cmd.Stdout, cmd.Stderr = &out, &errs
+		if err := cmd.Run(); err != nil || errs.Len() != 0 {
+			t.Fatalf("unpack: %v stdout=%q stderr=%q", err, out.Bytes(), errs.Bytes())
+		}
+		if !strings.Contains(out.String(), `"`+root+"/"+tc.visible+`"`) || strings.ContainsAny(out.String(), "\x1b\a") {
+			t.Fatalf("lost path identity: %q", out.Bytes())
+		}
+		if _, err := os.Stat(path); err != nil {
+			t.Fatal(err)
+		}
+		jsonRoot := t.TempDir()
+		env := processJSON(t, binary, []string{"unpack", book, "--output", filepath.Join(jsonRoot, tc.raw)}, 0, time.Minute)
+		data := env["data"].(map[string]any)
+		if data["output"] != filepath.Join(jsonRoot, tc.machine) {
+			t.Fatalf("machine contract changed: %#v", data)
 		}
 	}
 }

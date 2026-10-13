@@ -144,5 +144,7 @@
   有界 1／10 修订，两种小书均真实 checker 接受；100 修订性能输入显式生成。
   R6 benchmarks／profiles 分开报告 revision visits、原书读取、实际 self I/O、私有复制和
   临时逻辑 payload，fresh process 不称物理冷盘，benchmem 不称 RSS 或子 Java 的 I/O。
+- 新增真实 checker 测试在顶层复用 `requireChecker`；未配置时显式 SKIP，不能把环境缺失
+  当产品 FAIL 或符合性 PASS。配置后仍实际接受并核成功，不把 checker 错误降为 SKIP。
 
 对应开发注意事项：`G-FINAL`、`G-FACTS`、`G-BINDING`、`G-ORACLE`、`G-QUALIFY`、`G-JSON`、`G-IDREF`。
