@@ -4,7 +4,7 @@
 
 ## 开始工作
 
-- 先读 `docs/CLI_CONTRACT.md` 的对应批次、`docs/DEVELOPMENT_PLAN.md` §11.7–11.9 和 `docs/DEVELOPMENT_NOTES.md` 的相关规则；不要从 README 的阶段摘要推断功能已验收。
+- 先读当前流程 `docs/DEVELOPMENT_WORKFLOW.md`、`docs/CLI_CONTRACT.md` 的对应批次、`docs/DEVELOPMENT_PLAN.md` §0.2 与 §11.7–11.9 和 `docs/DEVELOPMENT_NOTES.md` 的相关规则；历史调度不作当前授权，不从 README 的阶段摘要推断功能已验收。
 - 用 `git status --short --branch`、HEAD/tree 和 upstream 确认输入。区分本地 main、origin/main、编码工作树与待审固定树；不得清理、隐藏或覆盖其他人的修改和证据。
 - 先确定行为所有者和已有 helper，再做最小修改。新能力先冻结版本化契约，不改旧 schema、摘要、权限或预算含义；不借任意 patch/shell/外部工具绕过原生事务。
 - 修复拒绝或回归时加载 `debugging-kepub-regressions`；提交复审前或执行 review 时加载 `reviewing-kepub-changes`。项目 skill 位于 `.agents/skills/`，不支持 skill 的工具直接读取相应 SKILL.md。
@@ -33,6 +33,7 @@
 - 有效事务 fuzz 的生成输入必须合法、必须成功执行且核对独立 oracle；意外拒绝本身是 FAIL，不能 continue。记录 seed、参数、执行数、退出码和真实覆盖。
 - 长测试自然运行并追踪原进程，不为取输出重跑或取消。检查器缺失、skip、工具错误不算产品 PASS；实际反例 FAIL 不被全仓/race/vet PASS 抵消。
 - fixed candidate 一旦改变，旧批准不自动适用。编码方自审不代替独立审查；批次只在同一输入的独立批准和父验收后集成，之后再获下一批授权。
+- 证据复用须按当前流程核全树、构建/依赖/夹具与环境，并针对新身份出具适用性结论；不得把复用写成独立重跑。交接使用 `docs/templates/CHANGE_RECEIPT.md`，具体批次附加门槛不因复用而豁免。
 
 ## Review 后维护
 
