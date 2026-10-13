@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -47,6 +48,9 @@ func appendDiagnostic(r *Report, d publication.Diagnostic) {
 }
 
 func failedInput(hash string, o Options, err error) (Report, error) {
+	if errors.Is(err, context.DeadlineExceeded) {
+		err = fault.New(5, "CHECKER_TIMEOUT", "request timed out or was cancelled")
+	}
 	r := newReport(hash, o)
 	if priority(err) == 1 {
 		r.Status = "fail"

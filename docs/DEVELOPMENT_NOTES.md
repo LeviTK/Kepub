@@ -189,8 +189,10 @@
   阶段注入 Canceled／Deadline，区分 plan／export／propose，不以 Open 预取消替代该分支。
 - validate／pack 的冻结、复制或 hash 返回原始 DeadlineExceeded → run 降为 IO_ERROR/6 →
   CLI 按返回错误链映射 CHECKER_TIMEOUT/5，保留信号 CANCELLED/130、真实 I/O 与发布成功。
+  只在 CLI 外层映射仍让报告 diagnostics 留下 IO_ERROR；failedInput 在生成诊断前归类
+  原始 deadline，内层报告与返回错误一致，不扩大为任意 context 过期的错误重写。
   `TestD2EarlyValidationDeadline` 核两入口早期超时及取消／I/O／成功控制；确定性 context
-  注入不冒称真实 CLI 定时窗口，真实子 CLI 的 I/O 与草稿成功控制另列。
+  注入同时核报告 code，不冒称真实 CLI 定时窗口，真实子 CLI 的 I/O 与草稿成功控制另列。
 - Open 预取消或 baseline 扫描取消先于 journal 恢复 → 已持久决定延迟到下次无取消请求 →
   持锁发现 pending journal 后，将原有验证前缀和恢复一并临时 WithoutCancel；存在 journal
   不授权恢复，完整来源／hash／预算／真实 I/O 仍核。恢复后还原请求 context，取消时不继续

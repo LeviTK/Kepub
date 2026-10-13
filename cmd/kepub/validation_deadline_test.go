@@ -10,6 +10,7 @@ import (
 
 	"github.com/LeviTK/Kepub/internal/fault"
 	"github.com/LeviTK/Kepub/internal/testfixture"
+	"github.com/LeviTK/Kepub/internal/validation"
 )
 
 // The first observation admits validation; the next interrupts freeze/copy,
@@ -75,7 +76,7 @@ func TestD2EarlyValidationDeadline(t *testing.T) {
 				case "success":
 					ctx = context.Background()
 				}
-				_, err := execute(ctx, options{command: command, book: input, output: out, draft: true})
+				data, err := execute(ctx, options{command: command, book: input, output: out, draft: true})
 				switch control {
 				case "success":
 					if err != nil {
@@ -89,6 +90,12 @@ func TestD2EarlyValidationDeadline(t *testing.T) {
 					var f *fault.Error
 					if !errors.As(err, &f) || f.Code != wantCode || f.Exit != wantExit {
 						t.Fatalf("got %v; want %s/%d", err, wantCode, wantExit)
+					}
+				}
+				if command == "validate" && control == "deadline" {
+					report, ok := data.(validation.Report)
+					if !ok || len(report.Diagnostics) != 1 || report.Diagnostics[0].Code != "CHECKER_TIMEOUT" {
+						t.Fatalf("deadline report disagrees with error classification: %+v", data)
 					}
 				}
 				if command == "pack" {
