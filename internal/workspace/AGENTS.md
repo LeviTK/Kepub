@@ -99,6 +99,11 @@
   核未提交 workspace 全树不变、重新开锁及合法重试，不宣称真实 CLI 窗口竞态。
 - 已登记 mutation 在取消后仍完整回滚；有效 restore／settlement journal 沿原决定恢复，
   仅临时 `WithoutCancel`，不跳预算、来源、hash 或真实 I/O，不删 durable intent 凑成功。
+  Open 在建立 root/state/owner 锁后发现待核 journal，须将既有 baseline／identity／checkpoint
+  验证前缀和恢复一同临时屏蔽取消；存在 journal 只选择屏蔽，不授予恢复权限。
+  两种 journal 完成后恢复请求 context，先报告取消再进入未提交 staging 清理／普通 execution；
+  无 journal 不屏蔽。入口 `TestOpenDurableJournalCancellation`、`TestOpenCancelledJournalControls`
+  和 `TestAcceptanceJournalRecovery` 的 cancelled phases；baseline 窗口用逐调用 I/O hook，非 CLI 竞态。
   入口 `TestR3CancelledAcceptDoesNotCopy`、`TestR3TreeBudgets`、`TestR3OriginalBudget`、
   `TestR3GrowthAfterStat`、`TestR3PartialTreeFailure`、`TestR3CancelledRunningRollback`、
   `TestR3CommittedRecoveryRetainsBudget` 和 app 的 `TestR3WorkspaceRequestCancellation`。

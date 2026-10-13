@@ -250,6 +250,10 @@ func execute(ctx context.Context, o options) (any, error) {
 		// must not turn that published artifact into a cancellation failure.
 		if err != nil && errors.Is(ctx.Err(), context.Canceled) {
 			err = fault.New(130, "CANCELLED", "request cancelled")
+		} else if errors.Is(err, context.DeadlineExceeded) {
+			// Freeze/copy/hash can return a raw deadline before checker execution.
+			// Classify the error itself, not an unrelated I/O failure at expiry.
+			err = fault.New(5, "CHECKER_TIMEOUT", "request timed out or was cancelled")
 		}
 		return data, err
 	}

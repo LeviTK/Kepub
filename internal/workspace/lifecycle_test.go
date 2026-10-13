@@ -398,8 +398,10 @@ func TestAcceptanceJournalRecovery(t *testing.T) {
 		t.Fatal(err)
 	}
 	w.Close()
-	for _, phase := range []string{"before-intent", "intent", "revision", "pointer", "decision", "archive", "clean", "tamper", "moved-intent", "moved-pointer", "moved-tamper"} {
+	for _, phase := range []string{"before-intent", "intent", "cancelled-intent", "cancelled-pointer", "revision", "pointer", "decision", "archive", "clean", "tamper", "moved-intent", "moved-pointer", "moved-tamper"} {
 		t.Run(phase, func(t *testing.T) {
+			cancelled := strings.HasPrefix(phase, "cancelled-")
+			phase = strings.TrimPrefix(phase, "cancelled-")
 			moved := strings.HasPrefix(phase, "moved-")
 			phase = strings.TrimPrefix(phase, "moved-")
 			dir := filepath.Join(t.TempDir(), "ws")
@@ -408,6 +410,7 @@ func TestAcceptanceJournalRecovery(t *testing.T) {
 				t.Fatal(err)
 			}
 			e = applyPlan(t, w, fieldPlan(t, w, "title", "title", "Title", "Reviewed"))
+			frozenCandidate := n1Tree(t, filepath.Join(dir, candidate))
 			id := randomID()
 			stage := "staging/accept-" + id
 			if err := w.root.Mkdir(stage, 0700); err != nil {
@@ -468,6 +471,24 @@ func TestAcceptanceJournalRecovery(t *testing.T) {
 					t.Fatal(err)
 				}
 				dir += "-moved"
+			}
+			if cancelled {
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel()
+				opened, err := OpenContext(ctx, dir)
+				if opened != nil {
+					opened.Close()
+					t.Fatal("cancelled open returned workspace")
+				}
+				if !errors.Is(err, context.Canceled) {
+					t.Fatal("cancelled recovery", err)
+				}
+				if _, err := os.Stat(filepath.Join(dir, settlementJournal)); !errors.Is(err, os.ErrNotExist) {
+					t.Fatal("cancelled open did not finish durable acceptance", err)
+				}
+				if !reflect.DeepEqual(frozenCandidate, n1Tree(t, filepath.Join(dir, "revisions", id, "pub"))) || !reflect.DeepEqual(frozenCandidate, n1Tree(t, filepath.Join(dir, "tasks", e.TaskID, "work/pub"))) {
+					t.Fatal("recovered acceptance differs from frozen candidate bytes")
+				}
 			}
 			w, err = Open(dir)
 			if phase == "tamper" {

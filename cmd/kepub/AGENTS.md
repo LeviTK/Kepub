@@ -9,6 +9,9 @@
 - NotifyContext 必须传到 info／toc／inspect 初始 Read 和 unpack 的读取／复制；输出路径核验
   的取消／超时复用既有分类，不能改为 INVALID_OUTPUT。信号回归须核真实子 PID、运行阶段、
   CANCELLED/130 和未发布 staging 清理；成功发布后不因迟到取消改报失败。
+- validate／pack 的冻结、复制、hash 原始 DeadlineExceeded 也须映射 CHECKER_TIMEOUT/5；
+  以返回错误链判超时，不因 ctx 后来过期把真实 I/O 错误改为超时。保留信号 CANCELLED/130
+  与已发布成功；`TestD2EarlyValidationDeadline` 核两入口的早期超时、取消、I/O 与成功控制。
 
 - 已存在外部输出保留冻结 `OUTPUT_EXISTS`/2；emit-request 在写文件前执行 256 操作预算
   （256 成功、257 `INVALID_OPERATIONS`/2 且无产物）；错误码断言按契约精确匹配，不接受两种 code 的宽松断言。

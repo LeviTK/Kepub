@@ -229,9 +229,6 @@ func OpenContext(ctx context.Context, dir string) (*Workspace, error) {
 }
 
 func openWithIO(dir string, policy resourceIO) (_ *Workspace, err error) {
-	if err := policy.ctx.Err(); err != nil {
-		return nil, err
-	}
 	r, err := openDir(dir)
 	if err != nil {
 		return nil, err
@@ -265,6 +262,17 @@ func openWithIO(dir string, policy resourceIO) (_ *Workspace, err error) {
 		}
 		rd.Close()
 	}
+	// Pending durable intent requires the entire existing validation prefix,
+	// not just the final copy/publish, to survive request cancellation. Presence
+	// selects shielding only: journal provenance, hashes, budgets and I/O still
+	// have to pass their ordinary gates before any recovery is authorized.
+	request := w.resources.ctx
+	if exists(r, settlementJournal) || exists(r, restoreJournal) {
+		w.resources.ctx = context.WithoutCancel(request)
+	}
+	if err := w.resources.ctx.Err(); err != nil {
+		return nil, err
+	}
 	if err := w.verifyBaseline(); err != nil {
 		return nil, err
 	}
@@ -282,6 +290,10 @@ func openWithIO(dir string, policy resourceIO) (_ *Workspace, err error) {
 		}
 	}
 	if err := w.recoverRestore(); err != nil {
+		return nil, err
+	}
+	w.resources.ctx = request
+	if err := request.Err(); err != nil {
 		return nil, err
 	}
 	// Committed journals have now consumed their staging data. Discard only

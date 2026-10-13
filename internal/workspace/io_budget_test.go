@@ -367,6 +367,30 @@ func TestR3CommittedRecoveryRetainsBudget(t *testing.T) {
 		t.Fatal(err)
 	}
 	w.Close()
+	policy := defaultResourceIO(ctx)
+	policy.limits.Entries = 0
+	opened, openErr := openWithIO(dir, policy)
+	if opened != nil {
+		opened.Close()
+		t.Fatal("recovery bypassed resource budget")
+	}
+	r3Limit(t, openErr, "ARCHIVE_LIMIT")
+	assertBytes(t, filepath.Join(dir, restoreJournal), journal)
+	if err := os.Chmod(blocked, 0500); err != nil {
+		t.Fatal(err)
+	}
+	opened, openErr = OpenContext(ctx, dir)
+	if opened != nil {
+		opened.Close()
+		t.Fatal("recovery bypassed real I/O failure")
+	}
+	if !errors.Is(openErr, os.ErrPermission) {
+		t.Fatal("expected real Open recovery I/O failure", openErr)
+	}
+	assertBytes(t, filepath.Join(dir, restoreJournal), journal)
+	if err := os.Chmod(blocked, 0700); err != nil {
+		t.Fatal(err)
+	}
 	w, err = Open(dir)
 	if err != nil {
 		t.Fatal("durable recovery retry/lock acquisition", err)

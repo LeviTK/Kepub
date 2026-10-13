@@ -187,6 +187,17 @@
 - 输出路径核验把取消／超时一律包装成 INVALID_OUTPUT → 退出码失真 → 复用 WorkspaceError，
   已分类输出／I/O 错误保留；`TestR3OutputPathCancellationClassification` 在 OutputPath
   阶段注入 Canceled／Deadline，区分 plan／export／propose，不以 Open 预取消替代该分支。
+- validate／pack 的冻结、复制或 hash 返回原始 DeadlineExceeded → run 降为 IO_ERROR/6 →
+  CLI 按返回错误链映射 CHECKER_TIMEOUT/5，保留信号 CANCELLED/130、真实 I/O 与发布成功。
+  `TestD2EarlyValidationDeadline` 核两入口早期超时及取消／I/O／成功控制；确定性 context
+  注入不冒称真实 CLI 定时窗口，真实子 CLI 的 I/O 与草稿成功控制另列。
+- Open 预取消或 baseline 扫描取消先于 journal 恢复 → 已持久决定延迟到下次无取消请求 →
+  持锁发现 pending journal 后，将原有验证前缀和恢复一并临时 WithoutCancel；存在 journal
+  不授权恢复，完整来源／hash／预算／真实 I/O 仍核。恢复后还原请求 context，取消时不继续
+  未提交清理或执行。`TestOpenDurableJournalCancellation`、`TestOpenCancelledJournalControls`
+  和 `TestAcceptanceJournalRecovery` 核 restore／reject／accept、精确字节、正常重试与伪 journal；
+  `TestR3CommittedRecoveryRetainsBudget` 保留预算／实际权限失败。旧树冻结 restore 探针
+  为目标 red，合法打开及随后重试为正控；baseline 取消由逐调用 hook 注入，非 CLI 竞态。
 - 先无界复制原书／hash 工作区再拒绝 → 临时字节和持锁工作量不受展开预算约束 → 原 ZIP
   独立 `MaxInputBytes`，出版物复用 archive 四预算；实际读取仅余量 + 1，stat 快拒后仍核
   增长和来源。管理目录／JSON 不算成出版物，hash wire 不变。入口 `TestR3OriginalBudget`、
