@@ -124,10 +124,46 @@ func TestOpenDurableJournalCancellation(t *testing.T) {
 			})
 		}
 	}
+	t.Run("returned-handle-cancellation", func(t *testing.T) {
+		w, dir := makeWorkspace(t)
+		if _, err := w.NewCandidate(); err != nil {
+			t.Fatal(err)
+		}
+		s, err := w.Checkpoint()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := w.copyTree(checkpointDir(s.ID)+"/pub", restoreNew); err != nil {
+			t.Fatal(err)
+		}
+		if err := writeJSON(w.root, restoreJournal, restoreRecord{1, s.ID, s.Tree.SHA256}); err != nil {
+			t.Fatal(err)
+		}
+		w.Close()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		opened, err := OpenContext(ctx, dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer opened.Close()
+		assertEmpty(t, filepath.Join(dir, "journal"))
+		if _, err := opened.Checkpoint(); err != nil {
+			t.Fatal("live request after recovery", err)
+		}
+		before := n1Tree(t, dir)
+		cancel()
+		if _, err := opened.Checkpoint(); !errors.Is(err, context.Canceled) {
+			t.Fatal("recovered handle lost request cancellation", err)
+		}
+		if !reflect.DeepEqual(before, n1Tree(t, dir)) {
+			t.Fatal("cancelled checkpoint changed workspace")
+		}
+	})
 }
 
 func TestOpenCancelledJournalControls(t *testing.T) {
-	for _, kind := range []string{"none", "none-baseline", "malformed-restore", "false-restore", "malformed-settlement", "false-settlement"} {
+	for _, kind := range []string{"none", "none-baseline", "none-tampered", "malformed-restore", "false-restore", "malformed-settlement", "false-settlement"} {
 		t.Run(kind, func(t *testing.T) {
 			w, dir := makeWorkspace(t)
 			if _, err := w.NewCandidate(); err != nil {
@@ -138,6 +174,9 @@ func TestOpenCancelledJournalControls(t *testing.T) {
 				t.Fatal(err)
 			}
 			switch kind {
+			case "none-tampered":
+				original := filepath.Join(dir, "original/book.epub")
+				put(t, original, append(readResource(t, original), 0))
 			case "malformed-restore":
 				put(t, filepath.Join(dir, restoreJournal), []byte("{"))
 			case "false-restore":
@@ -172,7 +211,7 @@ func TestOpenCancelledJournalControls(t *testing.T) {
 				opened.Close()
 				t.Fatal("cancelled/invalid open succeeded")
 			}
-			if err == nil || (kind == "none" || kind == "none-baseline") != errors.Is(err, context.Canceled) {
+			if err == nil || (kind == "none" || kind == "none-baseline" || kind == "none-tampered") != errors.Is(err, context.Canceled) {
 				t.Fatal("wrong cancellation/validation classification", err)
 			}
 			if !reflect.DeepEqual(before, n1Tree(t, dir)) {
