@@ -124,7 +124,9 @@ func (b *builder) Read(bp bookpath.BookPath, max int64) ([]byte, error) {
 	data, err := b.src.Read(bp, min(max, left))
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		b.err = err
-	} else if err != nil && left < max {
+	} else if err != nil && left <= max {
+		// At equal caps, a bounded-read overflow also exceeds the global
+		// allowance. Only a strictly smaller resource cap remains resource-local.
 		var f *fault.Error
 		if errors.As(err, &f) && f.Code == "RESOURCE_LIMIT" {
 			b.err = fault.New(1, "REFERENCE_LIMIT", "reference graph exceeds scanned bytes budget")

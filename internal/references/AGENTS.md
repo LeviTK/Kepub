@@ -18,6 +18,10 @@
   不先按无界 inventory 长度分配 slice 或先 Marshal 全图；默认值／保守计量见 CLI §3.1。
 - 超限返回 `REFERENCE_LIMIT`/1 和零 Graph，取消停止后续读取；零图不构成无依赖证明。
   Filter 只过滤完整构建的边，不能用指定资源跳过别处的入链；预留其 header 增长。
+- reader 的 typed RESOURCE_LIMIT 在全局剩余扫描额度小于或等于单资源 cap 时均升级为
+  REFERENCE_LIMIT；等值不是单资源独占限制。只有全局余量更大时保留原资源级 partial
+  分类；真实 I/O 和取消不冒充 cap 溢出。workspace 的 `TestR4WorkspaceGraphEqualCaps`
+  核真实库存后增长、两侧与等值边界、合法读取及缺文件 IO_ERROR，不能仅测严格小于。
 - 预算重建不改变 parser v1/v2 的边、诊断、覆盖 shape 或旧来源摘要；小预算逐调用注入，
   不重置为每资源预算，不改大默认值让反例通过。计量不是 RSS 或具体 OOM 阈值。
 - 入口 `TestR4CancelledGraphStopsReading`、`TestR4CumulativeGraphCounts`、

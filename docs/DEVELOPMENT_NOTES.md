@@ -263,6 +263,12 @@
   reader 返回 typed RESOURCE_LIMIT，图层沿既有扫描预算分类为 REFERENCE_LIMIT／零图。
   `TestR4WorkspaceGraphReadGrowth` 用真实 inventory／os.Root／增长文件，区分有界读溢出、
   读入后额外收费与精确预算控制；不将此分类缺口夸大为成功的危险 Plan/Apply。
+- 仅给 reader 加 typed error、builder 仍只判断 `left < max` → 等值 cap 溢出仍返回
+  partial／nil，包括默认 64 MiB 的末资源增长 → 全局余量 `left <= max` 时升级该限额，
+  `left > max` 保留原单资源 partial／RESOURCE_LIMIT；真实 I/O 不被重新分类。
+  永久 `TestR4WorkspaceGraphEqualCaps` 核 CSS 8 MiB−1→8 MiB+1、全局 cap 的±1/等值、
+  合法读取与缺文件 IO_ERROR。独立 equalcap/defaultcap 原探针与被拒树证据原样保留；
+  全仓 PASS 不能抵消等值反例，默认预算探针不冒称公共 CLI 并发攻击。
 - `TestR4ReservationBoundaries`、`TestR4FilteredResultHeaderBudget`、
   `TestR4XMLCoverageReservation` 与 `BenchmarkR4BoundedInventory` 核分配／追加前拒绝。
 

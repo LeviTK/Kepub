@@ -368,3 +368,65 @@ func TestR4WorkspaceGraphReadGrowth(t *testing.T) {
 		})
 	}
 }
+
+func TestR4WorkspaceGraphEqualCaps(t *testing.T) {
+	for _, tc := range []struct {
+		delta         int64
+		grow, missing bool
+	}{{0, false, false}, {-1, true, false}, {0, true, false}, {1, true, false}, {0, false, true}} {
+		t.Run(fmt.Sprintf("delta=%d/grow=%t/missing=%t", tc.delta, tc.grow, tc.missing), func(t *testing.T) {
+			dir := t.TempDir()
+			const bp = bookpath.BookPath("style.css")
+			data := append([]byte("p{color:red}"), bytes.Repeat([]byte(" "), publication.XMLLimit-len("p{color:red}")-1)...)
+			file := filepath.Join(dir, string(bp))
+			put(t, file, data)
+			r, err := openDir(dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer r.Close()
+			inv, err := inventory(r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.grow {
+				put(t, file, append(bytes.Clone(data), ' ', ' '))
+			} else if tc.missing {
+				if err := os.Remove(file); err != nil {
+					t.Fatal(err)
+				}
+			}
+			pub := &publication.Publication{Manifest: []publication.Item{{Path: bp, MediaType: "text/css", Exists: true}}}
+			limits := references.DefaultGraphLimits
+			limits.ScanBytes = int64(publication.XMLLimit) + tc.delta
+			g, err := references.BuildSource(t.Context(), publicationRoot{r}, inv, pub, limits)
+			if tc.grow && tc.delta <= 0 {
+				r4WorkspaceLimit(t, err)
+				if !reflect.DeepEqual(g, references.Graph{}) {
+					t.Fatalf("global cap returned usable graph: %+v", g)
+				}
+				return
+			}
+			// CSS coverage is partial even on a successful read. Only a global
+			// limit fails the build; resource-only limits and I/O retain diagnostics.
+			if err != nil || g.Status != "partial" || len(g.Coverage) == 0 {
+				t.Fatalf("non-global control: %+v %v", g, err)
+			}
+			if tc.grow || tc.missing {
+				code := "RESOURCE_LIMIT"
+				if tc.missing {
+					code = "IO_ERROR"
+				}
+				if len(g.Diagnostics) != 1 || g.Diagnostics[0].Code != code {
+					t.Fatalf("lost %s classification: %+v", code, g.Diagnostics)
+				}
+			} else {
+				for _, c := range g.Coverage {
+					if c.Status == "blocked" {
+						t.Fatalf("legal equal-cap read blocked: %+v", c)
+					}
+				}
+			}
+		})
+	}
+}
