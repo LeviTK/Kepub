@@ -269,6 +269,13 @@
   永久 `TestR4WorkspaceGraphEqualCaps` 核 CSS 8 MiB−1→8 MiB+1、全局 cap 的±1/等值、
   合法读取与缺文件 IO_ERROR。独立 equalcap/defaultcap 原探针与被拒树证据原样保留；
   全仓 PASS 不能抵消等值反例，默认预算探针不冒称公共 CLI 并发攻击。
+- typed 溢出仍丢弃实际 bytes → 多个资源库存后增长时仅收旧 size，累计超过扫描预算仍
+  partial／nil（F1）→ workspace reader 随 RESOURCE_LIMIT 返回已读 cap+1 bytes，复用
+  builder 的实际长度差额计费，不重复收库存、不从 Archive 的读前拒绝推断已读取。
+  真实 I/O 分支仍优先返回原错误，解析调用方仍先检查 error；非 nil bytes 不是解析授权。
+  `TestR4WorkspaceGraphCumulativeOverflow` 核两真实 XHTML 的 16 MiB+1 拒绝、16 MiB+2
+  精确合法 partial 与 +1 控制、正常／单增长／缺文件／取消。两个独立 F1 原探针原样
+  old red/new green；equalcap/defaultcap 不弱化。更早 Open／验证／候选扫描取消窗口未覆盖。
 - `TestR4ReservationBoundaries`、`TestR4FilteredResultHeaderBudget`、
   `TestR4XMLCoverageReservation` 与 `BenchmarkR4BoundedInventory` 核分配／追加前拒绝。
 

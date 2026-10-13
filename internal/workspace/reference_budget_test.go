@@ -369,6 +369,97 @@ func TestR4WorkspaceGraphReadGrowth(t *testing.T) {
 	}
 }
 
+func TestR4WorkspaceGraphCumulativeOverflow(t *testing.T) {
+	for _, tc := range []struct {
+		name               string
+		grown              int
+		delta              int64
+		missing, cancelled bool
+	}{
+		{"normal", 0, -1, false, false},
+		{"one-resource-only", 1, -1, false, false},
+		{"below", 2, -1, false, false},
+		{"exact", 2, 0, false, false},
+		{"above", 2, 1, false, false},
+		{"real-io", 1, -1, true, false},
+		{"cancelled", 2, -1, false, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			tiny := []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><body><p/></body></html>`)
+			pub := &publication.Publication{}
+			for _, bp := range []bookpath.BookPath{"a.xhtml", "b.xhtml"} {
+				put(t, filepath.Join(dir, string(bp)), tiny)
+				pub.Manifest = append(pub.Manifest, publication.Item{Path: bp, MediaType: "application/xhtml+xml", Exists: true})
+			}
+			r, err := openDir(dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer r.Close()
+			inv, err := inventory(r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			large := bytes.Repeat([]byte("x"), publication.XMLLimit+1)
+			for i := 0; i < tc.grown; i++ {
+				put(t, filepath.Join(dir, string(pub.Manifest[i].Path)), large)
+			}
+			if tc.missing {
+				if err := os.Remove(filepath.Join(dir, "b.xhtml")); err != nil {
+					t.Fatal(err)
+				}
+			}
+			limits := references.DefaultGraphLimits
+			limits.ScanBytes = 2*int64(publication.XMLLimit+1) + tc.delta
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			if tc.cancelled {
+				cancel()
+			}
+			g, err := references.BuildSource(ctx, publicationRoot{r}, inv, pub, limits)
+			if tc.cancelled || (tc.grown == 2 && tc.delta < 0) {
+				if tc.cancelled {
+					if !errors.Is(err, context.Canceled) {
+						t.Fatal(err)
+					}
+				} else {
+					r4WorkspaceLimit(t, err)
+				}
+				if !reflect.DeepEqual(g, references.Graph{}) {
+					t.Fatalf("usable graph: %+v", g)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.grown == 0 {
+				if g.Status != "complete" || len(g.Diagnostics) != 0 {
+					t.Fatalf("normal: %+v", g)
+				}
+				return
+			}
+			want := tc.grown
+			if tc.missing {
+				want++
+			}
+			if g.Status != "partial" || len(g.Diagnostics) != want {
+				t.Fatalf("partial: %+v", g)
+			}
+			for i, d := range g.Diagnostics {
+				code := "RESOURCE_LIMIT"
+				if tc.missing && i == 1 {
+					code = "IO_ERROR"
+				}
+				if d.Code != code {
+					t.Fatalf("want %s, got %+v", code, d)
+				}
+			}
+		})
+	}
+}
+
 func TestR4WorkspaceGraphEqualCaps(t *testing.T) {
 	for _, tc := range []struct {
 		delta         int64
