@@ -58,6 +58,9 @@
   固定 checker 放过字面加别名的重复、带空白 property 或重声明 →
   [CLI §2.12](CLI_CONTRACT.md#212-b3-核心元数据-v2-契约草案待独立审定尚未实现)
   的唯一规范字面与合法 refinement 正控、重复/别名/来源反例；实施时补永久公开接口回归。
+- subject 边界先于候选计数：collection/metadata 的 modified 属于其他 subject →
+  全 package 搜索“非直接 meta”会误拒合法可编辑书 → 同节 collection 同值/异值正控，
+  核 publication modified 可写且 collection 全字节不变；拒绝后代仅限 publication metadata 子树。
 - 语言 ABNF 与注册表/规范化分开，日期格式与日历有效性分开 → x/text 拒绝未注册的合法
   语法或改拼写，checker 接受 02-30/:60 → 同节未注册/祖父语言原拼写、闰日正控和
   日期反例；新值校验不偷换旧值绑定或 native 历史规则。

@@ -534,7 +534,14 @@ DC URI 为 `http://purl.org/dc/elements/1.1/`，OPF URI 为 `http://www.idpf.org
 隐藏第二候选。package@prefix 不得重声明 dcterms（即使 URI 相同），也不得声明映射到
 DC terms 词表 `http://purl.org/dc/terms/` 的其他前缀（即使未使用）；不猜 first-match。
 仅别名、带空白字面、重复候选、重声明/同 IRI 别名、prefix 语法错误、无法解析的
-property、非直接子级的 modified，以及存在但为空白的 refines 均为 INVALID_OPERATIONS/2。
+property、publication metadata 子树内非直接子级的 modified，以及存在但为空白的
+refines 均为 INVALID_OPERATIONS/2。这里的 publication metadata 是 package 的唯一
+直接 OPF metadata 子级；collection/metadata 属于其他 subject，其 meta 不进入候选集，
+也不受本项 property/refines/层级资格检查，必须保留原字节。
+每次修改 publication modified 时，property 解析检查覆盖该 publication metadata 子树内
+所有 OPF meta（含直接 refinement 和后代），不扫描其他 subject 的 metadata。
+本子树内无关 meta 的未声明前缀等无法解析的 property 也在 Plan 阶段以
+INVALID_OPERATIONS/2 拒绝；其他 subject 的符合性仍由正式 checker 判定。
 上述结构/词表检查用于每个修改 publication modified 的 v2 操作；真正非空 refines 的
 modified 属于其他 subject，不进入 publication 候选集，保留原字节，不误拒合法 refinement。
 来源不明优先按下述来源错误/3 拒绝，不以 checker 的通过替代候选集校验。
@@ -574,7 +581,9 @@ OPF version 必须为 3.0；已知 EPUB2 上使用任意 v2 操作为 UNSUPPORTE
 带 NCX 时，本首批在 Plan 阶段拒绝选择 package@unique-identifier 指向的 dc:identifier，
 返回 UNSUPPORTED_INPUT/3，包括 no-op；不等到 accept 才发现 NCX dtb:uid 不一致。
 主标识符引用缺失或不能唯一解析为现有 identifier 为 INVALID_OPERATIONS/2，来源未知
-仍为 3；无 NCX 时主标识符允许修改，带 NCX 时次级 identifier 允许修改且 NCX 全字节保持。
+仍为 3；该引用检查适用于每次 identifier v2 修改（含次级及 no-op），无论是否带 NCX，
+引用必须唯一指向 publication metadata 的直接 dc:identifier 子级，不从 collection 中选取。
+无 NCX 时主标识符允许修改，带 NCX 时次级 identifier 允许修改且 NCX 全字节保持。
 不自动更新 NCX，也不借本批暗改其他依赖。加密/混淆/签名继续沿既有只读门禁拒绝，
 不新增字体资格或暗改混淆密钥。时间只来自显式 v2 操作，
 其他操作/no-op 不触发自动 modified，也不回填已有 native definition/template 初始来源。
@@ -595,7 +604,10 @@ revision/hash 漂移用 INPUT_DRIFT/4；只读沿 UNSUPPORTED_INPUT/3，
 新 capability/选项矩阵及 publication.inspect/BOOK 旧形状、
 候选存在时仍读 accepted、只读工作区仍能只读查询而不能编辑；唯一值/显式 ID 的重复值、多作者歧义、
 合法非空 refines modified/重复 publication modified/仅别名/带空白 property/重声明/坏 prefix/
-非直接 meta/空 refines、DTD 默认选择属性与字面属性正控、两操作顺序、缓存后的坏 revision/hash、
+publication metadata 内后代 modified 拒绝/空 refines；collection metadata 有自己的 modified
+时 publication modified 仍可编辑且 collection 全字节不变，配同值/异值正控；本子树内
+无关 meta 的未声明前缀拒绝、无 NCX 时主引用缺失/歧义仍拒绝、
+DTD 默认选择属性与字面属性正控、两操作顺序、缓存后的坏 revision/hash、
 no-op、ABNF 未注册/祖父语言正控与非法语法反例、有效闰日及 02-30/:60/0000 反例、
 三编码与完整目标外字节、带 NCX 的主标识符 Plan 拒绝、无 NCX 主标识符及带 NCX 次级标识符
 正控、EPUB2 v2 拒绝、旧 schema/
