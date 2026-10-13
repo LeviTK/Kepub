@@ -2,8 +2,12 @@ name: Kepub CI
 
 on:
   pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Assessment: why this ref needs a full CI run (include Issue/PR or evidence gap)'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -49,10 +53,15 @@ jobs:
           test "$(java -jar "$checker/epubcheck.jar" --version)" = 'EPUBCheck v5.3.0'
           echo "KEPUB_EPUBCHECK_JAR=$checker/epubcheck.jar" >> "$GITHUB_ENV"
       - name: Record input and verify modules
+        env:
+          CI_EVENT: ${{ github.event_name }}
+          CI_REF: ${{ github.ref }}
+          CI_ASSESSMENT: ${{ inputs.reason }}
         run: |
           mkdir -p "$RUNNER_TEMP/results"
           {
             date -u +%FT%TZ
+            printf 'event=%s\nref=%s\nassessment=%s\n' "$CI_EVENT" "$CI_REF" "$CI_ASSESSMENT"
             git rev-parse HEAD HEAD^{tree}
             git status --porcelain
             go version

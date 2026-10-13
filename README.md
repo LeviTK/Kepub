@@ -13,7 +13,7 @@
 - **可用：** EPUB2/3 查询、安全解包、工作区、受控元数据／XHTML 编辑、多资源事务、搜索替换、修复提案、正式校验与导出。
 - **尚未完成：** 完整 T2、EPUB2 → EPUB3 转换、新建制书、完整 CSS／资源维护、桌面预览及生产 Agent 集成。
 - **交付形态：** 源码构建，暂无版本化安装包；Linux 已验证，Apple Silicon Mac 实机验收仍待完成。
-- **本轮范围：** 维护已有能力和项目记录，不恢复新功能开发。文档 v0.10 是方案版本，不是软件发行版本。
+- **本轮范围：** 建立“最小制书闭环优先”的任务与开发方案，尚未开始新功能实现。文档 v0.11 是方案版本，不是软件发行版本。
 
 [合并提交 e102b21](https://github.com/LeviTK/Kepub/commit/e102b2198ffd10df1cb05da3d70f68c47dc694ce) 的 [Linux CI](https://github.com/LeviTK/Kepub/actions/runs/38364503620) 已通过：普通／race 各 1858 个测试及子测试 PASS、1 项私有原书 SKIP、0 FAIL，另通过 vet 和普通／race CLI 构建。该结果不代表 Mac、断电、真实渲染或完整 EPUB 3.3 支持；历史失败与有限批准保持原范围。
 
@@ -168,13 +168,15 @@ go test -race -count=1 -timeout=30m ./...
 go vet ./...
 ```
 
-[GitHub Actions](.github/workflows/ci.yml) 在 PR 和 main push 上验证精确提交，依序执行普通／race／vet及普通／race CLI 构建，保存 14 天日志。**没有 checks、SKIP 或工具错误均不算通过。** Linux CI 不执行私有原书；缺 checker 的结果不能替代正式验证。现有 Actions 的 Node／setup-java 弃用警告仍待维护，不影响上述固定运行的成功结论。
+[GitHub Actions](.github/workflows/ci.yml) 保留 PR 自动检查；main push／合并不自动跑全套，按[开发流程](docs/DEVELOPMENT_WORKFLOW.md)评估后，必要时手动触发并填写理由。CI 验证精确提交，依序执行普通／race／vet及普通／race CLI 构建，保存 14 天日志。**评估无需重复不等于新跑 PASS；没有 checks、SKIP 或工具错误均不算通过。** Linux CI 不执行私有原书；缺 checker 的结果不能替代正式验证。现有 Actions 的 Node／setup-java 弃用警告仍待维护，不影响上述固定运行的成功结论。
 
 Orb 的 [.agents/setup](.agents/setup) 准备 Linux amd64 Go、Java 和固定 EPUBCheck；[.agents/resume](.agents/resume) 只做快速恢复检查。SDK 实验有独立锁文件／运行时，根目录 Go 套件不覆盖它；须在 `experiments/amp-sdk` 单独执行 `npm run check` 和 `npm test`。
 
-贡献前阅读 [开发约束](AGENTS.md)和[开发注意事项](docs/DEVELOPMENT_NOTES.md)。回归需保留旧树反例、合法正控和新树证据；源码交付、独立批准、平台验收与发行分别记录。不要提交私有书籍、凭据或原始敏感日志。
+贡献前阅读 [当前开发流程](docs/DEVELOPMENT_WORKFLOW.md)、[开发约束](AGENTS.md)和[开发注意事项](docs/DEVELOPMENT_NOTES.md)。按风险选择验证，以[交接收据](docs/templates/CHANGE_RECEIPT.md)区分作者、独立审查、父验收和 CI 证据；回归保留旧树反例、合法正控和新树证据。源码交付、平台验收与发行分别记录，不提交私有书籍、凭据或原始敏感日志。
 
 ## 路线与待办
+
+最新排期见 [最小 EPUB3 制书闭环总项 #31](https://github.com/LeviTK/Kepub/issues/31) 和 [开发方案 §0.2](docs/DEVELOPMENT_PLAN.md#02-最小制书闭环优先八域三级拆分与交付顺序)：先做正常 Unicode 新书的章节、基础样式、图片、目录、审核与正式导出，再扩展会评、复杂 CSS、旧书迁移和 GUI。八域拆成 35 个模块、128 条三级任务。以下 T/S 名称保留原范围，不再表示必须先做 T3 才能做 T4。
 
 | 阶段 | 当前状态 |
 | --- | --- |
@@ -209,7 +211,7 @@ Issue／PR 使用类型标签（如 `bug`、`enhancement`、`type:performance`�
 | 阅读目的 | 入口 |
 | --- | --- |
 | 参数、schema、预算与错误语义 | [CLI 与操作契约](docs/CLI_CONTRACT.md) |
-| 路线、架构、阶段和关闭条件 | [开发方案 v0.10](docs/DEVELOPMENT_PLAN.md) |
+| 路线、架构、阶段和关闭条件 | [开发方案 v0.11](docs/DEVELOPMENT_PLAN.md) |
 | 规范覆盖与 S0 证据 | [EPUB 3.3 支持矩阵](docs/EPUB33_SUPPORT_MATRIX.md) · [S0 父验收](docs/verification/S0_PARENT_ACCEPTANCE.md) · [2026 checker 核验](docs/verification/S0_EPUBCHECK_2026.md) |
 | 查询、诊断与正文编辑 | [M1-A](docs/verification/M1_A.md) · [M1-B1](docs/verification/M1_B1.md) · [C1](docs/verification/C1_CLI.md) · [C2](docs/verification/C2_CONTENT.md) · [C3](docs/verification/C3_CONTENT_EDIT.md) |
 | 工作区、审核、校验与导出 | [M2-A](docs/verification/M2_A.md) · [M2-B](docs/verification/M2_B.md) · [M1-B2](docs/verification/M1_B2.md) |
