@@ -135,6 +135,10 @@
 - `publicationRoot.Read` 的实际 cap 溢出须用 typed RESOURCE_LIMIT，让图层在扫描余量
   耗尽时转 REFERENCE_LIMIT／零图；真实 I/O 错误不能被超限覆盖。入口
   `TestR4WorkspaceGraphReadGrowth` 分别核 reader 溢出、读入后额外收费与精确预算正控。
+- 成功读取但超出 cap 时，`publicationRoot.Read` 随 RESOURCE_LIMIT 返回实际读到的
+  cap+1 bytes，供 builder 仅补超过冻结库存的差额；非 nil bytes 不代表可解析，调用方
+  仍须先拒绝 error。真实 read/close 错误优先沿原分支返回，Archive 读前拒绝不虚构读取。
+  `TestR4WorkspaceGraphCumulativeOverflow` 核多资源累计超限与精确预算合法 partial。
 
 ## 查询验证只在本次持锁调用内复用
 
