@@ -62,23 +62,25 @@ XHTML 的 href／src（含 EPUB3 nav）在解析目标前，仅去掉属性值�
   原子不覆盖发布。任何发布前取消、错误、checker 缺失/失败均无目标工作区，清理自身 staging。
   发布后目录同步失败须报告 I/O，不删除完整目标，不承诺断电持久性或自动重试。
 - definition 是严格 UTF-8 JSON，原文件（含落盘空白）与规范 JSON 编码分别至多 1 MiB，拒绝未知字段、重复键、尾随值、
-  无效 Unicode/孤立代理与非 XML 1.0 字符。字段：`schemaVersion:1`、非空 `title`、`creator`、
-  `language`（BCP47）、`identifier`（作者指定非空身份，不自动猜填）、
+  无效 Unicode/孤立代理与非 XML 1.0 字符。字段：`schemaVersion:1`、非空白 `title`、`creator`、
+  `language`（BCP47）、`identifier`（作者指定非空白身份，不自动猜填）、
   `modified`（精确 UTC `YYYY-MM-DDTHH:MM:SSZ`）、`chapters`（1–64 项）。
-  每章为非空 `title` 与 `paragraphs`（1–1024 个非空纯文本字符串）。重复章名合法；
+  每章为非空白 `title` 与 `paragraphs`（1–1024 个非空白纯文本字符串）；
+  纯 Unicode 空白（包括 U+3000/NBSP）拒绝，其他合法文本的空白不裁剪或规范化。重复章名合法；
   输入顺序就是 spine/nav 顺序；无调用者路径、markup、字体或远程资源输入。
   字符串按 XML 转义；固定 UTF-8、横排、系统字体 CSS，章节为标题和普通段落。
 - 固定 templateVersion 1 生成 mimetype、container、OPF（package version 3.0）、nav、CSS、
   `EPUB/chapter-001.xhtml` 等资源；ID 按序号生成，nav 链到各章 start。
   使用既有 archive 安全树、资源/路径/总量预算及 maxJSONBytes 持久预算，不新增预算绕过。
-- 新工作区 state version 2：`originalSHA256` 为空，无 original 目录/伪造原书。
+- 新工作区 state version 2：`originalSHA256` 为空，初始化不生成 original 目录/伪造原书；
+  用户额外放置的根目录文件不作为生成来源或批准依据，出版物库存与来源门禁仍照常核验。
   `source` 包含 `kind:"native-epub3"`、`templateVersion:1`、完整 definition 及其规范 JSON SHA256、
   正式 validation 报告；完整生成库存和树 hash 仍在 state.tree。初始 accepted 为 initial，
   只有真实固定 EPUBCheck 5.3.0 检查通过才发布。每次来源核验从 definition 重推模板树，
   核 definition digest、完整库存/树、initial bytes 和绑定该树的正式报告；不重新运行历史 checker。
   后续接受/导出仍重新正式检查；初始验证不批准未来候选。
 - 导入 state version 1 的 wire shape、original 语义和所有旧编辑摘要不变；v1 禁止 source，
-  v2 禁止 originalSHA256/缺 source/未知 kind 或模板版本。旧二进制拒绝 state v2，
+  v2 禁止非空 originalSHA256/缺 source/未知 kind 或模板版本。旧二进制拒绝 state v2，
   不迁移已有工作区。新建发布前通过正式 state 读取与相同来源核验，不发布半书。
 - 参数/definition 失败 exit 2 `INVALID_ARGUMENT`，目标存在 exit 2 `OUTPUT_EXISTS`；
   取消 exit 130 `CANCELLED`、checker 超时/缺失/失败及 I/O 复用既有错误分类，不自动草稿。
