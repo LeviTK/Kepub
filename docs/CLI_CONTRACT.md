@@ -469,6 +469,90 @@ FixProposal v1 wire 和 hash 算法不改，只修资格；新 schema 7 policy �
 读取／正式导出，不允许新 accept。既有持久 settlement 仍只完成原决定，不改写来源或接受证据。
 旧提案可重新提交 Plan，但必须通过当前完整提案重推；目录项或 derivedFrom 改变返回 PROPOSAL_DRIFT。
 
+### 2.12 B3 核心元数据 v2 契约草案（待独立审定，尚未实现）
+
+2026-10-13 下一批对应 [B3 #46](https://github.com/LeviTK/Kepub/issues/46)，基线为
+[PR #75 的合并提交](https://github.com/LeviTK/Kepub/commit/3a7d1b414c5d23a1fbff42890e1c226f097e1a93)。
+本节先规定拟实现边界；独立审定前不冻结为编码依据，不在 capabilities 注册 available。
+当前二进制仍只支持既有 schema 1–7，`metadata.set` v1 仍只写现有 dc:title/dc:creator。
+
+**只读绑定入口：** 本批拟给现有 inspect 增加
+`inspect --workspace DIR --section metadata --json`，与 BOOK 互斥；本首批 workspace 模式
+只允许 metadata section，不携带 rootfile/resource/direction。BOOK 模式输入/输出保持。
+新模式沿 `Workspace.AcceptedSnapshot` 在同一持锁读取核 accepted 来源和私有快照，
+使用同一快照解析 metadata、packageAttributes 并计算 selected OPF 原始 bytes SHA256。
+data 保留 `rootfile`、`section`、`value`、`limitations` 与按需 xmlCoverage，新增
+`workspaceId`、`revisionId`、`resourceSha256`、`packageAttributes`；值/ID 仍从 metadata
+元素的 text/attributes 读取，bookPath 使用 rootfile，qualified property 根据 package prefix
+映射判定。现有 `info BOOK`/`inspect BOOK` 不含 accepted revision/OPF hash，不能冒充此绑定。
+只读也不授予编辑或符合性权限；完整快照/解析/取消/I/O 沿既有预算和错误分类，
+不会直接读 live revision 目录，也不创建新元数据写命令或开放任意文件读取。
+
+**目标与非目标：** 在可编辑的 EPUB3 工作区内，显式修改现有标题、作者、语言、标识符及
+publication 的修改时间，复用 plan/apply/diff/reject/accept/export/reopen。允许逐项选择多作者
+或重复值中的唯一 ID，不猜首个匹配；不新增/删除元数据、不重排作者、不修改属性/ID、
+不处理扩展元数据、资源/章节/图片、EPUB2 转换或自动时钟。改 dc:language 不自动重写
+package/XHTML 的 xml:lang 或 lang；这些属性与 publication 内容语言不是同一个目标。
+
+**版本与规范编码：** 新操作为 `metadata.set` v2，request/plan/execution 使用 schema 8；
+1–256 个操作，至少一个 metadata v2。可混合旧 metadata v1 与 content.text.set v1，
+本首批不混入 xhtml.*、replace、cross-move 或 FixProposal；不含 v2 时仍用既有 schema。
+旧 schema 1–7 的 wire、规范编码、policy、权限、预算和历史来源重推不变。
+schema 8 policy 拟为以下字符串的既有 digest，不复用旧摘要：
+
+```text
+kepub-core-metadata-v1:accepted-baseline;multi-operation;frozen-baseline;simple-text;opf-hash;explicit-modified;identifier-dependencies;review-required;conformance-not-run
+```
+
+v2 params 按此顺序规范编码：`bookPath`、`revisionId`、`resourceSha256`、`namespace`、
+`localName`、可选 `id`、可选 `property`、`expectedOldValue`、`newValue`。
+required 字段全部显式存在；可选字段不用空值占位；null、重复/未知/缺失字段、非法 UTF-8
+和孤立代理拒绝。`bookPath` 必须精确等于已选 rootfile；revision 为本次 accepted ID；
+hash 为原始 OPF bytes 的 64 位小写十六进制 SHA256。每次使用都核本操作的声明，
+缓存、重复资源、no-op 或前序修改不豁免。字段值不隐式 trim、归一、生成或补齐。
+
+| 目标 | namespace / localName / property | 选择及新值 |
+|---|---|---|
+| 书名/作者 | DC URI / title 或 creator / 不提供 | 现有简单文本；多个匹配必须显式 ID 后唯一 |
+| 内容语言 | DC URI / language / 不提供 | 同上；非空、well-formed BCP47，原拼写保留 |
+| 标识符 | DC URI / identifier / 不提供 | 同上；非空白合法 XML 文本，不改 ID 或 package unique-identifier |
+| publication 修改时间 | OPF URI / meta / dcterms:modified | metadata 直接子级、没有 refines 的 publication 目标必须唯一；精确 YYYY-MM-DDThh:mm:ssZ UTC |
+
+DC URI 为 `http://purl.org/dc/elements/1.1/`，OPF URI 为 `http://www.idpf.org/2007/opf`。
+qualified property 依据 package 的有效 prefix 映射/保留词表判定；同义前缀不能使重复
+publication modified 被隐藏，歧义/无法可靠解析时拒绝，不按字面 first-match 放行。
+其他带 refines 的 modified 属于不同 subject，保留原字节，不当成 publication 目标或误拒合法书。
+title/creator/identifier 新值须为非空白合法 Unicode/XML 文本；旧 v1 的空文本语义不改变。
+目标必须是完整 OPF 中现有的唯一直接 metadata 子级与可写简单文本，沿 xmltext 的
+原始物理来源门禁；generated/default/unknown、CDATA、混合内容或自闭合不因 no-op 获豁免。
+OPF version 必须为 3.0，三编码保真规则及 8 MiB 原始 XML 预算保持。
+
+**事务与依赖：** 全部操作先按冻结 baseline 校验声明/旧值和唯一目标；显式 ID 与省略 ID
+命中同一节点也算重复。然后派生完整编辑、核同一 OPF 的最终输出预算与全 write set，
+不让前序修改改写后序 expectedOldValue。未知元数据、refinements、注释、属性、编码/BOM/
+声明与所有目标外 bytes 保留。标识符值可能影响字体混淆密钥等依赖；加密/混淆/签名
+继续沿既有只读门禁拒绝，不新增字体资格或暗改依赖。时间只来自显式 v2 操作，
+其他操作/no-op 不触发自动 modified，也不回填已有 native definition/template 初始来源。
+
+**生命周期与错误：** Plan、Apply、执行/恢复、diff、accept、rejected/accepted 历史来源均
+按 plan 自己的 frozen revision 重推 schema 8；持久记录、hash 相等或已消费不授予跳过。
+diff 给出逐操作 old/planned/实际 candidate newValue，读取失败明确 unavailable，
+不回显计划代替实际观测；既有 schema 的输出 shape 不变。
+无效 schema/字段/目标/值及 expectedOldValue 不匹配用 INVALID_OPERATIONS/2，
+revision/hash 漂移用 INPUT_DRIFT/4；只读沿 UNSUPPORTED_INPUT/3，
+资源/持久 JSON 预算、取消/超时、I/O 保持既有分类。
+失败无半候选、accepted 不推进；正式 accept/export 仍需实际固定 checker，不能自动草稿。
+旧二进制可以安全拒绝新 schema，不改写已发布记录或原始书。
+
+**验收门槛：** 公开合成 native 与 imported EPUB3；同一次 inspect accepted 绑定及 BOOK 旧形状、
+候选存在时仍读 accepted、只读工作区仍能只读查询而不能编辑；唯一值/显式 ID 的重复值、多作者歧义、
+合法 refines modified/重复 publication modified/前缀别名、两操作顺序、缓存后的坏 revision/hash、
+no-op、语言/时间/Unicode 边界、三编码与完整目标外字节、标识符依赖只读负控、旧 schema/
+摘要/历史、部分写入失败/恢复/再次 Open、candidate drift diff/reject 与正式 accept 拒绝。
+实际 Plan+Apply/导出 ZIP 对独立完整 OPF/资源字节 oracle，真实普通/race CLI 与固定 checker；
+受影响普通/focused race 后依序全仓普通→race→vet，固定树独立审查与父验收。
+Mac、断电、磁盘满和完整 M1/F3 不随 B3 自动变为通过。
+
 ## 3. 目标选择与全局约定
 
 ### 3.1 明确目标
