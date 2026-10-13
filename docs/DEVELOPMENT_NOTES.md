@@ -254,6 +254,15 @@
   仍返回 REFERENCE_LIMIT，`TestR4InterruptedGraphBudgetRollsBack` 保留真实失败 diff。
   正式 accept/export 失败不推进 accepted／发布输出；workspace/app/validation/CLI 的 R4
   正反例仍用真实固定 checker，内部小预算不进入持久 checker config 或新增 CLI 开关。
+- 图内取消／超时直接返回，或仅扩错误分类但 checkpoint 扫描仍被取消 → 当次 Open 留下
+  部分修改且无 failed result → 将失败后的来源核验／恢复置于临时 WithoutCancel，保留预算、
+  used/start/checkpoint 完整校验与原错误。`TestR4RunningGraphCancellationRecovery` 用真实
+  cancel／deadline 的 builder 观察点、七资源 bytes、未开始／已完成／坏来源控制和再次 Open；
+  不是公共 CLI 竞态或更早扫描取消窗口的验收，诊断“观察到缺陷”的 PASS 不算修复 green。
+- workspace reader 将 cap 溢出报 plain error → 图构建降为 partial／IO_ERROR／nil error →
+  reader 返回 typed RESOURCE_LIMIT，图层沿既有扫描预算分类为 REFERENCE_LIMIT／零图。
+  `TestR4WorkspaceGraphReadGrowth` 用真实 inventory／os.Root／增长文件，区分有界读溢出、
+  读入后额外收费与精确预算控制；不将此分类缺口夸大为成功的危险 Plan/Apply。
 - `TestR4ReservationBoundaries`、`TestR4FilteredResultHeaderBudget`、
   `TestR4XMLCoverageReservation` 与 `BenchmarkR4BoundedInventory` 核分配／追加前拒绝。
 

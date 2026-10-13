@@ -3,12 +3,20 @@ package workspace
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
+	"strings"
 	"testing"
+	"time"
 
+	"github.com/LeviTK/Kepub/internal/bookpath"
 	"github.com/LeviTK/Kepub/internal/fault"
+	"github.com/LeviTK/Kepub/internal/publication"
 	"github.com/LeviTK/Kepub/internal/references"
 	"github.com/LeviTK/Kepub/internal/validation"
 )
@@ -151,4 +159,212 @@ func TestR4AcceptRequiresGraphBudgetAndRealChecker(t *testing.T) {
 		t.Fatal("real checker positive control", d, err)
 	}
 	assertBytes(t, original, source)
+}
+
+// Observe the real builder without adding a production injection API. The
+// cancellation/deadline is real, but its timing is an owner-window injection.
+type r4GraphContext struct {
+	context.Context
+	interrupt func() context.Context
+	reached   bool
+}
+
+func (c *r4GraphContext) Err() error {
+	if !c.reached {
+		pcs := make([]uintptr, 32)
+		n := runtime.Callers(2, pcs)
+		frames := runtime.CallersFrames(pcs[:n])
+		for {
+			frame, more := frames.Next()
+			if strings.Contains(frame.Function, "/internal/references.") {
+				c.reached = true
+				c.Context = c.interrupt()
+				break
+			}
+			if !more {
+				break
+			}
+		}
+	}
+	return c.Context.Err()
+}
+
+func TestR4RunningGraphCancellationRecovery(t *testing.T) {
+	for _, mode := range []string{"control", "cancel", "deadline"} {
+		for _, state := range []string{"running", "no-start", "unstarted", "completed", "bad-used", "bad-start", "bad-checkpoint"} {
+			t.Run(mode+"/"+state, func(t *testing.T) {
+				w, dir, original := structureWorkspace(t, nil)
+				a := structureBinding(t, w, "EPUB/chapter1.xhtml")
+				p := structurePlan(t, w, []Operation{a.elemDelete(a.locatorID(t, "unreferenced"))})
+				start, _ := prepareExecution(t, w, p)
+				frozen := n1Tree(t, filepath.Join(dir, revision))
+				frozenBytes := map[string][]byte{}
+				for _, bp := range []string{"mimetype", "META-INF/container.xml", "EPUB/package.opf", "EPUB/chapter1.xhtml", "EPUB/chapter2.xhtml", "EPUB/nav.xhtml", "EPUB/style.css"} {
+					frozenBytes[bp] = readResource(t, filepath.Join(dir, revision, bp))
+				}
+				source := readResource(t, original)
+				stateBytes := readResource(t, filepath.Join(dir, "state.json"))
+				chapter := filepath.Join(dir, candidate, "EPUB/chapter1.xhtml")
+				// Independent partial-write oracle, not the product's derived output.
+				put(t, chapter, bytes.Replace(readResource(t, chapter), []byte(`<p id="unreferenced">Plain.</p>`), nil, 1))
+				switch state {
+				case "no-start":
+					if err := w.root.Remove("tasks/active/edit-start.json"); err != nil {
+						t.Fatal(err)
+					}
+				case "unstarted":
+					start.Status = "unstarted"
+					put(t, filepath.Join(dir, "tasks/active/edit-start.json"), editJSON(t, start))
+				case "completed":
+					if _, err := w.Execution(); err != nil {
+						t.Fatal(err)
+					}
+					put(t, chapter, []byte("safe candidate drift after failed execution"))
+				case "bad-used":
+					put(t, filepath.Join(dir, "plans/"+p.ID+".used.json"), editJSON(t, planUse{Version: 1, TaskID: "wrong", PlanSHA256: digest(p)}))
+				case "bad-start":
+					start.TaskID = "wrong"
+					put(t, filepath.Join(dir, "tasks/active/edit-start.json"), editJSON(t, start))
+				case "bad-checkpoint":
+					start.Checkpoint = "missing"
+					put(t, filepath.Join(dir, "tasks/active/edit-start.json"), editJSON(t, start))
+				}
+				w.Close()
+				before := n1Tree(t, dir)
+				ctx := &r4GraphContext{Context: context.Background(), interrupt: func() context.Context {
+					if mode == "cancel" {
+						c, cancel := context.WithCancel(context.Background())
+						cancel()
+						return c
+					}
+					if mode == "deadline" {
+						c, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+						defer cancel()
+						<-c.Done()
+						return c
+					}
+					return context.Background()
+				}}
+				opened, err := OpenContext(ctx, dir)
+				if opened != nil {
+					opened.Close()
+				}
+				if !ctx.reached {
+					t.Fatal("references builder observation not reached")
+				}
+				if mode != "control" && state != "bad-used" && state != "bad-start" && state != "bad-checkpoint" {
+					want := context.Canceled
+					if mode == "deadline" {
+						want = context.DeadlineExceeded
+					}
+					if !errors.Is(err, want) {
+						t.Fatalf("want %v, got %v", want, err)
+					}
+				}
+				if state == "running" {
+					if mode == "control" && err != nil {
+						t.Fatal(err)
+					}
+					if !reflect.DeepEqual(frozen, n1Tree(t, filepath.Join(dir, candidate))) {
+						t.Error("this Open did not restore the complete candidate")
+					}
+					for bp, want := range frozenBytes {
+						if got := readResource(t, filepath.Join(dir, candidate, bp)); !bytes.Equal(got, want) {
+							t.Errorf("this Open left different candidate bytes: %s", bp)
+						}
+					}
+					var result Execution
+					data, readErr := os.ReadFile(filepath.Join(dir, "tasks/active/edit-result.json"))
+					if readErr != nil {
+						t.Errorf("this Open did not persist failed result: %v", readErr)
+					} else {
+						if err := json.Unmarshal(data, &result); err != nil {
+							t.Fatal(err)
+						}
+						if result.Status != "failed" || result.ReviewRequired || !result.Diff.Changed || result.Checkpoint != start.Checkpoint {
+							t.Errorf("lost failed provenance: %+v", result)
+						}
+					}
+				} else if mode != "control" || strings.HasPrefix(state, "bad-") {
+					if err == nil {
+						t.Error("invalid or canceled recovery succeeded")
+					}
+					if !reflect.DeepEqual(before, n1Tree(t, dir)) {
+						t.Error("non-running or invalid provenance was rewritten")
+					}
+				}
+				if !reflect.DeepEqual(frozen, n1Tree(t, filepath.Join(dir, revision))) {
+					t.Error("accepted changed")
+				}
+				for bp, want := range frozenBytes {
+					assertBytes(t, filepath.Join(dir, revision, bp), want)
+				}
+				assertBytes(t, original, source)
+				assertBytes(t, filepath.Join(dir, "state.json"), stateBytes)
+				if !strings.HasPrefix(state, "bad-") {
+					reopened, err := Open(dir)
+					if err != nil {
+						t.Fatal("lock release and reopen", err)
+					}
+					defer reopened.Close()
+					if _, err := Open(dir); !errors.Is(err, ErrBusy) {
+						t.Fatal("reopen lost lock", err)
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestR4WorkspaceGraphReadGrowth(t *testing.T) {
+	for _, tc := range []struct {
+		growth, allowance int
+		second            bool
+	}{
+		{0, 0, false}, // exact-budget control
+		{1, 0, false}, // bounded reader overflows
+		{32, 0, false},
+		{1, 0, true}, // growth fits this read; extra charging blocks the next resource
+		{1, 1, true}, // actual growth at the cumulative cap succeeds
+	} {
+		t.Run(fmt.Sprintf("growth=%d/allowance=%d/second=%t", tc.growth, tc.allowance, tc.second), func(t *testing.T) {
+			dir := t.TempDir()
+			const bp = bookpath.BookPath("chapter.xhtml")
+			data := []byte(`<html xmlns="http://www.w3.org/1999/xhtml"><body><p id="target">Text</p></body></html>`)
+			put(t, filepath.Join(dir, string(bp)), data)
+			if tc.second {
+				put(t, filepath.Join(dir, "second.xhtml"), data)
+			}
+			r, err := openDir(dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer r.Close()
+			inv, err := inventory(r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			p := &publication.Publication{Manifest: []publication.Item{{Path: bp, MediaType: "application/xhtml+xml", Exists: true}}}
+			if tc.second {
+				p.Manifest = append(p.Manifest, publication.Item{Path: "second.xhtml", MediaType: "application/xhtml+xml", Exists: true})
+			}
+			limits := references.DefaultGraphLimits
+			limits.ScanBytes = int64(len(data) + tc.allowance)
+			if tc.second {
+				limits.ScanBytes += int64(len(data))
+			}
+			put(t, filepath.Join(dir, string(bp)), append(bytes.Clone(data), bytes.Repeat([]byte(" "), tc.growth)...))
+			g, err := references.BuildSource(t.Context(), publicationRoot{r}, inv, p, limits)
+			if tc.growth <= tc.allowance {
+				if err != nil || g.Status != "complete" {
+					t.Fatalf("exact-budget control: %+v %v", g, err)
+				}
+			} else {
+				r4WorkspaceLimit(t, err)
+				if !reflect.DeepEqual(g, references.Graph{}) {
+					t.Fatalf("limit returned usable graph: %+v", g)
+				}
+			}
+		})
+	}
 }

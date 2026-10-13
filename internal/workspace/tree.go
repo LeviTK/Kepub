@@ -238,8 +238,11 @@ func (r publicationRoot) Read(bp bookpath.BookPath, max int64) ([]byte, error) {
 	}
 	b, err := io.ReadAll(io.LimitReader(f, max+1))
 	err = errors.Join(err, f.Close())
+	if err != nil {
+		return nil, err
+	}
 	if int64(len(b)) > max {
-		return nil, fmt.Errorf("resource %q exceeds parsing limit", bp)
+		return nil, fault.New(1, "RESOURCE_LIMIT", "resource %q exceeds parsing limit", bp)
 	}
 	return b, err
 }

@@ -121,6 +121,13 @@
 - `TestR4DependencyPlansRequireCompleteGraph` 核三种操作真实 Plan+Apply、七资源 bytes、
   再次 diff／历史重推及全工作区不变；`TestR4InterruptedGraphBudgetRollsBack` 核部分写入
   回滚；`TestR4AcceptRequiresGraphBudgetAndRealChecker` 保留真实 checker 与 accepted／锁控制。
+- 图重推取消／超时也属于 running 恢复失败；后续 used/start/checkpoint 与候选扫描须临时
+  忽略迟到取消后完整核验，不能只扩错误分类而仍用已取消 context。只恢复 running／无 result，
+  当次写 failed 并返回原错误；未开始、已完成或损坏来源不借此改写。永久入口
+  `TestR4RunningGraphCancellationRecovery` 核当次 Open 七资源字节、结果、锁与再次 Open。
+- `publicationRoot.Read` 的实际 cap 溢出须用 typed RESOURCE_LIMIT，让图层在扫描余量
+  耗尽时转 REFERENCE_LIMIT／零图；真实 I/O 错误不能被超限覆盖。入口
+  `TestR4WorkspaceGraphReadGrowth` 分别核 reader 溢出、读入后额外收费与精确预算正控。
 
 ## 查询验证只在本次持锁调用内复用
 
