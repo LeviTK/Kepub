@@ -61,7 +61,7 @@ func validateCommand(o options) (string, error) {
 			}
 		}
 		if !o.help {
-			values := map[string]string{"book": o.book, "task": o.book, "workspace": o.workspace, "operations": o.operations, "plan": o.plan, "output": o.output, "section": o.section, "resource": o.resource, "before": o.before}
+			values := map[string]string{"book": o.book, "task": o.book, "workspace": o.workspace, "operations": o.operations, "plan": o.plan, "output": o.output, "section": o.section, "resource": o.resource, "before": o.before, "definition": o.definition}
 			if o.content.Query != nil {
 				values["query"] = *o.content.Query
 			}

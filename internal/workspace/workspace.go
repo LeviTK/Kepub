@@ -25,6 +25,7 @@ import (
 	"github.com/LeviTK/Kepub/internal/fault"
 	"github.com/LeviTK/Kepub/internal/publication"
 	"github.com/LeviTK/Kepub/internal/references"
+	"github.com/LeviTK/Kepub/internal/validation"
 )
 
 var (
@@ -44,15 +45,17 @@ type Options struct {
 	Context  context.Context
 }
 
-// State is import provenance, not an accepted/validated publication status.
-// InitialRevision names an immutable library snapshot, not an approval.
+// State v1 preserves import provenance without conferring approval. State v2
+// binds a native definition/template and its initial formal validation only;
+// neither version approves later candidate revisions.
 type State struct {
-	Version         int      `json:"version"`
-	InitialRevision string   `json:"initialRevision"`
-	OriginalSHA256  string   `json:"originalSHA256"`
-	Rootfile        string   `json:"rootfile"`
-	Tree            Tree     `json:"tree"`
-	ReadOnlyReasons []string `json:"readOnlyReasons"`
+	Version         int              `json:"version"`
+	InitialRevision string           `json:"initialRevision"`
+	OriginalSHA256  string           `json:"originalSHA256"`
+	Rootfile        string           `json:"rootfile"`
+	Tree            Tree             `json:"tree"`
+	ReadOnlyReasons []string         `json:"readOnlyReasons"`
+	Source          *GeneratedSource `json:"source,omitempty"`
 }
 
 type Workspace struct {
@@ -92,6 +95,10 @@ func create(dir, source string, opts Options, jsonLimit int64) (_ *Workspace, er
 }
 
 func createWithIO(dir, source string, opts Options, jsonLimit int64, policy resourceIO) (_ *Workspace, err error) {
+	return createInput(dir, source, opts, jsonLimit, policy, nil, validation.Options{})
+}
+
+func createInput(dir, source string, opts Options, jsonLimit int64, policy resourceIO, book *NewBook, check validation.Options) (_ *Workspace, err error) {
 	if err := policy.ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -133,40 +140,54 @@ func createWithIO(dir, source string, opts Options, jsonLimit int64, policy reso
 	if err != nil {
 		return nil, err
 	}
-	for _, d := range []string{"original", "revisions", "revisions/initial", "tasks", "staging", "journal"} {
+	for _, d := range []string{"revisions", "revisions/initial", "tasks", "staging", "journal"} {
 		if err := r.Mkdir(d, 0700); err != nil {
 			return nil, err
 		}
 	}
-	originalHash, err := copyOriginal(r, source, policy)
-	if err != nil {
-		if errors.Is(err, errUnsafeRegular) {
-			return nil, fault.New(2, "INVALID_ARGUMENT", "workspace source: %v", err)
-		}
-		return nil, err
-	}
 	stagePath := filepath.Join(filepath.Dir(abs), stage)
-	a, err := archive.OpenContext(policy.ctx, filepath.Join(stagePath, "original/book.epub"), policy.limits)
-	if err != nil {
-		return nil, err
-	}
-	defer a.Close()
-	p, err := publication.Load(a, opts.Rootfile)
-	if err != nil {
-		return nil, err
-	}
-	if err := a.Unpack(filepath.Join(stagePath, filepath.FromSlash(revision))); err != nil {
-		return nil, err
+	var generated *GeneratedSource
+	var originalHash string
+	rootfile := "EPUB/package.opf"
+	reasons := []string{}
+	if book != nil {
+		generated, err = w.generate(*book, stagePath, check)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if err := r.Mkdir("original", 0700); err != nil {
+			return nil, err
+		}
+		originalHash, err = copyOriginal(r, source, policy)
+		if err != nil {
+			if errors.Is(err, errUnsafeRegular) {
+				return nil, fault.New(2, "INVALID_ARGUMENT", "workspace source: %v", err)
+			}
+			return nil, err
+		}
+		a, err := archive.OpenContext(policy.ctx, filepath.Join(stagePath, "original/book.epub"), policy.limits)
+		if err != nil {
+			return nil, err
+		}
+		defer a.Close()
+		p, err := publication.Load(a, opts.Rootfile)
+		if err != nil {
+			return nil, err
+		}
+		rootfile = string(p.Rootfile)
+		if err := a.Unpack(filepath.Join(stagePath, filepath.FromSlash(revision))); err != nil {
+			return nil, err
+		}
+		for _, l := range p.Limitations {
+			if l.Code != "READ_ONLY_PARTIAL" {
+				reasons = append(reasons, l.Code)
+			}
+		}
 	}
 	tree, err := w.hashAt(revision)
 	if err != nil {
 		return nil, err
-	}
-	reasons := []string{}
-	for _, l := range p.Limitations {
-		if l.Code != "READ_ONLY_PARTIAL" {
-			reasons = append(reasons, l.Code)
-		}
 	}
 	// Preserve hostile-looking resources in original/revision without ever
 	// putting them into an executable Agent working directory in this tranche.
@@ -179,7 +200,10 @@ func createWithIO(dir, source string, opts Options, jsonLimit int64, policy reso
 		}
 	}
 	slices.Sort(reasons)
-	w.state = State{1, "initial", originalHash, string(p.Rootfile), tree, slices.Compact(reasons)}
+	w.state = State{Version: 1, InitialRevision: "initial", OriginalSHA256: originalHash, Rootfile: rootfile, Tree: tree, ReadOnlyReasons: slices.Compact(reasons), Source: generated}
+	if generated != nil {
+		w.state.Version = 2
+	}
 	if err := writeJSONLimit(r, "state.json", w.state, jsonLimit); err != nil {
 		return nil, err
 	}
@@ -190,6 +214,11 @@ func createWithIO(dir, source string, opts Options, jsonLimit int64, policy reso
 	// reader used by Open before the containing directory can be published.
 	if err := readJSONLimit(r, "state.json", &w.state, jsonLimit); err != nil {
 		return nil, err
+	}
+	if generated != nil {
+		if err := w.verifyBaseline(); err != nil {
+			return nil, err
+		}
 	}
 	// Unpack does not promise fsync; sync the complete initial snapshot before
 	// publishing the root. This is not a claim of power-loss durability.
@@ -252,10 +281,14 @@ func openWithIO(dir string, policy resourceIO) (_ *Workspace, err error) {
 	if err != nil {
 		return nil, err
 	}
-	if w.state.Version != 1 || w.state.InitialRevision != "initial" {
+	if (w.state.Version != 1 && w.state.Version != 2) || w.state.InitialRevision != "initial" || w.state.Version == 1 && w.state.Source != nil {
 		return nil, fmt.Errorf("unsupported workspace state")
 	}
-	for _, d := range []string{"original", "revisions/initial", "tasks", "staging", "journal"} {
+	directories := []string{"revisions/initial", "tasks", "staging", "journal"}
+	if w.state.Version == 1 {
+		directories = append(directories, "original")
+	}
+	for _, d := range directories {
 		rd, err := subdir(r, d)
 		if err != nil {
 			return nil, err
@@ -339,6 +372,12 @@ func (w *Workspace) State() State {
 	s := w.state
 	s.ReadOnlyReasons = slices.Clone(s.ReadOnlyReasons)
 	s.Tree.Entries = slices.Clone(s.Tree.Entries)
+	if s.Source != nil {
+		// Public state must not grant a mutable alias to persisted provenance.
+		b, _ := json.Marshal(s.Source)
+		s.Source = new(GeneratedSource)
+		_ = json.Unmarshal(b, s.Source)
+	}
 	return s
 }
 
@@ -465,21 +504,27 @@ func (w *Workspace) verifyBaseline() error {
 // Callers hold the owner lock (and mu after Open); no result survives a later
 // operation, recovery or outside mutation as a verification exemption.
 func (w *Workspace) verifiedBaseline() (Revision, error) {
-	f, err := openRegular(w.root, "original/book.epub")
-	if err != nil {
-		return Revision{}, err
-	}
-	if w.resources.onOriginalRead != nil {
-		w.resources.onOriginalRead()
-	}
-	h := sha256.New()
-	_, err = archive.CopyBounded(w.resources.ctx, h, f, w.resources.originalBytes)
-	err = errors.Join(err, f.Close())
-	if err != nil {
-		return Revision{}, err
-	}
-	if hex.EncodeToString(h.Sum(nil)) != w.state.OriginalSHA256 {
-		return Revision{}, fmt.Errorf("original archive hash mismatch")
+	if w.state.Version == 2 {
+		if err := w.verifyGenerated(); err != nil {
+			return Revision{}, err
+		}
+	} else {
+		f, err := openRegular(w.root, "original/book.epub")
+		if err != nil {
+			return Revision{}, err
+		}
+		if w.resources.onOriginalRead != nil {
+			w.resources.onOriginalRead()
+		}
+		h := sha256.New()
+		_, err = archive.CopyBounded(w.resources.ctx, h, f, w.resources.originalBytes)
+		err = errors.Join(err, f.Close())
+		if err != nil {
+			return Revision{}, err
+		}
+		if hex.EncodeToString(h.Sum(nil)) != w.state.OriginalSHA256 {
+			return Revision{}, fmt.Errorf("original archive hash mismatch")
+		}
 	}
 	tree, err := w.hashAt(revision)
 	if err != nil {
@@ -666,6 +711,9 @@ func syncTree(r *os.Root, tree Tree, ctx context.Context) error {
 		}
 	}
 	for _, name := range []string{revision, "revisions/initial", "revisions", "original", "tasks", "staging", "journal", "."} {
+		if name == "original" && !exists(r, name) {
+			continue // Native workspaces have no imported original.
+		}
 		if err := ctx.Err(); err != nil {
 			return err
 		}

@@ -51,6 +51,43 @@ XHTML 的 href／src（含 EPUB3 nav）在解析目标前，仅去掉属性值�
 
 上述命令按阶段逐步实现，`capabilities` 不能把表中所有设计都提前报告为 available。
 
+### 2.0.1 原生 EPUB3 最小新建 v1（2026-10-13 冻结）
+
+本增量对应 F1/B1/B2，授权为本地开发与验证，不授权 push/PR/发行/关闭 Issue。
+复用后续 plan/apply/diff/accept/reject/export；不扩 schema 1–7 编辑权限。
+它是 M1 的首个可运行闭环，不代表 F3 多章维护、封面/插图、两层目录验收完成。
+
+- 新命令 `workspace create --definition FILE --output DIR [--strict --timeout SECONDS]`。
+  不接受 BOOK、rootfile、draft。创建目标须不存在，真实父目录须存在；最终整个工作区
+  原子不覆盖发布。任何发布前取消、错误、checker 缺失/失败均无目标工作区，清理自身 staging。
+  发布后目录同步失败须报告 I/O，不删除完整目标，不承诺断电持久性或自动重试。
+- definition 是严格 UTF-8 JSON，原文件（含落盘空白）与规范 JSON 编码分别至多 1 MiB，拒绝未知字段、重复键、尾随值、
+  无效 Unicode/孤立代理与非 XML 1.0 字符。字段：`schemaVersion:1`、非空 `title`、`creator`、
+  `language`（BCP47）、`identifier`（作者指定非空身份，不自动猜填）、
+  `modified`（精确 UTC `YYYY-MM-DDTHH:MM:SSZ`）、`chapters`（1–64 项）。
+  每章为非空 `title` 与 `paragraphs`（1–1024 个非空纯文本字符串）。重复章名合法；
+  输入顺序就是 spine/nav 顺序；无调用者路径、markup、字体或远程资源输入。
+  字符串按 XML 转义；固定 UTF-8、横排、系统字体 CSS，章节为标题和普通段落。
+- 固定 templateVersion 1 生成 mimetype、container、OPF（package version 3.0）、nav、CSS、
+  `EPUB/chapter-001.xhtml` 等资源；ID 按序号生成，nav 链到各章 start。
+  使用既有 archive 安全树、资源/路径/总量预算及 maxJSONBytes 持久预算，不新增预算绕过。
+- 新工作区 state version 2：`originalSHA256` 为空，无 original 目录/伪造原书。
+  `source` 包含 `kind:"native-epub3"`、`templateVersion:1`、完整 definition 及其规范 JSON SHA256、
+  正式 validation 报告；完整生成库存和树 hash 仍在 state.tree。初始 accepted 为 initial，
+  只有真实固定 EPUBCheck 5.3.0 检查通过才发布。每次来源核验从 definition 重推模板树，
+  核 definition digest、完整库存/树、initial bytes 和绑定该树的正式报告；不重新运行历史 checker。
+  后续接受/导出仍重新正式检查；初始验证不批准未来候选。
+- 导入 state version 1 的 wire shape、original 语义和所有旧编辑摘要不变；v1 禁止 source，
+  v2 禁止 originalSHA256/缺 source/未知 kind 或模板版本。旧二进制拒绝 state v2，
+  不迁移已有工作区。新建发布前通过正式 state 读取与相同来源核验，不发布半书。
+- 参数/definition 失败 exit 2 `INVALID_ARGUMENT`，目标存在 exit 2 `OUTPUT_EXISTS`；
+  取消 exit 130 `CANCELLED`、checker 超时/缺失/失败及 I/O 复用既有错误分类，不自动草稿。
+
+验收必须覆盖真实新建→重开→正文/元数据编辑→diff→reject→重计划→accept→正式导出→重开，
+独立核 ZIP 条目/OPF/spine/nav/非目标资源字节；重复标题、Unicode/转义、陈旧计划、
+生成来源篡改、现存输出、缺 checker、取消与初始化失败无半书，以及旧工作区回归。
+作者为当前线程；独立固定树 reviewer 使用独立 checkout，父线程核组合结果后才可放行。
+
 当前 M2 通过显式目录定位，不接收用户填的 workspaceId 代替实际状态，不查询全局注册表或“latest”。除 `workspace open` 新建外，各命令 Open 已有目录并验证持久身份、来源与锁。Plan 报告与 export 输出统一要求在整个 workspace 根之外、父目录已存在且为真实目录、输出此前不存在；不存在的新文件也不得放入 original、revision 或候选 pub。操作/计划输入拒绝符号链接、硬链接及特殊文件，打开使用非阻塞 regular-file 检查，FIFO 不等待 writer。
 
 `workspace open` 的创建目标已存在时返回 exit 2／`OUTPUT_EXISTS`，包括已有文件、目录和符号链接；源文件被确认不是稳定的单链接普通文件时返回 exit 2／`INVALID_ARGUMENT`，不跟随链接或等待 FIFO。源／父目录缺失、权限失败等真实文件系统故障仍为 exit 6／`IO_ERROR`；不将任意内部文件存在错误全局映射成参数错误。
