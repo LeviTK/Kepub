@@ -57,6 +57,11 @@
 
 改变一个风险模型前先写：**可能的错误实现 → 与正确实现不同的输入 → 独立期望 → 实际断言**。
 
+- 原生 template 1 只核 XML 语义与目标正文 → CSS serif→sans-serif/nav h1→h2
+  变异仍全绿，但新二进制重推树会拒绝旧 native 工作区 → 在真实 CLI 导出边界冻结
+  template 1 全资源独立字面 bytes，修改算法必须新 templateVersion；
+  `TestNativeBookBinaryLifecycle` 同时覆盖样式、导航、OPF、container 与不同章节。
+
 | 风险 | 最小有区分力的病例 |
 | --- | --- |
 | 局部门禁/别名计数 | 同 locator 多属性联合改、重复基线、合法 partial delete、两序、既有+新增 href/ARIA |
@@ -129,6 +134,15 @@
 
 ## G-JSON：持久化成功必须可在同一预算内读回
 
+- 外部新建 definition 复用持久 JSON bounded reader → 原文件超 1 MiB 被错误分类为
+  `WORKSPACE_JSON_LIMIT`/1，而非新建契约的 `INVALID_ARGUMENT`/2 → 在 `ReadNewBook`
+  局部映射该预算 fault，不改内部 JSON 预算/退出码、不转换 I/O 或取消。
+  `TestNativeDefinitionByteBoundary` 核真实 CLI 原文件恰好 1 MiB 可正式新建、超 1 字节
+  参数拒绝且无目标/staging；1587f36 隔离旧树为目标断言 red，不用全仓 PASS 抵消。
+- 扩展 state 结构后只检查 source 指针 → v1 的显式 source null 与大小写别名从旧版
+  未知字段拒绝变成可接受 → Open 按原始字段存在性拒绝 v1 source，再沿原始严格
+  字段解码与来源验证；`TestNativeSourceForbiddenInImportedState` 核 null/对象/别名
+  反例和原始 v1 正控，旧树 null 为 red，不把它描述为已证 provenance 绕过。
 - 无预算 writer＋32 MiB reader → 合法多资源长路径的 state 可以创建成功却不能重开 →
   同类持久记录共用 `maxJSONBytes`／`checkJSONSize`，按实际 UTF-8 JSON（转义、结构、末尾 LF）计量，
   超限在临时文件创建前返回 `WORKSPACE_JSON_LIMIT`/1；不截断库存、不提升 reader 上限。

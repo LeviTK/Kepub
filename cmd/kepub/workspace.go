@@ -14,6 +14,8 @@ func executeWorkspace(ctx context.Context, o options) (any, error) {
 	switch o.command {
 	case "workspace":
 		switch o.action {
+		case "create":
+			return app.CreateWorkspace(ctx, o.definition, o.output, v)
 		case "open":
 			return app.OpenWorkspace(ctx, o.book, o.output, o.rootfile)
 		case "export":

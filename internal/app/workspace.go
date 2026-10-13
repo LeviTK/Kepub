@@ -21,6 +21,27 @@ type WorkspaceResult struct {
 	Conformance string          `json:"conformance"`
 }
 
+func CreateWorkspace(ctx context.Context, definition, dir string, o validation.Options) (WorkspaceResult, error) {
+	b, err := workspace.ReadNewBook(definition)
+	if err != nil {
+		return WorkspaceResult{}, editArgumentError("INVALID_ARGUMENT", err)
+	}
+	w, err := workspace.CreateNew(ctx, dir, b, o)
+	if err != nil {
+		return WorkspaceResult{}, WorkspaceError(err)
+	}
+	defer w.Close()
+	id, err := w.ID()
+	if err != nil {
+		return WorkspaceResult{}, WorkspaceError(err)
+	}
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return WorkspaceResult{}, err
+	}
+	return WorkspaceResult{abs, id, w.State(), "pass"}, nil
+}
+
 func OpenWorkspace(ctx context.Context, book, dir, rootfile string) (WorkspaceResult, error) {
 	w, err := workspace.Create(dir, book, workspace.Options{Rootfile: rootfile, Context: ctx})
 	if err != nil {

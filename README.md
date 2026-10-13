@@ -11,9 +11,9 @@
 截至 **2026-10-13**，S0、T1a／T1b 与 T2 的五个有限增量已验收并集成主线；已有修复栈及后续审查修复通过 [PR #27](https://github.com/LeviTK/Kepub/pull/27) 合并到 `main`。
 
 - **可用：** EPUB2/3 查询、安全解包、工作区、受控元数据／XHTML 编辑、多资源事务、搜索替换、修复提案、正式校验与导出。
-- **尚未完成：** 完整 T2、EPUB2 → EPUB3 转换、新建制书、完整 CSS／资源维护、桌面预览及生产 Agent 集成。
+- **尚未完成：** 完整 T2、EPUB2 → EPUB3 转换、完整新建/章节/图片维护、完整 CSS／资源维护、桌面预览及生产 Agent 集成。
 - **交付形态：** 源码构建，暂无版本化安装包；Linux 已验证，Apple Silicon Mac 实机验收仍待完成。
-- **本轮范围：** 建立“最小制书闭环优先”的任务与开发方案，尚未开始新功能实现。文档 v0.11 是方案版本，不是软件发行版本。
+- **本轮范围：** 本地新增原生 EPUB3 最小新建入口，已执行真实 CLI 新建、正文/标题编辑、拒绝/接受、正式导出与重开；独立固定树审查及全仓验证状态见[首增量收据](docs/verification/NATIVE_EPUB3_MINIMUM.md)。未推送、未发行，不代表完整 M1/F3。文档 v0.11 是方案版本，不是软件发行版本。
 
 [合并提交 e102b21](https://github.com/LeviTK/Kepub/commit/e102b2198ffd10df1cb05da3d70f68c47dc694ce) 的 [Linux CI](https://github.com/LeviTK/Kepub/actions/runs/38364503620) 已通过：普通／race 各 1858 个测试及子测试 PASS、1 项私有原书 SKIP、0 FAIL，另通过 vet 和普通／race CLI 构建。该结果不代表 Mac、断电、真实渲染或完整 EPUB 3.3 支持；历史失败与有限批准保持原范围。
 
@@ -63,6 +63,18 @@ export KEPUB_EPUBCHECK_JAR='/absolute/path/epubcheck-5.3.0/epubcheck.jar'
 ```
 
 `doctor` 成功收集诊断不等于检查器可用，须检查 `formalValidationAvailable`。命令不自动安装依赖，缺检查器不会隐式降级；`--strict` 使 warning 也阻止通过。显式 `pack --draft` 或 `workspace export --draft` 允许草稿，产物标记 `verified:false`；**没有草稿接受**。
+
+### 原生新建 EPUB3（本地首增量）
+
+使用公开的[新建定义示例](docs/examples/newbook-v1.json)，修改标题、作者、语言、标识符、UTC 修改时间及纯文本章节。
+
+```sh
+./kepub workspace create --definition docs/examples/newbook-v1.json --output 'new-work' --json
+./kepub content --workspace 'new-work' --resource 'EPUB/chapter-002.xhtml' --json
+./kepub workspace export 'new-work' --output 'new-book.epub' --json
+```
+
+新建必须先通过正式检查，不能用 `--draft` 跳过。新书记录生成定义、模板版本与完整来源，不伪造导入原书；已有工作区不覆盖。支持 1–64 章，重复章名允许，输入顺序就是正文/目录顺序，固定横排 CSS 不嵌入字体。后续编辑复用下面的 plan/apply/diff/accept/reject 流程。此首增量不含封面/插图、两层目录或创建后的资源新增/章节重排；详见 [冻结契约](docs/CLI_CONTRACT.md#201-原生-epub3-最小新建-v12026-10-13-冻结)。
 
 ## 编辑流程
 

@@ -28,6 +28,7 @@ type options struct {
 	resource, direction                      string
 	selectValue, before, afterRevision       string
 	afterTask                                string
+	definition                               string
 	json, help                               bool
 	strict, draft, emitRequest               bool
 	timeout                                  time.Duration
@@ -140,6 +141,8 @@ func parse(args []string) (o options, err error) {
 				return o, fault.New(2, "INVALID_ARGUMENT", "empty option value")
 			}
 			switch key {
+			case "--definition":
+				o.definition = val
 			case "--workspace":
 				o.workspace = val
 			case "--operations":
@@ -311,7 +314,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if err == nil {
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop()
-		if o.command == "doctor" || o.command == "validate" || o.command == "pack" || o.command == "workspace" && o.action == "export" || o.command == "task" && o.action == "accept" || o.command == "fix" && o.action == "delta" {
+		if o.command == "doctor" || o.command == "validate" || o.command == "pack" || o.command == "workspace" && (o.action == "export" || o.action == "create") || o.command == "task" && o.action == "accept" || o.command == "fix" && o.action == "delta" {
 			if o.timeout != 0 {
 				var cancel context.CancelFunc
 				ctx, cancel = context.WithTimeout(ctx, o.timeout)

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "title": "最小制书示例 & Unicode",
+  "creator": "示例作者",
+  "language": "zh-Hans",
+  "identifier": "urn:uuid:93b80bc0-a0d1-4a7b-a121-32b4478db8ec",
+  "modified": "2026-10-13T00:00:00Z",
+  "chapters": [
+    {"title": "前言", "paragraphs": ["这是公开合成文本，不含私有书籍。"]},
+    {"title": "第三章", "paragraphs": ["第三章排在第一章之前，用于验证输入顺序。", "引号、&、<标签> 和 😀 都是文本。"]},
+    {"title": "第一章", "paragraphs": ["第一章的正文。"]},
+    {"title": "第一章", "paragraphs": ["重复标题不代表同一章节。"]},
+    {"title": "附录", "paragraphs": ["此首增量不含封面、插图或两层目录；完整 F3 样书随后交付。"]}
+  ]
+}
