@@ -165,6 +165,9 @@
 
 ## 原生新建来源与外部定义
 
+- templateVersion 绑定完整持久生成算法，CSS、nav 标记和词法格式均不能在同版本下改变；
+  语义 XML 正确不等于已有工作区能重开。`TestNativeBookBinaryLifecycle` 在真实导出
+  边界冻结 template 1 全部资源字节；CSS/nav 变异须失败，不从生成器派生期望。
 - state v2 从完整 definition/template 重推 initial 库存与 bytes，绑定实际正式验证报告，
   不把生成 ZIP 冒充 original；旧 state v1/schema 1–7 来源与预算不变。初始化原子不覆盖，
   发布前错误/取消只清理自身 staging，后续 candidate/accept/export 仍消费既有来源门禁。

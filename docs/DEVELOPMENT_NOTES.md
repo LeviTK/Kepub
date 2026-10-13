@@ -57,6 +57,11 @@
 
 改变一个风险模型前先写：**可能的错误实现 → 与正确实现不同的输入 → 独立期望 → 实际断言**。
 
+- 原生 template 1 只核 XML 语义与目标正文 → CSS serif→sans-serif/nav h1→h2
+  变异仍全绿，但新二进制重推树会拒绝旧 native 工作区 → 在真实 CLI 导出边界冻结
+  template 1 全资源独立字面 bytes，修改算法必须新 templateVersion；
+  `TestNativeBookBinaryLifecycle` 同时覆盖样式、导航、OPF、container 与不同章节。
+
 | 风险 | 最小有区分力的病例 |
 | --- | --- |
 | 局部门禁/别名计数 | 同 locator 多属性联合改、重复基线、合法 partial delete、两序、既有+新增 href/ARIA |

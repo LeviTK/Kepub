@@ -139,6 +139,26 @@ func TestNativeBookBinaryLifecycle(t *testing.T) {
 	if string(files["EPUB/chapter-001.xhtml"]) != first {
 		t.Fatal("incorrect generated text bytes", string(files["EPUB/chapter-001.xhtml"]))
 	}
+	// Template 1 is persisted provenance, so even formatting changes require a
+	// new template version. Freeze complete bytes, not only equivalent XML.
+	wantTemplate := map[string]string{
+		"mimetype":               "application/epub+zip",
+		"META-INF/container.xml": `<?xml version="1.0" encoding="UTF-8"?><container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0"><rootfiles><rootfile full-path="EPUB/package.opf" media-type="application/oebps-package+xml"/></rootfiles></container>` + "\n",
+		"EPUB/style.css":         "body { font-family: serif; writing-mode: horizontal-tb; }\nh1 { text-align: start; }\np { text-indent: 2em; }\n",
+		"EPUB/package.opf":       `<?xml version="1.0" encoding="UTF-8"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="uid" xml:lang="zh-Hans"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="uid">urn:uuid:93b80bc0-a0d1-4a7b-a121-32b4478db8ec</dc:identifier><dc:title id="title">新书 &amp; 😀</dc:title><dc:creator id="creator">作者</dc:creator><dc:language>zh-Hans</dc:language><meta property="dcterms:modified">2026-10-13T00:00:00Z</meta></metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="css" href="style.css" media-type="text/css"/><item id="chapter-001" href="chapter-001.xhtml" media-type="application/xhtml+xml"/><item id="chapter-002" href="chapter-002.xhtml" media-type="application/xhtml+xml"/><item id="chapter-003" href="chapter-003.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="chapter-001"/><itemref idref="chapter-002"/><itemref idref="chapter-003"/></spine></package>` + "\n",
+		"EPUB/nav.xhtml":         `<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="zh-Hans" xml:lang="zh-Hans"><head><title>Contents</title><link rel="stylesheet" type="text/css" href="style.css"/></head><body><nav epub:type="toc" id="toc"><h1>Contents</h1><ol><li><a href="chapter-001.xhtml#start">第三章</a></li><li><a href="chapter-002.xhtml#start">第一章</a></li><li><a href="chapter-003.xhtml#start">第一章</a></li></ol></nav></body></html>` + "\n",
+		"EPUB/chapter-001.xhtml": first,
+		"EPUB/chapter-002.xhtml": `<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" lang="zh-Hans" xml:lang="zh-Hans"><head><title>第一章</title><link rel="stylesheet" type="text/css" href="style.css"/></head><body><h1 id="start">第一章</h1><p>正文甲</p>` + "\n</body></html>\n",
+		"EPUB/chapter-003.xhtml": `<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml" lang="zh-Hans" xml:lang="zh-Hans"><head><title>第一章</title><link rel="stylesheet" type="text/css" href="style.css"/></head><body><h1 id="start">第一章</h1><p>正文乙</p>` + "\n</body></html>\n",
+	}
+	if len(files) != len(wantTemplate) {
+		t.Fatal("template 1 inventory changed")
+	}
+	for name, want := range wantTemplate {
+		if string(files[name]) != want {
+			t.Fatalf("template 1 bytes changed: %s", name)
+		}
+	}
 
 	read := func() map[string]any {
 		return run([]string{"content", "--workspace", ws, "--resource", "EPUB/chapter-001.xhtml", "--query", "原文"}, 0)["data"].(map[string]any)
