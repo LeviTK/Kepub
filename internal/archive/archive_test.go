@@ -25,6 +25,7 @@ func TestRejectMalicious(t *testing.T) {
 		{"absolute", []testfixture.Entry{{Name: "/escape"}}, "UNSAFE_PATH"},
 		{"windows", []testfixture.Entry{{Name: "C:\\escape"}}, "UNSAFE_PATH"},
 		{"duplicate", []testfixture.Entry{{Name: "x"}, {Name: "x"}}, "ARCHIVE_COLLISION"},
+		{"duplicate directory", []testfixture.Entry{{Name: "a/", Mode: os.ModeDir | 0700}, {Name: "a/", Mode: os.ModeDir | 0700}}, "ARCHIVE_COLLISION"},
 		{"case parent", []testfixture.Entry{{Name: "Text/a"}, {Name: "text/b"}}, "ARCHIVE_COLLISION"},
 		{"unicode parent", []testfixture.Entry{{Name: "é/a"}, {Name: "e\u0301/b"}}, "ARCHIVE_COLLISION"},
 		{"dir/file", []testfixture.Entry{{Name: "x"}, {Name: "x/y"}}, "ARCHIVE_COLLISION"},
@@ -62,13 +63,13 @@ func TestActualLimitsAndCRC(t *testing.T) {
 	filename := filepath.Join(t.TempDir(), "limits.epub")
 	entries := []testfixture.Entry{{Name: "mimetype", Data: []byte("application/epub+zip")}, {Name: "bomb", Data: []byte(strings.Repeat("x", 1025))}}
 	testfixture.ZIP(t, filename, entries)
-	for _, limit := range []Limits{{2, 1024, 2048}, {2, 2048, 1044}, {1, 2048, 2048}} {
+	for _, limit := range []Limits{{2, 1024, 2048, DefaultLimits.PathBytes}, {2, 2048, 1044, DefaultLimits.PathBytes}, {1, 2048, 2048, DefaultLimits.PathBytes}} {
 		if a, e := Open(filename, limit); e == nil {
 			a.Close()
 			t.Fatal("limit ignored", limit)
 		}
 	}
-	a, e := Open(filename, Limits{2, 1025, 1045})
+	a, e := Open(filename, Limits{2, 1025, 1045, DefaultLimits.PathBytes})
 	if e != nil {
 		t.Fatal("exact boundary", e)
 	}

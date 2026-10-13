@@ -27,7 +27,7 @@ go build -o kepub ./cmd/kepub
 - 引用边保留源位置、原 href、精确目标路径、query/fragment 和解析器版本；`--resource` / `--direction incoming|outgoing` 只过滤边，保留全局 coverage 与诊断。CSS 仅提取 literal url/import 子集，完整 CSS grammar 为 partial；脚本、SMIL、srcset 等明确不完整。**complete 只表示相应语法的提取覆盖，不是 EPUB 合规或编辑授权。**
 - XHTML href/src（含 nav）解析目标时去掉两端 ASCII 空白，报告仍保留 XML 解析后的原属性值；不会删除 NBSP 或百分号编码的文件名空格，也不会把这条规则全局用于 OPF、NCX、SVG、CSS 或磁盘路径。
 - 支持 EPUB2/3 ZIP 与严格 UTF-8／UTF-16 LE／BE XML（含 BOM），接纳原生 `<!DOCTYPE html>` 及有界内部子集、内部通用／参数实体、默认属性和 NOTATION。EPUB3 按版本及 manifest 媒体类型检查允许的 DOCTYPE 标识符，外部子集零读取；EPUB2 合法但未支持的外部声明仍明确 exit 3。目录输入的只读查询、`xml:base`、远程 manifest href 仍不支持，不容错改写。
-- 拒绝穿越、绝对路径、特殊/符号链接/加密 ZIP 条目、重复和大小写/Unicode 碰撞（包括隐式父目录）。实际解压限制：20,000 条目、256MiB/文件、2GiB 总量；路径 4096 字节/128 层；解析 XML 8MiB/128 层/200,000 tokens、累计文本/位置索引 32MiB。这些是初始产品策略，不是 EPUB 标准。
+- 拒绝穿越、绝对路径、特殊/符号链接/加密 ZIP 条目、重复和大小写/Unicode 碰撞（包括隐式父目录）。解包、目录快照、Inventory 与导出统一限制为 20,000 个唯一展开文件/目录（含全部隐式父目录，共享或显式父目录只计一次）、全部展开 BookPath 累计 32MiB UTF-8 字节、256MiB/文件、2GiB 实际文件总量；ZIP 展开条目/路径超限在解压 staging 前拒绝。单路径 4096 字节/128 层；解析 XML 8MiB/128 层/200,000 tokens、累计文本/位置索引 32MiB。这些是初始产品策略，不是 EPUB 标准。
 - 原书只读，所有资源（含非 manifest 文件与空目录）保留；unpack 完整 staging 后原子发布，不覆盖已有路径。输出父目录必须已存在。Linux 和 macOS 支持原子不覆盖发布；macOS **只做交叉编译，尚未实机验证**。突然终止可能留下私有临时 staging，但不会发布半成品目录；不宣称断电耐久性。
 - `--json` 成功/失败 stdout 都是一个统一 envelope；失败用稳定 code，退出码 1 内容/安全问题、2 参数、3 未实现能力、6 I/O。`--output/-o`、`--rootfile`、`--section` 可置于 BOOK 前后，`--` 结束选项，JSON 和 `--no-input` 不问答。其他契约中的选项尚未实现，会拒绝，不忽略。
 - 固定版式、脚本标记、SMIL/音视频、签名、加密/字体混淆声明会记录限制；不执行、不解密、不验证签名、不删除内容。缺失 manifest 资源显式报告。成功只表示只读请求完成，**不是 EPUB 合规验证**。

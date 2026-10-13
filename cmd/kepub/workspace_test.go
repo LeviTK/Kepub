@@ -285,14 +285,14 @@ func TestWorkspaceAcceptCommitCancellationSemantics(t *testing.T) {
 	ws := filepath.Join(dir, "ws")
 	ops := filepath.Join(dir, "ops.json")
 	plan := filepath.Join(dir, "plan.json")
-	if _, err := app.OpenWorkspace(book, ws, ""); err != nil {
+	if _, err := app.OpenWorkspace(t.Context(), book, ws, ""); err != nil {
 		t.Fatal(err)
 	}
 	operationFile(t, ops, "title", "Title", "Accepted")
-	if _, err := app.PlanWorkspace(ws, ops, plan); err != nil {
+	if _, err := app.PlanWorkspace(t.Context(), ws, ops, plan); err != nil {
 		t.Fatal(err)
 	}
-	e, err := app.ApplyWorkspace(ws, plan)
+	e, err := app.ApplyWorkspace(t.Context(), ws, plan)
 	if err != nil {
 		t.Fatal(err)
 	}

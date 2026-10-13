@@ -197,7 +197,7 @@ func (d *StructureDocument) rebaseMoveBlock(moved *xmltext.Element, sourcePath, 
 				links = append(links, StructureLink{Locator: e.Location, Name: a.Name.Local, Value: value})
 			}
 			if a.Name.Space == "" && IsIDREFAttribute(a.Name.Local) {
-				for _, token := range IDREFs(a.Value) {
+				for _, token := range IDREFs(d.ReferenceVersion, e.Name.Local, a.Name.Local, a.Value) {
 					targets := d.identityElements(token)
 					if len(targets) != 1 || !insideSubtree(targets[0], moved) {
 						return fault.New(2, "INVALID_OPERATIONS", "IDREF %s=%q in the moved block is same-document and cannot be synchronized across resources", a.Name.Local, token)

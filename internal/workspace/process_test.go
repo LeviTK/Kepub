@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/LeviTK/Kepub/internal/testfixture"
 	"golang.org/x/sys/unix"
 )
 
@@ -26,6 +27,33 @@ func TestWorkspaceProcessHelper(t *testing.T) {
 		return
 	}
 	dir := os.Getenv("KEPUB_WORKSPACE_DIR")
+	if mode == "limited-create" {
+		source := os.Getenv("KEPUB_WORKSPACE_SOURCE")
+		info, err := os.Stat(source)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// The source copy fits exactly; every publication resource is smaller.
+		// Only the larger state.json encounters a real short write, privately
+		// confined to this child with a few-KiB limit, not disk exhaustion.
+		signal.Ignore(unix.SIGXFSZ)
+		var limit unix.Rlimit
+		if err := unix.Getrlimit(unix.RLIMIT_FSIZE, &limit); err != nil {
+			t.Fatal(err)
+		}
+		limit.Cur = uint64(info.Size())
+		if err := unix.Setrlimit(unix.RLIMIT_FSIZE, &limit); err != nil {
+			t.Fatal(err)
+		}
+		w, err := Create(dir, source, Options{})
+		if w != nil {
+			w.Close()
+		}
+		if !errors.Is(err, unix.EFBIG) {
+			t.Fatalf("Create must return the actual metadata short-write fault: %v", err)
+		}
+		return
+	}
 	if mode == "limited-recovery" {
 		// Confine the real short-write fault to this subprocess, not the test
 		// runner or concurrent tests. Metadata is larger than 2 KiB, while
@@ -279,7 +307,11 @@ func TestCrossProcessLockAndExitRecovery(t *testing.T) {
 }
 
 func TestCrossProcessCreateRace(t *testing.T) {
-	source, _ := fixture(t)
+	source, fixtureEntries := fixture(t)
+	original, err := os.ReadFile(source)
+	if err != nil {
+		t.Fatal(err)
+	}
 	base := t.TempDir()
 	dir := filepath.Join(base, "workspace")
 	var commands []*exec.Cmd
@@ -338,7 +370,14 @@ func TestCrossProcessCreateRace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w.Close()
+	defer w.Close()
+	assertBytes(t, source, original)
+	assertBytes(t, filepath.Join(dir, "original/book.epub"), original)
+	for _, e := range fixtureEntries {
+		if !strings.HasSuffix(e.Name, "/") {
+			assertBytes(t, filepath.Join(dir, revision, e.Name), e.Data)
+		}
+	}
 }
 
 func TestSpecialFilesAndDiskFailure(t *testing.T) {
@@ -465,4 +504,52 @@ func TestPublishDoesNotReplaceLateEmptyDestination(t *testing.T) {
 	if err != nil || string(b) != "staged" {
 		t.Fatalf("stage lost: %s %v", b, err)
 	}
+}
+
+func TestR1CreateMetadataShortWrite(t *testing.T) {
+	parent := t.TempDir()
+	source := filepath.Join(parent, "input.epub")
+	entries := testfixture.EPUB("3.0", false)
+	longPath := strings.Repeat(strings.Repeat("a", 120)+"/", 6) + "tiny.bin"
+	entries = append(entries, testfixture.Entry{Name: longPath, Data: []byte{42}})
+	testfixture.ZIP(t, source, entries)
+	original, err := os.ReadFile(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range entries {
+		if len(e.Data) > len(original) {
+			t.Fatal("publication resource would fault before metadata")
+		}
+	}
+	baseline := filepath.Join(parent, "baseline")
+	w, err := Create(baseline, source, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	state, err := os.ReadFile(filepath.Join(baseline, "state.json"))
+	if err != nil || len(state) <= len(original) {
+		t.Fatalf("fixture must fault at state.json: archive=%d state=%d, %v", len(original), len(state), err)
+	}
+	dir := filepath.Join(parent, "failed")
+	if out, err := helper(t, "limited-create", dir, source).CombinedOutput(); err != nil {
+		t.Fatalf("limited Create: %v\n%s", err, out)
+	}
+	if _, err := os.Lstat(dir); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("short write published a partial workspace: %v", err)
+	}
+	stages, err := filepath.Glob(filepath.Join(parent, ".kepub-create-*"))
+	if err != nil || len(stages) != 0 {
+		t.Fatalf("failed Create leaked staging: %v, %v", stages, err)
+	}
+	assertBytes(t, source, original)
+	assertBytes(t, filepath.Join(baseline, "state.json"), state)
+	w, err = Open(baseline)
+	if err != nil {
+		t.Fatal("failure affected prior workspace", err)
+	}
+	defer w.Close()
 }

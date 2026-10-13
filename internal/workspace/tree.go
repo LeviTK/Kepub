@@ -1,20 +1,40 @@
 package workspace
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
 	"sort"
 
+	"github.com/LeviTK/Kepub/internal/archive"
 	"github.com/LeviTK/Kepub/internal/bookpath"
+	"github.com/LeviTK/Kepub/internal/fault"
 )
+
+// Private per-call/workspace policy; publication limits are archive's exact
+// model, while originalBytes bounds the distinct raw ZIP stream.
+type resourceIO struct {
+	ctx           context.Context
+	limits        archive.Limits
+	originalBytes int64
+	// Private call-local observation; never a cache or a source-verification gate.
+	onRevisionRead func(string)
+	onOriginalRead func()
+}
+
+func defaultResourceIO(ctx context.Context) resourceIO {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return resourceIO{ctx: ctx, limits: archive.DefaultLimits, originalBytes: archive.MaxInputBytes}
+}
 
 // Entry records exact, case-sensitive POSIX paths. Directory sizes are zero;
 // file sizes are bytes read, not metadata estimates. Modes and times are absent.
@@ -40,30 +60,28 @@ func HashTree(dir string) (Tree, error) {
 		return Tree{}, err
 	}
 	defer r.Close()
-	return scanTree(r, nil)
+	return scanTree(r, nil, defaultResourceIO(nil))
 }
 
 // scanTree can also copy into a newly created, empty root. No link-based cloning.
-func scanTree(src, dst *os.Root) (Tree, error) {
+func scanTree(src, dst *os.Root, policy resourceIO) (Tree, error) {
 	tree := Tree{Entries: []Entry{}}
 	names := map[string]string{}
-	err := fs.WalkDir(src.FS(), ".", func(name string, d fs.DirEntry, err error) error {
-		if err != nil || name == "." {
-			return err
-		}
+	var total, pathBytes int64
+	err := archive.WalkDirectory(policy.ctx, src, func(name string, info os.FileInfo) error {
 		bp, err := bookpath.Parse(name)
 		if err != nil {
 			return err
 		}
+		if err := policy.limits.CheckEntry(len(tree.Entries), pathBytes, bp); err != nil {
+			return err
+		}
+		pathBytes += int64(len(bp))
 		key := bookpath.CollisionKey(bp)
 		if old, ok := names[key]; ok && old != name {
 			return fmt.Errorf("colliding paths %q and %q", old, name)
 		}
 		names[key] = name
-		info, err := src.Lstat(name)
-		if err != nil {
-			return err
-		}
 		entry := Entry{Path: name}
 		switch {
 		case info.IsDir():
@@ -79,6 +97,14 @@ func scanTree(src, dst *os.Root) (Tree, error) {
 			if err != nil {
 				return err
 			}
+			opened, err := f.Stat()
+			remaining := min(policy.limits.FileBytes, policy.limits.TotalBytes-total)
+			if err == nil && opened.Size() > remaining {
+				err = fault.New(1, "ARCHIVE_LIMIT", "resource %q exceeds remaining byte budget", name)
+			}
+			if err != nil {
+				return errors.Join(err, f.Close())
+			}
 			h := sha256.New()
 			var out *os.File
 			var writer io.Writer = h
@@ -90,7 +116,14 @@ func scanTree(src, dst *os.Root) (Tree, error) {
 				}
 				writer = io.MultiWriter(h, out)
 			}
-			entry.Size, err = io.Copy(writer, f)
+			entry.Size, err = archive.CopyBounded(policy.ctx, writer, f, remaining)
+			if err == nil {
+				after, statErr := f.Stat()
+				err = statErr
+				if err == nil && (entry.Size != opened.Size() || after.Size() != opened.Size() || !after.ModTime().Equal(opened.ModTime())) {
+					err = fault.New(4, "INPUT_DRIFT", "resource %q changed while scanning", name)
+				}
+			}
 			err = errors.Join(err, f.Close())
 			if out != nil {
 				err = errors.Join(err, out.Sync(), out.Close())
@@ -98,6 +131,7 @@ func scanTree(src, dst *os.Root) (Tree, error) {
 			if err != nil {
 				return err
 			}
+			total += entry.Size
 			entry.SHA256 = hex.EncodeToString(h.Sum(nil))
 		default:
 			return fmt.Errorf("unsafe tree entry %q: %s", name, info.Mode())
@@ -115,6 +149,9 @@ func scanTree(src, dst *os.Root) (Tree, error) {
 	if dst != nil {
 		// Child directories before their parents; files were synced above.
 		for i := len(tree.Entries) - 1; i >= 0; i-- {
+			if err := policy.ctx.Err(); err != nil {
+				return Tree{}, err
+			}
 			if tree.Entries[i].Type == "directory" {
 				if err := syncDir(dst, tree.Entries[i].Path); err != nil {
 					return Tree{}, err
@@ -201,8 +238,13 @@ func (r publicationRoot) Read(bp bookpath.BookPath, max int64) ([]byte, error) {
 	}
 	b, err := io.ReadAll(io.LimitReader(f, max+1))
 	err = errors.Join(err, f.Close())
+	if err != nil {
+		return nil, err
+	}
 	if int64(len(b)) > max {
-		return nil, fmt.Errorf("resource %q exceeds parsing limit", bp)
+		// Preserve consumed bytes for cumulative scan accounting, including the
+		// overflow probe. Callers must still reject the resource on this error.
+		return b, fault.New(1, "RESOURCE_LIMIT", "resource %q exceeds parsing limit", bp)
 	}
 	return b, err
 }
@@ -216,15 +258,34 @@ func syncDir(r *os.Root, name string) error {
 }
 
 func hashAt(r *os.Root, name string) (Tree, error) {
+	return hashAtWithIO(r, name, defaultResourceIO(nil))
+}
+
+func (w *Workspace) hashAt(name string) (Tree, error) {
+	return hashAtWithIO(w.root, name, w.resources)
+}
+
+func hashAtWithIO(r *os.Root, name string, policy resourceIO) (Tree, error) {
 	src, err := subdir(r, name)
 	if err != nil {
 		return Tree{}, err
 	}
 	defer src.Close()
-	return scanTree(src, nil)
+	return scanTree(src, nil, policy)
 }
 
 func copyTree(r *os.Root, from, to string) (Tree, error) {
+	return copyTreeWithIO(r, from, to, defaultResourceIO(nil))
+}
+
+func (w *Workspace) copyTree(from, to string) (Tree, error) {
+	return copyTreeWithIO(w.root, from, to, w.resources)
+}
+
+func copyTreeWithIO(r *os.Root, from, to string, policy resourceIO) (tree Tree, err error) {
+	if err := policy.ctx.Err(); err != nil {
+		return Tree{}, err
+	}
 	src, err := subdir(r, from)
 	if err != nil {
 		return Tree{}, err
@@ -233,10 +294,15 @@ func copyTree(r *os.Root, from, to string) (Tree, error) {
 	if err := r.Mkdir(to, 0700); err != nil {
 		return Tree{}, err
 	}
+	defer func() {
+		if err != nil {
+			err = errors.Join(err, r.RemoveAll(to))
+		}
+	}()
 	dst, err := subdir(r, to)
 	if err != nil {
 		return Tree{}, err
 	}
 	defer dst.Close()
-	return scanTree(src, dst)
+	return scanTree(src, dst, policy)
 }

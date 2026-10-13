@@ -1,6 +1,7 @@
 package workspace
 
 import (
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -35,7 +36,7 @@ func (w *Workspace) checkpointFrom(source string) (_ Snapshot, err error) {
 	if err := w.verifyTask(); err != nil {
 		return Snapshot{}, err
 	}
-	before, err := hashAt(w.root, source)
+	before, err := w.hashAt(source)
 	if err != nil {
 		return Snapshot{}, err
 	}
@@ -45,11 +46,11 @@ func (w *Workspace) checkpointFrom(source string) (_ Snapshot, err error) {
 		return Snapshot{}, err
 	}
 	defer func() { err = errors.Join(err, w.root.RemoveAll(stage)) }()
-	tree, err := copyTree(w.root, source, stage+"/pub")
+	tree, err := w.copyTree(source, stage+"/pub")
 	if err != nil {
 		return Snapshot{}, err
 	}
-	after, err := hashAt(w.root, source)
+	after, err := w.hashAt(source)
 	if err != nil {
 		return Snapshot{}, err
 	}
@@ -61,6 +62,9 @@ func (w *Workspace) checkpointFrom(source string) (_ Snapshot, err error) {
 		return Snapshot{}, err
 	}
 	if err := syncDir(w.root, stage); err != nil {
+		return Snapshot{}, err
+	}
+	if err := w.resources.ctx.Err(); err != nil {
 		return Snapshot{}, err
 	}
 	if err := publish(w.root, stage, checkpointDir(id)); err != nil {
@@ -120,7 +124,7 @@ func (w *Workspace) snapshot(id string) (Snapshot, error) {
 	if s.Version != 1 || s.ID != id || s.BaseRevision != w.current {
 		return s, fmt.Errorf("invalid checkpoint provenance")
 	}
-	tree, err := hashAt(w.root, checkpointDir(id)+"/pub")
+	tree, err := w.hashAt(checkpointDir(id) + "/pub")
 	if err != nil {
 		return s, err
 	}
@@ -147,6 +151,15 @@ type restoreRecord struct {
 func (w *Workspace) Restore(id string) (err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	return w.restore(id)
+}
+
+// An already registered mutation must roll back even when its request was
+// cancelled. Budgets, provenance and the normal restore journal remain active.
+func (w *Workspace) rollback(id string) error {
+	previous := w.resources.ctx
+	w.resources.ctx = context.WithoutCancel(previous)
+	defer func() { w.resources.ctx = previous }()
 	return w.restore(id)
 }
 
@@ -177,7 +190,7 @@ func (w *Workspace) restore(id string) (err error) {
 			err = errors.Join(err, w.root.RemoveAll(restoreNew), w.root.RemoveAll("staging/restore.json"))
 		}
 	}()
-	tree, err := copyTree(w.root, checkpointDir(id)+"/pub", restoreNew)
+	tree, err := w.copyTree(checkpointDir(id)+"/pub", restoreNew)
 	if err != nil {
 		return err
 	}
@@ -188,6 +201,9 @@ func (w *Workspace) restore(id string) (err error) {
 		return err
 	}
 	if err := writeJSON(w.root, "staging/restore.json", restoreRecord{1, id, tree.SHA256}); err != nil {
+		return err
+	}
+	if err := w.resources.ctx.Err(); err != nil {
 		return err
 	}
 	if err := publish(w.root, "staging/restore.json", restoreJournal); err != nil {
@@ -208,6 +224,9 @@ func (w *Workspace) recoverRestore() error {
 	if !exists(w.root, restoreJournal) {
 		return nil
 	}
+	previous := w.resources.ctx
+	w.resources.ctx = context.WithoutCancel(previous)
+	defer func() { w.resources.ctx = previous }()
 	if err := w.verifyTask(); err != nil {
 		return err
 	}
@@ -226,7 +245,7 @@ func (w *Workspace) recoverRestore() error {
 		return fmt.Errorf("restore checkpoint hash mismatch")
 	}
 	if exists(w.root, restoreNew) {
-		tree, err := hashAt(w.root, restoreNew)
+		tree, err := w.hashAt(restoreNew)
 		if err != nil {
 			return err
 		}
@@ -248,7 +267,7 @@ func (w *Workspace) recoverRestore() error {
 		}
 	}
 	// This also validates the post-publish and post-backup-cleanup crash states.
-	tree, err := hashAt(w.root, candidate)
+	tree, err := w.hashAt(candidate)
 	if err != nil {
 		return err
 	}

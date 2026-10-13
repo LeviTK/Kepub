@@ -2,8 +2,11 @@ package main
 
 import (
 	"bytes"
+	"encoding"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -11,6 +14,11 @@ import (
 
 	"github.com/LeviTK/Kepub/internal/app"
 )
+
+// terminalQuote renders one untrusted text field, not program layout. Visible
+// escapes preserve controls, invalid bytes and bidi formatting without executing
+// them; JSON messages and already escaped task diffs must not pass through it.
+func terminalQuote(text string) string { return strconv.QuoteToGraphic(text) }
 
 // Terminal summaries intentionally abbreviate long lists/text; JSON remains the
 // complete machine contract. Untrusted text cannot emit terminal control codes.
@@ -22,7 +30,7 @@ func humanSummary(command string, data any) (string, error) {
 	fmt.Fprintf(&out, "Kepub · %s\n", command)
 	if cs, ok := data.([]app.Capability); ok {
 		for _, c := range cs {
-			fmt.Fprintf(&out, "%s v%d · %s · %s\n", c.ID, c.Version, c.Status, strconv.QuoteToGraphic(c.Reason))
+			fmt.Fprintf(&out, "%s v%d · %s · %s\n", c.ID, c.Version, c.Status, terminalQuote(c.Reason))
 		}
 		return out.String(), nil
 	}
@@ -43,14 +51,8 @@ func humanSummary(command string, data any) (string, error) {
 			return out.String(), nil
 		}
 	}
-	b, err := json.Marshal(data)
+	v, err := summaryValue(data)
 	if err != nil {
-		return "", err
-	}
-	d := json.NewDecoder(bytes.NewReader(b))
-	d.UseNumber()
-	var v any
-	if err := d.Decode(&v); err != nil {
 		return "", err
 	}
 	var render func(any, int)
@@ -69,7 +71,8 @@ func humanSummary(command string, data any) (string, error) {
 			}
 			sort.Strings(keys)
 			for _, k := range keys {
-				fmt.Fprintf(&out, "%s%s: ", pad, k)
+				q := terminalQuote(k)
+				fmt.Fprintf(&out, "%s%s: ", pad, q[1:len(q)-1])
 				render(v[k], depth+1)
 			}
 		case []any:
@@ -84,12 +87,17 @@ func humanSummary(command string, data any) (string, error) {
 		case string:
 			if len(v) > 1024 {
 				end := 1024
-				for !utf8.RuneStart(v[end]) {
-					end--
+				for i := 0; i < end; {
+					_, size := utf8.DecodeRuneInString(v[i:])
+					if i+size > end {
+						end = i
+						break
+					}
+					i += size
 				}
 				v = v[:end] + "… (text omitted; use --json)"
 			}
-			fmt.Fprintln(&out, strconv.QuoteToGraphic(v))
+			fmt.Fprintln(&out, terminalQuote(v))
 		case nil:
 			out.WriteString("none\n")
 		default:
@@ -98,4 +106,99 @@ func humanSummary(command string, data any) (string, error) {
 	}
 	render(v, 0)
 	return out.String(), nil
+}
+
+// Keep JSON's field selection, numbers, omission and custom encoders, but recover
+// ordinary Go strings before their invalid bytes are lost to JSON replacement.
+// This is a display-only copy; the machine encoder still receives the original.
+func summaryValue(data any) (any, error) {
+	b, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	d := json.NewDecoder(bytes.NewReader(b))
+	d.UseNumber()
+	var value any
+	if err := d.Decode(&value); err != nil {
+		return nil, err
+	}
+	return summaryStrings(reflect.ValueOf(data), value)
+}
+
+func summaryStrings(raw reflect.Value, value any) (any, error) {
+	if !raw.IsValid() {
+		return value, nil
+	}
+	if raw.CanInterface() {
+		switch raw.Interface().(type) {
+		case json.Marshaler, encoding.TextMarshaler:
+			return value, nil
+		}
+	}
+	switch raw.Kind() {
+	case reflect.Interface, reflect.Pointer:
+		if !raw.IsNil() {
+			return summaryStrings(raw.Elem(), value)
+		}
+	case reflect.String:
+		if _, ok := value.(string); ok {
+			return raw.String(), nil
+		}
+	case reflect.Map:
+		if raw.Type().Key().Kind() == reflect.String && !raw.IsNil() {
+			m := make(map[string]any, raw.Len())
+			iter := raw.MapRange()
+			for iter.Next() {
+				// Decode each entry independently: distinct raw keys may have
+				// collided in the JSON object after UTF-8 replacement.
+				v, err := summaryValue(iter.Value().Interface())
+				if err != nil {
+					return nil, err
+				}
+				m[iter.Key().String()] = v
+			}
+			return m, nil
+		}
+	case reflect.Slice, reflect.Array:
+		if items, ok := value.([]any); ok {
+			for i := range items {
+				v, err := summaryStrings(raw.Index(i), items[i])
+				if err != nil {
+					return nil, err
+				}
+				items[i] = v
+			}
+		}
+	case reflect.Struct:
+		if fields, ok := value.(map[string]any); ok {
+			for i := 0; i < raw.NumField(); i++ {
+				field := raw.Type().Field(i)
+				if !field.IsExported() {
+					continue
+				}
+				tag := strings.Split(field.Tag.Get("json"), ",")
+				name := tag[0]
+				if name == "-" || slices.Contains(tag[1:], "string") {
+					continue
+				}
+				if name == "" {
+					if field.Anonymous {
+						if _, err := summaryStrings(raw.Field(i), fields); err != nil {
+							return nil, err
+						}
+						continue
+					}
+					name = field.Name
+				}
+				if v, exists := fields[name]; exists {
+					restored, err := summaryStrings(raw.Field(i), v)
+					if err != nil {
+						return nil, err
+					}
+					fields[name] = restored
+				}
+			}
+		}
+	}
+	return value, nil
 }

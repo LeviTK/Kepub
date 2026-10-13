@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -159,7 +160,7 @@ type Execution struct {
 // object keys and trailing values. Typed JSON is the canonical digest encoding:
 // struct field order, no whitespace, Go JSON string escaping, optional id absent.
 func decodeStrict(b []byte, out any) error {
-	if len(b) > 32<<20 || !utf8.Valid(b) {
+	if len(b) > maxJSONBytes || !utf8.Valid(b) {
 		return fmt.Errorf("edit JSON limit")
 	}
 	d := json.NewDecoder(bytes.NewReader(b))
@@ -240,6 +241,7 @@ const multiEditPolicy = "kepub-multi-v1:accepted-baseline;multi-operation;multi-
 const structurePolicy = "kepub-xhtml-structure-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;reference-gate;no-timestamp;review-required;conformance-not-run"
 const replacePolicy = "kepub-content-text-replace-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;explicit-hits;no-timestamp;review-required;conformance-not-run"
 const movePolicy = "kepub-xhtml-move-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;cross-resource;reference-sync;no-timestamp;review-required;conformance-not-run"
+const referencePolicy = ";reference-parser-v2"
 
 // MaxPlanOperations bounds one version 3 or version 4 transaction. Each
 // operation may parse its target resource, so the request file size alone is
@@ -484,6 +486,17 @@ func operationSchema(ops []Operation) (int, error) {
 }
 
 func policyFor(version int) string {
+	policy := legacyPolicyFor(version)
+	if version >= 4 && version <= 7 {
+		policy += referencePolicy
+	}
+	if version == 7 {
+		policy += fileTargetPolicy
+	}
+	return policy
+}
+
+func legacyPolicyFor(version int) string {
 	switch version {
 	case 2:
 		return contentEditPolicy
@@ -501,15 +514,29 @@ func policyFor(version int) string {
 	return editPolicy
 }
 
+func planReferenceVersion(p Plan) int {
+	if p.SchemaVersion >= 4 && p.SchemaVersion <= 7 && p.PolicySHA256 == digest(legacyPolicyFor(p.SchemaVersion)) {
+		return 1
+	}
+	return publication.ReferenceParserVersion
+}
+
+func planTargetVersion(p Plan) int {
+	if p.SchemaVersion == 7 && p.PolicySHA256 != digest(policyFor(7)) {
+		return 1
+	}
+	return 2
+}
+
 func validPlanOperation(p Plan) bool {
 	if p.SchemaVersion == 7 {
-		return p.Proposal != nil && p.PolicySHA256 == digest(fixPolicy)
+		return p.Proposal != nil && (p.PolicySHA256 == digest(policyFor(7)) || p.PolicySHA256 == digest(fixPolicy+referencePolicy) || p.PolicySHA256 == digest(fixPolicy))
 	}
 	if p.Proposal != nil {
 		return false
 	}
 	v, err := operationSchema(p.Operations)
-	return err == nil && p.SchemaVersion == v && (p.PolicySHA256 == digest(policyFor(v)) || v == 1 && p.BaseRevision == "initial" && p.PolicySHA256 == digest(legacyEditPolicy))
+	return err == nil && p.SchemaVersion == v && (p.PolicySHA256 == digest(policyFor(v)) || p.PolicySHA256 == digest(legacyPolicyFor(v)) || v == 1 && p.BaseRevision == "initial" && p.PolicySHA256 == digest(legacyEditPolicy))
 }
 
 type identity struct {
@@ -559,6 +586,10 @@ func (w *Workspace) ensureIdentity() error {
 }
 
 func readEditJSON(r *os.Root, name string, out any) error {
+	return readEditJSONLimit(r, name, out, maxJSONBytes)
+}
+
+func readEditJSONLimit(r *os.Root, name string, out any, limit int64) (err error) {
 	p, err := subdir(r, path.Dir(name))
 	if err != nil {
 		return err
@@ -568,9 +599,19 @@ func readEditJSON(r *os.Root, name string, out any) error {
 	if err != nil {
 		return err
 	}
-	b, err := io.ReadAll(io.LimitReader(f, (32<<20)+1))
-	err = errors.Join(err, f.Close())
+	defer func() { err = errors.Join(err, f.Close()) }()
+	info, err := f.Stat()
 	if err != nil {
+		return err
+	}
+	if err := checkJSONSize(info.Size(), limit); err != nil {
+		return err
+	}
+	b, err := io.ReadAll(io.LimitReader(f, limit+1))
+	if err != nil {
+		return err
+	}
+	if err := checkJSONSize(int64(len(b)), limit); err != nil {
 		return err
 	}
 	return decodeStrict(b, out)
@@ -593,21 +634,21 @@ func ReadEditFile(file string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	b, err := io.ReadAll(io.LimitReader(f, (32<<20)+1))
+	b, err := io.ReadAll(io.LimitReader(f, maxJSONBytes+1))
 	err = errors.Join(err, f.Close())
-	if len(b) > 32<<20 {
+	if len(b) > maxJSONBytes {
 		return nil, fmt.Errorf("edit file exceeds 32 MiB")
 	}
 	return b, err
 }
 
 func (w *Workspace) recompute(ops []Operation) (derivation, error) {
-	return w.recomputeAt(ops, revisionPath(w.current), w.current)
+	return w.recomputeAt(ops, revisionPath(w.current), w.current, publication.ReferenceParserVersion)
 }
 
 // The same derivation is used for current plans and historical checkpoint
 // provenance during acceptance/recovery. Neither trusts a persisted write set.
-func (w *Workspace) recomputeAt(ops []Operation, baseDir, revision string) (derivation, error) {
+func (w *Workspace) recomputeAt(ops []Operation, baseDir, revision string, referenceVersion int) (derivation, error) {
 	version, err := operationSchema(ops)
 	if err != nil {
 		return derivation{}, err
@@ -619,7 +660,7 @@ func (w *Workspace) recomputeAt(ops []Operation, baseDir, revision string) (deri
 	defer r.Close()
 	a := publicationRoot{r}
 	if version == 4 || version == 5 || version == 6 {
-		return w.recomputeStructure(a, ops, revision)
+		return w.recomputeStructure(a, ops, revision, referenceVersion)
 	}
 	if version == 3 {
 		return w.recomputeMulti(a, ops, revision)
@@ -858,31 +899,46 @@ func (w *Workspace) Plan(requestJSON []byte) (Plan, error) {
 	return p, syncDir(w.root, "plans")
 }
 
-func (w *Workspace) verifyPlan(p Plan, bindPath bool) (derivation, error) {
+// verifyPlanEnvelope checks identity, frozen baseline and saved proposal source.
+// It does not prove the operation effects; those still require recomputation.
+func (w *Workspace) verifyPlanEnvelope(p Plan, bindPath bool) error {
 	if err := w.ensureIdentity(); err != nil {
-		return derivation{}, err
+		return err
 	}
 	if err := w.verifyBaseline(); err != nil {
-		return derivation{}, errors.Join(ErrStalePlan, err)
+		return errors.Join(ErrStalePlan, err)
 	}
 	if !validPlanOperation(p) || !validID(p.ID) || p.WriteSet == nil || p.WorkspaceID != w.id || bindPath && p.WorkspacePath != w.dir || p.BaseRevision != w.current || p.InputTreeSHA256 != w.base.SHA256 || p.Rootfile != w.state.Rootfile || p.OperationSetSHA256 != digest(p.Operations) {
-		return derivation{}, ErrStalePlan
+		return ErrStalePlan
 	}
 	var stored Plan
 	if err := readEditJSON(w.root, "plans/"+p.ID+".json", &stored); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			return derivation{}, ErrStalePlan
+			return ErrStalePlan
 		}
-		return derivation{}, err
+		return err
 	}
 	if digest(stored) != digest(p) {
-		return derivation{}, ErrStalePlan
+		return ErrStalePlan
 	}
 	if err := w.verifyFixPlan(p); err != nil {
-		return derivation{}, err
+		return err
 	}
 	if err := w.verifyBaseline(); err != nil {
-		return derivation{}, errors.Join(ErrStalePlan, err)
+		return errors.Join(ErrStalePlan, err)
+	}
+	return nil
+}
+
+func (w *Workspace) verifyPlan(p Plan, bindPath bool) (derivation, error) {
+	if planReferenceVersion(p) != publication.ReferenceParserVersion {
+		return derivation{}, fmt.Errorf("%w: legacy reference policy requires a new plan", ErrStalePlan)
+	}
+	if planTargetVersion(p) != 2 {
+		return derivation{}, fmt.Errorf("%w: legacy target policy requires a new plan", ErrStalePlan)
+	}
+	if err := w.verifyPlanEnvelope(p, bindPath); err != nil {
+		return derivation{}, err
 	}
 	d, err := w.recompute(p.Operations)
 	if err != nil {
@@ -905,7 +961,7 @@ func (w *Workspace) verifyFixPlan(p Plan) error {
 	if p.Proposal == nil || p.Proposal.ProposalVersion != fix.ProposalVersion || p.Proposal.Workspace.BaseRevision != p.BaseRevision {
 		return ErrStalePlan
 	}
-	tree, err := HashTree(filepath.Join(w.dir, filepath.FromSlash(revisionPath(p.BaseRevision))))
+	tree, err := w.hashAt(revisionPath(p.BaseRevision))
 	if err != nil {
 		return errors.Join(ErrStalePlan, err)
 	}
@@ -915,6 +971,7 @@ func (w *Workspace) verifyFixPlan(p Plan) error {
 	}
 	s.Workspace.BaseRevision = p.BaseRevision
 	s.Workspace.InputTreeSHA256 = tree.SHA256
+	s.TargetVersion = planTargetVersion(p)
 	if err := fix.Validate(s, *p.Proposal); err != nil {
 		return errors.Join(ErrStalePlan, err)
 	}
@@ -930,6 +987,12 @@ func (w *Workspace) verifyFixPlan(p Plan) error {
 // Apply strictly reads a plan, re-derives its effects, then creates the sole
 // independent candidate. Repeated application is a conflict, never a new task.
 func (w *Workspace) Apply(planJSON []byte) (e Execution, err error) {
+	return w.apply(planJSON, maxJSONBytes)
+}
+
+// The private limit permits small boundary fixtures without changing the
+// production budget or any persisted schema.
+func (w *Workspace) apply(planJSON []byte, recordLimit int64) (e Execution, err error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	if err := w.ready(); err != nil {
@@ -948,6 +1011,9 @@ func (w *Workspace) Apply(planJSON []byte) (e Execution, err error) {
 	}
 	if exists(w.root, "plans/"+p.ID+".used.json") {
 		return Execution{}, ErrTaskConflict
+	}
+	if err := w.preflightExecution(p, d.outputs, recordLimit); err != nil {
+		return Execution{}, err
 	}
 	defer func() {
 		if err == nil {
@@ -975,6 +1041,43 @@ func (w *Workspace) Apply(planJSON []byte) (e Execution, err error) {
 		return e, err
 	}
 	return w.execute(e, d.outputs, nil)
+}
+
+// A plan that fits alone may not fit inside its execution envelope. Check the
+// required checkpoint, both start forms, and the derived result/recovery forms
+// before consuming the plan or publishing a task. IDs are fixed-width hex;
+// their actual values do not affect JSON size. External drift and arbitrary I/O
+// error text are not predictable here and retain the existing recovery path.
+func (w *Workspace) preflightExecution(p Plan, outputs map[string][]byte, limit int64) error {
+	check := func(value any) error {
+		b, err := json.Marshal(value)
+		if err != nil {
+			return err
+		}
+		return checkJSONSize(int64(len(b))+1, limit)
+	}
+	id := randomID()
+	if err := check(Snapshot{1, id, w.current, w.base}); err != nil {
+		return err
+	}
+	e := Execution{Version: p.SchemaVersion, TaskID: id, Plan: p, Checkpoint: id, Status: "running", Conformance: "not_run", Diff: compareTrees(w.base, w.base)}
+	if err := check(e); err != nil {
+		return err
+	}
+	e.Status = "unstarted"
+	if err := check(e); err != nil {
+		return err
+	}
+	e.Status, e.Failure = "failed", "interrupted apply"
+	if err := check(e); err != nil {
+		return err
+	}
+	e.Diff = expectedDiff(w.base, outputs)
+	if err := check(e); err != nil {
+		return err
+	}
+	e.Status, e.Failure, e.ReviewRequired = "review_required", "", true
+	return check(e)
 }
 
 // startExecution records the pre-mutation checkpoint and durable start. Even
@@ -1012,6 +1115,9 @@ func (w *Workspace) execute(e Execution, outputs map[string][]byte, hook func() 
 		err = fmt.Errorf("derived output set does not match plan")
 	}
 	for _, target := range e.Plan.WriteSet {
+		if err == nil {
+			err = w.resources.ctx.Err()
+		}
 		if err != nil {
 			break
 		}
@@ -1030,7 +1136,7 @@ func (w *Workspace) execute(e Execution, outputs map[string][]byte, hook func() 
 	}
 	if err == nil {
 		var actual Tree
-		actual, err = hashAt(w.root, candidate)
+		actual, err = w.hashAt(candidate)
 		if err == nil {
 			e.Diff = compareTrees(w.base, actual)
 			paths := []string{}
@@ -1068,7 +1174,7 @@ func (w *Workspace) execute(e Execution, outputs map[string][]byte, hook func() 
 		e.Status = "failed"
 		e.Failure = err.Error()
 		e.ReviewRequired = false
-		err = errors.Join(err, w.restore(e.Checkpoint))
+		err = errors.Join(err, w.rollback(e.Checkpoint))
 	} else {
 		e.Status = "review_required"
 		e.ReviewRequired = true
@@ -1087,7 +1193,7 @@ func (w *Workspace) execute(e Execution, outputs map[string][]byte, hook func() 
 	}
 	if recordErr != nil {
 		if e.Status != "failed" {
-			err = errors.Join(err, w.restore(e.Checkpoint))
+			err = errors.Join(err, w.rollback(e.Checkpoint))
 		}
 		e.Status = "failed"
 		e.ReviewRequired = false
@@ -1206,7 +1312,7 @@ func (w *Workspace) Diff() (Diff, error) {
 	if err := w.verifyTask(); err != nil {
 		return Diff{}, err
 	}
-	a, err := hashAt(w.root, candidate)
+	a, err := w.hashAt(candidate)
 	if err != nil {
 		return Diff{}, err
 	}
@@ -1234,9 +1340,26 @@ func (w *Workspace) execution() (Execution, error) {
 	}
 	// A registered task has consumed its plan. Its stored identity and source
 	// still bind execution after moving the workspace, not the former host path.
-	d, err := w.verifyPlan(intent, false)
-	if err != nil {
+	if err := w.verifyPlanEnvelope(intent, false); err != nil {
 		return e, err
+	}
+	d, deriveErr := w.recomputeAt(intent.Operations, revisionPath(w.current), w.current, planReferenceVersion(intent))
+	if deriveErr != nil {
+		var f *fault.Error
+		canceled := errors.Is(deriveErr, context.Canceled) || errors.Is(deriveErr, context.DeadlineExceeded)
+		if !canceled && (!errors.As(deriveErr, &f) || f.Code != "RESOURCE_LIMIT" && f.Code != "REFERENCE_LIMIT") {
+			return e, deriveErr
+		}
+		// A failed derivation is not authority to restore. Finish the existing
+		// used/start/checkpoint checks without late cancellation, then roll back
+		// only a verified running task with no result. Keep every resource limit
+		// and return the original failure after persisting the failed execution.
+		previous := w.resources.ctx
+		w.resources.ctx = context.WithoutCancel(previous)
+		defer func() { w.resources.ctx = previous }()
+	}
+	if !intent.Applicable || deriveErr == nil && !slices.Equal(d.writes, intent.WriteSet) {
+		return e, ErrStalePlan
 	}
 	task, err := w.taskID()
 	if err != nil {
@@ -1257,6 +1380,9 @@ func (w *Workspace) execution() (Execution, error) {
 	if unstarted {
 		if exists(w.root, "tasks/active/edit-result.json") {
 			return e, fmt.Errorf("execution result without start")
+		}
+		if deriveErr != nil {
+			return e, deriveErr
 		}
 		// No registered mutation can precede edit-start. Capture the verified
 		// baseline as provenance; preserve any outside writer's candidate drift.
@@ -1289,26 +1415,39 @@ func (w *Workspace) execution() (Execution, error) {
 	if start.Version != intent.SchemaVersion || (start.Status != "running" && start.Status != "unstarted") || start.ReviewRequired || start.Conformance != "not_run" || digest(start.Diff) != digest(compareTrees(s.Tree, s.Tree)) || s.Tree.SHA256 != w.base.SHA256 {
 		return e, fmt.Errorf("invalid execution start")
 	}
+	// Only a verified, interrupted mutation can be rolled back on a derivation
+	// failure. Never rewrite a completed result or discard unstarted drift.
+	if deriveErr != nil && (start.Status != "running" || exists(w.root, "tasks/active/edit-result.json")) {
+		return e, deriveErr
+	}
 	if !exists(w.root, "tasks/active/edit-result.json") {
 		// Interrupted mutation is rolled back, not silently rerun as a new task.
-		actual, err := hashAt(w.root, candidate)
+		actual, err := w.hashAt(candidate)
 		if err != nil {
-			return e, err
+			return e, errors.Join(deriveErr, err)
 		}
 		e = start
 		e.Diff = compareTrees(w.base, actual)
 		if start.Status == "running" {
-			if err := w.restore(start.Checkpoint); err != nil {
-				return e, err
+			if err := w.rollback(start.Checkpoint); err != nil {
+				return e, errors.Join(deriveErr, err)
 			}
 		}
 		e.Status = "failed"
 		e.Failure = "interrupted apply"
+		if deriveErr != nil {
+			e.Failure = deriveErr.Error()
+		}
 		if err := writeJSON(w.root, "tasks/active/edit-result.json", e); err != nil {
-			return e, err
+			return e, errors.Join(deriveErr, err)
 		}
 		if err := syncDir(w.root, "tasks/active"); err != nil {
-			return e, err
+			return e, errors.Join(deriveErr, err)
+		}
+		if deriveErr != nil {
+			// Restoration is not proof of effects. Later execution, rejection
+			// and history consumption must still perform full recomputation.
+			return e, deriveErr
 		}
 	} else if err := readEditJSON(w.root, "tasks/active/edit-result.json", &e); err != nil {
 		return e, err
@@ -1319,7 +1458,7 @@ func (w *Workspace) execution() (Execution, error) {
 	if e.Version != start.Version || e.Diff.Changes == nil || digest(e.Plan) != digest(start.Plan) || e.Checkpoint != start.Checkpoint || e.Conformance != "not_run" || (start.Status == "unstarted" && e.Status != "failed") {
 		return e, fmt.Errorf("invalid execution provenance")
 	}
-	tree, err := hashAt(w.root, candidate)
+	tree, err := w.hashAt(candidate)
 	if err != nil {
 		return e, err
 	}

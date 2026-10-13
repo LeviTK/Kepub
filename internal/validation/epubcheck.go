@@ -20,6 +20,7 @@ import (
 
 	"github.com/LeviTK/Kepub/internal/archive"
 	"github.com/LeviTK/Kepub/internal/fault"
+	"github.com/LeviTK/Kepub/internal/references"
 	"golang.org/x/text/unicode/norm"
 )
 
@@ -34,6 +35,8 @@ type Options struct {
 	Timeout  time.Duration `json:"timeoutNanoseconds"`
 	Java     string        `json:"-"`
 	JAR      string        `json:"-"`
+	// Internal test-only override, not part of the persisted checker policy.
+	GraphLimits *references.GraphLimits `json:"-"`
 }
 
 type Diagnostic struct {
@@ -282,8 +285,11 @@ func epubcheck(ctx context.Context, filename, hash string, tree archive.Tree, o 
 		return c, nil, fault.New(5, "CHECKER_EXECUTION_FAILED", "EPUBCheck version probe failed")
 	}
 	c.Status = "failed"
-	before, e := archive.FileSHA256(filename)
+	before, e := archive.FileSHA256Context(ctx, filename)
 	if e != nil {
+		if errors.Is(e, context.Canceled) || errors.Is(e, context.DeadlineExceeded) {
+			return c, nil, fault.New(5, "CHECKER_TIMEOUT", "EPUBCheck timed out or was cancelled")
+		}
 		return c, nil, e
 	}
 	if before != hash {
@@ -297,8 +303,11 @@ func epubcheck(ctx context.Context, filename, hash string, tree archive.Tree, o 
 	raw, logs, exit, processErr := runProcess(ctx, java, args)
 	c.BackendExitCode = &exit
 	c.Output = string(logs)
-	after, e := archive.FileSHA256(filename)
+	after, e := archive.FileSHA256Context(ctx, filename)
 	if e != nil {
+		if errors.Is(e, context.Canceled) || errors.Is(e, context.DeadlineExceeded) {
+			return c, nil, fault.New(5, "CHECKER_TIMEOUT", "EPUBCheck timed out or was cancelled")
+		}
 		return c, nil, e
 	}
 	toolAfter, e := fingerprint(jar)

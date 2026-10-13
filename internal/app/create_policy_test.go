@@ -44,7 +44,7 @@ func TestWorkspaceCreatePolicyErrors(t *testing.T) {
 				ws = filepath.Join(dir, "absent", "ws")
 				wantExit, wantCode = 6, "IO_ERROR"
 			}
-			_, err := OpenWorkspace(book, ws, "")
+			_, err := OpenWorkspace(t.Context(), book, ws, "")
 			var f *fault.Error
 			if wantExit == 6 && err != nil && !errors.As(err, &f) {
 				// The CLI's unchanged fallback maps ordinary filesystem errors to IO6.

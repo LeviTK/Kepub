@@ -83,6 +83,14 @@
 
 ## G-QUALIFY：事实、来源与真实旧门禁资格分离
 
+- 全 Tree 的路径被扁平为“存在” → 目录 FR2 被声明 fixable、真实 plan 文件门禁拒绝；
+  HashTree 错误被丢弃 → 无 hash／库存的貌似完整快照 → 保留 typed 库存，仅普通文件参与
+  资格，共用只读 `CheckReferenceTarget`，错误原样传播。`TestN3DirectoryTargetQualification`、
+  `TestN3TypedInventory`、`TestN3FileTargetMatrix`、`TestN3SnapshotHashError` 覆盖三编码／两快照
+  入口／无与唯一、缺失、重复 fragment／中文和百分号。完整 Tree 与空目录不删。
+- 新资格重推旧 schema 7 的 derivedFrom → 合法旧已消费来源丢失 → 新 policy 显式 file-target-v2，
+  已消费旧 policy 只作原语义完整来源核验，不作新接受授权；`TestN3LegacyTargetSource` 和
+  `TestN3FixTargetBinaryLifecycle` 保留历史及真实 checker／空目录正式导出边界。
 - PK1 残余消费边界：仅在 accepted revision 重推 schema 7 → rejected history/settlement recovery
   接受一致重签的伪 risk → 共用 `taskDigests` 重推自身 BaseRevision；永久入口
   `TestFixRejectedSourceRevalidation`（含 accepted 推进后的合法旧历史和归档中断恢复）。
@@ -118,6 +126,262 @@
 - 派生 text 的 bytes 与 SHA-256 必须由实际文件生成并核验；登记值漂移（1475 vs 1515）→ `text/extract.py`
   重生成后校验 manifest/ATTRIBUTION 全部行，不一致 exit 非 0。只修派生元数据/生成流程，不改 raw 原文、
   S0 身份或历史 manifest。
+
+## G-JSON：持久化成功必须可在同一预算内读回
+
+- 无预算 writer＋32 MiB reader → 合法多资源长路径的 state 可以创建成功却不能重开 →
+  同类持久记录共用 `maxJSONBytes`／`checkJSONSize`，按实际 UTF-8 JSON（转义、结构、末尾 LF）计量，
+  超限在临时文件创建前返回 `WORKSPACE_JSON_LIMIT`/1；不截断库存、不提升 reader 上限。
+- Create 只返回内存状态 → 发布前未证明落盘元数据可解析 → state 经 Open 同一读取入口读回，
+  identity 沿 ensureIdentity 读回；失败只清理本次 staging，不覆盖原书、已有目标或其他工作区。
+- 原始字符串长度不能替代序列化长度；小预算逐调用注入而非修改全局。永久入口
+  `TestR1JSONByteBudget`（独立字面期望、UTF-8／转义／LF、预算±1）、
+  `TestR1LegacyRecordByteBudget`（旧字段顺序／optional shape）、
+  `TestR1CreateLongPathInventory`（合法完整库存、预算边界、实际 Create→Close→Open 与资源字节）。
+- 真实短写使用隔离子进程的几 KiB 文件预算，不耗尽磁盘／内存；永久入口
+  `TestR1CreateMetadataShortWrite` 核只有 state 超过文件预算、无目标／staging 残留、原书与旧工作区不变。
+  `TestCrossProcessCreateRace` 核唯一完整可重开的获胜目录、所有文件字节和原书；不将注入当断电。
+- 所有 plan/execution/checkpoint/revision/journal 沿同一 writer；规范 digest 编码不带 LF 且保持不变。
+  外部 edit 请求继续原有 32 MiB 与参数错误分类；正式 accept/export 仍使用真实固定 checker。
+- 限内 plan 在发布 active 后才嵌入 execution → start 超限且 Open 反复创建 checkpoint 仍失败 →
+  Apply 在消费 plan／发布候选前预检完整 checkpoint、running／unstarted、已推导成功与标准中断结果。
+  `TestR1ApplyRecordPreflight` 用独立完整输出和序列化 envelope 核小预算各阶段及 LF ±1，
+  拒绝后全工作区文件不变、同计划可重试；`TestR1ApplyProductionRecordLimit` 核真实 32 MiB
+  plan 边界和重复 Open。未知外部漂移／任意错误文本仍属既有恢复路径，不猜测额外私有限额。
+
+## G-INVENTORY：入口与后续消费使用相同展开库存预算
+
+- ZIP 仅数显式条目 → 深路径隐式父目录不受限且后续扫描拒绝 → Open 在 privateDir 前登记全部唯一
+  文件/目录，共享和显式父目录去重，但重复显式 ZIP 条目仍拒绝；不把工作区管理目录算成出版物。
+- zip.OpenReader 先分配全中央目录、旧 `len(z.File)` raw-count 快拒覆盖碰撞（不是 EOCD 声明数）
+  → 按单条物理记录读取并在留存前执行
+  库存门禁；EOCD/ZIP64 声明数不用于预分配或库存快拒。复用标准库单条解析与原数据 CRC，保留
+  ZIP64、正负基址与目录间隙兼容。入口 `TestR2ZIPCollisionAtEntryBoundary`、
+  `TestR2ZIPSmallBudgetAllocation`（累计分配不是 RSS）、`TestR2ZIPFramingCompatibility`。
+- 只测短 EOCD 与合法 count → 禁用 count 取模比较／删除 65 KiB 搜索窗口的 mutant 仍绿 →
+  framing 测试保留 count+65536 正控，增加 count 不符、声明记录截断、2 KiB comment 接纳及长度
+  越界拒绝；同时核原书未变、完整资源字节及无残留 staging，不新增大条目数落盘 fixture。
+- 逐条门禁先于后续结构 INVALID_ZIP，移除旧 raw-count 快拒也改变非碰撞错误优先级 → 分类表
+  冻结默认 ZIP 路径策略下 unsafe 首记录＋错误 count、mimetype 后 unsafe 且 Entries=1 均返回
+  UNSAFE_PATH/1；旧树分别为 INVALID_ZIP/1、ARCHIVE_LIMIT/1。均拒绝，不是新增接受权限。
+- 文件字节不能约束路径库存 → 按唯一精确 BookPath 的 UTF-8 字节累计 `PathBytes`，加法前用剩余
+  预算比较，避免溢出；ZIP 与目录扫描复用 `Limits.CheckEntry`，不截断资源或目录。
+- Inventory 重置 DefaultLimits → 注入/入口预算在后续失效 → Archive 保留自身 limits，Unpack 发布
+  staging 前验证，Inventory/WriteZIP/PublishZIP 最终重开沿用；正式 checker 不被草稿控制替代。
+  `TestR2PublishZIPRetainsEntryLimit` 使用高于默认条目数的合法库存，捕获仅最终重开重置预算。
+- 永久入口 `TestR2ExpandedEntriesBeforeStaging`（两个文件＋隐式父目录，阻断 temp 创建的正反控）、
+  `TestR2InventoryRetainsEntryBudget`（实际 Inventory/Unpack、无产物/残留）、
+  `TestR2CumulativePathBytes`（UTF-8、显式父目录两序、路径预算±1与共享/空目录）、
+  `TestR2IndependentBudgets`（四种预算分离、int64 边界）和 `TestR2ExpandedRoundTrip`
+  （Open→Unpack→Snapshot→Inventory→WriteZIP，独立完整库存/hash/资源字节）。
+
+## G-IO：工作量有界但持久决定不能丢失
+
+- 安装信号 context 却在 Read／发布核验／Reject 改回 Background → 信号被消费但请求继续
+  成功，或跨过未提交意图边界 → context 沿真实所有者传递，提交后的既有恢复不变。
+  `TestR3ReadCommandSignals` 用运行阶段、已确认子 PID 和 pending/caught 信号核 info、
+  unpack 的读取／复制及 workspace 正控；`TestR3InspectRequestCancellation` 核六个 section。
+  `TestR3PublishRequestContext` 核独立发布 context 与清理／重试；最终 ZIP 及 checker 前后
+  的出版物 hash 同样消费请求 context。`TestR3RejectCancellationAtIntentBoundary` 是受控
+  context 注入，不等于真实 CLI 的最后提交窗口竞态。
+- 输出路径核验把取消／超时一律包装成 INVALID_OUTPUT → 退出码失真 → 复用 WorkspaceError，
+  已分类输出／I/O 错误保留；`TestR3OutputPathCancellationClassification` 在 OutputPath
+  阶段注入 Canceled／Deadline，区分 plan／export／propose，不以 Open 预取消替代该分支。
+- validate／pack 的冻结、复制或 hash 返回原始 DeadlineExceeded → run 降为 IO_ERROR/6 →
+  CLI 按返回错误链映射 CHECKER_TIMEOUT/5，保留信号 CANCELLED/130、真实 I/O 与发布成功。
+  只在 CLI 外层映射仍让报告 diagnostics 留下 IO_ERROR；failedInput 在生成诊断前归类
+  原始 deadline，内层报告与返回错误一致，不扩大为任意 context 过期的错误重写。
+  `TestD2EarlyValidationDeadline` 核两入口早期超时及取消／I/O／成功控制；确定性 context
+  注入同时核报告 code，不冒称真实 CLI 定时窗口，真实子 CLI 的 I/O 与草稿成功控制另列。
+- Open 预取消或 baseline 扫描取消先于 journal 恢复 → 已持久决定延迟到下次无取消请求 →
+  持锁发现 pending journal 后，将原有验证前缀和恢复一并临时 WithoutCancel；存在 journal
+  不授权恢复，完整来源／hash／预算／真实 I/O 仍核。恢复后还原请求 context，取消时不继续
+  未提交清理或执行。`TestOpenDurableJournalCancellation`、`TestOpenCancelledJournalControls`
+  和 `TestAcceptanceJournalRecovery` 核 restore／reject／accept、精确字节、正常重试与伪 journal；
+  `TestR3CommittedRecoveryRetainsBudget` 保留预算／实际权限失败。旧树冻结 restore 探针
+  为目标 red，合法打开及随后重试为正控；baseline 取消由逐调用 hook 注入，非 CLI 竞态。
+- 先无界复制原书／hash 工作区再拒绝 → 临时字节和持锁工作量不受展开预算约束 → 原 ZIP
+  独立 `MaxInputBytes`，出版物复用 archive 四预算；实际读取仅余量 + 1，stat 快拒后仍核
+  增长和来源。管理目录／JSON 不算成出版物，hash wire 不变。入口 `TestR3OriginalBudget`、
+  `TestR3TreeBudgets`、`TestR3GrowthAfterStat`（13 字节增长、8/16 预算分别超限／drift）。
+- WalkDir 先整目录 ReadDir → callback 尚未核预算就分配目录列表 → 逐条遍历，在下钻、
+  库存追加和目标创建前核条目／路径；恢复 no-follow、单链接与碰撞负控，不缩减真实库存。
+- 读到探测字节就覆盖真实 read fault／cancel → 错误分类失真 → 保留 I/O／短写／取消，
+  仅无其他错误的超限判 `ARCHIVE_LIMIT`。`TestR3ActualReadBudget` 与 `TestR3BoundedCopyFaults`
+  独立核读取计数、bytes、int64 上界、读故障＋探测字节、短写和 EOF 取消。
+- accept／第二资源写入前未观测取消 → 无用 staging 或额外写入 → 沿请求 context 传递；
+  已登记写入完整 checkpoint 回滚，有效 restore／settlement journal 只忽略迟到取消，
+  不跳预算／来源／I/O 或删除决定。`TestR3CancelledAcceptDoesNotCopy`、
+  `TestR3PartialTreeFailure`、`TestR3CancelledRunningRollback`、`TestR3CommittedRecoveryRetainsBudget`
+  核第二资源、全资源 bytes、两次真实权限恢复失败后的 journal、再次 Open／锁获取；
+  app `TestR3WorkspaceRequestCancellation` 核九入口 code/130 和 source／workspace／输出不变。
+- task diff 把全部快照错误降为 unavailable → 复制中取消仍成功返回部分 review →
+  取消／超时／预算错误保留失败，普通不可解析候选仍允许安全审阅；
+  `TestR3DiffSnapshotCancellation` 核真实取消窗口／全工作区 bytes／私有 stage 清理。
+- 共用读取 helper 的通用预算文本替换归档既有 expanded-bytes 文本 → R2 单文件／累计
+  正确超限却违反旧原因契约 → Open 保留归档具体原因，`TestR2IndependentBudgets` 原断言不改。
+- 整工作区 scanTree 把内部前缀传给 BookPath → 合法126–128组件在创建同步阶段误拒 →
+  #10 的 syncTree 消费已核出版物 Tree、只拼接固定 os.Root 物理位置。#14 不重复改产品；
+  `TestR8CreateAtDepthBoundary` 原断言在104db44有两125正控／六误拒，在当前两根长度全通过。
+  `TestR8PublicationPrefixesAndBudgets` 按 fixture 独立完整库存/hash和精确小预算核读取／
+  candidate／checkpoint／restore／reopen，全资源字节不改、管理条目不计成一本书。
+- 放大 Parse 或跳全部校验不能修层次混用：`TestR8LogicalPathLimits` 核逻辑128／4096边界，
+  `TestR8PathRefusalsPreserveInputs` 核129／4097和穿越／绝对／链接／两种碰撞拒绝。
+  `TestR8HostPathFailureIsNotBookPathBudget` 核实际 ENAMETOOLONG；同步边界取消只由
+  `TestR8PrepublishSyncCancellation` 注入，不冒称fsync硬件故障、断电或Mac实测。
+- 仅在系统调用间检查 context，不宣称即时打断任意阻塞 I/O；小预算／注入不等于真实耗尽、
+  公共 CLI 并发攻击或断电。正式 accept/export 仍用真实 checker，旧 schema／摘要不变。
+
+## G-REPLACE：拒绝前的分配也必须有界
+
+- 无限 FindAll＋先 ExpandString／ReplaceBytes／拼接后查长度 → 小捕获模板在最终拒绝前放大。
+  命中与元数据先限量，展开按 Go 模板规则预计量，转义由 xmltext 按原编码计量；
+  `expectedHits` 仍是精确冻结绑定，不是报错后的内存控制。
+- 每节点重置预算 → 多节点／操作／资源绕过累计限制 → `recomputeStructure` 为全事务
+  共用一份 `ReplaceBudget`；每次 Plan／Apply／后续来源重推重新初始化，不添持久字段。
+  最终资源先扣全部合法 disjoint removals 再加新字节，拼接前拒绝，原书／accepted／审计不变。
+- 只计 Span 新字节而遗漏 Point → replace 混合插入／新增属性／搬移越过资源及事务输出
+  预算；`TakeOutput` 必须计完整物理编码输出，与 `ApplyEdits` 的两类输入一致。
+  `TestN1MixedPointOutputBudget` 在基线 1b29c65 的隔离树冻结 red：28 个 exact 正控通过，
+  56 个 Plan/Apply 减1断言失败；手写 XML 加独立 UTF-16 编码核全候选资源及目录集合，
+  两序、跨编码目的资源、净缩减、失败无产物、同计划重试和 rejected 历史重开。
+  旧 PR18 的239/238字节日志只作实测越界证据，不称其候选派生期望为独立 oracle。
+- running／无 result 的恢复先重算即返回预算错误 → 已写第一资源留在候选 → 分离静态
+  envelope／保存来源核验与效果推导；完整核 used/start/checkpoint 后沿原事务回滚、记录
+  失败并返回 RESOURCE_LIMIT。回滚不证明效果，不豁免失败／历史重推；未开始、已完成
+  或伪造来源不改写。`TestN1PostStartBudgetRecovery` 与 `TestN1BudgetRecoveryBoundaries`
+  使用 10→9 字节 owner 窗口、全七资源／审计字节、再次调用及合法历史控制；不称公共并发攻击。
+- 估计展开不得偷改语义：`$0`、编号、最大名称、`${name}`、缺失／未参与组、`$$`、畸形 `$`、
+  前导零数字名称和重复命名组均以 Go 标准库独立 oracle 对照；加法用剩余量防溢出。
+- 等值替换不能把 CRLF 等原拼写规范化；仍核真实命中与可写区间，不把 no-op 当权限豁免。
+- 永久入口 `TestN1ExpansionBeforeAllocation`（1 KiB 预算、旧实现实际展开 4 KiB），
+  `TestN1HitAndMetadataBudgets`、`TestN1TemplateGrammar`、`TestN1CumulativeExpansion`、
+  `TestN1EncodedAndResultBudgets`、`TestN1NoopAndZeroWidth`、`TestN1TransactionBudget`、
+  `TestN1ResourceBudget`、`TestN1ApplyBudgetRevalidation`；三编码完整 bytes、七资源 oracle、
+  失败前后全 workspace hash 与实际分配入口计数。不以字符串长度／计数／benchmem 冒称峰值内存。
+- `FuzzN1BudgetTransaction` 固定 UTF-8 两资源、literal／regex × 四种替换的八病例菜单，
+  精确累计预算下每次必须实际 Plan+Apply+Reject 并核七资源独立 bytes；拒绝不 continue。
+  `FuzzN1ReplacementSize` 的模板计量 oracle 单列，不冒充全事务／全编码 live 覆盖。
+
+## G-IDREF：字面身份与 URL 是不同语法
+
+- `"#"+token` 经 URL 解码 → p%41 误指 pA、字面百分号被拒绝 → IDREF 直接构造同文档
+  Reference，再进入共用存在性／歧义处理；普通 href/src 继续 URL 解码。edge.href 留完整原值，
+  target.fragment 留单 token，来源 locator 留属性名。括号 IDREF 不是 XPointer。
+- Unicode Fields → NBSP 身份被拆；全部属性按列表 → 单 IDREF 的非法多值被两个合法 ID
+  掩盖 → publication 共享 tokenizer 按宿主／冻结属性类型仅拆 ASCII 列表，单值原样保留，
+  output.for 是列表。既有身份读取不放宽新建 NCName、namespace 或来源权限。
+- 只改 inspect → 属性／片段／搬入门禁与既有入链不同 → 三入口和图共用版本，完整事务
+  最终状态门禁不变。永久入口 `TestN2LiteralIDREF`、`TestN2IDREFValueTypesAndIdentity`、
+  `TestN2ExistingIDREFProtection`、`TestN2NewIDREFValueTypes`、`TestN2CrossMoveIDREFTypes`。
+  三编码独立七／九资源 bytes 与百分号/NBSP/中文、URL正控、alias/重复身份均分别核验。
+- 静默用新 parser 重推旧 policy → 旧批准含义改变或合法历史无法恢复 → parserVersion=2，
+  新 schema4–7 策略追加 reference-parser-v2；旧未消费计划拒绝，新 accept 不沿用旧审核。
+  已消费旧 task/history/journal 显式 v1 重推完整来源，旧 durable 决定恢复完成、既有 accepted
+  正式导出保留，不重写摘要。`TestN2LegacyReferenceLifecycle`、`TestN2LegacySchemas`、
+  `TestN2LegacyAcceptedJournal` 保留语义不对称控制和原记录 bytes；CLI 的
+  `TestN2IDREFBinaryLifecycle` 核真实查询／plan拒绝与真实 checker 接受／导出完整库存。
+- `FuzzN2IDREFTokens` 只验证合法构造 token 输入与独立 token 序列期望，不称全事务 fuzz。
+
+## G-GRAPH：单资源有界不等于全书有界
+
+- 只限每个 XML、全图累计 append/map 无预算 → 多个小资源放大边／实例／诊断／coverage →
+  所有 Build/BuildSource 入口共用逐调用 GraphLimits，读资源和增长对象前收费，原始扫描、
+  计数、索引及保守序列化预留分别限制。重复字符串／位置仍计，Filter 不减少扫描范围，
+  过滤 header 也预留；不把预留字节或 benchmem 当 RSS／OOM 实测。
+- reader 已取消仍逐资源 blocked 并继续 → 三次读取且得到可消费图 →
+  `TestR4CancelledGraphStopsReading` 冻结旧树三次／新树一次，返回错误与零图；
+  `TestR4CumulativeGraphCounts` 核两个合法小 XML 及各预算±1、重复实例／missing／外链／未知。
+- 构建失败只返回空边 → identity/cross-move 门禁误证明无入链 → 明确失败贯穿 inspect、
+  validation、结构来源重推、diff／history，零图 CertainIncoming 有 global blocker；
+  `TestR4DependencyPlansRequireCompleteGraph` 核三种操作 Plan/Apply 失败全工作区不变与
+  合法七资源完整 bytes。正常 parser v1/v2／schema shape／policy／digest 不迁移。
+- running 重算图限制未归入已登记失败 → 部分编辑留在候选 → 沿已核 checkpoint 回滚后
+  仍返回 REFERENCE_LIMIT，`TestR4InterruptedGraphBudgetRollsBack` 保留真实失败 diff。
+  正式 accept/export 失败不推进 accepted／发布输出；workspace/app/validation/CLI 的 R4
+  正反例仍用真实固定 checker，内部小预算不进入持久 checker config 或新增 CLI 开关。
+- 图内取消／超时直接返回，或仅扩错误分类但 checkpoint 扫描仍被取消 → 当次 Open 留下
+  部分修改且无 failed result → 将失败后的来源核验／恢复置于临时 WithoutCancel，保留预算、
+  used/start/checkpoint 完整校验与原错误。`TestR4RunningGraphCancellationRecovery` 用真实
+  cancel／deadline 的 builder 观察点、七资源 bytes、未开始／已完成／坏来源控制和再次 Open；
+  不是公共 CLI 竞态或更早扫描取消窗口的验收，诊断“观察到缺陷”的 PASS 不算修复 green。
+- workspace reader 将 cap 溢出报 plain error → 图构建降为 partial／IO_ERROR／nil error →
+  reader 返回 typed RESOURCE_LIMIT，图层沿既有扫描预算分类为 REFERENCE_LIMIT／零图。
+  `TestR4WorkspaceGraphReadGrowth` 用真实 inventory／os.Root／增长文件，区分有界读溢出、
+  读入后额外收费与精确预算控制；不将此分类缺口夸大为成功的危险 Plan/Apply。
+- 仅给 reader 加 typed error、builder 仍只判断 `left < max` → 等值 cap 溢出仍返回
+  partial／nil，包括默认 64 MiB 的末资源增长 → 全局余量 `left <= max` 时升级该限额，
+  `left > max` 保留原单资源 partial／RESOURCE_LIMIT；真实 I/O 不被重新分类。
+  永久 `TestR4WorkspaceGraphEqualCaps` 核 CSS 8 MiB−1→8 MiB+1、全局 cap 的±1/等值、
+  合法读取与缺文件 IO_ERROR。独立 equalcap/defaultcap 原探针与被拒树证据原样保留；
+  全仓 PASS 不能抵消等值反例，默认预算探针不冒称公共 CLI 并发攻击。
+- typed 溢出仍丢弃实际 bytes → 多个资源库存后增长时仅收旧 size，累计超过扫描预算仍
+  partial／nil（F1）→ workspace reader 随 RESOURCE_LIMIT 返回已读 cap+1 bytes，复用
+  builder 的实际长度差额计费，不重复收库存、不从 Archive 的读前拒绝推断已读取。
+  真实 I/O 分支仍优先返回原错误，解析调用方仍先检查 error；非 nil bytes 不是解析授权。
+  `TestR4WorkspaceGraphCumulativeOverflow` 核两真实 XHTML 的 16 MiB+1 拒绝、16 MiB+2
+  精确合法 partial 与 +1 控制、正常／单增长／缺文件／取消。两个独立 F1 原探针原样
+  old red/new green；equalcap/defaultcap 不弱化。更早 Open／验证／候选扫描取消窗口未覆盖。
+- `TestR4ReservationBoundaries`、`TestR4FilteredResultHeaderBudget`、
+  `TestR4XMLCoverageReservation` 与 `BenchmarkR4BoundedInventory` 核分配／追加前拒绝。
+
+## G-TERMINAL：机器原值与终端展示分开
+
+- 成功摘要转义但 run失败直接打印Message → 不存在路径经OS错误链把ESC原字节发stderr →
+  `TestR5MissingPathTerminalEscape` 旧树真实red；终端消息共用 `terminalQuote`，含完整双引号
+  和可见控制转义，不删除字节、不解释ANSI/OSC，不把展示形式写回 fault／JSON字段。
+- writer错误也含不可信后端文本 → JSON/raw-document/human三个输出失败分支同样转义。
+  `TestR5OutputWriterErrorPaths` 先核真实成功分支，再注入失败writer，独立字面完整期望。
+- 只测纯helper不能证明run边界 → `TestR5ErrorControlsAndJSONSemantics` 对12种真实路径
+  捕获human/JSON，OS独立错误期望、code/exit6、单envelope和解码原值均核；日志只用 `%q`。
+  中文／百分号／引号／长路径保留，CR/LF/TAB/C1/bidi不可伪造排版。
+- doctor readiness/help参数名来自受控静态注册表，checker诊断经摘要递归／JSON已有转义；
+  动态map键同样安全渲染。实际task diff是已转义展示，不能再转义整段：
+  `TestR5SummaryDiagnosticsAndKeys`、`TestR5TaskDiffIsNotDoubleEscaped` 保留两真实CRLF差异行。
+  不修改书籍、来源/accepted/事务、正式checker门槛或机器协议，也不称远程命令执行漏洞。
+- JSON 往返先把非法 UTF-8 换成 U+FFFD → 摘要失去值／路径身份且不同动态键合并 →
+  形状归一化后从原 Go 字符串恢复字节，动态键逐条保留，机器编码器不改。
+  `TestR5SummaryInvalidBytes` 核 FF／FE／合法替代符／字面反斜杠、嵌套值与截断边界；
+  `TestR5SummaryInvalidPathBinary` 核真实 unpack 路径和 JSON 原替代语义，诊断沿原测试扩展。
+
+## G-CONTENT-LOOKUP：索引不改变成员授权或全量计数
+
+- Search外层逐XHTML、readContent内层每次扫整个manifest → M×X成员工作 →
+  本次Search构建一次路径索引，调用内部读取时仍核精确路径与声明；单资源ReadContent
+  原线性门禁保留，不新增持久缓存或改变历史核验。`TestR7ManifestLookupScaling`
+  观察100／1000／10000实际资源，M=X时原10000／1000000／100000000，新200／2000／20000。
+  私有逐调用观察seam及原lookup算法的red源码保留，计数不是推导的运行耗时。
+- map最后覆盖会藏冲突、去重会改计数 → 聚合同路径全部媒体声明的AND资格，仍遍历原manifest。
+  `TestR7ManifestDeclarationSemantics` 核完整结果/hash/locator/非字典序、重复匹配、冲突两序、
+  下一调用观察已改声明、未声明/大小写/转义路径拒绝。qualified内部路径不能扩大读权限。
+- limit达到就早返会漏晚错误 → 仍解析/计数全部XHTML、不构造超limit节点；
+  `TestR7SearchLateFailureAfterLimit` 核最后坏XML/实体/缺文件，零部分结果；
+  `TestR7SmallScanBudget` 私有降低既有128MiB扫描上限，核精确±1、重复资源仍收费。
+  原1MiB返回文本与XML预算不改，原边界测试保留。BenchmarkR7包含实际读I/O/XML解析，
+  建索引有线性空间成本，B/op、allocs/op不等于RSS，不称整书搜索常数时间或内存必然降低。
+
+## G-QUERY-VERIFY：消除一次调用内重复，不缓存来源真相
+
+- AcceptedSnapshot 的 verifyBaseline→loadCurrent 已完整 readRevision，却再读同链 →
+  真实 accepted 单次 snapshot 两遍来源 → verifiedBaseline 直接返回本次已核 Revision，
+  snapshot 消费该值并 clone Tree entries，避免暴露内部 base。原 error-only 调用保留。
+  `TestR6SingleCallRevisionVerification` 在原算法实际 red（2 对 1）；不跨请求、恢复或重开缓存。
+- 省遍历不等于信任旧批准 → 同尺寸原书／initial／ancestor／current／checkpoint／execution
+  变更、accepted pointer 推进或关闭／取消后必须重新拒绝；
+  `TestR6VerificationIsCallLocal` 核冻结 snapshot 不借 live bytes／返回值不 alias，
+  `TestR6Schema7SnapshotRevalidatesSource` 核完整重签 risk 仍被自身 BaseRevision 重推拒绝。
+- 仅用 selective live reader 会失去完整私有 bytes 及未查询资源漂移边界 → 本次不替换，
+  保留 snapshot 的两次 inventory／全书复制／hash 对照、Open 及 active execution 独立门禁。
+  Issue15 只完成 A 的部分调用级优化；B 共享对象历史存储／迁移仍依赖 Issue2，完整历史
+  校验仍随版本数和资源量增长，不承诺常数时间或全部 R6 完成。
+- `TestR6HistoryMatrix`／`BenchmarkR6Queries`／`BenchmarkR6FormalExport` 用真实 checker
+  接受的 1／10（显式 100）×1KiB／64KiB CSS 合成书；content/search、diff、旧 status、
+  accepted 正式导出各核独立结果。benchmark 报 self /proc I/O，不含 Java child，rchar
+  不是物理读量；profiles 观察完整复制与临时逻辑 payload，非 RSS／磁盘块峰值。
+  `TestR6ColdProcess` 的新进程与同进程 reopen 分列；不清 OS 缓存，不伪称冷盘成绩。
+- R6 六个顶层测试遗漏 `requireChecker` → 无配置时真实 Accept 报依赖错误、旧生命周期
+  SKIP 而新测试 FAIL → 同样在顶层检查配置；有固定 JAR 时六测试仍须真实执行成功，
+  无配置的 SKIP 单列，不充作接受／导出或性能验收，错误 JAR 仍 FAIL。
 
 ## G-EVIDENCE：验证身份和范围不迁移
 

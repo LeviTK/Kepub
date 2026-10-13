@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/xml"
-	"sort"
+	"fmt"
 	"strings"
 
 	"github.com/LeviTK/Kepub/internal/bookpath"
@@ -16,11 +16,14 @@ import (
 // from the workspace's accepted revision, never from Git metadata.
 type Snapshot struct {
 	Workspace WorkspaceRef
-	Version   string     // package document version, e.g. "3.0"
-	Container []byte     // META-INF/container.xml
-	Package   []byte     // the selected package document
-	Resources []Resource // manifest application/xhtml+xml entries, sorted by path
-	Inventory []string   // every container path, sorted
+	Version   string                       // package document version, e.g. "3.0"
+	Container []byte                       // META-INF/container.xml
+	Package   []byte                       // the selected package document
+	Resources []Resource                   // manifest application/xhtml+xml entries, sorted by path
+	Inventory map[bookpath.BookPath]string // all exact paths and their file/directory types
+	// TargetVersion 1 is only for complete-source replay of consumed legacy
+	// plans. Zero and 2 use the current file-only qualification.
+	TargetVersion int
 	// ReadOnly carries the workspace's own read-only reasons. The native rules
 	// must not claim executability the legacy gates refuse.
 	ReadOnly []string
@@ -38,10 +41,9 @@ func resourceHash(b []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// hasPath reports whether the frozen container holds one path.
-func (s Snapshot) hasPath(p bookpath.BookPath) bool {
-	i := sort.SearchStrings(s.Inventory, string(p))
-	return i < len(s.Inventory) && s.Inventory[i] == string(p)
+// hasFile never confuses a directory or unknown type with a resource file.
+func (s Snapshot) hasFile(p bookpath.BookPath) bool {
+	return s.Inventory[p] == "file"
 }
 
 // resource returns one parsed manifest resource.
@@ -344,7 +346,13 @@ func deriveRelativeURLQuery(s Snapshot) ([]Repair, []Limitation) {
 				repairs = append(repairs, repair)
 				continue
 			}
-			if !s.hasPath(ref.Path) {
+			exists := s.hasFile(ref.Path)
+			if s.TargetVersion == 1 {
+				// Old saved proposals used path existence, including directories.
+				// Replay that source only; new execution still requires replanning.
+				_, exists = s.Inventory[ref.Path]
+			}
+			if !exists {
 				repair.Status = StatusUnfixable
 				repair.UnfixableReason = "the exact new value does not resolve to an existing target under the frozen gate"
 				repair.WriteSet = []string{}
@@ -353,7 +361,26 @@ func deriveRelativeURLQuery(s Snapshot) ([]Repair, []Limitation) {
 			}
 			// Target existence is a semantic dependency even without a fragment.
 			repair.ReadSet = sortedUnique(append(repair.ReadSet, string(ref.Path)))
-			if ref.Fragment != "" {
+			if s.TargetVersion != 1 {
+				err := publication.CheckReferenceTarget(ref, exists, func(path bookpath.BookPath) (map[string]int, error) {
+					targetRes, ok := s.resource(path)
+					if !ok {
+						return nil, fmt.Errorf("the fragment target is not an indexable XHTML resource")
+					}
+					targetDoc, err := publication.ParseStructureDocument(targetRes.Bytes, path, s.profile())
+					if err != nil {
+						return nil, fmt.Errorf("the fragment after query removal is not uniquely resolvable")
+					}
+					return targetDoc.IDs(), nil
+				})
+				if err != nil {
+					repair.Status = StatusUnfixable
+					repair.UnfixableReason = err.Error()
+					repair.WriteSet = []string{}
+					repairs = append(repairs, repair)
+					continue
+				}
+			} else if ref.Fragment != "" {
 				targetRes, ok := s.resource(ref.Path)
 				if !ok {
 					repair.Status = StatusUnfixable

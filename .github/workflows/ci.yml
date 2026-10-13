@@ -1,0 +1,86 @@
+name: Kepub CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    name: Linux core / test, race, vet, build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      GOMAXPROCS: '2'
+      GOMEMLIMIT: 1GiB
+      GOTOOLCHAIN: local
+      JAVA_TOOL_OPTIONS: -Xmx512m
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Bind PR evidence to the reviewed head, not GitHub's synthetic merge.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install and verify EPUBCheck 5.3.0
+        run: |
+          curl --fail --location --retry 3 --connect-timeout 15 --max-time 120 \
+            https://github.com/w3c/epubcheck/releases/download/v5.3.0/epubcheck-5.3.0.zip \
+            -o "$RUNNER_TEMP/epubcheck.zip"
+          echo "6c07e68584b2e2ce2f89fe06e1246dfead3eb36b46b340e7d93524f29dcff6c5  $RUNNER_TEMP/epubcheck.zip" | sha256sum -c -
+          unzip -q "$RUNNER_TEMP/epubcheck.zip" -d "$RUNNER_TEMP/checker"
+          checker="$RUNNER_TEMP/checker/epubcheck-5.3.0"
+          echo "f7f96617c929371821609b88c8484d6dc9f24fe916499863c46094c5fb778a65  $checker/epubcheck.jar" | sha256sum -c -
+          (cd "$checker" && LC_ALL=C sha256sum epubcheck.jar lib/*.jar > SHA256SUMS)
+          echo "2a5456d59b1a2aebedea1a58afc98fb36546d74be39624c3f79ae624fe34a835  $checker/SHA256SUMS" | sha256sum -c -
+          test "$(java -jar "$checker/epubcheck.jar" --version)" = 'EPUBCheck v5.3.0'
+          echo "KEPUB_EPUBCHECK_JAR=$checker/epubcheck.jar" >> "$GITHUB_ENV"
+      - name: Record input and verify modules
+        run: |
+          mkdir -p "$RUNNER_TEMP/results"
+          {
+            date -u +%FT%TZ
+            git rev-parse HEAD HEAD^{tree}
+            git status --porcelain
+            go version
+            java -version
+            java -jar "$KEPUB_EPUBCHECK_JAR" --version
+            go mod download
+            go mod verify
+          } 2>&1 | tee "$RUNNER_TEMP/results/input.log"
+      - name: Test
+        run: go test -p=1 -parallel=1 -count=1 -timeout=30m -json ./... | tee "$RUNNER_TEMP/results/test.jsonl"
+      - name: Race
+        run: go test -race -p=1 -parallel=1 -count=1 -timeout=30m -json ./... | tee "$RUNNER_TEMP/results/race.jsonl"
+      - name: Vet
+        run: go vet ./... 2>&1 | tee "$RUNNER_TEMP/results/vet.log"
+      - name: Build ordinary and race CLI
+        run: |
+          go build -o "$RUNNER_TEMP/kepub" ./cmd/kepub
+          go build -race -o "$RUNNER_TEMP/kepub-race" ./cmd/kepub
+          {
+            go version -m "$RUNNER_TEMP/kepub"
+            go version -m "$RUNNER_TEMP/kepub-race"
+          } | tee "$RUNNER_TEMP/results/binaries.log"
+          test -z "$(git status --porcelain)"
+      - name: Preserve execution logs (skips are not passes)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: core-ci-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/results/
+          if-no-files-found: warn
+          retention-days: 14

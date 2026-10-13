@@ -517,6 +517,39 @@ func resolveName(name xml.Name, scope *Element, defaultNS bool) (xml.Name, error
 	return name, nil
 }
 
+// ReplaceBytesSize counts exactly the escaped bytes in the original encoding
+// without allocating the escaped or UTF-16 output. EscapeText remains the
+// source of truth for XML character and escaping semantics.
+func (e *Element) ReplaceBytesSize(new string) (int64, error) {
+	if len(new) > Limit || !utf8.ValidString(new) {
+		return 0, fmt.Errorf("XML size/UTF-8 limit")
+	}
+	w := encodedTextSize{utf16: e.order != nil}
+	if err := xml.EscapeText(&w, []byte(new)); err != nil {
+		return 0, err
+	}
+	return w.bytes, nil
+}
+
+type encodedTextSize struct {
+	utf16 bool
+	bytes int64
+}
+
+func (w *encodedTextSize) Write(p []byte) (int, error) {
+	if !w.utf16 {
+		w.bytes += int64(len(p))
+	} else {
+		for _, r := range string(p) {
+			w.bytes += 2
+			if r > 0xffff {
+				w.bytes += 2
+			}
+		}
+	}
+	return len(p), nil
+}
+
 // ReplaceBytes returns the escaped, resource-encoded character data bytes for
 // new text in this element's document. It does not verify the old value or
 // splice the result.

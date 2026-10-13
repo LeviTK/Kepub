@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"os"
 
 	"github.com/LeviTK/Kepub/internal/archive"
@@ -218,6 +219,10 @@ func Capabilities() []Capability {
 
 // Read is the single use case used by info and inspect; ownership remains here.
 func Read(book, rootfile string) (*archive.Archive, *publication.Publication, error) {
+	return ReadContext(context.Background(), book, rootfile)
+}
+
+func ReadContext(ctx context.Context, book, rootfile string) (*archive.Archive, *publication.Publication, error) {
 	st, err := os.Stat(book)
 	if err != nil {
 		return nil, nil, fault.New(6, "IO_ERROR", "input: %v", err)
@@ -228,11 +233,14 @@ func Read(book, rootfile string) (*archive.Archive, *publication.Publication, er
 	if !st.Mode().IsRegular() {
 		return nil, nil, fault.New(3, "UNSUPPORTED_INPUT", "input must be a regular EPUB ZIP file")
 	}
-	a, err := archive.Open(book, archive.DefaultLimits)
+	a, err := archive.OpenContext(ctx, book, archive.DefaultLimits)
 	if err != nil {
 		return nil, nil, err
 	}
 	p, err := publication.Load(a, rootfile)
+	if err == nil {
+		err = ctx.Err()
+	}
 	if err != nil {
 		a.Close()
 		return nil, nil, err
@@ -242,7 +250,7 @@ func Read(book, rootfile string) (*archive.Archive, *publication.Publication, er
 
 // Inspect is shared by section queries and the toc convenience command. Missing
 // content/unsupported syntax is returned as data; this is not validate.
-func Inspect(a *archive.Archive, p *publication.Publication, section, resource, direction string) (any, error) {
+func Inspect(ctx context.Context, a *archive.Archive, p *publication.Publication, section, resource, direction string, limits references.GraphLimits) (any, error) {
 	if err := ValidateInspect(section, resource, direction); err != nil {
 		return nil, err
 	}
@@ -259,13 +267,19 @@ func Inspect(a *archive.Archive, p *publication.Publication, section, resource, 
 		navigation := publication.LoadNavigation(a, p)
 		value, coverage = navigation, navigation.XMLCoverage
 	case "references":
-		graph := references.Build(a, p)
+		graph, err := references.Build(ctx, a, p, limits)
+		if err != nil {
+			return nil, err
+		}
 		value, _ = graph.Filter(resource, direction)
 		coverage = graph.XMLCoverage
 	case "capabilities":
 		value = Capabilities()
 	default:
 		return nil, fault.New(2, "INVALID_ARGUMENT", "supported --section is required")
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
 	out := map[string]any{"rootfile": p.Rootfile, "section": section, "value": value, "limitations": p.Limitations}
 	if coverage != nil {

@@ -28,7 +28,7 @@ func TestFixOutputExists(t *testing.T) {
 	if err := os.WriteFile(existing, sentinel, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := FixPropose(ws, p.Repairs[0].RepairID, true, existing, true); err == nil {
+	if _, err := FixPropose(t.Context(), ws, p.Repairs[0].RepairID, true, existing, true); err == nil {
 		t.Fatal("existing output accepted by propose")
 	} else {
 		fixDeltaFault(t, err, "OUTPUT_EXISTS")
@@ -41,7 +41,7 @@ func TestFixOutputExists(t *testing.T) {
 	if got, err := os.ReadFile(existing); err != nil || string(got) != string(sentinel) {
 		t.Fatalf("existing output changed: %q %v", got, err)
 	}
-	if _, err := FixPropose(ws, p.Repairs[0].RepairID, true, filepath.Join(ws, "out.json"), true); err == nil {
+	if _, err := FixPropose(t.Context(), ws, p.Repairs[0].RepairID, true, filepath.Join(ws, "out.json"), true); err == nil {
 		t.Fatal("workspace output accepted")
 	} else {
 		fixDeltaFault(t, err, "INVALID_OUTPUT")
@@ -68,7 +68,7 @@ func TestFixEmitRequestBudget(t *testing.T) {
 				t.Fatal(err)
 			}
 			out := filepath.Join(t.TempDir(), "request.json")
-			_, err := FixPropose(ws, strings.Join(ids, ","), true, out, true)
+			_, err := FixPropose(t.Context(), ws, strings.Join(ids, ","), true, out, true)
 			if count == 256 {
 				if err != nil {
 					t.Fatalf("boundary emit: %v", err)

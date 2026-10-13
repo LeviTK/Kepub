@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"io"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -48,6 +48,9 @@ func appendDiagnostic(r *Report, d publication.Diagnostic) {
 }
 
 func failedInput(hash string, o Options, err error) (Report, error) {
+	if errors.Is(err, context.DeadlineExceeded) {
+		err = fault.New(5, "CHECKER_TIMEOUT", "request timed out or was cancelled")
+	}
 	r := newReport(hash, o)
 	if priority(err) == 1 {
 		r.Status = "fail"
@@ -77,17 +80,17 @@ func CheckZIP(ctx context.Context, filename, expectedSHA256 string, o Options) (
 	if !i.Mode().IsRegular() {
 		return failedInput("", o, fault.New(1, "UNSAFE_ENTRY", "final ZIP must be a regular file"))
 	}
-	if i.Size() > archive.DefaultLimits.TotalBytes {
+	if i.Size() > archive.MaxInputBytes {
 		return failedInput("", o, fault.New(1, "ARCHIVE_LIMIT", "compressed input exceeds limit"))
 	}
-	hash, err := archive.FileSHA256(filename)
+	hash, err := archive.FileSHA256Context(ctx, filename)
 	if err != nil {
 		return failedInput("", o, err)
 	}
 	if hash != expectedSHA256 {
 		return failedInput(hash, o, fault.New(4, "INPUT_DRIFT", "expected archive hash differs"))
 	}
-	a, err := archive.Open(filename, archive.DefaultLimits)
+	a, err := archive.OpenContext(ctx, filename, archive.DefaultLimits)
 	if err != nil {
 		return failedInput(hash, o, err)
 	}
@@ -113,8 +116,20 @@ func CheckZIP(ctx context.Context, filename, expectedSHA256 string, o Options) (
 		r.Checks[1].Status = "passed"
 		r.Limitations = p.Limitations
 		start = time.Now()
-		g := references.Build(a, p)
+		limits := references.DefaultGraphLimits
+		if o.GraphLimits != nil {
+			limits = *o.GraphLimits
+		}
+		g, graphErr := references.Build(ctx, a, p, limits)
 		r.Checks[2].ElapsedMilliseconds = time.Since(start).Milliseconds()
+		if graphErr != nil {
+			r.Checks[2].Status = "blocked"
+			r.Checks[2].Reason = graphErr.Error()
+			r.Checks[3].Status = "blocked"
+			r.Checks[3].BlockedBy = []string{"references"}
+			appendDiagnostic(&r, publication.DiagnosticFor(graphErr, "", ""))
+			return r, graphErr
+		}
 		r.Checks[2].Coverage = g.Coverage
 		r.Checks[2].Status = "passed"
 		if g.Status != "complete" {
@@ -144,7 +159,7 @@ func CheckZIP(ctx context.Context, filename, expectedSHA256 string, o Options) (
 			}
 		}
 	}
-	again, e := archive.FileSHA256(filename)
+	again, e := archive.FileSHA256Context(ctx, filename)
 	if e != nil {
 		err = e
 	} else if again != hash {
@@ -172,6 +187,9 @@ func Validate(ctx context.Context, input string, o Options) (Report, error) {
 	if err != nil {
 		return failedInput("", o, err)
 	}
+	if i.Mode().IsRegular() && i.Size() > archive.MaxInputBytes {
+		return failedInput("", o, fault.New(1, "ARCHIVE_LIMIT", "compressed input exceeds limit"))
+	}
 	tmp, err := os.MkdirTemp("", "kepub-validate-")
 	if err != nil {
 		return Report{}, err
@@ -183,7 +201,7 @@ func Validate(ctx context.Context, input string, o Options) (Report, error) {
 		return Report{}, err
 	}
 	if i.IsDir() {
-		a, t, e := archive.SnapshotDirectory(input, archive.DefaultLimits)
+		a, t, e := archive.SnapshotDirectoryContext(ctx, input, archive.DefaultLimits)
 		if e != nil {
 			w.Close()
 			return failedInput("", o, e)
@@ -202,14 +220,11 @@ func Validate(ctx context.Context, input string, o Options) (Report, error) {
 			w.Close()
 			return failedInput("", o, fault.New(4, "INPUT_DRIFT", "input replaced before freeze"))
 		}
-		n, e := io.Copy(w, io.LimitReader(f, archive.DefaultLimits.TotalBytes+1))
+		n, e := archive.CopyBounded(ctx, w, f, archive.MaxInputBytes)
 		after, se := f.Stat()
 		f.Close()
 		err = e
-		if n > archive.DefaultLimits.TotalBytes {
-			err = fault.New(1, "ARCHIVE_LIMIT", "compressed input exceeds limit")
-		}
-		if se != nil || n != opened.Size() || after.Size() != opened.Size() || !after.ModTime().Equal(opened.ModTime()) {
+		if err == nil && (se != nil || n != opened.Size() || after.Size() != opened.Size() || !after.ModTime().Equal(opened.ModTime())) {
 			err = fault.New(4, "INPUT_DRIFT", "input changed during freeze")
 		}
 	} else {
@@ -222,7 +237,7 @@ func Validate(ctx context.Context, input string, o Options) (Report, error) {
 	if err != nil {
 		return failedInput("", o, err)
 	}
-	hash, err := archive.FileSHA256(filename)
+	hash, err := archive.FileSHA256Context(ctx, filename)
 	if err != nil {
 		return Report{}, err
 	}

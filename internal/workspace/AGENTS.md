@@ -37,9 +37,130 @@
 - 每个快照（revision/task）绑定自己的已核 tree/inventory；历史 initial 不得继承当前 accepted 的
   `InputTreeSHA256`。native facts 与 checker 必须消费**同一份**已核私有快照（`archive.SnapshotDirectory`
   + `Unpack` 到私有目录），live 目录只是身份证据，不是检查输入；drift/I-O fault 保留。
+- 提案两快照入口保留文件／目录类型，HashTree 错误不得忽略；完整 Tree／hash／空目录不删。
+  schema 7 新 policy 追加 `;file-target-v2`；旧已消费来源显式重推旧资格及 derivedFrom，不能用
+  新资格改写旧 history/settlement。旧未消费计划和新的旧策略 accept 均要求重新计划；
+  原持久决定恢复及旧 accepted 正式导出保留。入口 `TestN3SnapshotHashError`、`TestN3LegacyTargetSource`。
 - task diff 的 schema 7 review 携带经重推的完整提案（真实旧值在 target，计划新值在 operation 参数）；
   旧 schema 输出 shape 不变。
 - 已有外部输出用 `OUTPUT_EXISTS`/2（单点分类在 `outputPath`，预检原样传播 fault，其余路径问题仍
   `INVALID_OUTPUT`）；emit-request 在发布前执行既有 256 操作预算，超限 `INVALID_OPERATIONS`/2 且无产物。
 
-对应开发注意事项：`G-FINAL`、`G-FACTS`、`G-BINDING`、`G-ORACLE`、`G-QUALIFY`。
+## 持久 JSON 的读写预算
+
+- 同类元数据共用 `maxJSONBytes` 和 `checkJSONSize`；预算按序列化后的 UTF-8 字节计量，包含
+  转义和落盘换行，不能按原始字段长度估算。`writeJSON` 在临时文件创建前拒绝超限，不提高读预算。
+- Create 在根目录发布前用正式读取入口读回 state 和 identity；失败只清理本次 staging。
+  plan/execution/checkpoint/revision/journal 都沿同一写入边界，不另造无预算持久化入口。
+- Apply 在消费 plan／发布 active 前，按完整冻结基线和已推导输出预检 checkpoint、running／
+  unstarted start、成功结果及标准 interrupted 结果；plan 单独限内不代表嵌入 execution 后限内。
+  不为未知外部 drift／任意 I/O 错误预留私有长度上限；保留原恢复门禁。
+- 注入预算保持私有、逐调用，不用可变全局或 CLI 扩权；短写用隔离子进程的小型文件预算，
+  不做真实磁盘／内存耗尽。原书、完整 inventory、旧 schema、摘要、锁和 journal 恢复顺序保持。
+- 永久入口：`TestR1JSONByteBudget`、`TestR1LegacyRecordByteBudget`、
+  `TestR1CreateLongPathInventory`、`TestR1CreateMetadataShortWrite`、
+  `TestR1ApplyRecordPreflight`、`TestR1ApplyProductionRecordLimit`。
+
+## 替换推导的累计预算
+
+- `recomputeStructure` 为含替换的全事务创建一份预算，多元素／操作／资源不能重置；
+  Plan、Apply 和后续冻结来源重推各自新建相同默认预算，不复用先前消费状态。
+- 在完整资源拼接前核全部输出大小，先计 disjoint removals 再加新字节，不按操作顺序
+  误拒合法净缩减。预算失败在 plan／执行意图发布前拒绝，原书、accepted、锁与审计保留。
+- 已登记 running／无 result 的执行重算超预算，先核 identity、冻结基线、保存来源、
+  used、start 与 checkpoint，再沿原 restore journal 回滚并保留观察到的失败 diff；仍返回
+  RESOURCE_LIMIT，不当作可容忍 drift。未开始／已完成／伪来源不改写；失败状态不能豁免
+  后续 execution、reject、settlement／history 的完整重推。
+- 小预算只通过私有逐工作区测试模板注入，不添加 CLI 开关或持久 schema 字段。
+  入口：`TestN1TransactionBudget`、`TestN1ResourceBudget`、`TestN1ApplyBudgetRevalidation`、
+  `TestN1PostStartBudgetRecovery`、`TestN1BudgetRecoveryBoundaries`。
+
+## IDREF 策略版本与已消费旧来源
+
+- 新 schema 4–7 的策略追加 `;reference-parser-v2`，旧 wire shape 和 schema 1–3 摘要不变。
+  未消费旧策略在 Apply／WritePlanReport 前返回 INPUT_DRIFT，不用新图静默重新批准。
+- 已消费旧策略仅按保存 policy 显式 v1 重推：execution、task diff、taskDigests／历史与
+  settlement 共用该选择，不能只为某一恢复分支绕过门禁。旧 active 可以安全 diff／reject
+  或中断回滚，但不能新 accept；已持久的旧 settlement 决定仍恢复完成，旧 accepted
+  历史和正式导出保留。完整来源 hash、checkpoint、锁、journal 与真实 checker 均不豁免。
+- 永久入口 `TestN2LegacyReferenceLifecycle` 的输入必须区分 v1／v2（p%41 与 pA），
+  `TestN2LegacySchemas` 核 4–7 策略，`TestN2LegacyAcceptedJournal` 核真实 checker 后的
+  durable 决定；保留旧文件字节，不重签或迁移旧来源来通过。
+
+## 工作区资源 I/O 与取消
+
+- 出版物资源树复用 `archive.Limits.CheckEntry`、`WalkDirectory`、`CopyBounded`；
+  不先收齐无界目录／读完资源才拒绝，不混计管理目录、持久 JSON 与原 ZIP 的独立预算。
+  stat 是快拒而非授权，实际余量 + 1 有界读取后仍核增长／drift；预算、I/O 与取消独立分类。
+- 请求 context 必须沿原书核对、自身 frozen revision 来源重推、candidate／checkpoint／accept
+  的每次扫描／复制传递。未提交 stage 失败清理，Close 或失败 Open 释放 owner 锁。
+- Reject 与 Accept 一样，在 settlement journal 发布前仍消费真实请求取消；只有有效
+  durable journal 之后才沿既有 WithoutCancel 恢复。`TestR3RejectCancellationAtIntentBoundary`
+  核未提交 workspace 全树不变、重新开锁及合法重试，不宣称真实 CLI 窗口竞态。
+- 已登记 mutation 在取消后仍完整回滚；有效 restore／settlement journal 沿原决定恢复，
+  仅临时 `WithoutCancel`，不跳预算、来源、hash 或真实 I/O，不删 durable intent 凑成功。
+  Open 在建立 root/state/owner 锁后发现待核 journal，须将既有 baseline／identity／checkpoint
+  验证前缀和恢复一同临时屏蔽取消；存在 journal 只选择屏蔽，不授予恢复权限。
+  两种 journal 完成后恢复请求 context，先报告取消再进入未提交 staging 清理／普通 execution；
+  无 journal 不屏蔽。入口 `TestOpenDurableJournalCancellation`、`TestOpenCancelledJournalControls`
+  和 `TestAcceptanceJournalRecovery` 的 cancelled phases；baseline 窗口用逐调用 I/O hook，非 CLI 竞态。
+  入口 `TestR3CancelledAcceptDoesNotCopy`、`TestR3TreeBudgets`、`TestR3OriginalBudget`、
+  `TestR3GrowthAfterStat`、`TestR3PartialTreeFailure`、`TestR3CancelledRunningRollback`、
+  `TestR3CommittedRecoveryRetainsBudget` 和 app 的 `TestR3WorkspaceRequestCancellation`。
+- task diff 的部分可审阅降级不吞掉快照取消／超时／预算失败；
+  `TestR3DiffSnapshotCancellation` 核复制阶段真实取消、无私有快照残留、全 workspace bytes 不变。
+
+## 出版物路径与内部物理前缀
+
+- BookPath 的 4096 字节／128 组件只计出版物根内路径；宿主根、revision／candidate／
+  checkpoint／staging 前缀不得进入逻辑路径或资源库存预算。syncTree 消费已核出版物 Tree，
+  经 os.Root 同步固定内部位置；hash／copy／inventory 仍核原 BookPath，不全局加深限额。
+- `TestR8CreateAtDepthBoundary` 的原断言在 104db44 上复现126–128误拒、125正控；当前
+  #10 已修复该模型，本项只补回归。`TestR8PublicationPrefixesAndBudgets` 核独立完整 Tree、
+  精确小库存、真实读取／候选／checkpoint／restore／reopen和全部字节。
+- `TestR8PathRefusalsPreserveInputs` 保留129组件／4097字节、穿越／绝对／链接／碰撞负控；
+  `TestR8PrepublishSyncCancellation` 只称同步边界取消，非断电或真实fsync故障。
+  `TestR8HostPathFailureIsNotBookPathBudget` 区分实际宿主 ENAMETOOLONG 与逻辑 PATH_LIMIT。
+
+## 引用图失败不得降为无依赖
+
+- lazy identity gate 与 eager cross-move 共用 references 的逐构建 context/GraphLimits；
+  Plan/Apply、执行、task diff、历史／settlement 自身来源重推都传播 `REFERENCE_LIMIT`。
+  默认每次重建，小预算只通过私有工作区模板或 validation 逐调用注入，不添持久字段。
+- running／无 result 重算图超限仍先核冻结来源、used/start/checkpoint，再完整回滚，
+  保留失败 diff 且返回原限制；未开始／已完成任务不借预算错误重写。不能让 task diff
+  的 drift 可审阅分支吞掉图预算或取消，不能以空图授权删除／改名／移动。
+- `TestR4DependencyPlansRequireCompleteGraph` 核三种操作真实 Plan+Apply、七资源 bytes、
+  再次 diff／历史重推及全工作区不变；`TestR4InterruptedGraphBudgetRollsBack` 核部分写入
+  回滚；`TestR4AcceptRequiresGraphBudgetAndRealChecker` 保留真实 checker 与 accepted／锁控制。
+- 图重推取消／超时也属于 running 恢复失败；后续 used/start/checkpoint 与候选扫描须临时
+  忽略迟到取消后完整核验，不能只扩错误分类而仍用已取消 context。只恢复 running／无 result，
+  当次写 failed 并返回原错误；未开始、已完成或损坏来源不借此改写。永久入口
+  `TestR4RunningGraphCancellationRecovery` 核当次 Open 七资源字节、结果、锁与再次 Open。
+- `publicationRoot.Read` 的实际 cap 溢出须用 typed RESOURCE_LIMIT，让图层在扫描余量
+  耗尽时转 REFERENCE_LIMIT／零图；真实 I/O 错误不能被超限覆盖。入口
+  `TestR4WorkspaceGraphReadGrowth` 分别核 reader 溢出、读入后额外收费与精确预算正控。
+- 成功读取但超出 cap 时，`publicationRoot.Read` 随 RESOURCE_LIMIT 返回实际读到的
+  cap+1 bytes，供 builder 仅补超过冻结库存的差额；非 nil bytes 不代表可解析，调用方
+  仍须先拒绝 error。真实 read/close 错误优先沿原分支返回，Archive 读前拒绝不虚构读取。
+  `TestR4WorkspaceGraphCumulativeOverflow` 核多资源累计超限与精确预算合法 partial。
+
+## 查询验证只在本次持锁调用内复用
+
+- `verifiedBaseline` 返回本次原书／initial／accepted 完整历史来源校验所得 Revision；
+  AcceptedSnapshot 直接消费它，不再读一次同链。不能把结果保存成跨调用缓存、借锁假定
+  同用户外部写入不可能，或删 Open／active execution 的独立来源门禁。
+- 公共 Revision 的 Tree entries 与私有 base 不得 alias；每次查询重新核原书、历史、
+  checkpoint／execution／pointer，closed／cancelled／recovery 仍沿原生命周期拒绝。
+  `TestR6SingleCallRevisionVerification` 核真实接受后一次链遍历，
+  `TestR6VerificationIsCallLocal` 和 `TestR6Schema7SnapshotRevalidatesSource` 核同尺寸篡改、
+  下一调用、冻结 bytes、完整重签 schema7 伪来源及实际 reopen。
+- 仍以完整私有快照隔离查询输入并核最终 hash；未经等价证明不换成 live selective reader。
+  本项是 Issue15 A 的部分优化，历史共享存储 B 依赖 Issue2。`TestR6HistoryMatrix` 默认
+  有界 1／10 修订，两种小书均真实 checker 接受；100 修订性能输入显式生成。
+  R6 benchmarks／profiles 分开报告 revision visits、原书读取、实际 self I/O、私有复制和
+  临时逻辑 payload，fresh process 不称物理冷盘，benchmem 不称 RSS 或子 Java 的 I/O。
+- 新增真实 checker 测试在顶层复用 `requireChecker`；未配置时显式 SKIP，不能把环境缺失
+  当产品 FAIL 或符合性 PASS。配置后仍实际接受并核成功，不把 checker 错误降为 SKIP。
+
+对应开发注意事项：`G-FINAL`、`G-FACTS`、`G-BINDING`、`G-ORACLE`、`G-QUALIFY`、`G-JSON`、`G-IDREF`。

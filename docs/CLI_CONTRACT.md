@@ -69,6 +69,8 @@ XHTML 的 href／src（含 EPUB3 nav）在解析目标前，仅去掉属性值�
 
 持久 JSON 记录先在同目录临时文件中完整写入并同步，再原子、不覆盖地发布。写入失败不会把半截 JSON 发布到正式记录名；故障解除后可重试恢复。Open 必须先校验并完成已发布的 settlement／restore journal，再清理保留的内部 staging，最后恢复中断执行；回滚复制在 journal 发布前再次中断，不应阻断下次重试。损坏 journal 保留证据并拒绝打开，不以清理绕过校验。这些边界已有短写和中断反例验证，不表示断电、任意磁盘故障或非协作外部写者均已覆盖。
 
+工作区同类 JSON（state、identity、plan、execution、checkpoint、revision、检查与 journal）读写共用 **32 MiB（33,554,432 字节）**预算，按实际 UTF-8 JSON 字节计量，包含转义、嵌套结构及落盘末尾换行；恰等于上限允许，超限返回 exit 1／`WORKSPACE_JSON_LIMIT`。写入须在创建临时文件前拒绝，不截断 inventory、不提高读取上限。Create 在原子发布根目录前，通过 Open 使用的读取入口核验 state，identity 也须完整读回；失败只清理本次 staging，不修改原书或已有目标。既有 schema、字段顺序、无换行的规范摘要和历史来源规则不变；外部请求文件仍沿用既有 32 MiB 及参数错误语义。小预算和短写注入仅用于内部回归，不提供 CLI 调大预算入口。
+
 已发布且通过自身来源与哈希检查的 restore journal 仍先恢复指定 checkpoint，即使后续 execution 校验因损坏的 used／start 记录而拒绝打开；这也覆盖 pub 暂缺的已提交中断状态。它只完成原持久决定，不生成新的执行结果、不重放操作，也不更改原书或 accepted。此规则不允许损坏 journal 自身或检查点时继续恢复。
 
 如果 `apply` 已发布本次候选，随后启动失败且仍能核对任务、intent 与已消费计划，JSON 错误回复保留 `data.taskId`，供排除 I/O 故障后显式 diff／reject。回复仍为 `ok:false`，不是成功执行或接受授权；未发布候选时不生成虚假 taskId。此行为不提供其他计划的任务发现、latest 选择或丢失回复后的发现协议，也不会重放操作。
@@ -130,6 +132,9 @@ Apply、Open 恢复和 Accept 都须重新推导相同的单资源写集合及�
 
 - `kepub search --workspace DIR --query TEXT [--limit N] --json`：持锁读取所选 rootfile 的 accepted revision，按 manifest 顺序检索其中所有 XHTML，不读取活动候选、不选另一个 rootfile。沿用 `content` 的区分大小写字面子串及节点／排除规则；命中数是匹配结果元素数，不是短语出现次数，不跨资源拼接匹配，也不是浏览器可见文本。
 - query 必填，范围为 1～4096 UTF-8 字节；limit 默认 50、范围 1～200。返回工作区／revision／rootfile 身份、完整匹配数、返回数和 truncated；每个结果包含精确 bookPath、原资源 SHA-256、locatorVersion、locator 和解码文本。达到返回数限制仍须扫描剩余资源才能声称完整匹配数。不同资源出现同一 locator 不合并。
+- 搜索的精确BookPath成员／媒体类型索引只构建于本次调用；同路径声明任一非XHTML仍
+  拒绝，不以最后覆盖掩盖冲突。遍历保持原manifest顺序与重复声明的计数／扫描预算，
+  不新增持久缓存、排序／去重或改变单资源ReadContent的精确声明门禁。
 - 每资源 XML 8 MiB 统一按**原始资源字节、含 BOM**计量，读入和修改后的序列化结果均适用；每资源解码后的 UTF-8 流及实体展开后的 UTF-8 流分别最多 16 MiB，包括标记／属性／文本／保留声明，两份表示不相加、不按祖先重复计文本，也不跨资源累计。另将每次实体替换产生的字节累计到每资源 16 MiB 展开工作预算，限制中间开销；不把转码结果重新按 raw 8 MiB 截断。沿用元素深度 128／200,000 tokens／32 MiB 索引限制，展开生成内容也计数；T1b 的 DTD 声明最多 4096、实体嵌套最多 16、替换次数最多 100,000。全书 XHTML 原始扫描字节累计上限 128 MiB，返回文本累计上限 1 MiB UTF-8 字节。超限或任一应扫描资源不可读取／解析时明确失败，不把未扫描部分当零匹配，不静默跳过坏资源；truncated 仅表示返回条数限制。
 - 32 MiB 索引独立保留既有计量：字符数据 UTF-8 字节先计两次，每向上一层祖先汇入子树文本再计一次，另加各元素 location 的 UTF-8 字节。单段 `html > body > p` 文本约计四倍，有效文本上限略低于 8 MiB，深层嵌套更早触限。原始／解码／展开流、索引等限额须同时满足；16 MiB 流上限不是正文可索引容量承诺，也不是实际驻留内存上限。
 - `kepub task status TASK --workspace DIR --json`：查询精确任务的执行与结算状态，返回身份、基线及当前审核／接受／拒绝信息；未知任务明确失败（exit 4／`TASK_CONFLICT`），不以 latest 或其他任务替代。只读持锁，沿用 Open 的来源、恢复与安全树核验，不为状态查询绕过损坏记录。`matchesExecution` 只比较活动候选；历史任务当前返回 false 表示不适用，不能解释为历史损坏，历史仍验证决定／revision／计划消费。`checks` 列举检查尝试，随机文件名不构成时间排序或 latest。status 不产生批准或导出；`task diff` 仍只针对精确活动任务，已结算任务返回 exit 4／`TASK_CONFLICT`。
@@ -233,6 +238,22 @@ FixProposal／ValidationDelta 与两条原生规则以 §2.11 及其冻结附件
 本批在 schema 3 事务底座上增加**版本化 XHTML 结构编辑**：混合内容与属性写入、元素插入／替换／删除／同资源移动，以及 ID／链接／资源依赖门禁。它**不是完整 T2**：FixProposal、ValidationDelta、批量替换、字体混淆资格与跨资源移动仍属剩余范围，`content.text.set` v1 的含义与 schema 1／2／3 编码不变。旧二进制遇到 schema 4 请求允许安全拒绝，不丢记录、不改已发布摘要含义。
 
 - **请求 schema 4：** `schemaVersion:4` 携带 1–256 个 v1 操作，可为 `metadata.set`、`content.text.set` 与六个新操作 `xhtml.attribute.set`／`xhtml.attribute.remove`／`xhtml.element.insert`／`xhtml.element.replace`／`xhtml.element.delete`／`xhtml.element.move`；至少一个 `xhtml.*` 操作才使用 schema 4，单操作旧请求继续使用 schema 1／2／3，不静默升级。策略摘要为 `kepub-xhtml-structure-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;reference-gate;no-timestamp;review-required;conformance-not-run`。
+  Issue #8 的兼容方案先于实现冻结：引用解析 v2 将 IDREF 作为字面同文档身份，不做 URL 解码；
+  属性原值保存在 edge.href，单 token 在 target.fragment，属性名保存在来源 locator 的 `/@name`。
+  列表只按 ASCII 空白分词（XML 可解析值中为 TAB/LF/CR/SPACE），NBSP 保留；
+  `for`（除 output）、`list`、`form`、`aria-activedescendant`、`aria-details`、
+  `aria-errormessage` 为单 IDREF，其余冻结词表及 output.for 为列表。单值不拆成多个目标；
+  ARIA 类型按 [WAI-ARIA 1.2 REC 2023-06-06](https://www.w3.org/TR/2023/REC-wai-aria-1.2-20230606/)
+  的 Value 类型（ID reference／ID reference list）冻结，不跟随移动中的草案改变旧摘要。
+  空值不产生边，非法多值作为完整字面查找并明确 missing，不以两个合法 ID 掩盖错误。
+  不改变普通 href/src 的 URL 语义、未知词汇 coverage 或 XML 身份计数。
+  新 schema 4/5/6/7 计划保留原 wire shape，但策略字符串使用对应 v1 字符串末尾追加
+  `;reference-parser-v2` 的新摘要，inspect 的 parserVersion=2；schema 1–3 摘要不变。
+  旧摘要只用于已消费任务、历史和持久 journal 的 v1 来源重推，完整保留旧分词／解码，
+  不静默用 v2 解释旧批准。未消费旧计划在 Apply/WritePlanReport 前明确 INPUT_DRIFT；
+  已消费旧任务仍可 diff/reject、恢复回滚，不能再次 accept，须 reject 后重提案。
+  已发布 settlement journal 仍按冻结旧来源完成原决定，既有 accepted 历史可读取／正式导出，
+  不重写记录、源 hash 或摘要。新 accept/export 继续要求真实 EPUBCheck。
 - **冻结绑定：** 每个结构操作绑定 `bookPath`、`revisionId`、`resourceSha256` 与 `locatorVersion:1` 的精确结构 locator；全部字节编辑都对照**冻结基线**计算，前一个操作的输出不放松后一个操作的旧值期望或目标位置。错误码对应固定：`resourceSha256` 与冻结资源不符（漂移）拒绝为 `INPUT_DRIFT`（exit 4），`expectedOldValue` 不匹配拒绝为 `INVALID_OPERATIONS`（exit 2），`revisionId` 不匹配拒绝为陈旧计划（`INPUT_DRIFT`）。
 - **编辑模型：** 每个操作对冻结字节产生「区间替换」或「插入点」；同一资源的区间必须两两不相交，插入点不得落在任何替换区间内或与其边界重合，插入点之间不得重合（同锚点同位置只允许一次插入）。目标元素的物理标签／内容区间缺失（实体生成或合成默认属性）时拒绝，不伪造 byte offset。`content.text.set` 在同一模型下作为元素内容区间替换，语义不变。
 - **目标与片段规则：** 结构编辑目标必须是选定 manifest 中 `application/xhtml+xml` 的条目，沿用单操作 v1／v2／v3 的权限边界，未登记资源不被 schema 4 放宽。属性写入限定 XHTML 元素，拒绝 `style`、`on*`、`srcset`／`imagesrcset`、`http-equiv`、`srcdoc`、`data`、`action`／`formaction`、`poster`／`background`／`cite`／`usemap` 等本批无法维护的 URL 属性、命名空间声明与 `xml:base`；元素删除／替换／移动拒绝 `html`／`head`／`body` 与文档根，子插入拒绝 `html`／`head`。片段只接受 XHTML 命名空间元素，在**插入点的命名空间上下文**中解析校验后按作者原始字节插入（按目标资源编码），拒绝 `script`／`style`／`base` 及 `iframe`／`frame`／`frameset`／`object`／`embed`／`applet`／`portal`／`link`／`meta` 等嵌套浏览上下文、插件与仅限 head 的元素、事件属性、注释／CDATA／声明与处理指令；片段内的 id／`xml:id` 必须是合法 XML 名称。外来语法与 ruby／表格／脚注／方向／混合内容只在未被目标区间覆盖时原字节保留。
@@ -257,6 +278,22 @@ FixProposal／ValidationDelta 与两条原生规则以 §2.11 及其冻结附件
 - **命中数与写集合：** `expectedHits` 为 0–10000 的精确期望；实际命中数不等即拒绝（`INVALID_OPERATIONS`），无部分写。每处命中必须是同一可写字面区间内的物理区间替换，区间由冻结字节独立重算；不可写（实体生成、CDATA、未知来源）即拒绝。`expectedHits:0` 且无命中为 no-op，不贡献写集合。实体来源、UTF-8／UTF-16 编码、未改字节与失败无正式产物规则不变；单资源 8 MiB、每处替换与受影响元素直接文本 1 MiB 预算沿用。
 - **全链：** plan／apply／checkpoint／restore／journal／diff／accept／历史来源重算都从冻结基线重算规则、命中与完整写集合；`task diff` 的 `operations` 为每个替换操作给出 `replace`（`mode`、`expectedHits`、实际 `hits`、每个受影响元素的 locator 与**实际候选直接文本**，不可观测时 `unavailable`）。accept 仍以固定 EPUBCheck 与冻结树为准。
 - **验证：** 不对称正反例（跨元素边界不命中、同元素跨内联子元素命中拒绝、空匹配拒绝、命中数不符拒绝、实体／CDATA 拒绝、UTF-16 与 CRLF 保真、regex 捕获展开）、有效事务独立字节 oracle、live fuzz 与真实 checker 闭环；不扩大 `content.text.set` v1 权限。
+
+**Issue #7 安全预算补充（不改变 schema／规范编码摘要）：** 含 `content.text.replace`
+的完整事务共用 10000 次实际命中、8 MiB 匹配元数据预算；捕获展开、转义编码、
+受影响元素结果文本、分组冻结输入、最终资源输出分别共用 32 MiB 累计预算。
+每处展开及元素结果仍不超过 1 MiB，每个最终资源仍不超过 8 MiB，不提高旧上限。
+元数据计数包括返回的索引整数、slice header 和命中记录；不冒称 Go heap／RSS 峰值。
+正则先用有界整体索引（最多剩余上限 + 1，额外一个仅用于识别超限）核命中，
+再在元数据预算内收集捕获组；临时哨兵最多一个两整数索引及 slice header。
+展开前按 Go 模板规则计量，转义前按原 UTF-8／UTF-16 编码计量，资源拼接前核完整
+最终大小；等值替换保留原物理字节，但不豁免来源与精确命中绑定。
+每次冻结来源重推重建同一默认预算，不共享跨调用的已消费计数，不添加请求字段或 CLI 开关。
+超限为 `RESOURCE_LIMIT`（exit 1），在 plan／执行意图发布前拒绝，无截断成功；
+running／无 result 的中断任务重算超预算时，先核冻结基线、保存来源、used/start/checkpoint，
+沿原事务恢复 checkpoint 并保留失败审计，再返回 RESOURCE_LIMIT；不改写已完成／未开始
+的任务，不把回滚当作效果验证成功，后续完整来源重推没有 failed 状态豁免。
+原有锁、恢复与真实 EPUBCheck 正式接受／导出规则不变。
 
 ### 2.10 T2 第四批跨资源显式子树移动与依赖同步实施契约（已独立验收并集成主线）
 
@@ -382,6 +419,17 @@ Delta 在两侧已核私有快照实际运行固定检查并绑定完整报告�
 为旧远端跟踪状态；本节及附件由父冻结后传给编码线程，随后产品 fixed 树独立复审
 与父验收已经完成。当前开发暂停，main 源码同步不授权下一批或发行。
 
+**Issue #9 的文件目标资格增量：** 完整 typed Tree、内容 hash 和空目录保留不变；新提案的 FR-2
+只把普通文件视为容器目标，目录／缺失路径保留 fact 并明确 unfixable，不生成 operation/writeSet。
+原样 URL 解析与唯一 fragment 的只读必要条件和结构门禁共用；无法索引的目标不扩大编辑范围。
+快照库存／HashTree 失败必须传播，不返回无 hash 的“完整”提案。FR-1/FR-2 的事实、rule v1、
+FixProposal v1 wire 和 hash 算法不改，只修资格；新 schema 7 policy 在既有 parser-v2 后追加
+`;file-target-v2`。schema 1–6 的 shape/policy 和操作权限不受影响。
+未消费的旧 schema 7 policy 计划须重新计划；已消费的旧记录（含 parser-v2、尚无 file-target-v2）
+按 plan 的保存 policy 重推原目标资格和整个提案／derivedFrom，允许审阅、拒绝、恢复及已接受历史
+读取／正式导出，不允许新 accept。既有持久 settlement 仍只完成原决定，不改写来源或接受证据。
+旧提案可重新提交 Plan，但必须通过当前完整提案重推；目录项或 derivedFrom 改变返回 PROPOSAL_DRIFT。
+
 ## 3. 目标选择与全局约定
 
 ### 3.1 明确目标
@@ -389,6 +437,43 @@ Delta 在两侧已核私有快照实际运行固定检查并绑定完整报告�
 只读命令接受一个 BOOK/目录，或者 `--workspace ID` 绑定accepted revision，或 `--task ID` 读取稳定候选代际；三者互斥。`--revision REV` 只能与对应工作区联合使用。
 
 对目录、文件、工作区的格式检测与能力限制来自相同核心，不根据扩展名自动启用转换。多rootfile要求 `--rootfile BOOK_PATH`；出现歧义返回参数错误，不能选第一个后继续写。
+
+出版物库存预算统一为 20,000 个唯一展开文件/目录（包括全部隐式父目录）、全部精确 BookPath 累计
+32 MiB UTF-8 字节、256 MiB/文件和 2 GiB 实际文件总量。显式与隐式父目录及共享父目录只计一次，
+ZIP 重复显式条目仍拒绝；目录根与工作区内部管理目录不属于出版物条目。ZIP 展开计数和累计路径
+超限在解压 staging 前返回 `ARCHIVE_LIMIT`/1；目录快照和实际文件读取按同一预算有界执行。
+Archive 保留入口预算供 Unpack、Inventory、打包及最终 ZIP 重开使用，不重置为默认值。
+单路径 4096 字节/128 层和正式 accept/export 的真实 EPUBCheck 门槛保持不变。
+上述单路径预算只计出版物根内的 BookPath，不加入宿主绝对根或工作区
+revision／candidate／checkpoint／staging 前缀；内部同步消费已核出版物库存并保留 os.Root
+约束。宿主文件系统的路径／叶名称限制仍按实际 I/O 故障报告，不冒称逻辑 PATH_LIMIT。
+
+**Issue #10 的工作区 I/O 预算：** 原始 ZIP 使用独立的 2 GiB `MaxInputBytes`，不是展开文件
+总量；两者默认数值相同但分别检查，压缩头／目录／压缩比不计成展开文件字节。原书复制与
+初始核对、revision／candidate／checkpoint 的扫描和复制复用上述出版物预算；管理目录和 JSON
+沿自身预算，不把整个工作区冒充一个出版物。stat 仅作提前拒绝，实际读取最多剩余额度 + 1
+探测字节，累计前安全比较；逐条遍历并在目标条目创建／库存追加前检查条目和路径额度。
+超限为 `ARCHIVE_LIMIT`/1，实际 I/O、`INPUT_DRIFT` 和取消独立分类，不套成不可用能力或坏 schema。
+工作区命令传递请求取消；创建／复制／接受的未提交 staging 清理、所有权句柄关闭释放锁。
+已登记编辑失败仍按完整 checkpoint 回滚，已持久 restore／settlement journal 按原决定恢复；
+这些恢复只忽略迟到取消，不豁免预算、来源、hash 或 I/O 核验，不删除 committed journal 凑成功。
+旧 schema／摘要、accepted／原书保护、no-follow／单链接／碰撞拒绝及真实正式检查门槛不变。
+预算只作私有逐调用小值注入，不新增 CLI 开关；取消在遍历／读取边界观测，不宣称可打断任意
+阻塞系统调用、advisory lock 的恶意同用户沙箱或真实断电验收。
+
+**Issue #11 的全书引用图预算：** 每次完整构建（含未登记资源）共用 `GraphLimits`，默认累计
+扫描原始字节 64 MiB、100000 条边、100000 个 identity 实例、10000 条诊断、coverage/reason
+预留 8 MiB、索引预留 32 MiB、结果序列化预留 32 MiB。identity 同元素同值 alias 只计一次，
+重复实例仍分别计；扫描只计真正读取的 XML/CSS，不把 opaque 二进制长度当已扫描语法。
+索引每次插入／库存追加预留 64 字节及全部字符串 UTF-8 长度（重复字符串照计）；结果在追加前
+按每字符串字节最坏 6 字节转义、每 struct 128 字节＋每字段 64 字节、数字 32 字节、数组标点
+保守预留，coverage/reason/XML coverage 也同时计入结果。预留含过滤后的最长合法 BookPath
+及方向字段；这不是实际 Marshal 长度或 RSS 测量，保守上限不承诺预算内任意组合均可构建。
+读下一个资源／增长索引或结果前收费，超限返回 `REFERENCE_LIMIT`/1 和原 JSON envelope，
+不返回可用部分图；取消沿请求传递。资源／方向只在完整构建后过滤，不能绕过全局入链扫描。
+inspect、validate、正式 accept/export、结构 Plan/Apply、执行／恢复／diff／历史重推均传播失败；
+不得用空边证明无依赖，running 未完成任务仍按已核 checkpoint 完整回滚。每次重推使用一份新
+默认预算，测试小值仅逐调用注入；ParserVersion、旧 schema／policy／来源摘要／正式 checker 不变。
 
 任务读取包含实际generation/输入hash；当前候选不稳定时返回上一冻结视图的标识和stale状态，或按请求拒绝读取，不伪装最新。
 
@@ -401,6 +486,11 @@ Delta 在两侧已核私有快照实际运行固定检查并绑定完整报告�
 - `--timeout`：正数秒，作用于当前请求及受管子进程；超时回收进程组并保留失败记录。
 - `--`：未被前一选项作为值消费时结束选项，用于以短横线开头的路径。调用外部工具时先转为合法绝对路径并用参数数组。
 - `--no-input`：禁止交互，缺少目标、授权或必要选择时返回明确错误。JSON模式默认不做终端问答。
+
+人类终端展示中的不可信错误消息／输出 writer 错误和摘要文本共用可见双引号转义：
+CR/LF/TAB/ESC/BEL/DEL、C1、双向格式控制字符与非法 UTF-8 字节不直接发到终端，
+中文与普通可读文字保留，内容换行不冒充程序排版。已有实际文件 diff 的安全文本不二次
+转义；机器 JSON 仍携带原始 message 语义，只由 JSON 编码器做合法转义，code/exit/schema 不变。
 
 不提供可以跳过所有安全、版本和校验门槛的全局 `--force`。草稿导出是显式模式 `--draft`，输出和报告均标记未获正式验证；不能因缺Java而自动切草稿。
 

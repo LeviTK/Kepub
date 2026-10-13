@@ -18,6 +18,7 @@ import (
 	"github.com/LeviTK/Kepub/internal/app"
 	"github.com/LeviTK/Kepub/internal/fault"
 	"github.com/LeviTK/Kepub/internal/publication"
+	"github.com/LeviTK/Kepub/internal/references"
 	"github.com/LeviTK/Kepub/internal/validation"
 )
 
@@ -213,10 +214,10 @@ func execute(ctx context.Context, o options) (any, error) {
 		return app.Doctor(ctx)
 	}
 	if o.command == "content" {
-		return app.ContentWorkspace(o.workspace, o.resource, o.content)
+		return app.ContentWorkspace(ctx, o.workspace, o.resource, o.content)
 	}
 	if o.command == "search" {
-		return app.SearchWorkspace(o.workspace, o.content)
+		return app.SearchWorkspace(ctx, o.workspace, o.content)
 	}
 	if o.command == "workspace" || o.command == "task" || o.command == "plan" || o.command == "apply" {
 		data, err := executeWorkspace(ctx, o)
@@ -228,7 +229,7 @@ func execute(ctx context.Context, o options) (any, error) {
 	if o.command == "fix" {
 		switch o.action {
 		case "propose":
-			return app.FixPropose(o.workspace, o.selectValue, o.emitRequest, o.output, o.json)
+			return app.FixPropose(ctx, o.workspace, o.selectValue, o.emitRequest, o.output, o.json)
 		case "delta":
 			return app.FixDelta(ctx, o.workspace, o.before, o.afterRevision, o.afterTask, o.output, validation.Options{Strict: o.strict, Timeout: o.timeout}, o.json)
 		}
@@ -249,17 +250,21 @@ func execute(ctx context.Context, o options) (any, error) {
 		// must not turn that published artifact into a cancellation failure.
 		if err != nil && errors.Is(ctx.Err(), context.Canceled) {
 			err = fault.New(130, "CANCELLED", "request cancelled")
+		} else if errors.Is(err, context.DeadlineExceeded) {
+			// Freeze/copy/hash can return a raw deadline before checker execution.
+			// Classify the error itself, not an unrelated I/O failure at expiry.
+			err = fault.New(5, "CHECKER_TIMEOUT", "request timed out or was cancelled")
 		}
 		return data, err
 	}
-	a, p, err := app.Read(o.book, o.rootfile)
+	a, p, err := app.ReadContext(ctx, o.book, o.rootfile)
 	if err != nil {
-		return nil, err
+		return nil, app.WorkspaceError(err)
 	}
 	defer a.Close()
 	if o.command == "unpack" {
 		if err = a.Unpack(o.output); err != nil {
-			return nil, err
+			return nil, app.WorkspaceError(err)
 		}
 		return map[string]any{"output": o.output, "rootfile": p.Rootfile, "files": len(a.Files), "limitations": p.Limitations}, nil
 	}
@@ -269,7 +274,11 @@ func execute(ctx context.Context, o options) (any, error) {
 	if o.command == "toc" {
 		o.section = "navigation"
 	}
-	return app.Inspect(a, p, o.section, o.resource, o.direction)
+	data, err := app.Inspect(ctx, a, p, o.section, o.resource, o.direction, references.DefaultGraphLimits)
+	if errors.Is(err, context.Canceled) {
+		err = fault.New(130, "CANCELLED", "request cancelled")
+	}
+	return data, err
 }
 
 func run(args []string, stdout, stderr io.Writer) int {
@@ -300,11 +309,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 	var data any
 	if err == nil {
-		ctx := context.Background()
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
 		if o.command == "doctor" || o.command == "validate" || o.command == "pack" || o.command == "workspace" && o.action == "export" || o.command == "task" && o.action == "accept" || o.command == "fix" && o.action == "delta" {
-			var stop context.CancelFunc
-			ctx, stop = signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
-			defer stop()
 			if o.timeout != 0 {
 				var cancel context.CancelFunc
 				ctx, cancel = context.WithTimeout(ctx, o.timeout)
@@ -329,14 +336,14 @@ func run(args []string, stdout, stderr io.Writer) int {
 		}
 		e := envelope{1, err == nil, o.command, hex.EncodeToString(id), data, fe}
 		if e := json.NewEncoder(stdout).Encode(e); e != nil {
-			fmt.Fprintln(stderr, "output:", e)
+			fmt.Fprintln(stderr, "output:", terminalQuote(e.Error()))
 			return 6
 		}
 	} else if err != nil {
-		fmt.Fprintf(stderr, "%s: %s\n", fe.Code, fe.Message)
+		fmt.Fprintf(stderr, "%s: %s\n", fe.Code, terminalQuote(fe.Message))
 	} else if raw, ok := data.(app.RawDocument); ok {
 		if _, e := stdout.Write(raw.Bytes); e != nil {
-			fmt.Fprintln(stderr, "output:", e)
+			fmt.Fprintln(stderr, "output:", terminalQuote(e.Error()))
 			return 6
 		}
 	} else {
@@ -345,7 +352,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 			return 6
 		}
 		if _, e := io.WriteString(stdout, b); e != nil {
-			fmt.Fprintln(stderr, "output:", e)
+			fmt.Fprintln(stderr, "output:", terminalQuote(e.Error()))
 			return 6
 		}
 	}

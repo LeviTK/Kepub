@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -21,17 +22,28 @@ import (
 // recomputeStructure derives a schema 4 plan. metadata.set operations keep
 // their frozen semantics on the package document; content.text.set and xhtml.*
 // operations are resolved against the frozen XHTML bytes as disjoint edits.
-func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revision string) (derivation, error) {
+func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revision string, referenceVersion int) (derivation, error) {
 	pub, err := publication.Load(a, w.state.Rootfile)
 	if err != nil {
 		return derivation{}, err
 	}
 	profile := xmltext.Profile{Version: pub.Version, MediaType: "application/xhtml+xml"}
+	var replaceBudget *publication.ReplaceBudget
+	for _, op := range ops {
+		if op.ID == "content.text.replace" {
+			replaceBudget = publication.NewReplaceBudget()
+			if w.replaceBudget != nil {
+				copy := *w.replaceBudget
+				replaceBudget = &copy
+			}
+			break
+		}
+	}
 	// Phase 0 derives every cross-resource move and its incoming reference
 	// synchronization from the frozen bytes, before any resource group is
 	// assembled: a move's edits and the references it rewrites must be visible
 	// to the whole transaction's overlap and dependency checks.
-	moveContrib, moves, moveGraph, moveInventory, err := w.deriveCrossMoves(a, pub, profile, ops, revision)
+	moveContrib, moves, moveGraph, moveInventory, err := w.deriveCrossMoves(a, pub, profile, ops, revision, referenceVersion)
 	if err != nil {
 		return derivation{}, err
 	}
@@ -139,7 +151,7 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 	// Phase 1 derives every resource's edits and binding checks. Dependency
 	// facts are only collected here: identity and link validation must see the
 	// whole transaction, never a partially processed group.
-	gate := &structureGate{a: a, pub: pub, inventory: moveInventory, graph: moveGraph, baseIDs: map[bookpath.BookPath]map[string]int{}, removed: map[bookpath.BookPath]map[string]int{}, added: map[bookpath.BookPath]map[string]int{}, synchronized: map[bookpath.BookPath]map[string]map[string]bool{}}
+	gate := &structureGate{ctx: w.resources.ctx, limits: w.referenceGraphLimits(), a: a, pub: pub, version: referenceVersion, inventory: moveInventory, graph: moveGraph, baseIDs: map[bookpath.BookPath]map[string]int{}, removed: map[bookpath.BookPath]map[string]int{}, added: map[bookpath.BookPath]map[string]int{}, synchronized: map[bookpath.BookPath]map[string]map[string]bool{}}
 	type groupEdit struct {
 		path     string
 		bp       bookpath.BookPath
@@ -155,6 +167,15 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 		if err := publication.CheckXHTMLTarget(pub, bp); err != nil {
 			return derivation{}, err
 		}
+		if replaceBudget != nil {
+			info, err := a.root.Stat(path)
+			if err != nil {
+				return derivation{}, err
+			}
+			if err := replaceBudget.TakeInput(info.Size()); err != nil {
+				return derivation{}, err
+			}
+		}
 		base, err := a.Read(bp, publication.XMLLimit)
 		if err != nil {
 			return derivation{}, err
@@ -163,6 +184,7 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 		if err != nil {
 			return derivation{}, err
 		}
+		doc.ReferenceVersion = referenceVersion
 		edits := make([]*publication.StructureEdit, 0, len(g.ops))
 		replaceFacts := map[int]publication.ReplaceFacts{}
 		targets := map[string]string{}
@@ -243,7 +265,7 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 				}
 				var facts publication.ReplaceFacts
 				var replaceEdits []*publication.StructureEdit
-				replaceEdits, facts, err = doc.ReplaceTextEdits(param)
+				replaceEdits, facts, err = doc.ReplaceTextEdits(param, replaceBudget)
 				if err != nil {
 					return derivation{}, err
 				}
@@ -380,6 +402,18 @@ func (w *Workspace) recomputeStructure(a publicationRoot, ops []Operation, revis
 		}
 	}
 	// Phase 3 applies and independently verifies each resource's bytes.
+	if replaceBudget != nil {
+		for _, ge := range derived {
+			if err := replaceBudget.TakeOutput(ge.base, ge.edits); err != nil {
+				return derivation{}, err
+			}
+		}
+		if rootTouched {
+			if err := replaceBudget.TakeOutput(rootCurrent, nil); err != nil {
+				return derivation{}, err
+			}
+		}
+	}
 	for _, ge := range derived {
 		output := publication.ApplyEdits(ge.base, ge.edits)
 		if err := publication.VerifyStructure(ge.doc, ge.edits, output); err != nil {
@@ -459,8 +493,11 @@ func structureTargetKey(op Operation) (string, string) {
 // structureGate refuses dependency-removing writes that cannot be proven safe
 // against the frozen publication.
 type structureGate struct {
+	ctx       context.Context
+	limits    references.GraphLimits
 	a         publicationRoot
 	pub       *publication.Publication
+	version   int
 	inventory map[bookpath.BookPath]int64
 	graph     *references.Graph
 	baseIDs   map[bookpath.BookPath]map[string]int
@@ -470,6 +507,13 @@ type structureGate struct {
 	// edge locations a cross-resource move accounted for, so the gate can
 	// re-prove that the move did not leave a dangling reference behind.
 	synchronized map[bookpath.BookPath]map[string]map[string]bool
+}
+
+func (w *Workspace) referenceGraphLimits() references.GraphLimits {
+	if w.graphLimits != nil {
+		return *w.graphLimits
+	}
+	return references.DefaultGraphLimits
 }
 
 func (g *structureGate) inventoryOnce() (map[bookpath.BookPath]int64, error) {
@@ -492,7 +536,10 @@ func (g *structureGate) graphOnce() (*references.Graph, error) {
 	if err != nil {
 		return nil, err
 	}
-	graph := references.BuildSource(g.a, inv, g.pub)
+	graph, err := references.BuildSourceVersion(g.ctx, g.a, inv, g.pub, g.version, g.limits)
+	if err != nil {
+		return nil, err
+	}
 	g.graph = &graph
 	return g.graph, nil
 }
@@ -556,24 +603,8 @@ func (g *structureGate) checkLink(resource bookpath.BookPath, value string) erro
 	if err != nil {
 		return err
 	}
-	if _, ok := inv[ref.Path]; !ok {
-		return fault.New(2, "INVALID_OPERATIONS", "reference target %q does not exist", ref.Path)
-	}
-	if ref.Fragment == "" {
-		return nil
-	}
-	ids, err := g.idsFor(ref.Path)
-	if err != nil {
-		return err
-	}
-	switch ids[ref.Fragment] {
-	case 1:
-		return nil
-	case 0:
-		return fault.New(2, "INVALID_OPERATIONS", "fragment %q is not present in %s", ref.Fragment, ref.Path)
-	default:
-		return fault.New(2, "INVALID_OPERATIONS", "fragment %q is ambiguous in %s", ref.Fragment, ref.Path)
-	}
+	_, hasFile := inv[ref.Path]
+	return publication.CheckReferenceTarget(ref, hasFile, g.idsFor)
 }
 
 // checkIDREF validates a new same-document IDREF against the transaction's

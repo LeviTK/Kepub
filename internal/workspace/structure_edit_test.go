@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -1540,4 +1541,202 @@ func TestStructureJointAliasAdjacentCases(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestN2ExistingIDREFProtection(t *testing.T) {
+	for _, enc := range []string{"utf8", "utf16le", "utf16be"} {
+		for _, token := range []string{"p%41", "x%20y", "percent%", "中文", "a\u00a0b"} {
+			t.Run(enc+"/"+token, func(t *testing.T) {
+				chapter := strings.Replace(structureChapter1, `<p id="unreferenced">Plain.</p>`, `<p id="`+token+`">Plain.</p><p id="pA">Other.</p><div aria-labelledby="`+token+`">Ref.</div>`, 1)
+				w, dir, original := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": encodeChapter(chapter, enc)})
+				defer w.Close()
+				originalBytes := readResource(t, original)
+				baseline := n1Tree(t, filepath.Join(dir, revision))
+				b := structureBinding(t, w, "EPUB/chapter1.xhtml")
+				for _, op := range []Operation{b.elemDelete(b.locatorID(t, token)), b.attrRemove(b.locatorID(t, token), "id", token), b.attrSet(b.locatorID(t, token), "id", strPtr(token), "fresh")} {
+					_, err := w.Plan(editJSON(t, Request{4, []Operation{op}}))
+					var f *fault.Error
+					if !errors.As(err, &f) || f.Code != "REFERENCE_CONFLICT" || f.Exit != 1 || !strings.Contains(f.Error(), fmt.Sprintf("%q", token)) {
+						t.Fatalf("literal incoming IDREF did not protect identity: %v", err)
+					}
+				}
+				if exists(w.root, candidate) || !reflect.DeepEqual(n1Tree(t, filepath.Join(dir, revision)), baseline) {
+					t.Fatal("refusal created candidate or changed accepted")
+				}
+				assertBytes(t, original, originalBytes)
+				// Writing a reference to an existing non-NCName ID is not creation
+				// permission; literal IDREF and URL decoding stay separate.
+				planRefused(t, w, []Operation{b.attrSet(b.locatorID(t, "dir"), "id", strPtr("dir"), "p%42")}, "INVALID_OPERATIONS")
+				p := structurePlan(t, w, []Operation{b.attrSet(b.locatorID(t, "dir"), "aria-describedby", nil, token)})
+				e := applyPlan(t, w, p)
+				want := strings.Replace(chapter, `id="dir" dir="rtl"`, `id="dir" dir="rtl" aria-describedby="`+token+`"`, 1)
+				for _, path := range []string{"mimetype", "META-INF/container.xml", "EPUB/package.opf", "EPUB/chapter1.xhtml", "EPUB/chapter2.xhtml", "EPUB/nav.xhtml", "EPUB/style.css"} {
+					expected := readResource(t, filepath.Join(dir, revision, path))
+					if path == "EPUB/chapter1.xhtml" {
+						expected = []byte(encodeChapter(want, enc))
+					}
+					assertBytes(t, filepath.Join(dir, candidate, path), expected)
+				}
+				if _, err := w.Reject(e.TaskID); err != nil {
+					t.Fatal(err)
+				}
+				assertBytes(t, original, originalBytes)
+			})
+		}
+	}
+}
+
+func TestN2NewIDREFValueTypes(t *testing.T) {
+	for _, enc := range []string{"utf8", "utf16le", "utf16be"} {
+		for _, kind := range []string{"attribute", "fragment"} {
+			t.Run(enc+"/"+kind, func(t *testing.T) {
+				w, dir, _ := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": encodeChapter(structureChapter1, enc)})
+				defer w.Close()
+				baseline := n1Tree(t, filepath.Join(dir, revision))
+				b := structureBinding(t, w, "EPUB/chapter1.xhtml")
+				for _, name := range []string{"for", "list", "form", "aria-activedescendant", "aria-details", "aria-errormessage"} {
+					op := b.attrSet(b.locatorID(t, "dir"), name, nil, "start last")
+					if kind == "fragment" {
+						op = b.elemInsert(b.locatorID(t, "last"), "after", `<p `+name+`="start last">New.</p>`)
+					}
+					_, err := w.Plan(editJSON(t, Request{4, []Operation{op}}))
+					var f *fault.Error
+					if !errors.As(err, &f) || f.Code != "INVALID_OPERATIONS" || !strings.Contains(f.Error(), `start last`) {
+						t.Fatalf("single IDREF %s split into legal targets: %v", name, err)
+					}
+				}
+				if exists(w.root, candidate) {
+					t.Fatal("refused value created a candidate")
+				}
+				if !reflect.DeepEqual(n1Tree(t, filepath.Join(dir, revision)), baseline) {
+					t.Fatal("refused value changed accepted")
+				}
+			})
+		}
+	}
+}
+
+// n2LegacyPlan registers the exact old wire/policy without changing production
+// creation. It models persistent owner inputs; it is not an authorization API.
+func n2LegacyPlan(t *testing.T, w *Workspace, ops []Operation) (Plan, derivation) {
+	t.Helper()
+	p, err := w.Plan(editJSON(t, Request{1, []Operation{metadataOp("title", "title", "Title", "Legacy")}}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	version, err := operationSchema(ops)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d, err := w.recomputeAt(ops, revisionPath(w.current), w.current, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.SchemaVersion, p.Operations, p.WriteSet = version, ops, d.writes
+	p.OperationSetSHA256 = digest(ops)
+	p.PolicySHA256 = digest(legacyPolicyFor(version))
+	put(t, filepath.Join(w.dir, "plans", p.ID+".json"), editJSON(t, p))
+	return p, d
+}
+
+func TestN2LegacyReferenceLifecycle(t *testing.T) {
+	for _, boundary := range []string{"unconsumed", "running", "completed", "history", "settlement"} {
+		t.Run(boundary, func(t *testing.T) {
+			chapter := strings.Replace(structureChapter1, `<p id="unreferenced">Plain.</p>`, `<p id="p%41">Plain.</p><p id="pA">Other.</p><div aria-labelledby="p%41">Ref.</div>`, 1)
+			w, dir, original := structureWorkspace(t, map[string]string{"EPUB/chapter1.xhtml": chapter})
+			defer func() { w.Close() }()
+			b := structureBinding(t, w, "EPUB/chapter1.xhtml")
+			ops := []Operation{b.attrRemove(b.locatorID(t, "p%41"), "id", "p%41")}
+			if _, err := w.recompute(ops); err == nil {
+				t.Fatal("fixture does not distinguish new and old reference policies")
+			}
+			p, derived := n2LegacyPlan(t, w, ops)
+			originalBytes := readResource(t, original)
+			frozenPlan := readResource(t, filepath.Join(dir, "plans", p.ID+".json"))
+			baseline := n1Tree(t, filepath.Join(dir, revision))
+			if _, err := w.Apply(editJSON(t, p)); !errors.Is(err, ErrStalePlan) {
+				t.Fatalf("old approval silently reauthorized: %v", err)
+			}
+			if err := w.WritePlanReport(p, filepath.Join(filepath.Dir(dir), "old-plan.json")); !errors.Is(err, ErrStalePlan) {
+				t.Fatalf("old policy republished: %v", err)
+			}
+			if boundary == "unconsumed" {
+				if exists(w.root, candidate) {
+					t.Fatal("legacy refusal created candidate")
+				}
+				return
+			}
+			if _, err := w.createCandidate(&p); err != nil {
+				t.Fatal(err)
+			}
+			e, err := w.startExecution(p)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if boundary == "running" {
+				putOutputs(t, dir, derived.outputs)
+			} else {
+				e, err = w.execute(e, derived.outputs, nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			want := strings.Replace(chapter, ` id="p%41"`, "", 1)
+			assertBytes(t, filepath.Join(dir, candidate, "EPUB/chapter1.xhtml"), []byte(want))
+			if boundary == "history" {
+				if _, err := w.Reject(e.TaskID); err != nil {
+					t.Fatal(err)
+				}
+			} else if boundary == "settlement" {
+				j := settlement{Version: 1, WorkspaceID: w.id, Decision: Decision{Version: 1, TaskID: e.TaskID, Status: "rejected", BaseRevision: p.BaseRevision, TreeSHA256: e.Diff.AfterSHA256}}
+				if err := w.taskDigests("tasks/active", &j); err != nil {
+					t.Fatal(err)
+				}
+				if err := writeJSON(w.root, settlementJournal, j); err != nil {
+					t.Fatal(err)
+				}
+			}
+			w.Close()
+			w, err = Open(dir)
+			if err != nil {
+				t.Fatalf("old source recovery/history was reinterpreted: %v", err)
+			}
+			status, err := w.TaskStatus(e.TaskID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if boundary == "history" || boundary == "settlement" {
+				if status.Status != "rejected" || exists(w.root, "tasks/active") || exists(w.root, settlementJournal) {
+					t.Fatalf("old rejection did not settle: %+v", status)
+				}
+			} else {
+				if boundary == "running" {
+					if status.Status != "failed" {
+						t.Fatalf("old interrupted execution did not rollback: %+v", status)
+					}
+					for _, path := range []string{"mimetype", "META-INF/container.xml", "EPUB/package.opf", "EPUB/chapter1.xhtml", "EPUB/chapter2.xhtml", "EPUB/nav.xhtml", "EPUB/style.css"} {
+						assertBytes(t, filepath.Join(dir, candidate, path), readResource(t, filepath.Join(dir, revision, path)))
+					}
+				} else {
+					if status.Status != "review_required" {
+						t.Fatalf("old completed task not readable: %+v", status)
+					}
+					if _, err := w.TaskDiff(e.TaskID); err != nil {
+						t.Fatalf("old task diff: %v", err)
+					}
+					if _, err := w.Accept(context.Background(), e.TaskID, validation.Options{}); !errors.Is(err, ErrTaskConflict) || !strings.Contains(err.Error(), "reference policy") {
+						t.Fatalf("old review became new approval: %v", err)
+					}
+				}
+				if _, err := w.Reject(e.TaskID); err != nil {
+					t.Fatal(err)
+				}
+			}
+			assertBytes(t, filepath.Join(dir, "plans", p.ID+".json"), frozenPlan)
+			assertBytes(t, original, originalBytes)
+			if !reflect.DeepEqual(n1Tree(t, filepath.Join(dir, revision)), baseline) {
+				t.Fatal("legacy handling changed accepted")
+			}
+		})
+	}
 }

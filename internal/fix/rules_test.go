@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/LeviTK/Kepub/internal/bookpath"
 	"github.com/LeviTK/Kepub/internal/publication"
 )
 
@@ -19,7 +20,7 @@ func testSnapshot(source string) Snapshot {
 			{Path: "EPUB/ch1.xhtml", Bytes: []byte(source)},
 			{Path: "EPUB/ch2.xhtml", Bytes: []byte(testChapter2)},
 		},
-		Inventory: []string{"META-INF/container.xml", "EPUB/ch1.xhtml", "EPUB/ch2.xhtml", "EPUB/package.opf"},
+		Inventory: map[bookpath.BookPath]string{"META-INF/container.xml": "file", "EPUB/ch1.xhtml": "file", "EPUB/ch2.xhtml": "file", "EPUB/package.opf": "file"},
 	}
 }
 
@@ -57,6 +58,30 @@ func TestRuleEpubTypeProhibitedElements(t *testing.T) {
 	repairs, limits = deriveEpubType(testSnapshot(foreign))
 	if len(repairs) != 0 || len(limits) != 1 || !strings.Contains(limits[0].Reason, "foreign-namespace") {
 		t.Fatalf("foreign metadata: %+v %+v", repairs, limits)
+	}
+}
+
+// A typed inventory must never turn a non-file target into an operation.
+func TestN3TypedInventory(t *testing.T) {
+	for _, kind := range []string{"file", "directory", "symlink", "fifo", "unknown", "missing"} {
+		t.Run(kind, func(t *testing.T) {
+			s := testSnapshot(`<html xmlns="http://www.w3.org/1999/xhtml"><head><title>T</title></head><body><a href="target?">T</a></body></html>`)
+			if kind != "missing" {
+				s.Inventory["EPUB/target"] = kind
+			}
+			repairs, limits := deriveRelativeURLQuery(s)
+			if len(repairs) != 1 || len(limits) != 0 {
+				t.Fatalf("applicable fact lost: %+v %+v", repairs, limits)
+			}
+			r := repairs[0]
+			if kind == "file" {
+				if r.Status != StatusFixable || r.Operation == nil {
+					t.Fatalf("regular file refused: %+v", r)
+				}
+			} else if r.Status != StatusUnfixable || r.Operation != nil || len(r.WriteSet) != 0 || r.UnfixableReason != "the exact new value does not resolve to an existing target under the frozen gate" {
+				t.Fatalf("non-file target was authorized: %+v", r)
+			}
+		})
 	}
 }
 
