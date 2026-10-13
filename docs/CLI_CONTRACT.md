@@ -476,15 +476,21 @@ FixProposal v1 wire 和 hash 算法不改，只修资格；新 schema 7 policy �
 本节先规定拟实现边界；独立审定前不冻结为编码依据，不在 capabilities 注册 available。
 当前二进制仍只支持既有 schema 1–7，`metadata.set` v1 仍只写现有 dc:title/dc:creator。
 
-**只读绑定入口：** 本批拟给现有 inspect 增加
-`inspect --workspace DIR --section metadata --json`，与 BOOK 互斥；本首批 workspace 模式
-只允许 metadata section，不携带 rootfile/resource/direction。BOOK 模式输入/输出保持。
+**只读绑定入口：** 本批新增 `workspace metadata --workspace DIR --json`，
+独立 capability `workspace.metadata.inspect` v1，read-only，输入 schema 为 object、
+additionalProperties=false、required=[workspace]，workspace 为非空字符串。
+命令无位置参数，section 固定为 metadata；只接受 workspace 与既有通用 json/no-input/help。
+BOOK、section、rootfile、resource、direction 均不接受，选项错误为 INVALID_ARGUMENT/2。
+旧 `publication.inspect` v1 capability、`inspect BOOK --section ...`、info/toc 及旧命令矩阵、
+required:[book]、输入/输出 shape 完全不变；不向旧 capability 加 workspace，也不改其版本。
 新模式沿 `Workspace.AcceptedSnapshot` 在同一持锁读取核 accepted 来源和私有快照，
 使用同一快照解析 metadata、packageAttributes 并计算 selected OPF 原始 bytes SHA256。
 data 保留 `rootfile`、`section`、`value`、`limitations` 与按需 xmlCoverage，新增
 `workspaceId`、`revisionId`、`resourceSha256`、`packageAttributes`；值/ID 仍从 metadata
-元素的 text/attributes 读取，bookPath 使用 rootfile，qualified property 根据 package prefix
-映射判定。现有 `info BOOK`/`inspect BOOK` 不含 accepted revision/OPF hash，不能冒充此绑定。
+元素的 text/attributes 读取，bookPath 使用 rootfile。attributes 保留生效的原 property，
+不输出解析后 property 或新增 propertyIRI；调用者按下述规则理解保留表/package prefix，
+写请求的 property 固定为 dcterms:modified，不使用来源别名作为请求值。
+现有 `info BOOK`/`inspect BOOK` 不含 accepted revision/OPF hash，不能冒充此绑定。
 只读也不授予编辑或符合性权限；完整快照/解析/取消/I/O 沿既有预算和错误分类，
 不会直接读 live revision 目录，也不创建新元数据写命令或开放任意文件读取。
 
@@ -514,40 +520,85 @@ hash 为原始 OPF bytes 的 64 位小写十六进制 SHA256。每次使用都�
 | 目标 | namespace / localName / property | 选择及新值 |
 |---|---|---|
 | 书名/作者 | DC URI / title 或 creator / 不提供 | 现有简单文本；多个匹配必须显式 ID 后唯一 |
-| 内容语言 | DC URI / language / 不提供 | 同上；非空、well-formed BCP47，原拼写保留 |
-| 标识符 | DC URI / identifier / 不提供 | 同上；非空白合法 XML 文本，不改 ID 或 package unique-identifier |
-| publication 修改时间 | OPF URI / meta / dcterms:modified | metadata 直接子级、没有 refines 的 publication 目标必须唯一；精确 YYYY-MM-DDThh:mm:ssZ UTC |
+| 内容语言 | DC URI / language / 不提供 | 同上；仅 newValue 按 RFC 5646 ABNF well-formed 校验，原拼写保留 |
+| 标识符 | DC URI / identifier / 不提供 | 同上；非空白合法 XML 文本；带 NCX 时主标识符不可写，不改 ID 或 package unique-identifier |
+| publication 修改时间 | OPF URI / meta / dcterms:modified | 下述 publication 候选集唯一且规范字面可写；仅 newValue 校验有效 UTC 日期 |
 
 DC URI 为 `http://purl.org/dc/elements/1.1/`，OPF URI 为 `http://www.idpf.org/2007/opf`。
-qualified property 依据 package 的有效 prefix 映射/保留词表判定；同义前缀不能使重复
-publication modified 被隐藏，歧义/无法可靠解析时拒绝，不按字面 first-match 放行。
-其他带 refines 的 modified 属于不同 subject，保留原字节，不当成 publication 目标或误拒合法书。
+**publication modified 选择：** 先核 package@prefix 符合 EPUB 3.3 prefix 语法，
+按其保留前缀表及显式映射展开 property；DC terms modified IRI 为
+`http://purl.org/dc/terms/modified`。候选集为唯一直接 metadata 的直接 OPF meta 子级、
+完全没有 refines 属性，且 property 去首尾 XML 空白后字面为 dcterms:modified，
+或可展开为该 IRI。去空白只用于收齐候选，不修改属性或授予写资格。
+候选必须恰好一个，且其生效 property 严格等于 dcterms:modified；不得以显式 id
+隐藏第二候选。package@prefix 不得重声明 dcterms（即使 URI 相同），也不得声明映射到
+DC terms 词表 `http://purl.org/dc/terms/` 的其他前缀（即使未使用）；不猜 first-match。
+仅别名、带空白字面、重复候选、重声明/同 IRI 别名、prefix 语法错误、无法解析的
+property、非直接子级的 modified，以及存在但为空白的 refines 均为 INVALID_OPERATIONS/2。
+上述结构/词表检查用于每个修改 publication modified 的 v2 操作；真正非空 refines 的
+modified 属于其他 subject，不进入 publication 候选集，保留原字节，不误拒合法 refinement。
+来源不明优先按下述来源错误/3 拒绝，不以 checker 的通过替代候选集校验。
+
+**语言与时间新值：** language 仅检查 RFC 5646 §2.1 ABNF 的完整 langtag、privateuse、
+grandfathered 分支（含该节列出的固定 grandfathered 拼写），ASCII 大小写不敏感。
+不查询 IANA 注册表，不要求语言/地区已登记，不做 preferred-value 替换；zz、abcd、
+xx-YY、en-123、en-GB-oed、en-a-aaa-a-bbb 均为语法正控且原拼写保留；下划线、
+外空白、en--US、x-aaaaaaaaa 或不完整子标签拒绝。
+此处是纯 ABNF well-formed，不增加注册有效性或注册表规范化规则；不复用 x/text Parse
+充当此校验。§2.0.1 native definition 的现行语言规则与历史重开语义不随本批改变。
+modified 必须精确为 20 个 ASCII 字符 YYYY-MM-DDThh:mm:ssZ，大写 T/Z，年份
+0001–9999，按公历核年月日、时 00–23、分秒 00–59，并与解析后的同格式 round-trip
+完全相等；0000、2024-02-30、闰秒 :60、偏移量及小数秒拒绝。
+这是有意比 EPUBCheck 5.3.0 的格式检查更严格的产品规则。
+两者均只校验 newValue，旧值仅按 expectedOldValue 精确绑定，不要求先符合新值规则；
+no-op 的 newValue 仍须校验。无效新值为 INVALID_OPERATIONS/2。
+
 title/creator/identifier 新值须为非空白合法 Unicode/XML 文本；旧 v1 的空文本语义不改变。
 目标必须是完整 OPF 中现有的唯一直接 metadata 子级与可写简单文本，沿 xmltext 的
 原始物理来源门禁；generated/default/unknown、CDATA、混合内容或自闭合不因 no-op 获豁免。
-OPF version 必须为 3.0，三编码保真规则及 8 MiB 原始 XML 预算保持。
+**选择属性来源：** v2 在选择前核 package 的 version、prefix、unique-identifier，及参与
+目标/重复 ID/modified 候选判定的元素的 id、property、refines，包括非目标 refinement。
+必须能证明属性缺失或其值来源已知；unknown/未知默认属性以及 DTD ATTLIST 生成的默认值
+均不提供选择资格：AttributeKnown 为 false 的 unknown 用 XML_ENTITY_UNRESOLVED/3，
+已知的 DTD 默认值用 UNSUPPORTED_INPUT/3；不能因 RequireComplete 成功当成字面属性。
+已知、实际存在的属性可按生效值参与选择；此处只读选择不赋予属性写权限，不放宽文本来源。
+OPF version 必须为 3.0；已知 EPUB2 上使用任意 v2 操作为 UNSUPPORTED_INPUT/3，
+不自动转换，也不改变 EPUB2 的旧 v1 能力。三编码保真规则及 8 MiB 原始 XML 预算保持。
 
 **事务与依赖：** 全部操作先按冻结 baseline 校验声明/旧值和唯一目标；显式 ID 与省略 ID
 命中同一节点也算重复。然后派生完整编辑、核同一 OPF 的最终输出预算与全 write set，
 不让前序修改改写后序 expectedOldValue。未知元数据、refinements、注释、属性、编码/BOM/
-声明与所有目标外 bytes 保留。标识符值可能影响字体混淆密钥等依赖；加密/混淆/签名
-继续沿既有只读门禁拒绝，不新增字体资格或暗改依赖。时间只来自显式 v2 操作，
+声明与所有目标外 bytes 保留。修改 identifier 前从冻结完整 OPF manifest/spine 核 NCX
+依赖：manifest 有 application/x-dtbncx+xml 项或 spine 有 toc 属性即视为带 NCX，
+不靠文件名猜测，不因 dtb:uid 缺失免除门禁；依赖事实未知为 UNSUPPORTED_INPUT/3。
+带 NCX 时，本首批在 Plan 阶段拒绝选择 package@unique-identifier 指向的 dc:identifier，
+返回 UNSUPPORTED_INPUT/3，包括 no-op；不等到 accept 才发现 NCX dtb:uid 不一致。
+主标识符引用缺失或不能唯一解析为现有 identifier 为 INVALID_OPERATIONS/2，来源未知
+仍为 3；无 NCX 时主标识符允许修改，带 NCX 时次级 identifier 允许修改且 NCX 全字节保持。
+不自动更新 NCX，也不借本批暗改其他依赖。加密/混淆/签名继续沿既有只读门禁拒绝，
+不新增字体资格或暗改混淆密钥。时间只来自显式 v2 操作，
 其他操作/no-op 不触发自动 modified，也不回填已有 native definition/template 初始来源。
 
 **生命周期与错误：** Plan、Apply、执行/恢复、diff、accept、rejected/accepted 历史来源均
 按 plan 自己的 frozen revision 重推 schema 8；持久记录、hash 相等或已消费不授予跳过。
 diff 给出逐操作 old/planned/实际 candidate newValue，读取失败明确 unavailable，
 不回显计划代替实际观测；既有 schema 的输出 shape 不变。
+title/creator 的 file-as、alternate-script、title-type 等 refinements 不自动同步，
+这些文本的语义维护不在本首批范围，属性和 refinement bytes 必须原样保留。
 无效 schema/字段/目标/值及 expectedOldValue 不匹配用 INVALID_OPERATIONS/2，
 revision/hash 漂移用 INPUT_DRIFT/4；只读沿 UNSUPPORTED_INPUT/3，
 资源/持久 JSON 预算、取消/超时、I/O 保持既有分类。
 失败无半候选、accepted 不推进；正式 accept/export 仍需实际固定 checker，不能自动草稿。
 旧二进制可以安全拒绝新 schema，不改写已发布记录或原始书。
 
-**验收门槛：** 公开合成 native 与 imported EPUB3；同一次 inspect accepted 绑定及 BOOK 旧形状、
+**验收门槛：** 公开合成 native 与 imported EPUB3；同一次 workspace metadata accepted 绑定、
+新 capability/选项矩阵及 publication.inspect/BOOK 旧形状、
 候选存在时仍读 accepted、只读工作区仍能只读查询而不能编辑；唯一值/显式 ID 的重复值、多作者歧义、
-合法 refines modified/重复 publication modified/前缀别名、两操作顺序、缓存后的坏 revision/hash、
-no-op、语言/时间/Unicode 边界、三编码与完整目标外字节、标识符依赖只读负控、旧 schema/
+合法非空 refines modified/重复 publication modified/仅别名/带空白 property/重声明/坏 prefix/
+非直接 meta/空 refines、DTD 默认选择属性与字面属性正控、两操作顺序、缓存后的坏 revision/hash、
+no-op、ABNF 未注册/祖父语言正控与非法语法反例、有效闰日及 02-30/:60/0000 反例、
+三编码与完整目标外字节、带 NCX 的主标识符 Plan 拒绝、无 NCX 主标识符及带 NCX 次级标识符
+正控、EPUB2 v2 拒绝、旧 schema/
 摘要/历史、部分写入失败/恢复/再次 Open、candidate drift diff/reject 与正式 accept 拒绝。
 实际 Plan+Apply/导出 ZIP 对独立完整 OPF/资源字节 oracle，真实普通/race CLI 与固定 checker；
 受影响普通/focused race 后依序全仓普通→race→vet，固定树独立审查与父验收。

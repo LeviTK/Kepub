@@ -46,6 +46,27 @@
 - 未定义的长度捷径不是预算。合法长 numeric reference 保留；不能为通过测试扩大 unknown/CDATA/生成来源权限。
 - 回归：`TestTextRunsKeepsWritableLiteralIntervals`、`TestReplaceZeroWidthAndProvenance`、`TestReplaceGeneratedDecodedNeighbors`；原 minseed `267ee5f836be007e` 与 joint `21d0b33faf043b04` 原样重放。
 
+## G-METADATA-CONTRACT：规范、检查器与编辑资格不是同一层
+
+- B3 契约准入固定输入 `3e87ff10373469e30ad9d5d70c211f82968e44df` / tree
+  `6a6b4c6b3e4c53b1d88d877a7fddecac0eabce19` 被阻塞；证据来自
+  [独立 reviewer](https://ampcode.com/threads/T-01a1357d-5fba-714c-a537-1904bb1b08e9) 的
+  `kepub-b3-contract-review/REPORT.md`，SHA256
+  `1e185a9bba603466d30a1ba6c47977adfcd6c63d4b9d2039f33c263e5f5899be`。
+  本条引用 reviewer 的实际 checker/DTD 对照，不称作者重跑；B3 尚无产品回归 PASS。
+- 规则→失效模式→验收入口：收齐 publication modified 语义候选后再核规范字面写资格 →
+  固定 checker 放过字面加别名的重复、带空白 property 或重声明 →
+  [CLI §2.12](CLI_CONTRACT.md#212-b3-核心元数据-v2-契约草案待独立审定尚未实现)
+  的唯一规范字面与合法 refinement 正控、重复/别名/来源反例；实施时补永久公开接口回归。
+- 语言 ABNF 与注册表/规范化分开，日期格式与日历有效性分开 → x/text 拒绝未注册的合法
+  语法或改拼写，checker 接受 02-30/:60 → 同节未注册/祖父语言原拼写、闰日正控和
+  日期反例；新值校验不偷换旧值绑定或 native 历史规则。
+- 选择事实须核属性来源，不能仅核 RequireComplete → ATTLIST 默认 refines/property
+  被当字面或被漏掉 → 同节默认/unknown 拒绝与字面选择正控；默认无物理 bytes 不等于缺失。
+- 标识符修改先核依赖，能力扩展先分版本/ID → NCX dtb:uid 漂移或旧 inspect schema 被扩写 →
+  同节带 NCX 主标识符拒绝、无 NCX 主标识符/带 NCX 次级标识符正控及旧能力 shape 回归。
+  上述入口是待实现验收要求，不是已存在测试或新树批准。
+
 ## G-URL：重基准不是丢弃 URL 分量
 
 - local/self/other-resource/incoming 路径都核 RawQuery、ForceQuery（显式空 `?`）、fragment、转义路径；仅改契约许可的部分，不改其他属性/文本或外部 URL 拼写。
