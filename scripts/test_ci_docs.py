@@ -95,6 +95,12 @@ class DocsCI(unittest.TestCase):
         (self.root / "README.md").chmod(0o755)
         self.commit()
         self.assertEqual(self.mode(), "full")
+        original_base = self.base
+        self.base = self.git("rev-parse", "HEAD").strip()
+        (self.root / "README.md").chmod(0o644)
+        self.commit()
+        self.assertEqual(self.mode(), "full")
+        self.base = original_base
         self.git("reset", "--hard", self.base)
         (self.root / "README.md").write_bytes(b"invalid \xff\n")
         self.commit()

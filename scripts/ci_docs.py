@@ -41,6 +41,8 @@ def route(event, base):
         mode = git("ls-tree", "HEAD", "--", name).split()[0]
         if mode != b"100644":
             return "full", changed
+        if status == "M" and git("ls-tree", base, "--", name).split()[0] != b"100644":
+            return "full", changed
     return "docs", changed
 
 
