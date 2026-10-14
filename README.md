@@ -8,13 +8,14 @@
 
 ## 当前状态
 
-截至 **2026-10-13**，S0、T1a／T1b 与 T2 的五个有限增量已验收并集成主线；已有修复栈及后续审查修复通过 [PR #27](https://github.com/LeviTK/Kepub/pull/27) 合并到 `main`。
+截至 **2026-10-14**，S0、T1a／T1b、T2 的五个有限增量，以及原生最小新建和 B3 核心元数据已验收并集成主线；已有修复栈及后续审查修复通过 [PR #27](https://github.com/LeviTK/Kepub/pull/27) 合并到 `main`。
 
 - **可用：** EPUB2/3 查询、安全解包、工作区、受控元数据／XHTML 编辑、多资源事务、搜索替换、修复提案、正式校验与导出。
 - **尚未完成：** 完整 T2、EPUB2 → EPUB3 转换、完整新建/章节/图片维护、完整 CSS／资源维护、桌面预览及生产 Agent 集成。
-- **交付形态：** 源码构建，暂无版本化安装包；Linux 已验证，Apple Silicon Mac 实机验收仍待完成。
-- **本轮范围：** 原生 EPUB3 最小新建入口已通过 [PR #75](https://github.com/LeviTK/Kepub/pull/75) 合并主线；真实 CLI 新建、正文/标题编辑、拒绝/接受、正式导出与重开已验证。准确 head 的 [Linux CI](https://github.com/LeviTK/Kepub/actions/runs/38424759071) 普通/race 各 1881 PASS、1 私有书 SKIP、0 FAIL，vet 与普通/race CLI 构建通过；合并树相同，复用该证据而非主线重跑。详细归属见[首增量收据](docs/verification/NATIVE_EPUB3_MINIMUM.md)。未发行，不代表完整 M1/F3。文档 v0.11 是方案版本，不是软件发行版本。
-- **本分支候选：** B3 核心元数据 v2/schema 8 与 `workspace metadata --workspace` 已实现，规则见 [CLI §2.12](docs/CLI_CONTRACT.md#212-b3-核心元数据-v2-实施契约已冻结尚未实现)。契约及规范资产已准入，产品仍待固定树独立审查与父验收；不计入上述主线交付。
+- **交付形态：** 源码构建及 [v0.1.0-alpha.1 Linux amd64 预发行](https://github.com/LeviTK/Kepub/releases/tag/v0.1.0-alpha.1)，附可执行文件、SHA256SUMS 和安装说明；不是稳定安装包。Java/EPUBCheck 不捆绑，Apple Silicon Mac 实机验收仍待完成，没有 Mac 包。
+- **本轮范围：** 原生最小新建由 [PR #75](https://github.com/LeviTK/Kepub/pull/75) 交付；B3 核心元数据 v2/schema 8 与 accepted-only `workspace metadata --workspace` 由 [PR #76](https://github.com/LeviTK/Kepub/pull/76) 交付。B3 准确 head 的 [Linux CI](https://github.com/LeviTK/Kepub/actions/runs/38504525762) 普通/race 各1986 PASS、1 私有书 SKIP、0 FAIL，vet 和普通/race CLI构建通过；合并树相同，复用而非主线重跑。独立审查、父验收和实际 tagged binary 测试见 [B3 收据](docs/verification/B3_CORE_METADATA.md)；不代表完整 M1/F3。文档 v0.11 是方案版本，不是软件发行版本。
+- **后续修复：** [PR #79](https://github.com/LeviTK/Kepub/pull/79) 已将显式已知实体属性的只读选择、混合操作分配回归覆盖及全部确定性 rejected 历史的真实 revision 绑定修复合入主线；[准确 head CI](https://github.com/LeviTK/Kepub/actions/runs/38544920141)通过。[#78](https://github.com/LeviTK/Kepub/issues/78) 已关闭，证据与限制见[B3 收据附录](docs/verification/B3_CORE_METADATA.md#后续修复pr-79)。既有 alpha.1 包未替换，不包含这些后续修复；需要修复的用户目前从最新源码构建。
+- **下一任务：** [B5 资源新增准入计划](docs/B5_RESOURCE_PLAN.md)，先冻结来源、manifest/资源原子状态及恢复契约，未开始产品编码。B3 行为仍按 [CLI §2.12](docs/CLI_CONTRACT.md#212-b3-核心元数据-v2-实施契约已冻结尚未实现) 的冻结规则，不扩旧 schema。
 
 [合并提交 e102b21](https://github.com/LeviTK/Kepub/commit/e102b2198ffd10df1cb05da3d70f68c47dc694ce) 的 [Linux CI](https://github.com/LeviTK/Kepub/actions/runs/38364503620) 已通过：普通／race 各 1858 个测试及子测试 PASS、1 项私有原书 SKIP、0 FAIL，另通过 vet 和普通／race CLI 构建。该结果不代表 Mac、断电、真实渲染或完整 EPUB 3.3 支持；历史失败与有限批准保持原范围。
 
