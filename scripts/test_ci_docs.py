@@ -116,6 +116,9 @@ class DocsCI(unittest.TestCase):
     def test_real_link_checks_and_product_not_run(self):
         self.write("README.md", '[inline](docs/target.md#title)\n[ref][target]\n'
                    '[target]: docs/target.md#same-1\n<a href="docs/target.md#explicit">x</a>\n'
+                   '`<item href="not-a-target"/>` and `[example](missing)`\n'
+                   '``example with ` and [example](also-missing)``\n'
+                   '<!-- [hidden](not-published) -->\n'
                    '```md\n[example](not-a-real-file)\n```\n')
         self.commit()
         result = self.run_cli("check")

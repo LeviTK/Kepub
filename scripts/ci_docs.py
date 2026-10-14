@@ -79,6 +79,10 @@ def anchors(text):
 
 def links(text):
     text = markdown(text)
+    # Inline examples (including HTML snippets) are not rendered links. Match
+    # equal-length backtick delimiters, so a longer code span can contain `.
+    text = re.sub(r"(?<!`)(`+)(?!`)(.*?)(?<!`)\1(?!`)", "", text, flags=re.S)
+    text = re.sub(r"<!--.*?-->", "", text, flags=re.S)
     result = re.findall(r"!?\[[^]\n]*\]\(\s*(<[^>]+>|[^\s)]+)", text)
     # Reference definitions and HTML links/images also carry local targets.
     result += re.findall(r"^ {0,3}\[[^]]+\]:\s*(<[^>]+>|\S+)", text, re.M)
