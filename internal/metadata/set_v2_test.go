@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"unicode/utf16"
@@ -171,10 +172,48 @@ func TestSelectV2ProvenanceAndV1Compatibility(t *testing.T) {
 	}
 }
 
+func TestSelectV2ExplicitEntityAttributes(t *testing.T) {
+	const decl = `<!DOCTYPE package [<!ENTITY empty ""><!ENTITY id "ti&empty;tle"><!ENTITY version "3.0"><!ENTITY uid "primary"><!ENTITY prefix "foo: https://example.org/"><!ENTITY property "dcterms:modified"><!ENTITY refines "#title">]>`
+	for _, id := range []string{`title`, `ti&#116;le`, `&id;`} {
+		input := decl + packageV2(`prefix="&prefix;"`, `<dc:title id="`+id+`">old</dc:title>`+modifiedV2+`<meta property="schema:name" refines="&refines;">keep</meta>`, "")
+		input = strings.Replace(input, `version="3.0"`, `version="&version;"`, 1)
+		input = strings.Replace(input, `unique-identifier="primary"`, `unique-identifier="&uid;"`, 1)
+		input = strings.Replace(input, `property="dcterms:modified"`, `property="&property;"`, 1)
+		input = strings.Replace(input, "old-invalid-date", "2024-02-29T23:59:59Z", 1)
+		for _, field := range []string{"title", "meta"} {
+			r := requestV2(field)
+			old := "2024-02-29T23:59:59Z"
+			if field == "title" {
+				r.ID = "title"
+				old = "old"
+			} else {
+				r.NewValue = "2025-01-02T03:04:05Z"
+			}
+			for _, noop := range []bool{false, true} {
+				t.Run(fmt.Sprintf("%s/%s/noop=%v", id, field, noop), func(t *testing.T) {
+					request := r
+					if noop {
+						request.NewValue = old
+					}
+					e, err := metadata.SelectV2([]byte(input), request)
+					if err != nil {
+						t.Fatal(err)
+					}
+					out, _, err := xmltext.Replace([]byte(input), e, old, request.NewValue)
+					want := strings.Replace(input, ">"+old+"</", ">"+request.NewValue+"</", 1)
+					if err != nil || string(out) != want {
+						t.Fatalf("explicit attribute byte oracle: %v", err)
+					}
+				})
+			}
+		}
+	}
+}
+
 func TestSelectV2EncodedPhysicalReplacement(t *testing.T) {
 	for _, encoding := range []string{"UTF-8", "UTF-16LE", "UTF-16BE"} {
 		t.Run(encoding, func(t *testing.T) {
-			original := `<?xml version="1.0" encoding="` + encoding + `"?>` + packageV2("", `<!--keep--><dc:title id="a">A&amp;😀</dc:title><dc:title id="b">second</dc:title>`, "")
+			original := `<?xml version="1.0" encoding="` + encoding + `"?><!DOCTYPE package [<!ENTITY target "a">]>` + packageV2("", `<!--keep--><dc:title id="&target;">A&amp;😀</dc:title><dc:title id="b">second</dc:title>`, "")
 			encode := func(s string) []byte {
 				if encoding == "UTF-8" {
 					return []byte(s)
