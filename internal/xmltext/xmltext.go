@@ -51,6 +51,7 @@ type Element struct {
 	profile              Profile
 	unknownDefaults      bool
 	attributeMarkup      []AttributeMarkup
+	explicitAttributes   []xml.Name
 	textRuns             []TextRun
 }
 
@@ -211,6 +212,18 @@ func (e *Element) AttributeKnown(name xml.Name) bool {
 	return !e.unknownDefaults
 }
 
+// AttributeExplicit reports an attribute whose name occurs in the original
+// start tag, excluding synthesized defaults and entity-generated markup. Its
+// effective value may contain entities; this does not grant writable bytes.
+func (e *Element) AttributeExplicit(name xml.Name) bool {
+	for _, n := range e.explicitAttributes {
+		if n == name {
+			return true
+		}
+	}
+	return false
+}
+
 type Document struct {
 	Root                   *Element
 	Elements               []*Element // document order
@@ -363,6 +376,9 @@ func Parse(input []byte) (*Document, error) {
 			for i, span := range spans {
 				if i >= len(t.Attr) {
 					return nil, fmt.Errorf("attribute token mismatch")
+				}
+				if _, _, ok := s.literalRange(before+span.nameStart, before+span.nameEnd); ok {
+					e.explicitAttributes = append(e.explicitAttributes, t.Attr[i].Name)
 				}
 				markup := AttributeMarkup{Name: t.Attr[i].Name, Start: -1, End: -1, ValueStart: -1, ValueEnd: -1}
 				if from, to, ok := s.sourceRange(before+span.start, before+span.end, true); ok {

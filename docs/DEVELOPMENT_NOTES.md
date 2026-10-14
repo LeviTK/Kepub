@@ -66,6 +66,8 @@
   日期反例；新值校验不偷换旧值绑定或 native 历史规则。
 - 选择事实须核属性来源，不能仅核 RequireComplete → ATTLIST 默认 refines/property
   被当字面或被漏掉 → 同节默认/unknown 拒绝与字面选择正控；默认无物理 bytes 不等于缺失。
+- 只读选择不要求值可写 → B3-REVIEW-001/#78 的显式内部实体 ID 已知却因 AttributeBytes 缺失误拒，作者在三编码 SelectV2/Plan 实证 red → `AttributeExplicit` 单独证明属性名原物理来源；`TestSelectV2ExplicitEntityAttributes` 与原三编码选择/事务字节测试覆盖实体、numeric、no-op，原 default/unknown/文本 generated 反例继续拒绝。
+- rejected 的自洽 checkpoint 不等于真实 revision → B3-REVIEW-003 假设由作者重签 checkpoint/plan/start/result/used/decision 后在 Open+TaskStatus 实证确认，原 baseline 未改；P-1 独立实测及作者 schema 1/3 反例确认只绑定 schema 8 会遗漏同根旧路径 → 所有确定性 rejected plan 在共用 taskDigests 绑定 plan 自己的 BaseRevision。`TestCoreMetadataRejectedCheckpointBinding` 核 schema 1/3/8、initial-only 旧策略、非 initial 基线、合法/伪来源、accepted 推进、已归档 recovery 与 journal 保留。旧格式/摘要/策略资格和 accepted 链原父树校验不变，旧 schema 的伪造来源拒绝是明确的校验修复；手工候选与可拒绝的 drift 不改变，不把历史问题称为正式导出绕过。
 - 标识符修改先核依赖，能力扩展先分版本/ID → NCX dtb:uid 漂移或旧 inspect schema 被扩写 →
   同节带 NCX 主标识符拒绝、无 NCX 主标识符/带 NCX 次级标识符正控及旧能力 shape 回归。
   上述入口是待实现验收要求，不是已存在测试或新树批准。
