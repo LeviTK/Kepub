@@ -72,3 +72,22 @@ Mac、真正断电、发布后 syncDir 故障注入、磁盘满、封面/图片/
 - 父端：接受同一产品/测试 fixed。已核内容保留、完整树差异与依赖/环境适用性，作者及独立原日志归属、两个产品反例的 red/green、两种模板 mutation 判别力；实际 race CLI 完整 ZIP 字节组合控制、受影响普通/race/vet 全部自然完成。随后纯文档身份的适用性以独立线程最终核收为准，不虚构该身份全仓重跑。
 - 交付：两个产品提交和两个测试加强提交在本地 feature 分支，收据作为单独文档提交；本地 main/origin/main 均未动，无 PR/CI 订阅、push、merge、release、Issue 关闭。
 - 下一步：文档核收后本首增量达到 Accepted locally，不代表全 M1/F3 Done；后续按计划补资源/章节/图片等能力，继续逐批授权与验收。
+
+## 2026-10-13 远端交付补记（原本地执行记录保留）
+
+- 独立 docs-only 结论已接受最终 head [640b3c8](https://github.com/LeviTK/Kepub/commit/640b3c866a9847126173abb9224f2a82132b5fef) / tree `9e510bd0401f51a0d4cde70d94edf0e53149e1ec`。附录 `.amp/in/artifacts/kepub-native-review-docs-addendum.md` SHA256 `76a6f7785269d5458aa5cd4e201dd793be1eedb7cb2e576c3415a0978c37448b`；原独立报告/归档未改，产品证据按适用性沿用，不补称 docs-only 身份全仓重跑。
+- 用户随后授权 push/PR/Issue 进度/CI，另明确授权 CI/范围核对通过后的 merge 与关闭 #44/#45。[PR #75](https://github.com/LeviTK/Kepub/pull/75) 已交付并订阅评论/审查及准确 head CI；未删除分支、发布、部署或关闭父项。
+- [GitHub Linux CI](https://github.com/LeviTK/Kepub/actions/runs/38424759071)，ubuntu-24.04，准确 head/tree 如上，Go 1.27.1 linux/amd64、Temurin 17.0.20.1、EPUBCheck 5.3.0、固定 JAR/依赖校验通过。实际 `go test [-race] -p=1 -parallel=1 -count=1 -timeout=30m -json ./...`：普通 UTC 15:45:43–16:01:53、race 16:01:53–16:29:05，每轮 1881 测试/子测试 PASS、1 私有书 SKIP、0 FAIL，12 测试包 PASS，另 2 无测试包 SKIP；exit 0/0。vet 16:29:05–16:29:08、普通/race build 16:29:08–16:29:09 均成功。CI build race binary 不等于用它跑全部 CLI；父端真实 race CLI 仍归原父执行。
+- artifact `core-ci-640b3c866a9847126173abb9224f2a82132b5fef` 已下载至父 Orb `/tmp/kepub-native-ci-results` 并按 JSON Action/是否有 Test 分开核计数；原始 artifact 保留 14 天，下表和公开 PR 索引永久记录身份/hash/范围，不将短期下载地址作为永久证据。
+
+| CI 日志 | SHA256 |
+|---|---|
+| input.log | `038c3be53181a822d95c4c6e8c260ce5347a2f0b5b0362f3c1e9863792f99f54` |
+| test.jsonl | `cddbc9893d3a8d63608785572f5925996c3714a903604db1e79bfd92f5c852fb` |
+| race.jsonl | `60c6dc41887fbfd63425fd24591bae1b6019df198290b293ad73e2bc9b2cc5d8` |
+| vet.log | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| binaries.log | `dfa7983c2743b821a8dab6571fe98d4bbd07ad514c5266d81aeb35fc7ce7934e` |
+
+- 合并前 fresh-fetch 核 base 仍为原 `692bacb`，head 未动，无额外 GitHub review/comment；用户授权后用 match-head 正常 merge。[合并提交 3a7d1b4](https://github.com/LeviTK/Kepub/commit/3a7d1b414c5d23a1fbff42890e1c226f097e1a93) 于 UTC 16:30:19 发布，父为原 base 和已获批 head；合并后 fresh-fetch 的 tree 与准确 head 相同，`git diff --exit-code 640b3c866a9847126173abb9224f2a82132b5fef origin/main` exit 0，全部路径/mode/type/blob 一致。
+- 父主线复测评估：产品、源码、构建配置、依赖、夹具、验证配置没有组合差异，已核独立/父/CI 证据对同一内容适用，明确复用/无需重复全套；没有手动触发 main CI，不称 merge SHA 新跑 PASS。默认 build 的 VCS metadata 会反映 merge 身份，不能据 tree 相同称默认 binary hash 相同。CI 的 Node20/setup-java v4 弃用提示非失败，本轮未升级供应链。
+- 本地 main 已快进至合并提交；#44/#45 四项清单各按证据核准后关闭，#64/#33 等父项仍 OPEN。下一批本地 `feat/core-metadata-v2` 从该 main 建立，仅起草 B3 契约，尚未产品实现/接受/远端交付。Mac、断电、磁盘满及完整 M1/F3/T2/发行未完成状态不变。

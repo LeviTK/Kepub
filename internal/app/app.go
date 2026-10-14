@@ -6,6 +6,7 @@ import (
 
 	"github.com/LeviTK/Kepub/internal/archive"
 	"github.com/LeviTK/Kepub/internal/fault"
+	"github.com/LeviTK/Kepub/internal/metadata"
 	"github.com/LeviTK/Kepub/internal/publication"
 	"github.com/LeviTK/Kepub/internal/references"
 )
@@ -94,7 +95,31 @@ func Capabilities() []Capability {
 		SupportedFeatures: []string{"content node/exclusion semantics; no cross-resource matching", "all selected manifest XHTML counted after return limit", "8 MiB raw/resource; 16 MiB decoded/resource; 32 MiB index/resource; 128 MiB raw scan; 1 MiB returned text"},
 		Preconditions:     []string{"explicit workspace; exclusive cooperative lock; verified accepted source"}, PostChecks: []string{"original resource hashes and exact identities"}, Idempotency: "read only",
 	})
+	out = append(out, Capability{
+		ID: "workspace.metadata.inspect", Version: 1, Status: "available", Commands: []string{"workspace metadata"}, Risk: "read_only",
+		Reason:            "Read-only metadata binding to the verified accepted snapshot; not candidate inspection or editing permission",
+		InputSchema:       map[string]any{"type": "object", "additionalProperties": false, "required": []string{"workspace"}, "properties": map[string]any{"workspace": stringSchema}},
+		OutputSchema:      map[string]any{"type": "object", "required": []string{"rootfile", "section", "value", "limitations", "workspaceId", "revisionId", "resourceSha256", "packageAttributes"}},
+		SupportedFeatures: []string{"original effective metadata and package attributes", "original selected OPF byte SHA-256", "accepted-only queries including read-only workspaces"},
+		Preconditions:     []string{"exclusive cooperative workspace lock", "verified accepted source and same private snapshot"},
+		PostChecks:        []string{"accepted revision and original OPF hash binding"}, Idempotency: "read only",
+	})
 	metadataSchema := map[string]any{"type": "object", "additionalProperties": false, "required": []string{"namespace", "localName", "expectedOldValue", "newValue"}, "properties": map[string]any{"namespace": map[string]any{"const": "http://purl.org/dc/elements/1.1/"}, "localName": map[string]any{"enum": []string{"title", "creator"}}, "id": stringSchema, "expectedOldValue": map[string]any{"type": "string"}, "newValue": map[string]any{"type": "string"}}}
+	metadataV2Schema := map[string]any{"type": "object", "additionalProperties": false,
+		"required": []string{"bookPath", "revisionId", "resourceSha256", "namespace", "localName", "expectedOldValue", "newValue"},
+		"properties": map[string]any{
+			"bookPath": stringSchema, "revisionId": stringSchema,
+			"resourceSha256": map[string]any{"type": "string", "pattern": "^[0-9a-f]{64}$"},
+			"namespace":      map[string]any{"type": "string"}, "localName": map[string]any{"type": "string"},
+			"id": stringSchema, "property": map[string]any{"const": "dcterms:modified"},
+			"expectedOldValue": map[string]any{"type": "string"},
+			"newValue":         map[string]any{"type": "string", "minLength": 1, "x-maxUtf8Bytes": publication.XMLLimit},
+		},
+		"oneOf": []any{
+			map[string]any{"properties": map[string]any{"namespace": map[string]any{"const": metadata.DC}, "localName": map[string]any{"enum": []string{"title", "creator", "language", "identifier"}}}, "not": map[string]any{"required": []string{"property"}}},
+			map[string]any{"properties": map[string]any{"namespace": map[string]any{"const": "http://www.idpf.org/2007/opf"}, "localName": map[string]any{"const": "meta"}}, "required": []string{"property"}},
+		},
+	}
 	contentSchema := map[string]any{"type": "object", "additionalProperties": false, "required": []string{"bookPath", "revisionId", "resourceSha256", "locatorVersion", "locator", "expectedOldValue", "newValue"}, "properties": map[string]any{
 		"bookPath": stringSchema, "revisionId": stringSchema,
 		"resourceSha256": map[string]any{"type": "string", "pattern": "^[0-9a-f]{64}$"},
@@ -158,6 +183,9 @@ func Capabilities() []Capability {
 	}
 	for _, c := range append([]Capability{
 		{ID: "metadata.set", Mutates: true, Risk: "bounded_edit", InputSchema: metadataSchema, SupportedFeatures: []string{"unique existing dc:title/dc:creator simple text", "exact namespace/local name/optional ID", "expected old value", "local escaped byte replacement", "no-op preserves bytes; no automatic timestamp"}},
+		{ID: "metadata.set", Version: 2, Mutates: true, Risk: "bounded_edit", InputSchema: metadataV2Schema,
+			Reason:            "Schema 8; frozen accepted OPF binding; may mix only with metadata.set v1 and content.text.set v1; formal validation remains required for acceptance/export",
+			SupportedFeatures: []string{"unique existing title/creator/language/identifier or canonical publication dcterms:modified", "RFC 5646 ABNF only; original language spelling preserved", "explicit calendar-valid UTC time; no automatic timestamps", "NCX primary identifier edits refused, including no-op", "complete final resource budget; target-external bytes preserved"}},
 		{ID: "content.text.set", Mutates: true, Risk: "bounded_edit", InputSchema: contentSchema, SupportedFeatures: []string{"request/plan schema 2; execution 2; operation 1", "accepted revision and original resource SHA-256 binding", "exact manifest XHTML and structural locator v1", "simple independently closed body text only; no mixed/foreign/script/style/head subtree", "escaped local byte replacement; no-op preserves bytes; no automatic timestamp"}},
 		{ID: "content.text.replace", Mutates: true, Risk: "bounded_edit", InputSchema: replaceSchema, SupportedFeatures: []string{"schema 5; accepted revision and frozen resource SHA-256 binding", "explicit locator scope; each XHTML element's own direct character data in the subtree is searched", "literal or Go RE2 pattern with $name capture expansion; matches never cross element or unwritable-run boundaries", "exact expectedHits required; empty matches, non-writable matches and hit-count mismatch refused", "escaped local byte replacement; a zero-hit operation keeps an empty write set"}},
 		{ID: "workspace.open", Commands: []string{"workspace open"}, InputSchema: map[string]any{"type": "object", "additionalProperties": false, "required": []string{"book", "output"}, "properties": map[string]any{"book": stringSchema, "output": stringSchema, "rootfile": stringSchema}}},

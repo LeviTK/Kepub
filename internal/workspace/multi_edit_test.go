@@ -42,12 +42,12 @@ func FuzzMultiOperationRequest(f *testing.F) {
 			t.Fatalf("accepted request with %d operations", len(req.Operations))
 		}
 		for _, op := range req.Operations {
-			if op.Version != 1 {
+			if op.Version != 1 && !(op.Version == 2 && (op.ID == "metadata.set" || op.ID == "xhtml.element.move")) {
 				t.Fatalf("accepted operation version %d", op.Version)
 			}
 			switch op.Params.(type) {
-			case metadata.Set, publication.TextSet, publication.AttributeSet, publication.AttributeRemove,
-				publication.ElementDelete, publication.ElementInsert, publication.ElementReplace, publication.ElementMove:
+			case metadata.Set, metadata.SetV2, publication.TextSet, publication.AttributeSet, publication.AttributeRemove,
+				publication.ElementDelete, publication.ElementInsert, publication.ElementReplace, publication.ElementMove, publication.ElementMoveCross:
 			default:
 				t.Fatalf("accepted untyped params %T", op.Params)
 			}

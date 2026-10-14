@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -10,6 +12,7 @@ import (
 	"github.com/LeviTK/Kepub/internal/bookpath"
 	"github.com/LeviTK/Kepub/internal/fault"
 	"github.com/LeviTK/Kepub/internal/publication"
+	"github.com/LeviTK/Kepub/internal/references"
 	"github.com/LeviTK/Kepub/internal/validation"
 	"github.com/LeviTK/Kepub/internal/workspace"
 )
@@ -64,6 +67,46 @@ type WorkspaceContent struct {
 	RevisionID  string `json:"revisionId"`
 	Rootfile    string `json:"rootfile"`
 	publication.Content
+}
+
+// MetadataWorkspace binds metadata and the original OPF hash to one private
+// accepted snapshot while retaining the cooperative workspace lock.
+func MetadataWorkspace(ctx context.Context, dir string) (map[string]any, error) {
+	w, err := workspace.OpenContext(ctx, dir)
+	if err != nil {
+		return nil, WorkspaceError(err)
+	}
+	defer w.Close()
+	id, err := w.ID()
+	if err != nil {
+		return nil, WorkspaceError(err)
+	}
+	a, _, revision, err := w.AcceptedSnapshot()
+	if err != nil {
+		return nil, WorkspaceError(err)
+	}
+	defer a.Close()
+	p, err := publication.Load(a, revision.Rootfile)
+	if err != nil {
+		return nil, WorkspaceError(err)
+	}
+	result, err := Inspect(ctx, a, p, "metadata", "", "", references.DefaultGraphLimits)
+	if err != nil {
+		return nil, WorkspaceError(err)
+	}
+	raw, err := a.Read(p.Rootfile, publication.XMLLimit)
+	if err != nil {
+		return nil, WorkspaceError(err)
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, WorkspaceError(err)
+	}
+	out := result.(map[string]any)
+	out["workspaceId"] = id
+	out["revisionId"] = revision.ID
+	out["resourceSha256"] = fmt.Sprintf("%x", sha256.Sum256(raw))
+	out["packageAttributes"] = p.PackageAttributes
+	return out, nil
 }
 
 // ContentWorkspace keeps the cooperative lock until the accepted snapshot has

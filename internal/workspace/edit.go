@@ -46,6 +46,17 @@ func (o *Operation) UnmarshalJSON(b []byte) error {
 	o.ID, o.Version = wire.ID, wire.Version
 	switch wire.ID {
 	case "metadata.set":
+		if wire.Version == 2 {
+			if err := validJSONUnicode(b); err != nil {
+				return err
+			}
+			var p metadata.SetV2
+			if err := decodeStrict(wire.Params, &p); err != nil {
+				return err
+			}
+			o.Params = p
+			return nil
+		}
 		var p metadata.Set
 		if err := decodeStrict(wire.Params, &p); err != nil {
 			return err
@@ -218,6 +229,22 @@ func decodeStrict(b []byte, out any) error {
 	if err != nil {
 		return err
 	}
+	// New schema 8 binds raw author strings without Go's lossy surrogate
+	// replacement. Keep the frozen decoder behavior of schemas 1–7 intact.
+	core := false
+	switch v := out.(type) {
+	case *Request:
+		core = v.SchemaVersion == 8
+	case *Plan:
+		core = v.SchemaVersion == 8
+	case *Execution:
+		core = v.Plan.SchemaVersion == 8
+	}
+	if core {
+		if err := validJSONUnicode(b); err != nil {
+			return err
+		}
+	}
 	if err := json.Unmarshal(encoded, &typed); err != nil {
 		return err
 	}
@@ -238,6 +265,7 @@ const legacyEditPolicy = "kepub-metadata-v1:initial-only;single-set;simple-text;
 const editPolicy = "kepub-metadata-v2:accepted-baseline;single-set;simple-text;no-timestamp;review-required;conformance-not-run"
 const contentEditPolicy = "kepub-content-text-v1:accepted-baseline;single-set;locator-v1;simple-text;no-timestamp;review-required;conformance-not-run"
 const multiEditPolicy = "kepub-multi-v1:accepted-baseline;multi-operation;multi-resource;frozen-baseline;simple-text;no-timestamp;review-required;conformance-not-run"
+const coreMetadataPolicy = "kepub-core-metadata-v1:accepted-baseline;multi-operation;frozen-baseline;simple-text;opf-hash;explicit-modified;identifier-dependencies;review-required;conformance-not-run"
 const structurePolicy = "kepub-xhtml-structure-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;reference-gate;no-timestamp;review-required;conformance-not-run"
 const replacePolicy = "kepub-content-text-replace-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;explicit-hits;no-timestamp;review-required;conformance-not-run"
 const movePolicy = "kepub-xhtml-move-v1:accepted-baseline;multi-operation;frozen-baseline;locator-v1;cross-resource;reference-sync;no-timestamp;review-required;conformance-not-run"
@@ -397,6 +425,36 @@ func crossMoveOperation(ops []Operation) bool {
 }
 
 func operationSchema(ops []Operation) (int, error) {
+	core := false
+	for _, op := range ops {
+		core = core || op.ID == "metadata.set" && op.Version == 2
+	}
+	if core {
+		if len(ops) > MaxPlanOperations {
+			return 0, fmt.Errorf("operation count exceeds %d", MaxPlanOperations)
+		}
+		for _, op := range ops {
+			if op.ID == "metadata.set" && op.Version == 2 {
+				p, ok := op.Params.(metadata.SetV2)
+				if !ok {
+					return 0, fmt.Errorf("unsupported metadata v2 params")
+				}
+				if err := p.Validate(); err != nil {
+					return 0, err
+				}
+				if p.RevisionID != "initial" && !validID(p.RevisionID) {
+					return 0, fmt.Errorf("invalid revisionId")
+				}
+			} else if op.Version == 1 && (op.ID == "metadata.set" || op.ID == "content.text.set") {
+				if _, err := operationSchema([]Operation{op}); err != nil {
+					return 0, err
+				}
+			} else {
+				return 0, fmt.Errorf("metadata v2 may only mix with metadata/text set v1")
+			}
+		}
+		return 8, nil
+	}
 	if crossMoveOperation(ops) {
 		if len(ops) == 0 || len(ops) > MaxPlanOperations {
 			return 0, fmt.Errorf("operation count exceeds %d", MaxPlanOperations)
@@ -510,6 +568,8 @@ func legacyPolicyFor(version int) string {
 		return movePolicy
 	case 7:
 		return fixPolicy
+	case 8:
+		return coreMetadataPolicy
 	}
 	return editPolicy
 }
@@ -661,6 +721,9 @@ func (w *Workspace) recomputeAt(ops []Operation, baseDir, revision string, refer
 	a := publicationRoot{r}
 	if version == 4 || version == 5 || version == 6 {
 		return w.recomputeStructure(a, ops, revision, referenceVersion)
+	}
+	if version == 8 {
+		return w.recomputeCoreMetadata(a, ops, revision)
 	}
 	if version == 3 {
 		return w.recomputeMulti(a, ops, revision)

@@ -46,6 +46,46 @@
 - 未定义的长度捷径不是预算。合法长 numeric reference 保留；不能为通过测试扩大 unknown/CDATA/生成来源权限。
 - 回归：`TestTextRunsKeepsWritableLiteralIntervals`、`TestReplaceZeroWidthAndProvenance`、`TestReplaceGeneratedDecodedNeighbors`；原 minseed `267ee5f836be007e` 与 joint `21d0b33faf043b04` 原样重放。
 
+## G-METADATA-CONTRACT：规范、检查器与编辑资格不是同一层
+
+- B3 契约准入固定输入 `3e87ff10373469e30ad9d5d70c211f82968e44df` / tree
+  `6a6b4c6b3e4c53b1d88d877a7fddecac0eabce19` 被阻塞；证据来自
+  [独立 reviewer](https://ampcode.com/threads/T-01a1357d-5fba-714c-a537-1904bb1b08e9) 的
+  `kepub-b3-contract-review/REPORT.md`，SHA256
+  `1e185a9bba603466d30a1ba6c47977adfcd6c63d4b9d2039f33c263e5f5899be`。
+  本条引用 reviewer 的实际 checker/DTD 对照，不称作者重跑；B3 尚无产品回归 PASS。
+- 规则→失效模式→验收入口：收齐 publication modified 语义候选后再核规范字面写资格 →
+  固定 checker 放过字面加别名的重复、带空白 property 或重声明 →
+  [CLI §2.12](CLI_CONTRACT.md#212-b3-核心元数据-v2-契约草案待独立审定尚未实现)
+  的唯一规范字面与合法 refinement 正控、重复/别名/来源反例；实施时补永久公开接口回归。
+- subject 边界先于候选计数：collection/metadata 的 modified 属于其他 subject →
+  全 package 搜索“非直接 meta”会误拒合法可编辑书 → 同节 collection 同值/异值正控，
+  核 publication modified 可写且 collection 全字节不变；拒绝后代仅限 publication metadata 子树。
+- 语言 ABNF 与注册表/规范化分开，日期格式与日历有效性分开 → x/text 拒绝未注册的合法
+  语法或改拼写，checker 接受 02-30/:60 → 同节未注册/祖父语言原拼写、闰日正控和
+  日期反例；新值校验不偷换旧值绑定或 native 历史规则。
+- 选择事实须核属性来源，不能仅核 RequireComplete → ATTLIST 默认 refines/property
+  被当字面或被漏掉 → 同节默认/unknown 拒绝与字面选择正控；默认无物理 bytes 不等于缺失。
+- 标识符修改先核依赖，能力扩展先分版本/ID → NCX dtb:uid 漂移或旧 inspect schema 被扩写 →
+  同节带 NCX 主标识符拒绝、无 NCX 主标识符/带 NCX 次级标识符正控及旧能力 shape 回归。
+  上述入口是待实现验收要求，不是已存在测试或新树批准。
+- B3 编码期新增的原始 JSON 回归：规则是 schema 8 全记录在消费前证明 Unicode 无损 →
+  `encoding/json` 把孤立 `\ud800` 转成合法 U+FFFD，解码后值验证错误放行 →
+  `TestCoreMetadataStrictSchema` 的高/低代理项与混合 v1 反例，以及代理对、字面反斜杠、
+  U+FFFD 的完整候选字节正控。复用 native 定义检查，旧 schema 1–7 解码行为不改变；
+  测试入口不代表本批已获独立产品批准。
+- 解析生命周期须按资源而不是操作计量 → B3 `f1dc6a3` 的 schema 8 为每个 v1/v2 操作
+  重新解析 OPF，逐项保存 Element 经父子链保留完整树及巨大非目标属性，合法大书/多操作
+  导致 OOM，独立审查以 R-MEM 拒绝。单次推导与实际 diff 共享冻结解析上下文，逐次绑定
+  和来源门禁不缓存；操作事实只保存位置、物理区间和文本等值。永久入口
+  `TestCoreMetadataPlanAllocationScaling` 核 Plan/diff 分配增长、完整候选与 rejected history；
+  分配计数不冒称 RSS。原 256 操作/近 8 MiB 探针、事故 journal 和旧树失败原样保留于
+  [独立审查线程](https://ampcode.com/threads/T-01a1357d-5fba-714c-a537-1904bb1b08e9)，
+  修复不迁移旧批准，不以全仓功能 PASS 抵消资源故障。
+- 压力验证的宿主隔离属于证据前提 → 无硬上限的探针与失败自动重启服务会把产品 OOM
+  变成宿主/agent 连带中断和重复事故 → 一次性整个进程组硬限额、swap=0、时间上限、
+  分阶段日志/退出原因；OOM 后停止重试。GOMEMLIMIT 只作软目标，不能声称已硬隔离。
+
 ## G-URL：重基准不是丢弃 URL 分量
 
 - local/self/other-resource/incoming 路径都核 RawQuery、ForceQuery（显式空 `?`）、fragment、转义路径；仅改契约许可的部分，不改其他属性/文本或外部 URL 拼写。

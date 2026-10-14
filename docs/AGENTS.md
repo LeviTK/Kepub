@@ -8,8 +8,9 @@
 - Linux 合成、故障注入、交叉编译、harness race 分别写清；不得冒称私有书、Mac 实机、真实断电或完整 T2–T6。
 - review 确认新不变量时更新最窄 AGENTS.md 和开发注意事项中的规则/回归入口；只写稳定可执行规则，不复制整段聊天、私有路径或敏感日志。未证实猜测不写成根因。
 - 不直接修改 `specs/` 的冻结原文、索引、hash 或历史收据来制造 green；这类变更须按既有资产生成和独立门禁流程处理。
+- 新契约分别写清规范语义、固定 checker 实际覆盖和产品写资格；checker 放行不能代替候选唯一性、日历有效性或属性来源证明。`RequireComplete` 不证明 DTD 默认属性有字面 bytes，默认/未知属性的选择策略和错误码必须显式冻结。
 
 - 派生资产（text 摘录等）的 bytes/SHA-256 由实际文件生成并核验；`text/extract.py` 重生成后校验
   manifest 与 ATTRIBUTION 的每一行，不一致即失败。只修派生元数据/生成流程，不改 raw 原文或 S0 身份。
 
-对应开发注意事项：`G-EVIDENCE`、`G-ASSET` 与“Review 维护流程”。
+对应开发注意事项：`G-EVIDENCE`、`G-ASSET`、`G-METADATA-CONTRACT` 与“Review 维护流程”。

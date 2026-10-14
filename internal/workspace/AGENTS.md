@@ -178,4 +178,25 @@
   不能只用解码后指针非 nil 判定字段存在。`TestNativeSourceForbiddenInImportedState`
   核 source null/对象/别名拒绝与原始 v1 正控重开，保留旧 schema 的未知字段拒绝。
 
+## 核心元数据 schema 8 的原始 JSON
+
+- Go JSON decoder 会把孤立代理项转成 U+FFFD，解码后 UTF-8 合法不证明输入无损；
+  schema 8 request/plan/execution（含混入的 v1 操作）在消费前核原始 Unicode escapes，
+  沿新建定义的同一检查，不收紧旧 schema 1–7。metadata v2 的原始操作边界也须核验。
+- `TestCoreMetadataStrictSchema` 保留孤立高/低代理项拒绝和合法代理对、字面反斜杠、
+  U+FFFD 正控；合法事务必须实际 Plan+Apply 并核完整候选 bytes，不能只断言解码成功。
+
+## 核心元数据的解析生命周期与压力验证
+
+- 每次推导/实际 diff 内，同一冻结 OPF 的 v1/v2 选择共享一份解析上下文；缓存只复用解析，
+  每个操作仍独立核 revision/hash/旧值/来源/选择资格。不能把 Element 存进逐操作事实，
+  经 Parent/Children 保留每次解析的整树；事实保留位置、名字、旧文本和物理区间等值。
+- history/settlement/recovery 沿同一推导，不能只优化 Plan；candidate 的实际 diff 同样
+  共享本次私有快照解析，不跨调用缓存，不以计划值替代实际值。入口
+  `TestCoreMetadataPlanAllocationScaling` 核大非目标属性、多目标分配增长、完整候选 bytes、
+  实际 diff 与 rejected history；分配计数不是 RSS 峰值，也不是新的 CLI 内存预算。
+- 资源压力探针必须是一次性执行，不挂到失败自动重启的服务；整个进程组设硬内存上限、
+  禁用 swap、超时并记录峰值/退出原因。GOMEMLIMIT 是软目标，不替代硬隔离。
+  OOM/取消后先保留日志、停止重试并定位，不继续自动恢复同一最大输入。
+
 对应开发注意事项：`G-FINAL`、`G-FACTS`、`G-BINDING`、`G-ORACLE`、`G-QUALIFY`、`G-JSON`、`G-IDREF`。

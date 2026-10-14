@@ -96,6 +96,7 @@ type OperationReview struct {
 	Namespace        string  `json:"namespace,omitempty"`
 	LocalName        string  `json:"localName,omitempty"`
 	ID               string  `json:"id,omitempty"`
+	Property         string  `json:"property,omitempty"`
 	OldValue         string  `json:"oldValue"`
 	PlannedValue     string  `json:"plannedValue"`
 	NewValue         *string `json:"newValue"`
@@ -566,6 +567,11 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 		cands := map[string][]byte{}
 		bases := map[string][]byte{}
 		docs := map[string]*publication.StructureDocument{}
+		type metadataCandidate struct {
+			selector *metadata.Selector
+			err      error
+		}
+		metadataCandidates := map[bookpath.BookPath]metadataCandidate{}
 		var planned map[string][]*publication.StructureEdit
 		replaceFacts := map[int]publication.ReplaceFacts{}
 		moveFacts := map[int]*publication.CrossMoveEdit{}
@@ -585,6 +591,28 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 		}
 		for i, op := range e.Plan.Operations {
 			switch param := op.Params.(type) {
+			case metadata.SetV2:
+				parsed, ok := metadataCandidates[param.BookPath]
+				if !ok {
+					b, err := a.Read(param.BookPath, publication.XMLLimit)
+					parsed.err = err
+					if err == nil {
+						parsed.selector, parsed.err = metadata.NewSelector(b)
+					}
+					metadataCandidates[param.BookPath] = parsed
+				}
+				err := parsed.err
+				if err == nil {
+					var target *xmltext.Element
+					target, err = parsed.selector.SelectV2(param)
+					if err == nil {
+						value := target.Text
+						r.Operations[i].NewValue = &value
+					}
+				}
+				if err != nil {
+					r.Operations[i].Unavailable = err.Error()
+				}
 			case publication.TextSet:
 				value, err := candidateContentValue(a, p, cands, base, bases, docs, planned, param)
 				if err != nil {
@@ -719,6 +747,10 @@ func plannedReviews(ops []Operation) []OperationReview {
 	for i, op := range ops {
 		or := OperationReview{Index: i, OperationID: op.ID, OperationVersion: op.Version}
 		switch param := op.Params.(type) {
+		case metadata.SetV2:
+			or.BookPath = string(param.BookPath)
+			or.Namespace, or.LocalName, or.ID, or.Property = param.Namespace, param.LocalName, param.ID, param.Property
+			or.OldValue, or.PlannedValue = param.ExpectedOldValue, param.NewValue
 		case publication.TextSet:
 			or.BookPath, or.LocatorVersion, or.Locator = string(param.BookPath), param.LocatorVersion, param.Locator
 			or.OldValue, or.PlannedValue = param.ExpectedOldValue, param.NewValue

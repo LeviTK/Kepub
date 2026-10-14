@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "batch": "b3-metadata",
+  "baseline": "EPUB3.3-REC2026-01-13",
+  "note": "B3 language syntax dependency archive. Full unmodified RFC text, including copyright notices. Does not replace S0 assets or reclassify the historical external-dependencies inventory.",
+  "assets": [
+    {
+      "id": "rfc5646",
+      "category": "external-dependency",
+      "normativeLevel": "BCP47",
+      "requestUrl": "https://www.rfc-editor.org/rfc/rfc5646.txt",
+      "finalUrl": "https://www.rfc-editor.org/rfc/rfc5646.txt",
+      "version": "RFC5646-2009-09",
+      "downloadedAt": "2026-10-13",
+      "path": "batches/b3-metadata/original/rfc5646.txt",
+      "bytes": 208592,
+      "sha256": "5d9515f053163c80e7294a84d18217dc83471acc7caa9773da2ac40deeec8228",
+      "contentType": "text/plain;charset=utf-8",
+      "requiredBy": ["B3 metadata.set v2 language: section 2.1 syntax and context"],
+      "dependencies": ["rfc5234"],
+      "attribution": {"fetchedBy": "parent thread T-01a1356d-a27e-72da-a436-9a759b65f3e4", "verifiedBy": "parent byte count, SHA256 and section read", "archivedBy": "parent batch tree"}
+    },
+    {
+      "id": "rfc5234",
+      "category": "external-dependency",
+      "normativeLevel": "STD68",
+      "requestUrl": "https://www.rfc-editor.org/rfc/rfc5234.txt",
+      "finalUrl": "https://www.rfc-editor.org/rfc/rfc5234.txt",
+      "version": "RFC5234-2008-01",
+      "downloadedAt": "2026-10-13",
+      "path": "batches/b3-metadata/original/rfc5234.txt",
+      "bytes": 26359,
+      "sha256": "fc871020f53baa6b60fc6835c557b433f38d53c5cc41ab56d03622b084f53a12",
+      "contentType": "text/plain;charset=utf-8",
+      "requiredBy": ["RFC5646 ABNF notation and Appendix B.1 ALPHA/DIGIT"],
+      "dependencies": [],
+      "attribution": {"fetchedBy": "parent thread T-01a1356d-a27e-72da-a436-9a759b65f3e4", "verifiedBy": "parent byte count and SHA256", "archivedBy": "parent batch tree"}
+    }
+  ]
+}
