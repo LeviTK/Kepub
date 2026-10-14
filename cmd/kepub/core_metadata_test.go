@@ -54,6 +54,11 @@ func coreMetadataLifecycle(t *testing.T, binary string, native bool) {
 	dir := t.TempDir()
 	ws := filepath.Join(dir, "workspace")
 	book, files := legalCLI(t, "3.0")
+	if !native {
+		files["EPUB/package.opf"] = bytes.Replace(files["EPUB/package.opf"], []byte(`?>`), []byte(`?><!DOCTYPE package [<!ENTITY tid "title">]>`), 1)
+		files["EPUB/package.opf"] = bytes.Replace(files["EPUB/package.opf"], []byte(`<dc:title>`), []byte(`<dc:title id="&tid;">`), 1)
+		book = t1bBook(t, files)
+	}
 	original, err := os.ReadFile(book)
 	if err != nil {
 		t.Fatal(err)

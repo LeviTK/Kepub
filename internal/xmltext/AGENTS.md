@@ -2,6 +2,7 @@
 
 - parser、expanded stream、decoded CharData 与原始资源（含 BOM）的偏移分别处理；`TextRun.Range`、`AttributeBytes`、`PhysicalMarkup`、`PhysicalContent` 不伪造生成来源的物理区间。
 - linear literal、实体引用拼写、generated/default、CDATA、unknown 必须保留不同来源。相同 decoded 值不代表相同写权限；partial 不推导肯定的完整事实。
+- 只读属性选择分别核生效值已知与属性名在原标签中显式存在；`AttributeExplicit` 不授予 `AttributeBytes` 写权限。已知内部实体值可以只读选择，ATTLIST 默认属性与实体生成标签不能冒充显式属性；保留 unknown 拒绝和文本写来源门禁。
 - fragment 对齐要比较正确 decoded 字符语义，区间从该 fragment 自己的原物理 span 得到；空 generated span 也是边界，不能吞掉未匹配引用或让匹配跨越它。
 - 有明确来源的合法左右字面应可独立写；无法证明的 token 保守不可写，但先验证对齐是否正确，不用整 token 降级掩盖支持范围内的合法事务误拒。
 - XML newline/reference 规范化按现有解析层责任处理，不对已经构造的 generated 内容再次归一；UTF-16 代理对不能用 UTF-8 索引当物理字节索引。

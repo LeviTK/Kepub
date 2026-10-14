@@ -85,11 +85,27 @@ func TestAttributeMarkupRejectsGeneratedValues(t *testing.T) {
 	if _, ok := p.AttributeBytes(xml.Name{Local: "class"}); ok {
 		t.Fatal("entity-expanded attribute value reported a writable interval")
 	}
+	if !p.AttributeExplicit(xml.Name{Local: "class"}) || !p.AttributeKnown(xml.Name{Local: "class"}) {
+		t.Fatal("known entity value lost its explicit read-only attribute provenance")
+	}
 	if id, ok := p.AttributeBytes(xml.Name{Local: "id"}); !ok || string(input[id.ValueStart:id.ValueEnd]) != "a" {
 		t.Fatal("literal attribute lost its source interval")
 	}
 	if start, end, ok := p.PhysicalMarkup(); !ok || string(input[start:end]) != `<p class="&v;" id="a">y</p>` {
 		t.Fatalf("tag with an entity value lost its loose markup range: %d..%d %t", start, end, ok)
+	}
+	for _, generated := range []string{
+		`<!DOCTYPE html [<!ATTLIST p class CDATA "expanded">]><html><p>y</p></html>`,
+		`<!DOCTYPE html [<!ENTITY frag '<p class="expanded">y</p>'>]><html>&frag;</html>`,
+	} {
+		doc, err := Parse([]byte(generated))
+		if err != nil {
+			t.Fatal(err)
+		}
+		p := elementAt(t, doc, "/html[1]/p[1]")
+		if !p.AttributeKnown(xml.Name{Local: "class"}) || p.AttributeExplicit(xml.Name{Local: "class"}) {
+			t.Fatal("default or generated markup confused with an explicit attribute")
+		}
 	}
 }
 

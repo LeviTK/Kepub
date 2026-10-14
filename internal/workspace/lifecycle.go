@@ -1437,6 +1437,18 @@ func (w *Workspace) taskDigests(dir string, j *settlement) error {
 	if !validPlanOperation(p) || p.Rootfile != w.state.Rootfile || p.OperationSetSHA256 != digest(p.Operations) || s.Version != p.SchemaVersion || e.Version != s.Version || s.TaskID != e.TaskID || s.TaskID != id && !(id == "active" && s.TaskID == "") || (s.Status != "running" && s.Status != "unstarted") || (s.Status == "unstarted" && e.Status != "failed") || s.ReviewRequired || s.Conformance != "not_run" || digest(s.Diff) != digest(compareTrees(tree, tree)) || e.Conformance != "not_run" || e.Diff.Changes == nil {
 		return fmt.Errorf("settlement operation/execution version mismatch")
 	}
+	// Accepted revision chains already cross-check their parent tree. Rejected
+	// schema 8 history has no such chain: self-consistent checkpoint/plan copies
+	// must still bind to the plan's real revision, not the current accepted tree.
+	if p.SchemaVersion == 8 && j.Decision.Status == "rejected" {
+		base, err := w.readRevision(p.BaseRevision)
+		if err != nil {
+			return err
+		}
+		if p.InputTreeSHA256 != base.Tree.SHA256 {
+			return fmt.Errorf("settlement checkpoint differs from frozen revision")
+		}
+	}
 	// Digests bind copies, not source truth. History and recovery must re-derive
 	// schema 7 from the plan's own revision, even after accepted has advanced.
 	if err := w.verifyFixPlan(p); err != nil {

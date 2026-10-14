@@ -195,6 +195,7 @@
   共享本次私有快照解析，不跨调用缓存，不以计划值替代实际值。入口
   `TestCoreMetadataPlanAllocationScaling` 核大非目标属性、多目标分配增长、完整候选 bytes、
   实际 diff 与 rejected history；分配计数不是 RSS 峰值，也不是新的 CLI 内存预算。
+- schema 8 rejected history/settlement 没有 accepted 链的父树交叉绑定；checkpoint/plan 的自洽摘要必须另与 plan 自己的真实 BaseRevision 核对，不与当前 accepted 树混同。`TestCoreMetadataRejectedCheckpointBinding` 覆盖重签虚构来源、合法旧历史、accepted 推进与已归档 recovery；旧 schema 校验不暗改。
 - 资源压力探针必须是一次性执行，不挂到失败自动重启的服务；整个进程组设硬内存上限、
   禁用 swap、超时并记录峰值/退出原因。GOMEMLIMIT 是软目标，不替代硬隔离。
   OOM/取消后先保留日志、停止重试并定位，不继续自动恢复同一最大输入。

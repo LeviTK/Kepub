@@ -84,7 +84,7 @@ func validXMLV2(s string) bool {
 	return true
 }
 
-// selectionAttributeV2 distinguishes proven absence, literal effective values,
+// selectionAttributeV2 distinguishes proven absence, explicit effective values,
 // unread declarations and known defaults. Read-only selection is not write authority.
 func selectionAttributeV2(e *xmltext.Element, name string) (string, bool, error) {
 	n := xml.Name{Local: name}
@@ -93,8 +93,8 @@ func selectionAttributeV2(e *xmltext.Element, name string) (string, bool, error)
 	}
 	for _, a := range e.Attributes {
 		if a.Name == n {
-			if _, ok := e.AttributeBytes(n); !ok {
-				return "", false, fault.New(3, "UNSUPPORTED_INPUT", "nonliteral selection attribute %s", name)
+			if !e.AttributeExplicit(n) {
+				return "", false, fault.New(3, "UNSUPPORTED_INPUT", "generated selection attribute %s", name)
 			}
 			return a.Value, true, nil
 		}
