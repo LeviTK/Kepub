@@ -31,15 +31,47 @@ jobs:
           # Bind PR evidence to the reviewed head, not GitHub's synthetic merge.
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+          fetch-depth: 0
+      - name: Verify CI routing controls
+        run: |
+          mkdir -p "$RUNNER_TEMP/results"
+          python3 -B -m unittest discover -s scripts -p 'test_ci_docs.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/results/ci-controls.log"
+      - name: Classify exact PR changes (unknown means full)
+        id: scope
+        env:
+          CI_EVENT: ${{ github.event_name }}
+          CI_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/results"
+          {
+            date -u +%FT%TZ
+            git rev-parse HEAD HEAD^{tree}
+            printf 'event=%s\nbase=%s\n' "$CI_EVENT" "$CI_BASE"
+          } | tee "$RUNNER_TEMP/results/scope-input.log"
+          python3 -B scripts/ci_docs.py classify --event "$CI_EVENT" --base "$CI_BASE" \
+            | tee "$RUNNER_TEMP/results/scope.json"
+          cat "$RUNNER_TEMP/results/scope.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Check explanation-only documentation (product tests not run)
+        if: steps.scope.outputs.mode == 'docs'
+        env:
+          CI_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          python3 -B scripts/ci_docs.py check --base "$CI_BASE" \
+            | tee "$RUNNER_TEMP/results/docs.log"
+          test -z "$(git status --porcelain)"
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        if: steps.scope.outputs.mode != 'docs'
         with:
           go-version-file: go.mod
           cache: false
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        if: steps.scope.outputs.mode != 'docs'
         with:
           distribution: temurin
           java-version: '17'
       - name: Install and verify EPUBCheck 5.3.0
+        if: steps.scope.outputs.mode != 'docs'
         run: |
           curl --fail --location --retry 3 --connect-timeout 15 --max-time 120 \
             https://github.com/w3c/epubcheck/releases/download/v5.3.0/epubcheck-5.3.0.zip \
@@ -53,6 +85,7 @@ jobs:
           test "$(java -jar "$checker/epubcheck.jar" --version)" = 'EPUBCheck v5.3.0'
           echo "KEPUB_EPUBCHECK_JAR=$checker/epubcheck.jar" >> "$GITHUB_ENV"
       - name: Record input and verify modules
+        if: steps.scope.outputs.mode != 'docs'
         env:
           CI_EVENT: ${{ github.event_name }}
           CI_REF: ${{ github.ref }}
@@ -71,12 +104,16 @@ jobs:
             go mod verify
           } 2>&1 | tee "$RUNNER_TEMP/results/input.log"
       - name: Test
+        if: steps.scope.outputs.mode != 'docs'
         run: go test -p=1 -parallel=1 -count=1 -timeout=30m -json ./... | tee "$RUNNER_TEMP/results/test.jsonl"
       - name: Race
+        if: steps.scope.outputs.mode != 'docs'
         run: go test -race -p=1 -parallel=1 -count=1 -timeout=30m -json ./... | tee "$RUNNER_TEMP/results/race.jsonl"
       - name: Vet
+        if: steps.scope.outputs.mode != 'docs'
         run: go vet ./... 2>&1 | tee "$RUNNER_TEMP/results/vet.log"
       - name: Build ordinary and race CLI
+        if: steps.scope.outputs.mode != 'docs'
         run: |
           go build -o "$RUNNER_TEMP/kepub" ./cmd/kepub
           go build -race -o "$RUNNER_TEMP/kepub-race" ./cmd/kepub
