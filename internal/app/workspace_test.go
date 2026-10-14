@@ -267,6 +267,7 @@ func TestR3WorkspaceRequestCancellation(t *testing.T) {
 			return err
 		}},
 		{"apply", func() error { _, err := ApplyWorkspace(ctx, dir, "absent-plan"); return err }},
+		{"metadata", func() error { _, err := MetadataWorkspace(ctx, dir); return err }},
 		{"content", func() error {
 			_, err := ContentWorkspace(ctx, dir, "书/Text/第二 章.xhtml", publication.ContentOptions{})
 			return err

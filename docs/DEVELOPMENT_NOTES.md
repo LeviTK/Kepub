@@ -69,6 +69,11 @@
 - 标识符修改先核依赖，能力扩展先分版本/ID → NCX dtb:uid 漂移或旧 inspect schema 被扩写 →
   同节带 NCX 主标识符拒绝、无 NCX 主标识符/带 NCX 次级标识符正控及旧能力 shape 回归。
   上述入口是待实现验收要求，不是已存在测试或新树批准。
+- B3 编码期新增的原始 JSON 回归：规则是 schema 8 全记录在消费前证明 Unicode 无损 →
+  `encoding/json` 把孤立 `\ud800` 转成合法 U+FFFD，解码后值验证错误放行 →
+  `TestCoreMetadataStrictSchema` 的高/低代理项与混合 v1 反例，以及代理对、字面反斜杠、
+  U+FFFD 的完整候选字节正控。复用 native 定义检查，旧 schema 1–7 解码行为不改变；
+  测试入口不代表本批已获独立产品批准。
 
 ## G-URL：重基准不是丢弃 URL 分量
 

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -140,6 +143,106 @@ func checkExport(t *testing.T, file string, expected map[string][]byte) {
 		if err != nil || !bytes.Equal(b, want) {
 			t.Fatalf("export resource %s changed: %v", name, err)
 		}
+	}
+}
+
+func TestCLIWorkspaceMetadata(t *testing.T) {
+	binary := workspaceBinary(t)
+	book, files := legalCLI(t, "3.0")
+	root := t.TempDir()
+	ws := filepath.Join(root, "ws")
+	run := func(args []string, code int) map[string]any {
+		return processJSON(t, binary, args, code, 30*time.Second)
+	}
+	opened := run([]string{"workspace", "open", book, "--output", ws}, 0)["data"].(map[string]any)
+	args := []string{"workspace", "metadata", "--workspace", ws}
+	data := run(args, 0)["data"].(map[string]any)
+	old := run([]string{"inspect", book, "--section", "metadata"}, 0)["data"].(map[string]any)
+	if data["workspaceId"] != opened["workspaceId"] || data["revisionId"] != "initial" || data["resourceSha256"] != fmt.Sprintf("%x", sha256.Sum256(files["EPUB/package.opf"])) {
+		t.Fatal("wrong accepted binding", data)
+	}
+	for key, value := range old {
+		if !reflect.DeepEqual(data[key], value) {
+			t.Fatalf("inspect field changed: %s", key)
+		}
+	}
+	if len(data) != len(old)+4 || len(old) != 4 || old["section"] != "metadata" || old["rootfile"] != "EPUB/package.opf" {
+		t.Fatal("inspect shape changed", old, data)
+	}
+	wantAttrs := []any{
+		map[string]any{"Name": map[string]any{"Space": "", "Local": "xmlns"}, "Value": "http://www.idpf.org/2007/opf"},
+		map[string]any{"Name": map[string]any{"Space": "", "Local": "version"}, "Value": "3.0"},
+		map[string]any{"Name": map[string]any{"Space": "", "Local": "unique-identifier"}, "Value": "uid"},
+	}
+	if !reflect.DeepEqual(data["packageAttributes"], wantAttrs) {
+		t.Fatal("package attributes", data["packageAttributes"])
+	}
+	encoded, _ := json.Marshal(data)
+	if strings.Contains(string(encoded), "propertyIRI") {
+		t.Fatal("unexpected canonical property", string(encoded))
+	}
+	ops, plan := filepath.Join(root, "ops.json"), filepath.Join(root, "plan.json")
+	operationFile(t, ops, "title", "Title", "Candidate title")
+	run([]string{"plan", "--workspace", ws, "--operations", ops, "--output", plan}, 0)
+	run([]string{"apply", "--workspace", ws, "--plan", plan}, 0)
+	if candidate := run(args, 0)["data"]; !reflect.DeepEqual(candidate, data) {
+		t.Fatal("candidate leaked", candidate)
+	}
+	for _, extra := range [][]string{{book}, {"--section", "metadata"}, {"--rootfile", "EPUB/package.opf"}, {"--resource", "EPUB/package.opf"}, {"--direction", "incoming"}, {"--output", "out"}} {
+		env := run(append(append([]string{}, args...), extra...), 2)
+		if env["error"].(map[string]any)["code"] != "INVALID_ARGUMENT" {
+			t.Fatal(env)
+		}
+	}
+	capabilities := run([]string{"capabilities"}, 0)["data"].([]any)
+	found := false
+	for _, item := range capabilities {
+		c := item.(map[string]any)
+		if c["operationId"] == "publication.inspect" {
+			if c["operationVersion"] != float64(1) || !reflect.DeepEqual(c["commands"], []any{"info", "inspect", "toc"}) || !reflect.DeepEqual(c["inputSchema"].(map[string]any)["required"], []any{"book"}) {
+				t.Fatal("old capability changed", c)
+			}
+			if _, ok := c["inputSchema"].(map[string]any)["properties"].(map[string]any)["workspace"]; ok {
+				t.Fatal("old capability expanded", c)
+			}
+		}
+		if c["operationId"] == "workspace.metadata.inspect" {
+			found = true
+			if c["operationVersion"] != float64(1) || c["mutatesPublication"] != false || c["risk"] != "read_only" || !reflect.DeepEqual(c["commands"], []any{"workspace metadata"}) {
+				t.Fatal(c)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("missing metadata capability")
+	}
+	if err := os.WriteFile(filepath.Join(ws, "revisions", "initial", "pub", "EPUB", "package.opf"), []byte("drift"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	// Open retains the existing initial-manifest verification classification;
+	// explicit schema8 revision/hash bindings are the INPUT_DRIFT boundary.
+	if env := run(args, 6); env["error"].(map[string]any)["code"] != "IO_ERROR" {
+		t.Fatal(env)
+	}
+
+	// A signed imported book is policy read-only, not filesystem chmod-only.
+	files["META-INF/signatures.xml"] = []byte(`<signatures xmlns="urn:oasis:names:tc:opendocument:xmlns:container"/>`)
+	readOnlyBook := filepath.Join(root, "signed.epub")
+	entries := []testfixture.Entry{{Name: "mimetype", Data: files["mimetype"]}}
+	for name, raw := range files {
+		if name != "mimetype" {
+			entries = append(entries, testfixture.Entry{Name: name, Data: raw})
+		}
+	}
+	testfixture.ZIP(t, readOnlyBook, entries)
+	ro := filepath.Join(root, "read-only")
+	roOpened := run([]string{"workspace", "open", readOnlyBook, "--output", ro}, 0)["data"].(map[string]any)
+	if len(roOpened["state"].(map[string]any)["readOnlyReasons"].([]any)) == 0 {
+		t.Fatal("not read only", roOpened)
+	}
+	roData := run([]string{"workspace", "metadata", "--workspace", ro}, 0)["data"].(map[string]any)
+	if !reflect.DeepEqual(roData["value"], old["value"]) || roData["resourceSha256"] != data["resourceSha256"] {
+		t.Fatal(roData)
 	}
 }
 

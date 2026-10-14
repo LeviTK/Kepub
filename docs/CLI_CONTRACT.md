@@ -470,15 +470,17 @@ FixProposal v1 wire 和 hash 算法不改，只修资格；新 schema 7 policy �
 旧提案可重新提交 Plan，但必须通过当前完整提案重推；目录项或 derivedFrom 改变返回 PROPOSAL_DRIFT。
 
 <a id="212-b3-核心元数据-v2-契约草案待独立审定尚未实现"></a>
+<a id="212-b3-核心元数据-v2-实施契约已冻结尚未实现"></a>
 
-### 2.12 B3 核心元数据 v2 实施契约（已冻结，尚未实现）
+### 2.12 B3 核心元数据 v2 实施契约（已冻结，实现候选待验收）
 
 2026-10-13 下一批对应 [B3 #46](https://github.com/LeviTK/Kepub/issues/46)，基线为
 [PR #75 的合并提交](https://github.com/LeviTK/Kepub/commit/3a7d1b414c5d23a1fbff42890e1c226f097e1a93)。
 本节行为规则在固定输入 `b3f717b904698ec18d6d7061256139026642d30a` / tree
 `f07760e5b1c1611ed13aa8ed98be2d9b4eff6150` 获独立契约准入，作为 B3 编码依据；
-此处仅更新冻结状态，未作产品验收，不在 capabilities 注册 available。
-当前二进制仍只支持既有 schema 1–7，`metadata.set` v1 仍只写现有 dc:title/dc:creator。
+契约准入不是产品验收。本分支已加入 schema 8 实现候选及版本化 capability，
+尚待固定树独立产品审查与父验收，未交付主线。旧 schema 1–7 不变，
+`metadata.set` v1 仍只写现有 dc:title/dc:creator。
 
 **只读绑定入口：** 本批新增 `workspace metadata --workspace DIR --json`，
 独立 capability `workspace.metadata.inspect` v1，read-only，输入 schema 为 object、

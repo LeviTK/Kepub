@@ -178,4 +178,12 @@
   不能只用解码后指针非 nil 判定字段存在。`TestNativeSourceForbiddenInImportedState`
   核 source null/对象/别名拒绝与原始 v1 正控重开，保留旧 schema 的未知字段拒绝。
 
+## 核心元数据 schema 8 的原始 JSON
+
+- Go JSON decoder 会把孤立代理项转成 U+FFFD，解码后 UTF-8 合法不证明输入无损；
+  schema 8 request/plan/execution（含混入的 v1 操作）在消费前核原始 Unicode escapes，
+  沿新建定义的同一检查，不收紧旧 schema 1–7。metadata v2 的原始操作边界也须核验。
+- `TestCoreMetadataStrictSchema` 保留孤立高/低代理项拒绝和合法代理对、字面反斜杠、
+  U+FFFD 正控；合法事务必须实际 Plan+Apply 并核完整候选 bytes，不能只断言解码成功。
+
 对应开发注意事项：`G-FINAL`、`G-FACTS`、`G-BINDING`、`G-ORACLE`、`G-QUALIFY`、`G-JSON`、`G-IDREF`。

@@ -18,6 +18,8 @@ func executeWorkspace(ctx context.Context, o options) (any, error) {
 			return app.CreateWorkspace(ctx, o.definition, o.output, v)
 		case "open":
 			return app.OpenWorkspace(ctx, o.book, o.output, o.rootfile)
+		case "metadata":
+			return app.MetadataWorkspace(ctx, o.workspace)
 		case "export":
 			return app.ExportWorkspace(ctx, o.book, o.output, v)
 		}

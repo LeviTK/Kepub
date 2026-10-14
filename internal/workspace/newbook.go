@@ -65,7 +65,7 @@ func ReadNewBook(file string) (NewBook, error) {
 		}
 		return NewBook{}, err
 	}
-	if err := validDefinitionUnicode(b); err != nil {
+	if err := validJSONUnicode(b); err != nil {
 		return NewBook{}, err
 	}
 	var definition NewBook
@@ -75,9 +75,9 @@ func ReadNewBook(file string) (NewBook, error) {
 	return definition, definition.validate()
 }
 
-// encoding/json replaces malformed UTF-8 and unpaired UTF-16 escapes. Native
+// encoding/json replaces malformed UTF-8 and unpaired UTF-16 escapes. Strict
 // author input must not silently acquire replacement characters before binding.
-func validDefinitionUnicode(b []byte) error {
+func validJSONUnicode(b []byte) error {
 	if !utf8.Valid(b) {
 		return fmt.Errorf("definition must be UTF-8")
 	}
