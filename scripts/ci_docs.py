@@ -82,8 +82,9 @@ def anchors(text):
 def links(text):
     text = markdown(text)
     # Inline examples (including HTML snippets) are not rendered links. Match
-    # equal-length backtick delimiters, so a longer code span can contain `.
-    text = re.sub(r"(?<!`)(`+)(?!`)(.*?)(?<!`)\1(?!`)", "", text, flags=re.S)
+    # equal-length backticks within a paragraph, never across a blank line.
+    text = "\n\n".join(re.sub(r"(?<!`)(`+)(?!`)(.*?)(?<!`)\1(?!`)", "", paragraph, flags=re.S)
+                       for paragraph in re.split(r"\n[ \t]*\n", text))
     text = re.sub(r"<!--.*?-->", "", text, flags=re.S)
     result = re.findall(r"!?\[[^]\n]*\]\(\s*(<[^>]+>|[^\s)]+)", text)
     # Reference definitions and HTML links/images also carry local targets.

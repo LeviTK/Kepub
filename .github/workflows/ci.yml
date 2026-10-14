@@ -32,11 +32,6 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
           fetch-depth: 0
-      - name: Verify CI routing controls
-        run: |
-          mkdir -p "$RUNNER_TEMP/results"
-          python3 -B -m unittest discover -s scripts -p 'test_ci_docs.py' -v \
-            2>&1 | tee "$RUNNER_TEMP/results/ci-controls.log"
       - name: Classify exact PR changes (unknown means full)
         id: scope
         env:
@@ -49,9 +44,23 @@ jobs:
             git rev-parse HEAD HEAD^{tree}
             printf 'event=%s\nbase=%s\n' "$CI_EVENT" "$CI_BASE"
           } | tee "$RUNNER_TEMP/results/scope-input.log"
-          python3 -B scripts/ci_docs.py classify --event "$CI_EVENT" --base "$CI_BASE" \
-            | tee "$RUNNER_TEMP/results/scope.json"
+          # A PR cannot downgrade its own validation by editing the classifier.
+          # Bootstrap, unknown history and manual runs always take the full path.
+          if [[ "$CI_EVENT" == pull_request && -n "$CI_BASE" ]] \
+            && git merge-base --is-ancestor "$CI_BASE" HEAD \
+            && git show "$CI_BASE:scripts/ci_docs.py" > "$RUNNER_TEMP/base-ci-docs.py"; then
+            python3 -B "$RUNNER_TEMP/base-ci-docs.py" classify --event "$CI_EVENT" --base "$CI_BASE" \
+              | tee "$RUNNER_TEMP/results/scope.json"
+          else
+            printf '%s\n' '{"mode":"full","reason":"base classifier unavailable or full event"}' \
+              | tee "$RUNNER_TEMP/results/scope.json"
+            echo 'mode=full' >> "$GITHUB_OUTPUT"
+          fi
           cat "$RUNNER_TEMP/results/scope.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify CI routing controls
+        run: |
+          python3 -B -m unittest discover -s scripts -p 'test_ci_docs.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/results/ci-controls.log"
       - name: Check explanation-only documentation (product tests not run)
         if: steps.scope.outputs.mode == 'docs'
         env:
