@@ -567,6 +567,11 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 		cands := map[string][]byte{}
 		bases := map[string][]byte{}
 		docs := map[string]*publication.StructureDocument{}
+		type metadataCandidate struct {
+			selector *metadata.Selector
+			err      error
+		}
+		metadataCandidates := map[bookpath.BookPath]metadataCandidate{}
 		var planned map[string][]*publication.StructureEdit
 		replaceFacts := map[int]publication.ReplaceFacts{}
 		moveFacts := map[int]*publication.CrossMoveEdit{}
@@ -587,10 +592,19 @@ func (w *Workspace) taskDiff(id string) (Review, error) {
 		for i, op := range e.Plan.Operations {
 			switch param := op.Params.(type) {
 			case metadata.SetV2:
-				b, err := a.Read(param.BookPath, publication.XMLLimit)
+				parsed, ok := metadataCandidates[param.BookPath]
+				if !ok {
+					b, err := a.Read(param.BookPath, publication.XMLLimit)
+					parsed.err = err
+					if err == nil {
+						parsed.selector, parsed.err = metadata.NewSelector(b)
+					}
+					metadataCandidates[param.BookPath] = parsed
+				}
+				err := parsed.err
 				if err == nil {
 					var target *xmltext.Element
-					target, err = metadata.SelectV2(b, param)
+					target, err = parsed.selector.SelectV2(param)
 					if err == nil {
 						value := target.Text
 						r.Operations[i].NewValue = &value

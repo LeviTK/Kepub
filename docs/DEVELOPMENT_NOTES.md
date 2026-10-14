@@ -74,6 +74,17 @@
   `TestCoreMetadataStrictSchema` 的高/低代理项与混合 v1 反例，以及代理对、字面反斜杠、
   U+FFFD 的完整候选字节正控。复用 native 定义检查，旧 schema 1–7 解码行为不改变；
   测试入口不代表本批已获独立产品批准。
+- 解析生命周期须按资源而不是操作计量 → B3 `f1dc6a3` 的 schema 8 为每个 v1/v2 操作
+  重新解析 OPF，逐项保存 Element 经父子链保留完整树及巨大非目标属性，合法大书/多操作
+  导致 OOM，独立审查以 R-MEM 拒绝。单次推导与实际 diff 共享冻结解析上下文，逐次绑定
+  和来源门禁不缓存；操作事实只保存位置、物理区间和文本等值。永久入口
+  `TestCoreMetadataPlanAllocationScaling` 核 Plan/diff 分配增长、完整候选与 rejected history；
+  分配计数不冒称 RSS。原 256 操作/近 8 MiB 探针、事故 journal 和旧树失败原样保留于
+  [独立审查线程](https://ampcode.com/threads/T-01a1357d-5fba-714c-a537-1904bb1b08e9)，
+  修复不迁移旧批准，不以全仓功能 PASS 抵消资源故障。
+- 压力验证的宿主隔离属于证据前提 → 无硬上限的探针与失败自动重启服务会把产品 OOM
+  变成宿主/agent 连带中断和重复事故 → 一次性整个进程组硬限额、swap=0、时间上限、
+  分阶段日志/退出原因；OOM 后停止重试。GOMEMLIMIT 只作软目标，不能声称已硬隔离。
 
 ## G-URL：重基准不是丢弃 URL 分量
 

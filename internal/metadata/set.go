@@ -20,6 +20,21 @@ type Set struct {
 	NewValue         string `json:"newValue"`
 }
 
+// Selector owns one parsed frozen resource for this call. Selection rules are
+// still checked for every operation; the index is never a cross-call cache.
+type Selector struct {
+	input []byte
+	doc   *xmltext.Document
+}
+
+func NewSelector(input []byte) (*Selector, error) {
+	doc, err := xmltext.Parse(input)
+	if err != nil {
+		return nil, err
+	}
+	return &Selector{input: input, doc: doc}, nil
+}
+
 // Apply selects a unique direct metadata child. The shared strict byte index
 // rejects complex/self-closing targets, even for no-op, and verifies replacement.
 func Apply(input []byte, request Set) ([]byte, bool, error) {
@@ -58,10 +73,19 @@ func validate(request Set) error {
 }
 
 func selectTarget(input []byte, request Set) (*xmltext.Element, error) {
-	doc, err := xmltext.Parse(input)
+	s, err := NewSelector(input)
 	if err != nil {
 		return nil, err
 	}
+	return s.Select(request)
+}
+
+// Select applies v1's unchanged authorization to this frozen resource.
+func (s *Selector) Select(request Set) (*xmltext.Element, error) {
+	if err := validate(request); err != nil {
+		return nil, err
+	}
+	doc := s.doc
 	if _, err := doc.PackageProfile(); err != nil {
 		return nil, err
 	}

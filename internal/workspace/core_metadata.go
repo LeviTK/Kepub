@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"bytes"
+	"encoding/xml"
 	"fmt"
 	"slices"
 
@@ -20,14 +21,18 @@ func (w *Workspace) recomputeCoreMetadata(a publicationRoot, ops []Operation, re
 		return derivation{}, err
 	}
 	type set struct {
-		element *xmltext.Element
-		value   string
-		index   int
+		name       xml.Name
+		location   string
+		old, value string
+		start, end int
+		index      int
 	}
 	type group struct {
-		base []byte
-		sets []set
-		doc  *publication.StructureDocument
+		base     []byte
+		sets     []set
+		doc      *publication.StructureDocument
+		selector *metadata.Selector
+		encoder  *xmltext.Element // one resource's encoding, not one tree per set
 	}
 	groups := map[string]*group{}
 	seen := map[string]bool{}
@@ -46,6 +51,12 @@ func (w *Workspace) recomputeCoreMetadata(a publicationRoot, ops []Operation, re
 				return derivation{}, err
 			}
 			g = &group{base: b}
+			if string(bp) == w.state.Rootfile {
+				g.selector, err = metadata.NewSelector(b)
+				if err != nil {
+					return derivation{}, err
+				}
+			}
 			groups[string(bp)] = g
 		}
 		var e *xmltext.Element
@@ -61,23 +72,10 @@ func (w *Workspace) recomputeCoreMetadata(a publicationRoot, ops []Operation, re
 			if err := checkStructureHash(g.base, s.ResourceSHA256); err != nil {
 				return derivation{}, err
 			}
-			e, err = metadata.SelectV2(g.base, s)
+			e, err = g.selector.SelectV2(s)
 			old, value = s.ExpectedOldValue, s.NewValue
 		case metadata.Set:
-			var location string
-			location, err = metadata.Select(g.base, s)
-			if err == nil {
-				var d *xmltext.Document
-				d, err = xmltext.Parse(g.base)
-				if err == nil {
-					for _, target := range d.Elements {
-						if target.Location == location {
-							e = target
-							break
-						}
-					}
-				}
-			}
+			e, err = g.selector.Select(s)
 			old, value = s.ExpectedOldValue, s.NewValue
 		case publication.TextSet:
 			if s.RevisionID != revision {
@@ -116,7 +114,18 @@ func (w *Workspace) recomputeCoreMetadata(a publicationRoot, ops []Operation, re
 			return derivation{}, fmt.Errorf("duplicate metadata/text target %s", e.Location)
 		}
 		seen[key] = true
-		g.sets = append(g.sets, set{e, value, i})
+		start, end := 0, 0
+		if value != e.Text {
+			var ok bool
+			start, end, ok = e.PhysicalContent()
+			if !ok {
+				return derivation{}, fmt.Errorf("target has no physical text interval")
+			}
+		}
+		if g.encoder == nil {
+			g.encoder = e
+		}
+		g.sets = append(g.sets, set{e.Name, e.Location, e.Text, value, start, end, i})
 	}
 	inv, err := inventory(a.root)
 	if err != nil {
@@ -131,17 +140,13 @@ func (w *Workspace) recomputeCoreMetadata(a publicationRoot, ops []Operation, re
 	for _, g := range groups {
 		n := int64(len(g.base))
 		for _, s := range g.sets {
-			if s.value != s.element.Text {
-				start, end, ok := s.element.PhysicalContent()
-				if !ok {
-					return derivation{}, fmt.Errorf("target has no physical text interval")
-				}
-				n -= int64(end - start)
+			if s.value != s.old {
+				n -= int64(s.end - s.start)
 			}
 		}
 		for _, s := range g.sets {
-			if s.value != s.element.Text {
-				size, err := s.element.ReplaceBytesSize(s.value)
+			if s.value != s.old {
+				size, err := g.encoder.ReplaceBytesSize(s.value)
 				if err != nil {
 					return derivation{}, err
 				}
@@ -162,14 +167,13 @@ func (w *Workspace) recomputeCoreMetadata(a publicationRoot, ops []Operation, re
 	d := derivation{outputs: map[string][]byte{}, writes: []string{}, edits: map[string][]*publication.StructureEdit{}}
 	for bp, g := range groups {
 		for _, s := range g.sets {
-			ed := &publication.StructureEdit{OpIndex: s.index, Change: publication.StructureChange{Kind: "text-set", Locator: s.element.Location, Text: s.value}}
-			if s.value != s.element.Text {
-				value, err := s.element.ReplaceBytes(s.value)
+			ed := &publication.StructureEdit{OpIndex: s.index, Change: publication.StructureChange{Kind: "text-set", Locator: s.location, Text: s.value}}
+			if s.value != s.old {
+				value, err := g.encoder.ReplaceBytes(s.value)
 				if err != nil {
 					return derivation{}, err
 				}
-				start, end, _ := s.element.PhysicalContent()
-				ed.Spans = []publication.EditSpan{{Start: start, End: end, Bytes: value}}
+				ed.Spans = []publication.EditSpan{{Start: s.start, End: s.end, Bytes: value}}
 			}
 			d.edits[bp] = append(d.edits[bp], ed)
 		}
@@ -184,7 +188,7 @@ func (w *Workspace) recomputeCoreMetadata(a publicationRoot, ops []Operation, re
 		for _, s := range g.sets {
 			found := false
 			for _, e := range check.Elements {
-				if e.Location == s.element.Location && e.Name == s.element.Name && !e.Complex && e.Text == s.value {
+				if e.Location == s.location && e.Name == s.name && !e.Complex && e.Text == s.value {
 					found = true
 					break
 				}

@@ -108,10 +108,20 @@ func SelectV2(input []byte, r SetV2) (*xmltext.Element, error) {
 	if err := r.Validate(); err != nil {
 		return nil, err
 	}
-	d, err := xmltext.Parse(input)
+	s, err := NewSelector(input)
 	if err != nil {
 		return nil, err
 	}
+	return s.SelectV2(r)
+}
+
+// SelectV2 reuses only parsing, never an operation's authority or binding.
+func (s *Selector) SelectV2(r SetV2) (*xmltext.Element, error) {
+	if err := r.Validate(); err != nil {
+		return nil, err
+	}
+	d, input := s.doc, s.input
+	var err error
 	attrs := map[string]string{}
 	for _, name := range []string{"version", "prefix", "unique-identifier"} {
 		v, present, err := selectionAttributeV2(d.Root, name)

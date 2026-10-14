@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -512,5 +513,82 @@ func TestCoreMetadataFinalPublicationBudget(t *testing.T) {
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+func TestCoreMetadataPlanAllocationScaling(t *testing.T) {
+	// The same large attribute is unrelated to all targets. Increasing the
+	// operation count must not allocate another parsed copy of it per target.
+	var extra strings.Builder
+	for i := 0; i < 32; i++ {
+		fmt.Fprintf(&extra, `<dc:title id="t%d">T%d</dc:title>`, i, i)
+	}
+	extra.WriteString(`<meta name="pad" content="` + strings.Repeat("p", 512<<10) + `"/>`)
+	src := strings.Replace(structureOPF, "</metadata>", extra.String()+"</metadata>", 1)
+	w, dir, _ := structureWorkspace(t, map[string]string{coreOPFPath: src})
+	defer w.Close()
+	binding := coreOp(t, w, "title", "t0", "T0", "U0").Params.(metadata.SetV2)
+	ops := make([]Operation, 32)
+	want := coreFiles(t, filepath.Join(dir, revision))
+	for i := range ops {
+		s := binding
+		s.ID, s.ExpectedOldValue, s.NewValue = fmt.Sprintf("t%d", i), fmt.Sprintf("T%d", i), fmt.Sprintf("U%d", i)
+		ops[i] = Operation{"metadata.set", 2, s}
+		want[coreOPFPath] = bytes.Replace(want[coreOPFPath], []byte(">"+s.ExpectedOldValue+"</dc:title>"), []byte(">"+s.NewValue+"</dc:title>"), 1)
+	}
+	measure := func(operations []Operation) (Plan, uint64) {
+		t.Helper()
+		request := editJSON(t, Request{8, operations})
+		runtime.GC()
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
+		p, err := w.Plan(request)
+		runtime.ReadMemStats(&after)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return p, after.TotalAlloc - before.TotalAlloc
+	}
+	_, one := measure(ops[:1])
+	p, many := measure(ops)
+	// A generous allocation-growth guard, not a new product memory budget.
+	// It permits different indexes/implementations while rejecting N OPF copies.
+	if many > one+(64<<20) {
+		t.Fatalf("operation count multiplies OPF allocations: one=%d bytes, 32=%d bytes", one, many)
+	}
+	t.Logf("Plan allocation: one=%d bytes, 32=%d bytes", one, many)
+	e := applyPlan(t, w, p)
+	coreAssertFiles(t, filepath.Join(dir, candidate), want)
+	runtime.GC()
+	var beforeDiff, afterDiff runtime.MemStats
+	runtime.ReadMemStats(&beforeDiff)
+	r, err := w.TaskDiff(e.TaskID)
+	runtime.ReadMemStats(&afterDiff)
+	diffBytes := afterDiff.TotalAlloc - beforeDiff.TotalAlloc
+	if diffBytes > 256<<20 {
+		t.Fatalf("diff multiplies OPF allocations: %d bytes", diffBytes)
+	}
+	t.Logf("32-operation diff allocation: %d bytes", diffBytes)
+	if err != nil || !r.MatchesExecution || len(r.Operations) != len(ops) {
+		t.Fatalf("large mixed resource diff: %+v %v", r, err)
+	}
+	for i, actual := range r.Operations {
+		if actual.NewValue == nil || *actual.NewValue != fmt.Sprintf("U%d", i) {
+			t.Fatalf("operation %d actual value: %+v", i, actual)
+		}
+	}
+	if _, err := w.Reject(e.TaskID); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := Open(dir)
+	if err != nil {
+		t.Fatal("large rejected history reopen", err)
+	}
+	defer reopened.Close()
+	if _, err := reopened.TaskStatus(e.TaskID); err != nil {
+		t.Fatal("large rejected history", err)
 	}
 }
