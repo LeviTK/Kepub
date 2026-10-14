@@ -1,10 +1,10 @@
 # 下一任务：B5 资源新增与 OPF 清单原子维护
 
-状态：**契约准入计划，未冻结、未编码。** 所属 [B5 #48](https://github.com/LeviTK/Kepub/issues/48)，父项#33；原B5.1–B5.3清单完整保留。此计划不提前注册available能力、不扩旧schema、不关闭Issue。用户本轮只要求制定下一步，不推导产品编码授权。
+状态：**契约准入计划，未冻结、未编码。** 所属 [B5 #48](https://github.com/LeviTK/Kepub/issues/48)，父项#33；原B5.1–B5.3清单完整保留。此计划不提前注册available能力、不扩旧schema、不关闭Issue。用户已授权推进P0契约设计，产品编码仍须准入通过后另获授权。
 
 ## 目标、依赖与非目标
 
-将作者明确提供的新资源字节和对应manifest条目纳入同一个原生事务，供后续 [C1 #49](https://github.com/LeviTK/Kepub/issues/49) 章节新增、E3封面/图片使用。前置B1/B2已在main交付；B3已由PR76合并。产品基线217d42b/e0f88851，后续纯文档提交须另核适用性，不把编码分支当origin/main。
+将作者明确提供的新资源字节和对应manifest条目纳入同一个原生事务，供后续 [C1 #49](https://github.com/LeviTK/Kepub/issues/49) 章节新增、E3封面/图片使用。前置B1/B2已在main交付；B3已由PR76合并，后续实体属性与rejected来源修复由[PR #79](https://github.com/LeviTK/Kepub/pull/79)交付。当前产品基线[cdc35fe](https://github.com/LeviTK/Kepub/commit/cdc35feb5330564ab25f7da085578f439b1404b0)/8850ea9b9478ebd6b5a18dfd353f3e4178bbc9eb；旧计划基线217d42b/e0f88851仅为历史记录。后续纯文档提交须另核适用性，不把编码分支当origin/main。
 
 非目标：联网抓取、任意shell/XML patch、删除/改名既有资源、字体嵌入、EPUB2隐式升级、自动拆章、spine重排、GUI或完整M1。C1负责章节/spine；nav生成/同步属C2，不能把B5的manifest properties当完整导航维护。
 

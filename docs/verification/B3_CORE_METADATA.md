@@ -40,3 +40,17 @@ Go1.27.1、Java17、EPUBCheck5.3.0；GOMAXPROCS2/GOMEMLIMIT1GiB/Java Xmx512m。�
 ## 历史压力文件归属
 
 `original-perf.*` 是HEAD为f1但已有未提交修复的working-tree运行，不是未修复f1压力测试；`fixed-perf.*`才是7840155固定提交运行。red是隔离f1加移植回归测试的断言失败，不是OOM；提交前green/focused日志不改称固定提交执行。新文档不修改原归档、历史失败或任何批准身份。
+
+<a id="后续修复pr-79"></a>
+
+## 后续修复：PR #79
+
+此附录不改写以上B3首交付与alpha.1记录。[PR #79](https://github.com/LeviTK/Kepub/pull/79)修复[#78](https://github.com/LeviTK/Kepub/issues/78)的显式已知实体属性只读选择，补充混合v1/v2的Plan/diff/history分配回归，并将真实BaseRevision绑定扩展到全部确定性rejected编辑历史。AttributeExplicit不授予AttributeBytes写权限，unknown/default/实体生成标签仍拒绝；旧记录格式/摘要/策略资格及手工候选路径不变，旧schema伪造来源现在明确拒绝。
+
+- 两个精确输入分别独立接受：[0f0b173](https://github.com/LeviTK/Kepub/commit/0f0b173007a8519b4238e3c323aea64080031fb7)/32f745b824df7505e1a0279d867ebabdba9c3a96仅覆盖#78及schema8来源；[e058e4b](https://github.com/LeviTK/Kepub/commit/e058e4b39990d0cce3c3ab287b0f42e70d4e2405)/8850ea9b9478ebd6b5a18dfd353f3e4178bbc9eb仅覆盖P-1增量。批准不在输入之间迁移。
+- 作者e058固定树普通/race各2034 PASS、1私有书SKIP、0 FAIL，12测试包PASS、2无测试包SKIP；vet exit0，race无DATA RACE。一次性4G/swap0，普通07:33:06–07:47:49Z、race07:47:49–08:19:50Z；独立reviewer自行解析并核收，这是作者执行，不称reviewer全仓重跑。
+- reviewer独立受影响三包普通/race各1230 PASS、1私有书SKIP；旧schema伪造11例断言red，合法15及schema8伪造4正控通过；变异3/3被杀死。schema2、4–7伪造病例未单独构造，reviewer race CLI和Mac未测；TaskStatus重复遍历revision链成本属非阻塞。
+- 父端最终head组合08:28:46–08:30:52Z，一次性3G/swap0，4项顶层、84 PASS、0 FAIL/SKIP；包含实体字节oracle、混合分配及真实候选diff、合法/伪来源history/recovery，以及ordinary和真正race-built子CLI的imported/native checker接受→导出→重开完整ZIP字节oracle。分配计数不是RSS或新增产品预算。
+- e058作者归档289394 bytes / SHA256 52a5a2653341cd483c426f8588f85f3da15cfc3542a4133a6d0d1d67d5150492；相对清单27/27 OK。reviewer最终报告SHA256 1d13dd40291fb6a2c6fb92523e35dccb75194074b6f110b538933e158edde4b5；0f报告731313fc44d7818b5fa5fb15c7a6beba96f76dea2d39202ee1a18e27cdec67b1。e058定向race原日志被全仓同名日志覆盖，如实记为缺失；完整全仓race保留，包含全部30个绑定叶例PASS，不冒称定向原日志存在。
+- [准确head CI run 38544920141](https://github.com/LeviTK/Kepub/actions/runs/38544920141) 09:47:24–10:38:10Z success，实际head为e058e4b；必需检查来源Actions15368。此处只记GitHub状态，未独立下载该run日志解析计数，不把作者计数当CI计数。
+- 10:38:54Z合并为[cdc35fe](https://github.com/LeviTK/Kepub/commit/cdc35feb5330564ab25f7da085578f439b1404b0)；base未漂移，fresh-fetch完整tree与已审head相同。复用准确head证据，不称main新跑CI；[收尾评估](https://github.com/LeviTK/Kepub/pull/79#issuecomment-6166475521)。#78随后按原范围关闭，未替换alpha.1包或发行新版本。

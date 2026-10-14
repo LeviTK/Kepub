@@ -126,7 +126,9 @@ F3 至少使用公开合成的多章书，含非对称章节顺序、标题/段�
 
 2026-10-13 首增量原生 `workspace create --definition` 已经 [PR #75](https://github.com/LeviTK/Kepub/pull/75) 合并主线，复用正文/标题编辑、计划/执行、审阅/接受或拒绝、正式导出与重开；产品/测试及最终文档获独立审查与父验收，准确 head CI 普通/race/vet/build 通过。合并树相同，核适用性后复用，不称主线新跑；B1 #44、B2 #45 按授权和原清单关闭，父项及 #64 保持开放。契约见 [CLI §2.0.1](CLI_CONTRACT.md#201-原生-epub3-最小新建-v12026-10-13-冻结)，完整执行与交付见 [首增量收据](verification/NATIVE_EPUB3_MINIMUM.md)。2026-10-14 B3 #46 的 metadata v2/schema 8 与 accepted-only metadata 查询已通过固定树独立审查、父验收及精确head CI，经 [PR #76](https://github.com/LeviTK/Kepub/pull/76) 合并并按原清单关闭；规则见 [CLI §2.12](CLI_CONTRACT.md#212-b3-核心元数据-v2-实施契约已冻结尚未实现)。已发布Linux amd64 v0.1.0-alpha.1预览，非Mac/稳定安装包；执行、复用评估及发行验证见 [B3 收据](verification/B3_CORE_METADATA.md)。封面/图片、创建后的资源新增、章节重排、两层目录与完整 F3 仍待实现，不能计为全部 M1 或关闭父 Issue；无部署。
 
-下一任务为 [B5 #48 的契约准入计划](B5_RESOURCE_PLAN.md)：先冻结输入来源、完整资源/manifest最终状态、版本与混合许可、预算、diff/history/recovery；然后按普通资源原子新增、必要properties两增量实现，全部清单满足后才关闭。当前只制定计划，未冻结、未获产品编码授权；C1章节新增/顺序在B3/B5后，B4扩展元数据仍属M2，不插队。
+后续B3维护由[PR #79](https://github.com/LeviTK/Kepub/pull/79)交付，修复显式实体属性的只读选择与确定性rejected历史真实来源绑定，#78已按原范围关闭；完整证据和发行包不随源码修复替换的边界见[B3附录](verification/B3_CORE_METADATA.md#后续修复pr-79)。当前产品基线为cdc35fe/8850ea9b，alpha.1仍指向旧217d42b。
+
+下一任务为 [B5 #48 的契约准入计划](B5_RESOURCE_PLAN.md)：先冻结输入来源、完整资源/manifest最终状态、版本与混合许可、预算、diff/history/recovery；然后按普通资源原子新增、必要properties两增量实现，全部清单满足后才关闭。用户已授权推进P0契约设计，当前未冻结、未获产品编码授权；C1章节新增/顺序在B3/B5后，B4扩展元数据仍属M2，不插队。
 
 ## 1. 产品定位与范围
 
