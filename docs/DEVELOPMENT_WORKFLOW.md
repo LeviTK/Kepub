@@ -120,7 +120,17 @@ CI artifact 目前保留14天；关闭批次前将可公开的必要验收收据
 
 获授权创建/交付 PR 后，订阅评论/审查和准确 head SHA 的 CI；head 改变时更新相应 CI 跟踪。主线只有评估决定运行 CI 后才跟踪对应输入，不对预期无运行的合并反复等待或重试。通知是待核事实，不授权修复后 push、合并或发布。没有检查不等于通过；一次 job 成功也不等于全部门禁通过。
 
-分支保护、required checks、审批策略是远端设置，须单独获准并实际核验；流程文档不能代替 GitHub 强制门禁。本次流程维护不修改远端设置、不自动发布或关闭 Issue。
+分支保护、required checks、审批策略是远端设置，须单独获准并实际核验；流程文档不能代替 GitHub 强制门禁，也不自动授权发布或关闭 Issue。
+
+### 5.1 硬性规定的唯一来源与执行
+
+- **规则定义入库：** CLI_CONTRACT定义版本化行为，AGENTS定义目录约束，本文件定义交付协议；代码与永久测试执行产品不变量。Issue/PR只写本批范围、授权、固定身份和结果，引用规则而不维护第二套契约。私有本地文件/聊天不是团队规则的唯一来源。
+- **主线必须经PR：** 不直接推main、不强推/删除主线、不为赶进度绕过CI；合并前head必须通过准确来源的现有 `Linux core / test, race, vet, build`，与最新base相容，审阅讨论已解决，并具备本批要求的独立固定树批准和父验收。纯文档本地检查不必重跑Go，但PR自动CI仍单独记录，不伪造绿色状态。合并后是否重复CI仍按前述适用性评估。
+- **不冒充多人审批：** 当前只有一个GitHub管理者；拟定ruleset要求PR、讨论解决和CI，但GitHub approving review count为0，不把作者自审记为独立批准。独立线程/checkout的精确输入报告仍是项目必需门槛；以后有独立GitHub reviewer时另获授权设置审批人数/CODEOWNERS。
+- **压力执行硬隔离：** 探针一次性运行，整个进程组使用操作系统/容器级硬内存限额、禁swap和超时；不能把可能OOM的测试放进失败自动重启服务。GOMEMLIMIT/Java Xmx是软调优，不代替硬隔离；OOM、取消或工具错误不算PASS，重启后先确认旧压力进程已停止。
+- **发行不可挪用：** 发布只针对获授权的精确tag/commit及实际验证的平台；先校验包/许可证/依赖和真实binary，再上传、回下载核hash。不得移动/复用已发布tag或用同名资产静默替换；未测Mac、不完整M1不能包装为稳定全平台发行。
+
+**远端落地状态（2026-10-14）：** 用户已授权配置main门禁，但GitHub API返回403 `Resource not accessible by integration`；再次GET确认rulesets为空、main protected=false，尚未生效。声明文档已提交不等于GitHub已强制执行。[版本化ruleset payload](../.github/rulesets/main.json)不被GitHub自动加载；须仓库管理者在[Rules设置](https://github.com/LeviTK/Kepub/settings/rules)配置，或用具备Administration写权限的凭据显式应用后再GET核验。配置目标：main、active、无bypass actor、PR仅merge、禁止强推/删除、讨论解决、strict latest-base CI、检查来源GitHub Actions integration15368。不得通过降级规则或升级模型绕过权限失败。
 
 ## 6. 进度与收尾
 
