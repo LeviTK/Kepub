@@ -614,95 +614,130 @@ func TestCoreMetadataPlanAllocationScaling(t *testing.T) {
 }
 
 func TestCoreMetadataRejectedCheckpointBinding(t *testing.T) {
-	for _, boundary := range []string{"history", "history-advanced", "recovery-archived"} {
-		for _, forged := range []bool{false, true} {
-			t.Run(fmt.Sprintf("%s/forged=%v", boundary, forged), func(t *testing.T) {
-				if boundary == "history-advanced" {
-					requireChecker(t)
+	for _, flavor := range []string{"schema8", "schema1", "schema3", "schema1-initial-policy"} {
+		t.Run(flavor, func(t *testing.T) {
+			for _, boundary := range []string{"history", "history-advanced", "history-noninitial", "recovery-archived"} {
+				if flavor == "schema1-initial-policy" && boundary == "history-noninitial" {
+					continue // This historical policy is valid only against initial.
 				}
-				w, dir, _ := multiWorkspace(t)
-				baseline := coreFiles(t, filepath.Join(dir, revision))
-				p := corePlan(t, w, coreOp(t, w, "title", "title", "Title", "Title"))
-				e := applyPlan(t, w, p)
-				if _, err := w.Reject(e.TaskID); err != nil {
-					t.Fatal(err)
-				}
-				if boundary == "history-advanced" {
-					next := applyPlan(t, w, corePlan(t, w, coreOp(t, w, "title", "title", "Title", "Accepted later")))
-					if _, err := w.Accept(context.Background(), next.TaskID, validation.Options{}); err != nil {
-						t.Fatal(err)
-					}
-				}
-				if forged {
-					task := "tasks/" + e.TaskID
-					checkpoint := task + "/checkpoints/" + e.Checkpoint
-					b := bytes.Replace(baseline[coreOPFPath], []byte(">Title</dc:title>"), []byte(">Other</dc:title>"), 1)
-					put(t, filepath.Join(dir, checkpoint, "pub", coreOPFPath), b)
-					put(t, filepath.Join(dir, task, "work/pub", coreOPFPath), b)
-					tree, err := w.hashAt(checkpoint + "/pub")
-					if err != nil {
-						t.Fatal(err)
-					}
-					s := p.Operations[0].Params.(metadata.SetV2)
-					s.ExpectedOldValue, s.NewValue = "Other", "Other"
-					s.ResourceSHA256 = fmt.Sprintf("%x", sha256.Sum256(b))
-					p.Operations[0].Params = s
-					p.OperationSetSHA256, p.InputTreeSHA256 = digest(p.Operations), tree.SHA256
-					d, err := w.recomputeAt(p.Operations, checkpoint+"/pub", p.BaseRevision, planReferenceVersion(p))
-					if err != nil {
-						t.Fatal(err)
-					}
-					p.WriteSet = d.writes
-					var start Execution
-					if err := readEditJSON(w.root, task+"/edit-start.json", &start); err != nil {
-						t.Fatal(err)
-					}
-					start.Plan, e.Plan = p, p
-					start.Diff, e.Diff = compareTrees(tree, tree), compareTrees(tree, tree)
-					decision := Decision{Version: 1, TaskID: e.TaskID, Status: "rejected", BaseRevision: p.BaseRevision, TreeSHA256: tree.SHA256}
-					for name, record := range map[string]any{
-						checkpoint + "/checkpoint.json": Snapshot{Version: 1, ID: e.Checkpoint, BaseRevision: p.BaseRevision, Tree: tree},
-						task + "/edit-intent.json":      p, task + "/edit-start.json": start, task + "/edit-result.json": e,
-						task + "/decision.json": decision, "plans/" + p.ID + ".json": p,
-						"plans/" + p.ID + ".used.json": planUse{1, e.TaskID, digest(p)},
-					} {
-						put(t, filepath.Join(dir, filepath.FromSlash(name)), editJSON(t, record))
-					}
-				}
-				if boundary == "recovery-archived" {
-					task := "tasks/" + e.TaskID
-					var record taskRecord
-					var start Execution
-					var decision Decision
-					for name, out := range map[string]any{"task.json": &record, "edit-start.json": &start, "decision.json": &decision} {
-						if err := readEditJSON(w.root, task+"/"+name, out); err != nil {
+				for _, forged := range []bool{false, true} {
+					t.Run(fmt.Sprintf("%s/forged=%v", boundary, forged), func(t *testing.T) {
+						if boundary == "history-advanced" || boundary == "history-noninitial" {
+							requireChecker(t)
+						}
+						w, dir, _ := multiWorkspace(t)
+						if boundary == "history-noninitial" {
+							next := applyPlan(t, w, corePlan(t, w, coreOp(t, w, "title", "title", "Title", "Title")))
+							if _, err := w.Accept(context.Background(), next.TaskID, validation.Options{}); err != nil {
+								t.Fatal(err)
+							}
+						}
+						baseline := coreFiles(t, filepath.Join(dir, revision))
+						p := corePlan(t, w, coreOp(t, w, "title", "title", "Title", "Title"))
+						if flavor != "schema8" {
+							ops := []Operation{metadataOp("title", "title", "Title", "Title")}
+							version := 1
+							if flavor == "schema3" {
+								version = 3
+								ops = append(ops, metadataOp("creator", "creator", "Writer", "Writer"))
+							}
+							var err error
+							p, err = w.Plan(editJSON(t, Request{version, ops}))
+							if err != nil {
+								t.Fatal(err)
+							}
+							if flavor == "schema1-initial-policy" {
+								p.PolicySHA256 = digest(legacyEditPolicy)
+								put(t, filepath.Join(dir, "plans", p.ID+".json"), editJSON(t, p))
+							}
+						}
+						e := applyPlan(t, w, p)
+						if _, err := w.Reject(e.TaskID); err != nil {
 							t.Fatal(err)
 						}
-					}
-					j := settlement{Version: 1, WorkspaceID: w.id, Decision: decision, TaskSHA256: digest(record), IntentSHA256: digest(p), StartSHA256: digest(start), ResultSHA256: digest(e)}
-					if err := writeJSON(w.root, settlementJournal, j); err != nil {
-						t.Fatal(err)
-					}
+						if boundary == "history-advanced" {
+							next := applyPlan(t, w, corePlan(t, w, coreOp(t, w, "title", "title", "Title", "Accepted later")))
+							if _, err := w.Accept(context.Background(), next.TaskID, validation.Options{}); err != nil {
+								t.Fatal(err)
+							}
+						}
+						if forged {
+							task := "tasks/" + e.TaskID
+							checkpoint := task + "/checkpoints/" + e.Checkpoint
+							b := bytes.Replace(baseline[coreOPFPath], []byte(">Title</dc:title>"), []byte(">Other</dc:title>"), 1)
+							put(t, filepath.Join(dir, checkpoint, "pub", coreOPFPath), b)
+							put(t, filepath.Join(dir, task, "work/pub", coreOPFPath), b)
+							tree, err := w.hashAt(checkpoint + "/pub")
+							if err != nil {
+								t.Fatal(err)
+							}
+							switch s := p.Operations[0].Params.(type) {
+							case metadata.SetV2:
+								s.ExpectedOldValue, s.NewValue = "Other", "Other"
+								s.ResourceSHA256 = fmt.Sprintf("%x", sha256.Sum256(b))
+								p.Operations[0].Params = s
+							case metadata.Set:
+								s.ExpectedOldValue, s.NewValue = "Other", "Other"
+								p.Operations[0].Params = s
+							}
+							p.OperationSetSHA256, p.InputTreeSHA256 = digest(p.Operations), tree.SHA256
+							d, err := w.recomputeAt(p.Operations, checkpoint+"/pub", p.BaseRevision, planReferenceVersion(p))
+							if err != nil {
+								t.Fatal(err)
+							}
+							p.WriteSet = d.writes
+							var start Execution
+							if err := readEditJSON(w.root, task+"/edit-start.json", &start); err != nil {
+								t.Fatal(err)
+							}
+							start.Plan, e.Plan = p, p
+							start.Diff, e.Diff = compareTrees(tree, tree), compareTrees(tree, tree)
+							decision := Decision{Version: 1, TaskID: e.TaskID, Status: "rejected", BaseRevision: p.BaseRevision, TreeSHA256: tree.SHA256}
+							for name, record := range map[string]any{
+								checkpoint + "/checkpoint.json": Snapshot{Version: 1, ID: e.Checkpoint, BaseRevision: p.BaseRevision, Tree: tree},
+								task + "/edit-intent.json":      p, task + "/edit-start.json": start, task + "/edit-result.json": e,
+								task + "/decision.json": decision, "plans/" + p.ID + ".json": p,
+								"plans/" + p.ID + ".used.json": planUse{1, e.TaskID, digest(p)},
+							} {
+								put(t, filepath.Join(dir, filepath.FromSlash(name)), editJSON(t, record))
+							}
+						}
+						if boundary == "recovery-archived" {
+							task := "tasks/" + e.TaskID
+							var record taskRecord
+							var start Execution
+							var decision Decision
+							for name, out := range map[string]any{"task.json": &record, "edit-start.json": &start, "decision.json": &decision} {
+								if err := readEditJSON(w.root, task+"/"+name, out); err != nil {
+									t.Fatal(err)
+								}
+							}
+							j := settlement{Version: 1, WorkspaceID: w.id, Decision: decision, TaskSHA256: digest(record), IntentSHA256: digest(p), StartSHA256: digest(start), ResultSHA256: digest(e)}
+							if err := writeJSON(w.root, settlementJournal, j); err != nil {
+								t.Fatal(err)
+							}
+						}
+						w.Close()
+						w, err := Open(dir)
+						if err == nil {
+							defer w.Close()
+							_, err = w.TaskStatus(e.TaskID)
+						}
+						if forged && err == nil {
+							t.Fatal("self-consistent checkpoint accepted as the real frozen revision")
+						}
+						if !forged && err != nil {
+							t.Fatal("legal rejected history", err)
+						}
+						coreAssertFiles(t, filepath.Join(dir, revision), baseline)
+						if forged && boundary == "recovery-archived" {
+							if _, err := os.Stat(filepath.Join(dir, settlementJournal)); err != nil {
+								t.Fatal("forged recovery consumed the journal", err)
+							}
+						}
+					})
 				}
-				w.Close()
-				w, err := Open(dir)
-				if err == nil {
-					defer w.Close()
-					_, err = w.TaskStatus(e.TaskID)
-				}
-				if forged && err == nil {
-					t.Fatal("self-consistent checkpoint accepted as the real frozen revision")
-				}
-				if !forged && err != nil {
-					t.Fatal("legal rejected history", err)
-				}
-				coreAssertFiles(t, filepath.Join(dir, revision), baseline)
-				if forged && boundary == "recovery-archived" {
-					if _, err := os.Stat(filepath.Join(dir, settlementJournal)); err != nil {
-						t.Fatal("forged recovery consumed the journal", err)
-					}
-				}
-			})
-		}
+			}
+		})
 	}
 }

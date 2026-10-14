@@ -1438,9 +1438,9 @@ func (w *Workspace) taskDigests(dir string, j *settlement) error {
 		return fmt.Errorf("settlement operation/execution version mismatch")
 	}
 	// Accepted revision chains already cross-check their parent tree. Rejected
-	// schema 8 history has no such chain: self-consistent checkpoint/plan copies
+	// history has no such chain: self-consistent checkpoint/plan copies
 	// must still bind to the plan's real revision, not the current accepted tree.
-	if p.SchemaVersion == 8 && j.Decision.Status == "rejected" {
+	if j.Decision.Status == "rejected" {
 		base, err := w.readRevision(p.BaseRevision)
 		if err != nil {
 			return err
