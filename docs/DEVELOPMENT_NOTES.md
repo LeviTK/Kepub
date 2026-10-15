@@ -17,6 +17,22 @@
 `23a73d77ec0057ba6548530607d2bb751b036444`，medium 封存包 505592 B，SHA256
 `1fd7a62854275c7dfa0028dd7964c074c0e15d7f571800589503d8c35f208dcd`；父核清单 98 项全部 OK。12 个阻塞负子例普通/race FAIL 与全仓普通/race/vet PASS 同时成立。此处引用既有封存证据，不声称重跑。后续新树修复不改写这次拒绝；此记录不扩大到完整 T2、T3–T6、Mac 或断电。
 
+## G-CI-SOURCE：分流消费者也须核来源
+
+- 规则→失效模式→回归：未列文档白名单的改动必须完整验证 → CI 从 PR head 执行分类器，
+  同一 PR 把 route 改成恒 docs 并改 Go 文件即可错误降级 →
+  Python 永久入口 `test_workflow_uses_base_classifier_not_modified_head`
+  直接执行实际 workflow 分类 shell，核干净 docs、恶意 head＋产品混合、缺 base 分类器；
+  shell 从准确 base 取分类器，初次安装/未知输入走 full，分类后才执行 head 控制测试。
+- c2b49866f0ef88ccbec8e6062f37f432937b4836 的独立审查以 F-1 拒绝，父端在未改 workflow
+  的旧内容上确认 `docs != full` 断言 red；不以脚本正反测试通过代替消费者来源证明。
+- 文档 code span 不跨空行 → 全文 DOTALL 正则把未闭合反引号与下一段反引号配对，
+  吞掉 GitHub 可见坏链 → `test_code_span_cannot_hide_link_in_next_paragraph` 核原 F-5
+  坏链拒绝及合法同段多行代码正控；同旧内容上原坏链返回0而断言 red。
+- 原独立报告和父 red 日志保留，不因修复迁移批准；本地 shell/链接验证不冒称 hosted
+  workflow 或产品 PASS。必需检查绿色的收据须同时引用 mode/product_tests。
+  精确 base 的分类器防止本 PR 修改分类器自我豁免，不是任意 PR 代码/工作流的安全沙箱。
+
 ## G-FINAL：最终状态的单位必须正确
 
 - 全事务统一收集后判定，不因资源分组或操作顺序而变。
